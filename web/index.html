@@ -424,8 +424,7 @@
   .login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:36px 32px}
   .login-brand{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:26px}
   .login-brand .brand-logo{width:52px;height:52px;border-radius:14px}
-  .login-logo-box{background:#161c2b;border-radius:14px;padding:14px 22px;display:inline-flex;align-items:center;justify-content:center}
-  .login-logo-box img{height:30px;width:auto;display:block}
+  .login-brand img{height:34px;width:auto;display:block}
   .login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:22px}
   .login-field{margin-bottom:16px}
   .pass-wrap{position:relative}
@@ -490,7 +489,7 @@
     </div>
     <div class="login-card">
       <div class="login-brand">
-        <div class="login-logo-box"><img src="./static/logo.png" alt="OpsMini"></div>
+        <img src="./static/logo.png" alt="OpsMini">
         <div class="brand-sub" style="color:var(--t3)">{{ t('brand.tagline') }}</div>
       </div>
       <div class="login-title">{{ mfaRequired ? t('mfa.title') : t('login.title') }}</div>
