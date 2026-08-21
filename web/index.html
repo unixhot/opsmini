@@ -60,6 +60,10 @@
   /* ===== 侧边栏 ===== */
   .brand{display:flex;align-items:center;gap:10px;padding:18px 18px 16px;border-bottom:1px solid var(--sb-border);position:relative}
   .brand-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+  .brand-logo-img{height:22px;width:auto;display:block;flex:none}
+  .brand-logo-collapsed{display:none}
+  .sidebar.collapsed .brand-logo-img{display:none}
+  .sidebar.collapsed .brand-logo-collapsed{display:flex}
   .brand-name{color:#fff;font-weight:700;font-size:16px;letter-spacing:.3px}
   .brand-sub{font-size:11px;color:var(--sb-text);margin-top:1px}
   .nav{flex:1;overflow-y:auto;padding:10px 10px 20px;scrollbar-width:thin;scrollbar-color:var(--sb-border) transparent}
@@ -420,6 +424,8 @@
   .login-card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:36px 32px}
   .login-brand{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:26px}
   .login-brand .brand-logo{width:52px;height:52px;border-radius:14px}
+  .login-logo-box{background:#161c2b;border-radius:14px;padding:14px 22px;display:inline-flex;align-items:center;justify-content:center}
+  .login-logo-box img{height:30px;width:auto;display:block}
   .login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:22px}
   .login-field{margin-bottom:16px}
   .pass-wrap{position:relative}
@@ -484,8 +490,8 @@
     </div>
     <div class="login-card">
       <div class="login-brand">
-        <div class="brand-logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="3.5"/></svg></div>
-        <div style="text-align:center"><div class="brand-name" style="font-size:20px">OpsMini</div><div class="brand-sub" style="color:var(--t3)">{{ t('brand.tagline') }}</div></div>
+        <div class="login-logo-box"><img src="./static/logo.png" alt="OpsMini"></div>
+        <div class="brand-sub" style="color:var(--t3)">{{ t('brand.tagline') }}</div>
       </div>
       <div class="login-title">{{ mfaRequired ? t('mfa.title') : t('login.title') }}</div>
       <div class="login-field" v-if="!mfaRequired">
@@ -530,12 +536,9 @@
   <!-- ==================== 侧边栏 ==================== -->
   <aside class="sidebar" :class="{open: mobileNavOpen, collapsed: sidebarCollapsed}">
     <div class="brand">
-      <div class="brand-logo" @click="goDashboard" :title="t('misc.goDashboard')" style="cursor:pointer">
+      <img src="./static/logo.png" alt="OpsMini" class="brand-logo-img" @click="goDashboard" :title="t('misc.goDashboard')" style="cursor:pointer">
+      <div class="brand-logo brand-logo-collapsed" @click="goDashboard" :title="t('misc.goDashboard')" style="cursor:pointer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="3.5"/></svg>
-      </div>
-      <div class="brand-text" @click="goDashboard" :title="t('misc.goDashboard')" style="cursor:pointer">
-        <div class="brand-name">OpsMini</div>
-        <div class="brand-sub">{{ t('brand.tagline') }}</div>
       </div>
     </div>
     <nav class="nav">
