@@ -43,3 +43,4 @@
 - 无头 Chrome 渲染截图验证 UI（`--headless=new --no-sandbox`）。
 - 注意：JS 对象字面量重复键会静默覆盖（Vue 不报错），测试临时改 data 时别新增同名键。
 - 后端实测流程：编译 → 后台启动 `run_in_background` → curl 登录拿 token → 测接口 → TaskStop 停服。
+- **Git 提交**：项目已接入 git 仓库（远程 `https://codeup.aliyun.com/womaiyun/womaiyun/opsmini.git`，分支 `main`）。每轮开发完成（部署验证通过后）需 `git add -A && git commit -m "..." && git push` 推送代码。
