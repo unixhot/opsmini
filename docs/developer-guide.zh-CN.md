@@ -1,4 +1,14 @@
-# OpsMini 开发者手册
+<div align="center">
+
+# OpsMini Developer Guide
+
+**开发者手册**
+
+[English](developer-guide.md) · [简体中文](developer-guide.zh-CN.md) · [繁體中文](developer-guide.zh-TW.md) · [日本語](developer-guide.ja.md) · [한국어](developer-guide.ko.md) · [ไทย](developer-guide.th.md) · [Deutsch](developer-guide.de.md)
+
+</div>
+
+---
 
 > 版本：v1.0.0 · 语言：简体中文 · [English](developer-guide.md)
 

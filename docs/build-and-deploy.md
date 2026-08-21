@@ -1,24 +1,34 @@
-# OpsMini 构建与部署手册
+<div align="center">
 
-> 版本：v1.0  
-> 适用：从源码构建到生产部署的完整流程
+# OpsMini Build & Deployment
+
+**Build & Deployment Guide**
+
+[English](build-and-deploy.md) · [简体中文](build-and-deploy.zh-CN.md) · [繁體中文](build-and-deploy.zh-TW.md) · [日本語](build-and-deploy.ja.md) · [한국어](build-and-deploy.ko.md) · [ไทย](build-and-deploy.th.md) · [Deutsch](build-and-deploy.de.md)
+
+</div>
 
 ---
 
-## 1. 前置依赖
+> Version: v1.0  
+> Scope: the complete workflow from building from source to production deployment
 
-| 依赖 | 版本要求 | 说明 |
+---
+
+## 1. Prerequisites
+
+| Dependency | Version Requirement | Description |
 |------|----------|------|
-| Go | **1.25+** | 纯 Go 驱动无 CGO，任意平台可直接交叉编译 |
-| 内存 | ≥ 512MB | 构建与运行均轻量 |
-| 目标主机 | Linux / macOS | 服务器场景面向 Linux x64 / arm64；macOS 仅用于开发调试 |
+| Go | **1.25+** | Pure Go with no CGO; cross-compilation works directly on any platform |
+| Memory | ≥ 512MB | Lightweight for both build and runtime |
+| Target host | Linux / macOS | Server scenarios target Linux x64 / arm64; macOS is for development and debugging only |
 
-> **为什么无需 CGO 工具链**：SQLite 驱动采用 `github.com/glebarez/sqlite`（纯 Go 实现），
-> 因此 `CGO_ENABLED=0` 即可在任意平台上交叉编译出**静态链接**的二进制，无需为每个目标架构单独配置 C 交叉编译器。
+> **Why no CGO toolchain is required**: the SQLite driver uses `github.com/glebarez/sqlite` (a pure Go implementation),
+> so `CGO_ENABLED=0` can cross-compile a **statically linked** binary on any platform, without configuring a separate C cross-compiler for each target architecture.
 
 ---
 
-## 2. 获取代码与依赖
+## 2. Get the code and dependencies
 
 ```bash
 git clone <仓库地址> opsmini
@@ -32,16 +42,16 @@ go mod tidy
 
 ---
 
-## 3. 构建
+## 3. Build
 
-### 3.1 编译当前平台
+### 3.1 Compile for the current platform
 
 ```bash
 make build
 # 产物：dist/opsmini
 ```
 
-### 3.2 交叉编译全部目标平台
+### 3.2 Cross-compile for all target platforms
 
 ```bash
 make build-all
@@ -52,16 +62,16 @@ make build-all
 #   dist/opsmini-<version>-darwin-arm64
 ```
 
-| 平台 | 适用场景 |
+| Platform | Use case |
 |------|----------|
-| `linux/amd64` | 主流 x86_64 服务器（生产） |
-| `linux/arm64` | ARM 服务器（Graviton / 树莓派 / 鲲鹏 / 飞腾，生产） |
-| `darwin/amd64` | Intel Mac 开发机（开发调试） |
-| `darwin/arm64` | Apple Silicon 开发机（开发调试） |
+| `linux/amd64` | Mainstream x86_64 servers (production) |
+| `linux/arm64` | ARM servers (Graviton / Raspberry Pi / Kunpeng / Phytium, production) |
+| `darwin/amd64` | Intel Mac development machines (development & debugging) |
+| `darwin/arm64` | Apple Silicon development machines (development & debugging) |
 
-> OpsMini 是面向 **Linux 主机**的面板，仅发布 Linux 安装包；macOS 目标仅用于本地开发调试，不作为交付产物。
+> OpsMini is a panel targeting **Linux hosts**; only Linux installers are released. macOS targets are for local development and debugging only, not for delivery.
 
-### 3.3 版本号注入
+### 3.3 Version injection
 
 ```bash
 # 默认取 git tag / commit，也可显式指定
@@ -72,16 +82,16 @@ make build VERSION=v1.0.0
 # 输出：opsmini v1.0.0 (commit abc1234, built 2026-08-13T07:00:00Z)
 ```
 
-> 正式发版流程：`git tag v1.0.0 && make build-all`，`VERSION` 自动取 tag 名。
+> Official release flow: `git tag v1.0.0 && make build-all`; `VERSION` is automatically taken from the tag name.
 
-### 3.4 其他 Makefile 目标
+### 3.4 Other Makefile targets
 
 ```bash
 make clean     # 清理 dist/
 make version   # 打印当前版本信息
 ```
 
-### 3.5 校验产物架构
+### 3.5 Verify artifact architecture
 
 ```bash
 file dist/*
@@ -90,9 +100,9 @@ file dist/*
 
 ---
 
-## 4. 配置
+## 4. Configuration
 
-配置文件默认路径 `configs/config.yaml`（可用 `-config` 指定）。完整示例：
+The default configuration file path is `configs/config.yaml` (can be specified with `-config`). Complete example:
 
 ```yaml
 server:
@@ -128,15 +138,15 @@ agent:
     - who
 ```
 
-### 环境变量
+### Environment variables
 
-| 变量 | 说明 |
+| Variable | Description |
 |------|------|
-| `OPSMINI_AI_KEY` | AI API Key，**优先于** `ai.api_key`（避免密钥落盘） |
+| `OPSMINI_AI_KEY` | AI API Key, **takes precedence over** `ai.api_key` (avoids writing the key to disk) |
 
 ---
 
-## 5. 运行
+## 5. Run
 
 ```bash
 # 直接运行
@@ -146,29 +156,29 @@ agent:
 ./opsmini -version
 ```
 
-- 首次启动自动建表并写入默认管理员账号
-- 访问 `http://<host>:8888` 即见面板（前端已 embed 进二进制，无需单独部署）
+- On first startup, tables are created automatically and a default admin account is written
+- Visit `http://<host>:8888` to see the panel (the frontend is embedded in the binary; no separate deployment needed)
 
-### 默认账号
+### Default account
 
-| 项 | 值 |
+| Item | Value |
 |----|----|
-| 用户名 | `opsmini`（固定） |
-| 密码 | **首次启动时随机生成**，从启动日志查看 |
+| Username | `opsmini` (fixed) |
+| Password | **Randomly generated on first startup**; check the startup logs |
 
-启动后日志会打印类似：
+After startup, the log prints something like:
 
 ```
 initial admin account created: username=opsmini password=ggFKEX65ZVF6RNTm
 ```
 
-> ⚠️ 请立即记录该密码并登录后修改。密码仅在首次安装时生成一次，之后需通过面板内的「用户管理」修改。
+> ⚠️ Record this password immediately and change it after login. The password is generated only once at first install; afterwards it must be changed via "User Management" in the panel.
 
 ---
 
-## 6. 生产部署（Linux + systemd）
+## 6. Production deployment (Linux + systemd)
 
-### 6.1 目录规划
+### 6.1 Directory layout
 
 ```
 /opt/opsmini/
@@ -178,7 +188,7 @@ initial admin account created: username=opsmini password=ggFKEX65ZVF6RNTm
 └── opsmini.db           # 数据（自动生成，随 data 目录权限而定）
 ```
 
-### 6.2 安装步骤
+### 6.2 Installation steps
 
 ```bash
 # 1. 放置二进制与配置
@@ -194,9 +204,9 @@ sudo sed -i 's|secret: "change-me"|secret: "<随机长串>"|' /opt/opsmini/confi
 sudo chmod +x /opt/opsmini/opsmini
 ```
 
-### 6.3 systemd 服务
+### 6.3 systemd service
 
-创建 `/etc/systemd/system/opsmini.service`：
+Create `/etc/systemd/system/opsmini.service`:
 
 ```ini
 [Unit]
@@ -218,7 +228,7 @@ PrivateTmp=true
 WantedBy=multi-user.target
 ```
 
-启用并启动：
+Enable and start:
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin opsmini || true
@@ -230,7 +240,7 @@ sudo systemctl status opsmini
 
 ---
 
-## 7. 反向代理（可选）
+## 7. Reverse proxy (optional)
 
 ### 7.1 Nginx
 
@@ -254,7 +264,7 @@ server {
 }
 ```
 
-### 7.2 Caddy（自动 HTTPS）
+### 7.2 Caddy (automatic HTTPS)
 
 ```caddyfile
 panel.example.com {
@@ -262,13 +272,13 @@ panel.example.com {
 }
 ```
 
-### 7.3 安全入口
+### 7.3 Secret entry
 
-若配置了 `secret_entry: /opsmini_panel`，则面板路径变为 `http://<host>:8888/opsmini_panel`，可配合反代隐藏真实入口。
+If `secret_entry: /opsmini_panel` is configured, the panel path becomes `http://<host>:8888/opsmini_panel`, which can hide the real entry when combined with a reverse proxy.
 
 ---
 
-## 8. 升级
+## 8. Upgrade
 
 ```bash
 # 1. 备份数据
@@ -282,20 +292,20 @@ sudo cp dist/opsmini-<new>-linux-amd64 /opt/opsmini/opsmini
 sudo systemctl start opsmini
 ```
 
-> SQLite 由 GORM 自动迁移，跨版本升级通常无需手动改表。
+> SQLite is migrated automatically by GORM; cross-version upgrades usually require no manual table changes.
 
 ---
 
-## 9. 常见问题
+## 9. FAQ
 
-| 问题 | 原因 | 解决 |
+| Problem | Cause | Solution |
 |------|------|------|
-| `go mod tidy` 卡住/报 Bad Gateway | `proxy.golang.org` 被墙 | `export GOPROXY=https://goproxy.cn,direct` |
-| 提示 Go 版本过低 | 依赖要求 Go 1.25+ | 下载官方预编译二进制，见下 |
-| 构建报 `vendor` 目录冲突 | 项目内 `vendor/` 与 Go 模块 vendor 约定冲突 | 前端依赖目录已改名 `static/`，勿再建 `vendor/` |
-| 访问 `/` 返回 301 `./` | `c.FileFromFS` 对 embed.FS 的目录重定向 | 已改用 ReadFile + c.Data 修复（勿回退） |
+| `go mod tidy` hangs / Bad Gateway | `proxy.golang.org` is blocked | `export GOPROXY=https://goproxy.cn,direct` |
+| "Go version too low" error | Dependencies require Go 1.25+ | Download the official precompiled binary, see below |
+| Build reports a `vendor` directory conflict | The project's `vendor/` conflicts with Go module vendor conventions | The frontend dependency directory has been renamed `static/`; do not create `vendor/` again |
+| Accessing `/` returns 301 `./` | `c.FileFromFS` directory redirect for embed.FS | Fixed by using ReadFile + c.Data (do not revert) |
 
-### 安装 Go 1.25+（官方二进制，最快）
+### Install Go 1.25+ (official binary, fastest)
 
 ```bash
 # macOS（Apple Silicon）
@@ -311,12 +321,12 @@ export PATH=/usr/local/go/bin:$PATH
 
 ---
 
-## 10. 交付产物清单
+## 10. Deliverables
 
-| 产物 | 说明 |
+| Artifact | Description |
 |------|------|
-| `opsmini` 单二进制 | 后端 API + 前端 UI + SQLite，约 28~30MB，静态链接 |
-| `configs/config.yaml` | 配置模板 |
-| `opsmini.db` | 首次运行自动生成的数据文件 |
+| `opsmini` single binary | Backend API + frontend UI + SQLite, about 28~30MB, statically linked |
+| `configs/config.yaml` | Configuration template |
+| `opsmini.db` | Data file auto-generated on first run |
 
-> 部署即拷贝二进制 + 配置文件，无其他运行时依赖。
+> Deployment is just copying the binary + config file; no other runtime dependencies.
