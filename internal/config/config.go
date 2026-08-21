@@ -1,0 +1,173 @@
+// Package config loads and parses the OpsMini configuration.
+package config
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"log"
+	"os"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Server holds the server listening configuration.
+type Server struct {
+	Host        string `yaml:"host"`
+	Port        int    `yaml:"port"`
+	SecretEntry string `yaml:"secret_entry"`
+}
+
+// Addr returns the listening address.
+func (s Server) Addr() string {
+	return fmt.Sprintf("%s:%d", s.Host, s.Port)
+}
+
+// Database holds the data storage configuration.
+type Database struct {
+	Path string `yaml:"path"`
+}
+
+// JWT holds the JWT authentication configuration.
+type JWT struct {
+	Secret     string `yaml:"secret"`
+	AccessTTL  int    `yaml:"access_ttl_seconds"`
+	RefreshTTL int    `yaml:"refresh_ttl_seconds"`
+}
+
+// AI holds the AI large language model integration configuration.
+type AI struct {
+	Enabled  bool   `yaml:"enabled"`
+	Provider string `yaml:"provider"` // openai/deepseek/qwen/ollama
+	Model    string `yaml:"model"`
+	BaseURL  string `yaml:"base_url"`
+	APIKey   string `yaml:"api_key"`
+}
+
+// Agent holds the Agent API configuration (external standard REST API authentication).
+type Agent struct {
+	Token    string   `yaml:"token"`           // Agent authentication token; empty disables the Agent API
+	Commands []string `yaml:"allowed_commands"` // command allowlist prefixes (only commands starting with these prefixes are allowed)
+}
+
+// Metrics holds the Prometheus metrics endpoint configuration (node_exporter compatible).
+// Authentication uses HTTP Basic auth (username + password), the only scheme node_exporter
+// targets support natively via Prometheus `basic_auth`. Empty username means no auth.
+type Metrics struct {
+	Enabled  bool   `yaml:"enabled"`  // whether to enable the /metrics endpoint
+	User     string `yaml:"user"`     // basic auth username; empty means no authentication
+	Password string `yaml:"password"` // basic auth password
+}
+
+// Config holds the top-level configuration.
+type Config struct {
+	Server   Server   `yaml:"server"`
+	Database Database `yaml:"database"`
+	JWT      JWT      `yaml:"jwt"`
+	AI       AI       `yaml:"ai"`
+	Agent    Agent    `yaml:"agent"`
+	Metrics  Metrics  `yaml:"metrics"`
+}
+
+// Load loads the configuration from path; returns the default configuration when the file does not exist.
+func Load(path string) (*Config, error) {
+	cfg := defaultConfig()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return cfg, nil
+		}
+		return nil, err
+	}
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func defaultConfig() *Config {
+	return &Config{
+		Server: Server{Host: "0.0.0.0", Port: 8888},
+		Database: Database{
+			Path: "opsmini.db",
+		},
+		JWT: JWT{
+			Secret:     "change-me",
+			AccessTTL:  900,
+			RefreshTTL: 604800,
+		},
+		AI: AI{
+			Enabled:  true,
+			Provider: "openai",
+			Model:    "gpt-4o",
+			BaseURL:  "https://api.openai.com/v1",
+		},
+		Agent: Agent{
+			Commands: []string{"ps", "df", "free", "uptime", "docker", "systemctl", "nginx", "who"},
+		},
+		Metrics: Metrics{
+			Enabled: true,
+		},
+	}
+}
+
+// EnsureSecureSecret ensures the JWT secret is a strong random value.
+// If the current value is a default weak value (empty, "change-me", or too short), it generates a 32-byte random key,
+// updates the in-memory configuration, and attempts to write it back to the config file (preserving comments). A failed write-back only logs a warning and does not affect startup.
+func (c *Config) EnsureSecureSecret(path string) {
+	if c.JWT.Secret != "" && c.JWT.Secret != "change-me" && len(c.JWT.Secret) >= 16 {
+		return
+	}
+	secret, err := randomHex(32)
+	if err != nil {
+		log.Printf("warning: generate jwt secret: %v", err)
+		return
+	}
+	c.JWT.Secret = secret
+	if err := persistJWTSecret(path, secret); err != nil {
+		log.Printf("warning: persist jwt secret to %s: %v (已生成本次运行随机密钥，但未写回，重启后需重新生成)", path, err)
+	} else {
+		log.Printf("已自动生成随机 JWT secret 并写入 %s", path)
+	}
+}
+
+// randomHex returns the hex encoding of n random bytes.
+func randomHex(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// persistJWTSecret updates jwt.secret in the config file using yaml.Node, preserving comments and other fields.
+func persistJWTSecret(path, secret string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return err
+	}
+	if len(doc.Content) == 0 {
+		return fmt.Errorf("empty config document")
+	}
+	root := doc.Content[0]
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value == "jwt" && root.Content[i+1].Kind == yaml.MappingNode {
+			jwtMap := root.Content[i+1]
+			for j := 0; j+1 < len(jwtMap.Content); j += 2 {
+				if jwtMap.Content[j].Value == "secret" {
+					jwtMap.Content[j+1].Value = secret
+					jwtMap.Content[j+1].Style = yaml.DoubleQuotedStyle
+				}
+			}
+		}
+	}
+	out, err := yaml.Marshal(&doc)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, out, 0o600)
+}

@@ -1,0 +1,14 @@
+# 二进制产物
+/opsmini
+/agent
+/proxy
+/dist/
+
+# SQLite 数据文件
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Go 构建缓存
+vendor/

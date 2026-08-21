@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+#
+# OpsMini 安装脚本
+#
+# 功能：
+#   - 默认安装到 /data/opsmini
+#   - 默认端口 8888
+#   - 首次启动随机生成管理员密码，写入 <安装目录>/.init_passwd 并展示
+#   - 注册 systemd 服务 opsmini.service（开机自启）
+#
+# 用法：
+#   ./opsmini-install.sh                     # 自动查找二进制
+#   ./opsmini-install.sh -b ./opsmini        # 指定二进制路径
+#   ./opsmini-install.sh -u https://.../opsmini-linux-amd64.tar.gz  # 从 URL 下载
+#   ./opsmini-install.sh -d /opt/opsmini -p 9999
+#
+set -euo pipefail
+
+# ===== 默认参数 =====
+INSTALL_DIR="/data/opsmini"
+PORT=8888
+HOST="0.0.0.0"
+BINARY=""
+BINARY_URL=""
+NO_SYSTEMD=0
+
+# ===== 颜色 =====
+C_GREEN='\033[0;32m'
+C_YELLOW='\033[1;33m'
+C_RED='\033[0;31m'
+C_BOLD='\033[1m'
+C_RESET='\033[0m'
+
+info()  { echo -e "${C_GREEN}[INFO]${C_RESET} $*"; }
+warn()  { echo -e "${C_YELLOW}[WARN]${C_RESET} $*"; }
+error() { echo -e "${C_RED}[ERROR]${C_RESET} $*"; }
+
+usage() {
+  cat <<EOF
+${C_BOLD}OpsMini 安装脚本${C_RESET}
+
+用法: $0 [选项]
+
+选项:
+  -d, --dir <path>     安装目录（默认 ${INSTALL_DIR}）
+  -p, --port <port>    面板监听端口（默认 ${PORT}）
+  -b, --binary <path>  opsmini 二进制路径（默认自动查找）
+  -u, --url <url>      从 URL 下载二进制（支持 .tar.gz 或裸二进制）
+  -n, --no-systemd     不注册 systemd 服务（仅解压 + 初始化）
+  -h, --help           显示本帮助
+
+示例:
+  $0 -b ./dist/opsmini-dev-linux-amd64
+  $0 -u https://github.com/unixhot/opsmini/releases/download/v1.0.0/opsmini-v1.0.0-linux-amd64.tar.gz
+EOF
+}
+
+# ===== 解析参数 =====
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -d|--dir)    INSTALL_DIR="$2"; shift 2 ;;
+    -p|--port)   PORT="$2"; shift 2 ;;
+    -b|--binary) BINARY="$2"; shift 2 ;;
+    -u|--url)    BINARY_URL="$2"; shift 2 ;;
+    -n|--no-systemd) NO_SYSTEMD=1; shift ;;
+    -h|--help)   usage; exit 0 ;;
+    *) echo "未知参数: $1"; usage; exit 1 ;;
+  esac
+done
+
+# ===== 权限检查 =====
+if [ "$(id -u)" -ne 0 ]; then
+  error "请使用 root 执行（需要写 ${INSTALL_DIR} 和注册 systemd 服务）"
+  exit 1
+fi
+
+# ===== 架构检测 =====
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64|amd64)  GOARCH="amd64" ;;
+  aarch64|arm64) GOARCH="arm64" ;;
+  *) error "不支持的架构: ${ARCH}（仅支持 x86_64 / aarch64）"; exit 1 ;;
+esac
+info "检测到架构: ${ARCH} (${GOARCH})"
+
+# ===== 定位二进制 =====
+resolve_binary() {
+  local candidate=""
+
+  # 1. 显式指定
+  if [ -n "$BINARY" ]; then
+    candidate="$BINARY"
+  fi
+
+  # 2. 脚本同目录下的常见产物
+  if [ -z "$candidate" ]; then
+    local script_dir="$(cd "$(dirname "$0")" && pwd)"
+    for f in \
+      "$script_dir/opsmini" \
+      "$script_dir/opsmini-linux-${GOARCH}" \
+      "$script_dir/dist/opsmini-linux-${GOARCH}" \
+      "$script_dir/dist/opsmini-dev-linux-${GOARCH}" \
+      "$script_dir/../dist/opsmini-linux-${GOARCH}" \
+      "$script_dir/../dist/opsmini-dev-linux-${GOARCH}" \
+      "$script_dir/../opsmini"; do
+      if [ -f "$f" ]; then candidate="$f"; break; fi
+    done
+  fi
+
+  if [ -z "$candidate" ]; then
+    error "未找到 opsmini 二进制，请用 -b 指定路径或 -u 指定下载地址"
+    exit 1
+  fi
+  echo "$candidate"
+}
+
+# ===== 随机生成工具 =====
+rand_str() {
+  # $1 长度；$2 是否去易混淆字符
+  local n="$1" exclude="$2" s
+  s="$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | head -c "$((n*3))")"
+  if [ "$exclude" = "1" ]; then
+    s="$(echo "$s" | tr -d '0O1lI')"
+  fi
+  echo "${s:0:$n}"
+}
+
+# ===== 下载/解压二进制到临时目录 =====
+prepare_binary() {
+  local dst="${INSTALL_DIR}/opsmini"
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+
+  if [ -n "$BINARY_URL" ]; then
+    info "从 ${BINARY_URL} 下载..."
+    local dl="${tmpdir}/download"
+    if ! curl -fsSL --connect-timeout 15 -o "$dl" "$BINARY_URL"; then
+      error "下载失败: ${BINARY_URL}"
+      exit 1
+    fi
+    case "$(basename "$BINARY_URL")" in
+      *.tar.gz|*.tgz)
+        tar -xzf "$dl" -C "$tmpdir"
+        local found
+        found="$(find "$tmpdir" -type f -name 'opsmini*' | grep -E 'opsmini(-[^/]*)?(-linux-${GOARCH})?$' | head -1)"
+        # 兼容任意嵌套
+        if [ -z "$found" ]; then
+          found="$(find "$tmpdir" -type f -name 'opsmini' | head -1)"
+        fi
+        if [ -z "$found" ]; then
+          error "压缩包中未找到 opsmini 二进制"
+          exit 1
+        fi
+        install -m 0755 "$found" "$dst"
+        ;;
+      *)
+        install -m 0755 "$dl" "$dst"
+        ;;
+    esac
+  else
+    local src
+    src="$(resolve_binary)"
+    info "使用二进制: ${src}"
+    install -m 0755 "$src" "$dst"
+  fi
+  rm -rf "$tmpdir"
+  info "二进制已安装到 ${dst}"
+}
+
+# ===== 生成配置文件 =====
+write_config() {
+  local jwt_secret agent_token
+  jwt_secret="$(rand_str 32 0)"
+  agent_token="$(rand_str 32 0)"
+
+  info "生成配置 ${INSTALL_DIR}/config.yaml（端口 ${PORT}）"
+  cat > "${INSTALL_DIR}/config.yaml" <<EOF
+# OpsMini 配置文件（由安装脚本生成）
+server:
+  host: "${HOST}"
+  port: ${PORT}
+  secret_entry: ""
+
+database:
+  path: "${INSTALL_DIR}/opsmini.db"
+
+jwt:
+  secret: "${jwt_secret}"
+  access_ttl_seconds: 900
+  refresh_ttl_seconds: 604800
+
+ai:
+  enabled: true
+  provider: "openai"
+  model: "gpt-4o"
+  base_url: "https://api.openai.com/v1"
+  api_key: ""
+
+agent:
+  token: "${agent_token}"
+  allowed_commands:
+    - ps
+    - df
+    - free
+    - uptime
+    - docker
+    - systemctl
+    - nginx
+    - who
+EOF
+  chmod 600 "${INSTALL_DIR}/config.yaml"
+}
+
+# ===== 生成初始密码 =====
+write_password() {
+  local pass
+  pass="$(rand_str 16 1)"
+  printf '%s\n' "$pass" > "${INSTALL_DIR}/.init_passwd"
+  chmod 600 "${INSTALL_DIR}/.init_passwd"
+  echo "$pass"
+}
+
+# ===== 注册 systemd =====
+install_systemd() {
+  local password="$1"
+  local unit="/etc/systemd/system/opsmini.service"
+
+  info "注册 systemd 服务 ${unit}"
+  cat > "$unit" <<EOF
+[Unit]
+Description=OpsMini Server Panel
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=${INSTALL_DIR}/opsmini -config ${INSTALL_DIR}/config.yaml
+Restart=on-failure
+RestartSec=5
+# 首次启动用预设密码初始化管理员（已有账号时自动忽略）
+Environment=OPSMINI_INIT_PASSWORD=${password}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reload
+  systemctl enable opsmini >/dev/null 2>&1 || warn "enable 失败（可能无 systemd）"
+  systemctl restart opsmini >/dev/null 2>&1 || warn "restart 失败（可能无 systemd）"
+}
+
+# ===== 主流程 =====
+main() {
+  echo -e "${C_BOLD}OpsMini 安装${C_RESET}"
+  echo "安装目录: ${INSTALL_DIR} | 端口: ${PORT}"
+
+  mkdir -p "$INSTALL_DIR"
+  prepare_binary
+  write_config
+
+  local password
+  password="$(write_password)"
+
+  if [ "$NO_SYSTEMD" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
+    install_systemd "$password"
+  else
+    warn "未注册 systemd（手动启动：OPSMINI_INIT_PASSWORD='${password}' ${INSTALL_DIR}/opsmini -config ${INSTALL_DIR}/config.yaml）"
+  fi
+
+  # 等待启动并探测
+  sleep 2
+  if curl -sf "http://127.0.0.1:${PORT}/api/v1/healthz" >/dev/null 2>&1; then
+    info "服务已启动并响应"
+  else
+    warn "服务暂未响应，请稍候检查：systemctl status opsmini 或日志"
+  fi
+
+  echo ""
+  echo "=============================================================="
+  echo -e "  ${C_BOLD}OpsMini 安装完成${C_RESET}"
+  echo "=============================================================="
+  echo "  访问地址 : http://<服务器IP>:${PORT}"
+  echo "  用户名   : opsmini"
+  echo "  密码     : ${C_BOLD}${password}${C_RESET}"
+  echo "  密码文件 : ${INSTALL_DIR}/.init_passwd"
+  echo "  配置文件 : ${INSTALL_DIR}/config.yaml"
+  echo "  服务管理 : systemctl {start|stop|restart|status} opsmini"
+  echo "=============================================================="
+}
+
+main "$@"
