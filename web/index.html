@@ -961,7 +961,7 @@
         <div class="page-head">
           <div><div class="page-title">{{ t('page.monitoring') }}</div><div class="page-desc">{{ monitor.hostname }} · {{ monitor.platform }} {{ monitor.platform_version }} · {{ monitor.kernel_arch }}</div></div>
           <div class="page-tabs">
-            <span :class="{active: monitorTab==='chart'}" @click="monitorTab='chart'">{{ t('monitor.chartTab') }}</span>
+            <span :class="{active: monitorTab==='chart'}" @click="setMonitorTab('chart')">{{ t('monitor.chartTab') }}</span>
             <span :class="{active: monitorTab==='events'}" @click="setMonitorTab('events')">{{ t('monitor.eventsTab') }}</span>
             <span :class="{active: monitorTab==='rules'}" @click="setMonitorTab('rules')">{{ t('monitor.rulesTab') }}</span>
           </div>
@@ -4272,7 +4272,7 @@ createApp({
       }catch(e){ this.cronStat = { system: 0, user: 0 }; }
     },
     // ===== 告警规则 / 告警事件 =====
-    setMonitorTab(tab){ this.monitorTab = tab; if(tab==='rules') this.loadAlertRules(); if(tab==='events') this.loadAlertEvents(); },
+    setMonitorTab(tab){ this.monitorTab = tab; if(tab==='rules') this.loadAlertRules(); if(tab==='events') this.loadAlertEvents(); if(tab==='chart') this.$nextTick(()=>this.renderCharts()); },
     async loadAlertEvents(){
       try{
         const d = await this.api('/alert-events?limit=500');
@@ -5632,7 +5632,7 @@ createApp({
           chart.resize();
         }
       } else if(this.page==='monitoring'){
-        const el=document.getElementById('chart-monitor'); if(!el) return;
+        const el=document.getElementById('chart-monitor'); if(!el || el.clientWidth===0) return;
         const chart=getChart(el);
         const tp = this.monitorTrend || [];
         const withDate = this.range === '7d';
