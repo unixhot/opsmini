@@ -4999,7 +4999,7 @@ createApp({
       try{ await this.api('/notifications', { method:'DELETE' }); await this.loadNotifications(); this.toast(this.t('notif.cleared')); }
       catch(e){ this.toast(e.message); }
     },
-    goNotifications(){ this.notifOpen=false; this.page='settings'; this.settingsTab='notifications'; this.loadNotifications(); },
+    goNotifications(){ this.notifOpen=false; this.page='profile'; this.profileTab='messages'; this.loadNotifications(); },
     notifLevelLabel(level){ return { error:this.t('notif.levelError'), warn:this.t('notif.levelWarn'), info:this.t('notif.levelInfo') }[level] || level; },
     formatNotifTime(ts){
       if(!ts) return '-';
