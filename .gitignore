@@ -12,3 +12,12 @@
 
 # Go 构建缓存
 vendor/
+
+# macOS 系统文件
+.DS_Store
+
+# 项目工作数据（内部开发记录，不随源码发布）
+.workbuddy/
+
+# 备份文件
+*.bak
