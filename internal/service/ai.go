@@ -112,6 +112,18 @@ func (s *AIService) setting(key string) string {
 	return ""
 }
 
+// enabled reports whether the AI assistant is enabled (panel setting overrides config).
+func (s *AIService) enabled() bool {
+	v := s.setting("ai_enabled")
+	if v == "true" || v == "1" {
+		return true
+	}
+	if v == "false" || v == "0" {
+		return false
+	}
+	return s.cfg != nil && s.cfg.Enabled
+}
+
 // apiKey returns the API key (env var OPSMINI_AI_KEY has the highest priority, then settings, then config).
 func (s *AIService) apiKey() string {
 	if k := os.Getenv("OPSMINI_AI_KEY"); k != "" {
@@ -204,7 +216,7 @@ func (s *AIService) callLLM(messages []ChatMessage, tools []Tool) (*chatCompleti
 
 // Chat sends a conversation and returns the model's reply (supports function calling tool calls).
 func (s *AIService) Chat(messages []ChatMessage, deepThink bool) (string, error) {
-	if s.cfg == nil || !s.cfg.Enabled {
+	if !s.enabled() {
 		return "", errors.New("AI assistant is disabled")
 	}
 	if s.apiKey() == "" {
@@ -267,7 +279,7 @@ func (s *AIService) buildSystemPrompt(deepThink bool) string {
 // queries can be answered from the context injected by buildSystemPrompt; tool calls such as
 // search/install skills still go through the non-streaming Chat.
 func (s *AIService) ChatStream(ctx context.Context, messages []ChatMessage, deepThink bool, onChunk func(string)) error {
-	if s.cfg == nil || !s.cfg.Enabled {
+	if !s.enabled() {
 		return errors.New("AI assistant is disabled")
 	}
 	if s.apiKey() == "" {
