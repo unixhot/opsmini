@@ -1,7 +1,12 @@
 // Package service provides the business logic layer.
 package service
 
-import "github.com/opsmini/opsmini/internal/repository"
+import (
+	"crypto/rand"
+	"encoding/hex"
+
+	"github.com/opsmini/opsmini/internal/repository"
+)
 
 // SettingService handles panel settings business logic.
 type SettingService struct {
@@ -31,4 +36,23 @@ func (s *SettingService) Set(kv map[string]string) error {
 		}
 	}
 	return nil
+}
+
+// EnsureSecret ensures the setting key holds a random secret value, generating
+// and persisting a 32-byte random hex string when it is missing. It returns the
+// effective secret. Used for server-side secrets (JWT signing key) that must not
+// live in the config file or be exposed through the UI.
+func (s *SettingService) EnsureSecret(key string) (string, error) {
+	if v, err := s.Get(key); err == nil && v != "" {
+		return v, nil
+	}
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	secret := hex.EncodeToString(b)
+	if err := s.Set(map[string]string{key: secret}); err != nil {
+		return "", err
+	}
+	return secret, nil
 }

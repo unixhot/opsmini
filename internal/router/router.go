@@ -45,15 +45,21 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		serveErrorPage(c, http.StatusInternalServerError, "500", "服务器内部错误", "服务器处理请求时发生异常，请稍后重试。")
 	}), middleware.CORS())
 
+	// Dependency injection
+	userRepo := repository.NewUserRepo(db)
+	settingSvc := service.NewSettingService(repository.NewSettingRepo(db))
+
+	// JWT signing key is generated on first start and persisted in the database (not in the config file).
+	jwtSecret, err := settingSvc.EnsureSecret("jwt_secret")
+	if err != nil {
+		log.Printf("warning: ensure jwt secret: %v", err)
+	}
 	jwtMgr := jwt.NewManager(
-		cfg.JWT.Secret,
+		jwtSecret,
 		time.Duration(cfg.JWT.AccessTTL)*time.Second,
 		time.Duration(cfg.JWT.RefreshTTL)*time.Second,
 	)
 
-	// Dependency injection
-	userRepo := repository.NewUserRepo(db)
-	settingSvc := service.NewSettingService(repository.NewSettingRepo(db))
 	authSvc := service.NewAuthService(userRepo, jwtMgr, func() bool {
 		v, err := settingSvc.Get("mfa_enabled")
 		return err == nil && v == "true"
@@ -433,7 +439,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 	// Agent API (external machine interface with independent token authentication)
 	agentGroup := root.Group("/agent/v1")
-	agentGroup.Use(middleware.AgentAuth(cfg.Agent.Token))
+	agentGroup.Use(middleware.AgentAuth(func() string {
+		v, _ := settingSvc.Get("agent_token")
+		return v
+	}))
 	{
 		agentGroup.GET("/health", agentHandler.Health)
 		agentGroup.GET("/version", agentHandler.Version)

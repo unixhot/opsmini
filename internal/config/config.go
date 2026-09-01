@@ -2,10 +2,7 @@
 package config
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
-	"log"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -109,65 +106,4 @@ func defaultConfig() *Config {
 			Enabled: true,
 		},
 	}
-}
-
-// EnsureSecureSecret ensures the JWT secret is a strong random value.
-// If the current value is a default weak value (empty, "change-me", or too short), it generates a 32-byte random key,
-// updates the in-memory configuration, and attempts to write it back to the config file (preserving comments). A failed write-back only logs a warning and does not affect startup.
-func (c *Config) EnsureSecureSecret(path string) {
-	if c.JWT.Secret != "" && c.JWT.Secret != "change-me" && len(c.JWT.Secret) >= 16 {
-		return
-	}
-	secret, err := randomHex(32)
-	if err != nil {
-		log.Printf("warning: generate jwt secret: %v", err)
-		return
-	}
-	c.JWT.Secret = secret
-	if err := persistJWTSecret(path, secret); err != nil {
-		log.Printf("warning: persist jwt secret to %s: %v (已生成本次运行随机密钥，但未写回，重启后需重新生成)", path, err)
-	} else {
-		log.Printf("已自动生成随机 JWT secret 并写入 %s", path)
-	}
-}
-
-// randomHex returns the hex encoding of n random bytes.
-func randomHex(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
-}
-
-// persistJWTSecret updates jwt.secret in the config file using yaml.Node, preserving comments and other fields.
-func persistJWTSecret(path, secret string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	var doc yaml.Node
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		return err
-	}
-	if len(doc.Content) == 0 {
-		return fmt.Errorf("empty config document")
-	}
-	root := doc.Content[0]
-	for i := 0; i+1 < len(root.Content); i += 2 {
-		if root.Content[i].Value == "jwt" && root.Content[i+1].Kind == yaml.MappingNode {
-			jwtMap := root.Content[i+1]
-			for j := 0; j+1 < len(jwtMap.Content); j += 2 {
-				if jwtMap.Content[j].Value == "secret" {
-					jwtMap.Content[j+1].Value = secret
-					jwtMap.Content[j+1].Style = yaml.DoubleQuotedStyle
-				}
-			}
-		}
-	}
-	out, err := yaml.Marshal(&doc)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, out, 0o600)
 }

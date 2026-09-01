@@ -10,9 +10,11 @@ import (
 )
 
 // AgentAuth validates the Agent token (machine authentication for external systems, separate from user JWT).
-// When the token is empty, the Agent API is disabled (returns 503).
-func AgentAuth(token string) gin.HandlerFunc {
+// The token is resolved at request time via tokenProvider (read from panel settings, managed in the UI).
+// When the resolved token is empty, the Agent API is disabled (returns 503).
+func AgentAuth(tokenProvider func() string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		token := tokenProvider()
 		if token == "" {
 			response.Error(c, 503, response.CodeForbidden, "agent api not configured")
 			c.Abort()

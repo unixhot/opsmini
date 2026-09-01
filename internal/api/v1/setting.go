@@ -17,12 +17,27 @@ func NewSettingHandler(svc *service.SettingService) *SettingHandler {
 	return &SettingHandler{svc: svc}
 }
 
-// List GET /settings - return all settings.
+// readSensitive are settings that must never be returned to the client:
+// server-side secrets (JWT signing key) and write-only credentials.
+var readSensitive = map[string]bool{
+	"jwt_secret":   true, // server-side JWT signing key (generated automatically on first start)
+	"metrics_pass": true, // Prometheus basic-auth password (write-only)
+}
+
+// writeProtected are settings the client must never overwrite.
+var writeProtected = map[string]bool{
+	"jwt_secret": true, // managed by the server (SettingService.EnsureSecret)
+}
+
+// List GET /settings - return all non-sensitive settings.
 func (h *SettingHandler) List(c *gin.Context) {
 	kv, err := h.svc.List()
 	if err != nil {
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
+	}
+	for k := range readSensitive {
+		delete(kv, k)
 	}
 	response.OK(c, kv)
 }
@@ -33,6 +48,13 @@ func (h *SettingHandler) Update(c *gin.Context) {
 	if err := c.ShouldBindJSON(&kv); err != nil {
 		response.Error(c, 400, response.CodeInvalidParam, err.Error())
 		return
+	}
+	if len(kv) == 0 {
+		response.Error(c, 400, response.CodeInvalidParam, "empty settings")
+		return
+	}
+	for k := range writeProtected {
+		delete(kv, k)
 	}
 	if len(kv) == 0 {
 		response.Error(c, 400, response.CodeInvalidParam, "empty settings")

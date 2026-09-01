@@ -36,8 +36,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
-	// Security hardening: if the JWT secret is still the default weak value, generate a strong random key and write it back to the config.
-	cfg.EnsureSecureSecret(*cfgPath)
+	// Note: the JWT signing key and Agent API token are generated on first start and persisted
+	// in the database (see router.New -> SettingService.EnsureSecret), not in the config file.
 
 	// Account recovery subcommand: operates on the database directly and exits without starting the server.
 	if *resetMFA != "" {

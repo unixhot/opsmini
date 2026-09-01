@@ -6,18 +6,8 @@ server:
 database:
     path: "opsmini.db" # SQLite 数据文件路径
 jwt:
-    secret: "fb6f122bf7757df23b6e9f337d386b790cf30386b7ba9944de52be1869db9f56" # 生产环境务必修改
     access_ttl_seconds: 900 # access token 有效期（15 分钟）
     refresh_ttl_seconds: 604800 # refresh token 有效期（7 天）
-# AI 大模型配置已迁移到面板「设置 → AI 大模型接入」页面（模型 / API Key / Base URL / 启用开关）
-agent:
-    token: "" # 对外 REST API（/agent/v1）认证令牌，留空则禁用 Agent API
-    allowed_commands: # 命令白名单前缀（仅允许以这些前缀开头的命令）
-        - ps
-        - df
-        - free
-        - uptime
-        - docker
-        - systemctl
-        - nginx
-        - who
+# JWT 签名密钥在首次启动时自动生成并持久化到数据库（不在配置文件、不在界面展示）。
+# AI 大模型配置已迁移到面板「设置 → AI 大模型接入」页面（模型 / API Key / Base URL / 启用开关）。
+# Agent API 令牌（/agent/v1）已迁移到面板「设置 → API Token」页面生成与管理。
