@@ -1,18 +1,21 @@
 # 一鍵指令碼安裝
 
-官方 `opsmini-install.sh` 在 Linux 主機上一鍵完成部署。
+官方 `install.sh` 在 Linux 主機上一鍵完成部署。
 
 ## 快速開始
 
 ```bash
+# 一鍵安裝（推薦，自動按架構從官網下載）
+curl -fsSL https://opsmini.com/install.sh | sudo bash
+
 # 指定二进制安装（默认安装到 /data/opsmini，端口 8888）
-sudo ./opsmini-install.sh -b ./opsmini
+sudo ./install.sh -b ./opsmini
 
 # 从 URL 下载并安装（支持 .tar.gz）
-sudo ./opsmini-install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
+sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
 
 # 自定义目录与端口
-sudo ./opsmini-install.sh -b ./opsmini -d /opt/opsmini -p 9999
+sudo ./install.sh -b ./opsmini -d /opt/opsmini -p 9999
 ```
 
 ## 引數

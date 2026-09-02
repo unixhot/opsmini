@@ -10,7 +10,7 @@
   font-feature-settings: "liga" 0;
 }
 
-/* 内联代码保留品牌色 */
+/* 内联代码用品牌蓝（避免浅色底纹上白字看不清） */
 .md-typeset code:not(pre code) {
-  color: var(--md-primary-fg-color);
+  color: var(--md-accent-fg-color);
 }

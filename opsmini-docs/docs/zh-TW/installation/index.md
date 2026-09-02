@@ -14,7 +14,7 @@
 
     ---
 
-    官方 `opsmini-install.sh` 一鍵部署，自動生成配置與 systemd 服務。
+    官方 `install.sh` 一鍵部署，自動生成配置與 systemd 服務。
 
 -   :material-package-variant: **[手動安裝manual-install.md**
 

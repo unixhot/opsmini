@@ -5,14 +5,15 @@
 # 功能：
 #   - 默认安装到 /data/opsmini
 #   - 默认端口 8888
+#   - 默认从 https://opsmini.com 下载对应架构的二进制
 #   - 首次启动随机生成管理员密码，写入 <安装目录>/.init_passwd 并展示
 #   - 注册 systemd 服务 opsmini.service（开机自启）
 #
 # 用法：
-#   ./opsmini-install.sh                     # 自动查找二进制
-#   ./opsmini-install.sh -b ./opsmini        # 指定二进制路径
-#   ./opsmini-install.sh -u https://.../opsmini-linux-amd64.tar.gz  # 从 URL 下载
-#   ./opsmini-install.sh -d /opt/opsmini -p 9999
+#   curl -fsSL https://opsmini.com/install.sh | sudo bash   # 一键安装（推荐）
+#   sudo ./install.sh -b ./opsmini                          # 指定本地二进制
+#   sudo ./install.sh -u https://.../opsmini.tar.gz         # 自定义下载地址
+#   sudo ./install.sh -d /opt/opsmini -p 9999               # 自定义目录与端口
 #
 set -euo pipefail
 
@@ -22,6 +23,7 @@ PORT=8888
 HOST="0.0.0.0"
 BINARY=""
 BINARY_URL=""
+DEFAULT_URL_BASE="https://opsmini.com/dist"
 NO_SYSTEMD=0
 
 # ===== 颜色 =====
@@ -44,12 +46,13 @@ ${C_BOLD}OpsMini 安装脚本${C_RESET}
 选项:
   -d, --dir <path>     安装目录（默认 ${INSTALL_DIR}）
   -p, --port <port>    面板监听端口（默认 ${PORT}）
-  -b, --binary <path>  opsmini 二进制路径（默认自动查找）
+  -b, --binary <path>  opsmini 二进制路径
   -u, --url <url>      从 URL 下载二进制（支持 .tar.gz 或裸二进制）
   -n, --no-systemd     不注册 systemd 服务（仅解压 + 初始化）
   -h, --help           显示本帮助
 
 示例:
+  curl -fsSL https://opsmini.com/install.sh | sudo bash
   $0 -b ./dist/opsmini-dev-linux-amd64
   $0 -u https://github.com/unixhot/opsmini/releases/download/v1.0.0/opsmini-v1.0.0-linux-amd64.tar.gz
 EOF
@@ -131,14 +134,20 @@ prepare_binary() {
   local tmpdir
   tmpdir="$(mktemp -d)"
 
-  if [ -n "$BINARY_URL" ]; then
-    info "从 ${BINARY_URL} 下载..."
+  # 确定下载地址：-u 指定 > 默认官方 URL（仅当未指定 -b 本地二进制时）
+  local url="$BINARY_URL"
+  if [ -z "$url" ] && [ -z "$BINARY" ]; then
+    url="${DEFAULT_URL_BASE}/opsmini-linux-${GOARCH}"
+  fi
+
+  if [ -n "$url" ]; then
+    info "从 ${url} 下载..."
     local dl="${tmpdir}/download"
-    if ! curl -fsSL --connect-timeout 15 -o "$dl" "$BINARY_URL"; then
-      error "下载失败: ${BINARY_URL}"
+    if ! curl -fsSL --connect-timeout 15 -o "$dl" "$url"; then
+      error "下载失败: ${url}"
       exit 1
     fi
-    case "$(basename "$BINARY_URL")" in
+    case "$(basename "$url")" in
       *.tar.gz|*.tgz)
         tar -xzf "$dl" -C "$tmpdir"
         local found
@@ -169,13 +178,11 @@ prepare_binary() {
 
 # ===== 生成配置文件 =====
 write_config() {
-  local jwt_secret agent_token
-  jwt_secret="$(rand_str 32 0)"
-  agent_token="$(rand_str 32 0)"
-
   info "生成配置 ${INSTALL_DIR}/config.yaml（端口 ${PORT}）"
   cat > "${INSTALL_DIR}/config.yaml" <<EOF
 # OpsMini 配置文件（由安装脚本生成）
+# 说明：JWT 签名密钥与 Agent API Token 在首次启动时自动生成并持久化到数据库；
+# AI 大模型在面板「设置 → AI 大模型接入」页面配置。
 server:
   host: "${HOST}"
   port: ${PORT}
@@ -185,28 +192,8 @@ database:
   path: "${INSTALL_DIR}/opsmini.db"
 
 jwt:
-  secret: "${jwt_secret}"
   access_ttl_seconds: 900
   refresh_ttl_seconds: 604800
-
-ai:
-  enabled: true
-  provider: "openai"
-  model: "gpt-4o"
-  base_url: "https://api.openai.com/v1"
-  api_key: ""
-
-agent:
-  token: "${agent_token}"
-  allowed_commands:
-    - ps
-    - df
-    - free
-    - uptime
-    - docker
-    - systemctl
-    - nginx
-    - who
 EOF
   chmod 600 "${INSTALL_DIR}/config.yaml"
 }

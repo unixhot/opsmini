@@ -14,7 +14,7 @@ Everything you need to deploy OpsMini.
 
     ---
 
-    The official `opsmini-install.sh` script with systemd registration.
+    The official `install.sh` script with systemd registration.
 
 -   :material-package-variant: **[Manual Install](manual-install.md)**
 

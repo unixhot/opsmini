@@ -1,18 +1,21 @@
 # 一键脚本安装
 
-官方 `opsmini-install.sh` 在 Linux 主机上一键完成部署。
+官方 `install.sh` 在 Linux 主机上一键完成部署。
 
 ## 快速开始
 
 ```bash
-# 指定二进制安装（默认安装到 /data/opsmini，端口 8888）
-sudo ./opsmini-install.sh -b ./opsmini
+# 一键安装（推荐，脚本自动按架构从官网下载二进制）
+curl -fsSL https://opsmini.com/install.sh | sudo bash
 
-# 从 URL 下载并安装（支持 .tar.gz）
-sudo ./opsmini-install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
+# 指定本地二进制安装（默认安装到 /data/opsmini，端口 8888）
+sudo ./install.sh -b ./opsmini
+
+# 自定义下载地址（支持 .tar.gz）
+sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
 
 # 自定义目录与端口
-sudo ./opsmini-install.sh -b ./opsmini -d /opt/opsmini -p 9999
+sudo ./install.sh -b ./opsmini -d /opt/opsmini -p 9999
 ```
 
 ## 参数
@@ -21,16 +24,16 @@ sudo ./opsmini-install.sh -b ./opsmini -d /opt/opsmini -p 9999
 |------|------|--------|
 | `-d, --dir <path>` | 安装目录 | `/data/opsmini` |
 | `-p, --port <port>` | 面板监听端口 | `8888` |
-| `-b, --binary <path>` | opsmini 二进制路径 | 自动查找 |
-| `-u, --url <url>` | 从 URL 下载（`.tar.gz` 或裸二进制） | — |
+| `-b, --binary <path>` | opsmini 二进制路径 | 未指定时从官网下载 |
+| `-u, --url <url>` | 从 URL 下载（`.tar.gz` 或裸二进制） | 官网 dist 地址 |
 | `-n, --no-systemd` | 不注册 systemd 服务 | — |
 | `-h, --help` | 帮助 | — |
 
 ## 安装行为
 
 1. 创建安装目录（默认 `/data/opsmini`）
-2. 复制 / 下载二进制到 `<目录>/opsmini`
-3. 生成 `<目录>/config.yaml`（随机 JWT secret、随机 Agent token、端口、SQLite 路径）
+2. 下载 / 复制二进制到 `<目录>/opsmini`（默认按架构从官网下载）
+3. 生成 `<目录>/config.yaml`（端口、SQLite 路径、token 有效期；JWT 密钥与 Agent Token 首次启动自动生成存库）
 4. 生成 16 位随机管理员密码，写入 `<目录>/.init_passwd`（权限 600）
 5. 注册并启动 systemd 服务 `opsmini.service`（首次启动时通过 `OPSMINI_INIT_PASSWORD` 环境变量注入初始密码，已有账号时自动忽略）
 6. 探测服务响应，并打印访问地址 / 用户名 / 密码

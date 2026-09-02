@@ -1,6 +1,6 @@
 # 5-Minute Install
 
-Use the official `opsmini-install.sh` to deploy OpsMini on Linux in one shot.
+Use the official `install.sh` to deploy OpsMini on Linux in one shot.
 
 ## Prerequisites
 
@@ -11,14 +11,17 @@ Use the official `opsmini-install.sh` to deploy OpsMini on Linux in one shot.
 ## One-Click Install
 
 ```bash
+# One-line install (recommended, auto-downloads the binary from the official site)
+curl -fsSL https://opsmini.com/install.sh | sudo bash
+
 # Option 1: download and install from a URL (GitHub Release)
-sudo ./opsmini-install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
+sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
 
 # Option 2: install from a local binary (defaults to /data/opsmini, port 8888)
-sudo ./opsmini-install.sh -b ./opsmini
+sudo ./install.sh -b ./opsmini
 
 # Custom directory and port
-sudo ./opsmini-install.sh -b ./opsmini -d /opt/opsmini -p 9999
+sudo ./install.sh -b ./opsmini -d /opt/opsmini -p 9999
 ```
 
 ## Options
