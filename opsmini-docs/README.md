@@ -1,13 +1,12 @@
-# OpsMini 官网 + 官方文档
+# OpsMini 官方文档
 
-基于 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 的单站点：
-首页即官网 Landing，顶部导航进入「文档」板块。全站 **7 语言**：
+基于 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 的文档站点，发布到 docs.opsmini.com。全站 **7 语言**：
 简体中文（zh，源语言）、繁體中文（zh-TW）、English（en）、日本語（ja）、한국어（ko）、ไทย（th）、Deutsch（de）。
 
 ## 本地构建
 
 ```bash
-cd website
+cd opsmini-docs
 
 # 1. 安装依赖
 uv venv .venv && source .venv/bin/activate
