@@ -1,9 +1,9 @@
-/* OpsMini 品牌色（theme.primary: custom 所需） */
+/* OpsMini 品牌色（theme.primary: custom 所需，蓝色 logo #3857e0） */
 :root {
-  --md-primary-fg-color: #4f6ef7;
-  --md-primary-fg-color--light: #7b5cf0;
-  --md-primary-fg-color--dark: #3b5ce0;
-  --md-accent-fg-color: #7b5cf0;
+  --md-primary-fg-color: #3857e0;
+  --md-primary-fg-color--light: #5a76e6;
+  --md-primary-fg-color--dark: #2a43b4;
+  --md-accent-fg-color: #3857e0;
 }
 
 /* 代码块字体与行高 */
