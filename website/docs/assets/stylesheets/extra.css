@@ -1,0 +1,17 @@
+/* OpsMini 品牌色（theme.primary: custom 所需） */
+:root {
+  --md-primary-fg-color: #4f6ef7;
+  --md-primary-fg-color--light: #7b5cf0;
+  --md-primary-fg-color--dark: #3b5ce0;
+  --md-accent-fg-color: #7b5cf0;
+}
+
+/* 代码块字体与行高 */
+.md-typeset code {
+  font-feature-settings: "liga" 0;
+}
+
+/* 内联代码保留品牌色 */
+.md-typeset code:not(pre code) {
+  color: var(--md-primary-fg-color);
+}

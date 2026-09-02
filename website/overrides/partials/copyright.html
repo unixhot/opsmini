@@ -1,0 +1,16 @@
+{#- 自定义版权区：公司信息 + 官网链接 + 开源协议 -#}
+<div class="md-copyright">
+  {% if config.copyright %}
+    <div class="md-copyright__highlight">
+      {{ config.copyright }}
+      ·
+      <a href="https://opsmini.com" target="_blank" rel="noopener">opsmini.com</a>
+    </div>
+  {% endif %}
+  {% if not config.extra.generator == false %}
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  {% endif %}
+</div>

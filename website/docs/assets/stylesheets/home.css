@@ -1,0 +1,60 @@
+/* ===== 首页 Landing（纯 Markdown + grid cards） ===== */
+
+/* Hero 大标题 */
+.md-typeset .home-hero h1 {
+  font-size: 3.2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.md-typeset .home-hero p.lead {
+  font-size: 1.2rem;
+  color: var(--md-default-fg-color--light);
+  max-width: 46rem;
+  margin: 0.5rem auto 1.5rem;
+}
+
+/* Hero 容器居中 */
+.home-hero {
+  text-align: center;
+  padding: 3rem 1rem 1rem;
+}
+
+/* CTA 按钮组 */
+.home-cta {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 1.5rem 0 2rem;
+}
+
+.home-cta .md-button {
+  padding: 0.6rem 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.home-cta .md-button--primary {
+  background: var(--md-primary-fg-color);
+  color: #fff;
+}
+
+/* 分区标题 */
+.home-section {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.home-section > h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.home-section > p {
+  color: var(--md-default-fg-color--light);
+  max-width: 40rem;
+  margin: 0 auto 1.5rem;
+}
