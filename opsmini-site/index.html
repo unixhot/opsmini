@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsMini — AI 驱动的轻量服务器运维面板</title>
+<meta name="description" content="OpsMini 是一个 AI 驱动的单机服务器运维面板：自然语言诊断、Docker 管理、Web 终端、安全中心、监控告警，单个二进制文件零依赖交付。">
+<link rel="icon" type="image/png" href="ico.png">
+<link rel="apple-touch-icon" href="ico.png">
+<style>
+:root{
+  --bg:#f5f8ff;
+  --bg-soft:#eef4ff;
+  --card:#ffffff;
+  --card-hover:#ffffff;
+  --border:#d8e3f8;
+  --text:#0f172a;
+  --text-dim:#475569;
+  --text-faint:#64748b;
+  --accent:#2563eb;
+  --accent-2:#0ea5e9;
+  --accent-3:#7c3aed;
+  --green:#16a34a;
+  --amber:#d97706;
+  --red:#dc2626;
+  --radius:16px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+.container{max-width:1160px;margin:0 auto;padding:0 24px}
+code,kbd{font-family:var(--mono)}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(255,255,255,.88);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-inner{display:flex;align-items:center;gap:28px;height:64px}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:.5px;color:var(--text)}
+.nav-logo img{height:26px;width:auto}
+.nav-logo .tagline{
+  font-size:13px;font-weight:500;color:var(--text-dim);letter-spacing:0;
+  border-left:1px solid var(--border);padding-left:12px;margin-left:2px;white-space:nowrap;
+}
+.hamburger{
+  display:none;flex-direction:column;justify-content:center;gap:4px;
+  width:40px;height:40px;margin-left:auto;padding:9px;border:1px solid var(--border);
+  border-radius:8px;background:#fff;cursor:pointer;
+}
+.hamburger span{display:block;height:2px;width:100%;background:var(--text);border-radius:2px;transition:all .25s}
+.hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.nav-links{display:flex;gap:26px;margin-left:auto;font-size:14.5px;color:var(--text-dim)}
+.nav-links a{transition:color .2s}
+.nav-links a:hover{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 22px;border-radius:10px;font-size:15px;font-weight:600;
+  cursor:pointer;transition:all .2s;border:1px solid transparent;white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#2563eb,#3b82f6);
+  color:#fff;box-shadow:0 6px 24px rgba(37,99,235,.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(37,99,235,.38)}
+.btn-ghost{border-color:var(--border);color:var(--text-dim);background:#fff}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:7px 16px;font-size:13.5px;border-radius:8px}
+
+/* lang switcher */
+.lang{position:relative}
+.lang-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;
+  color:var(--text-dim);font-size:13.5px;cursor:pointer;transition:all .2s;
+}
+.lang-btn:hover{border-color:var(--accent);color:var(--accent)}
+.lang-btn .globe{font-size:14px}
+.lang-btn .caret{font-size:10px;transition:transform .2s}
+.lang.open .lang-btn .caret{transform:rotate(180deg)}
+.lang-menu{
+  position:absolute;right:0;top:calc(100% + 8px);min-width:150px;
+  background:#fff;border:1px solid var(--border);border-radius:12px;padding:6px;
+  box-shadow:0 12px 32px rgba(15,23,42,.12);
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .2s;
+}
+.lang.open .lang-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-menu button{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:9px 12px;border:none;background:none;border-radius:8px;
+  font-size:14px;color:var(--text-dim);cursor:pointer;transition:background .15s;
+}
+.lang-menu button:hover{background:var(--bg-soft);color:var(--text)}
+.lang-menu button.on{color:var(--accent);font-weight:700}
+.lang-menu .flag{font-size:14px;width:18px;text-align:center}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:150px 0 90px;overflow:hidden}
+.hero::before{
+  content:"";position:absolute;top:-280px;left:50%;transform:translateX(-50%);
+  width:1000px;height:580px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(59,130,246,.18),rgba(59,130,246,.05) 60%,transparent);
+  pointer-events:none;
+}
+.hero-grid{position:relative;display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:999px;font-size:13px;
+  background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);color:var(--accent);
+  margin-bottom:22px;
+}
+.hero-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(22,163,74,.4)}
+.hero h1{font-size:52px;line-height:1.18;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+.hero h1 .grad{
+  background:linear-gradient(120deg,var(--accent-2),var(--accent));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p.lead{margin:22px 0 34px;font-size:18px;color:var(--text-dim);max-width:540px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+.hero-meta{display:flex;gap:26px;margin-top:38px;font-size:13.5px;color:var(--text-faint);flex-wrap:wrap}
+.hero-meta span{display:inline-flex;align-items:center;gap:7px}
+.hero-meta b{color:var(--text-dim);font-weight:600}
+
+/* hero panel mockup */
+.mockup{
+  border:1px solid var(--border);border-radius:18px;overflow:hidden;
+  background:#fff;box-shadow:0 24px 70px rgba(37,99,235,.12);
+}
+.mockup-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:#f8fbff}
+.mockup-bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.mockup-bar i:nth-child(1){background:#ff5f57}.mockup-bar i:nth-child(2){background:#febc2e}.mockup-bar i:nth-child(3){background:#28c840}
+.mockup-bar .url{margin-left:12px;font-size:12px;color:var(--text-faint);font-family:var(--mono);background:#eef4ff;padding:3px 12px;border-radius:6px}
+.mockup-body{display:flex;min-height:340px;font-size:12.5px}
+.mock-side{width:118px;border-right:1px solid var(--border);padding:14px 0;background:#f8fbff}
+.mock-side div{padding:7px 16px;color:var(--text-faint)}
+.mock-side div.on{color:var(--text);background:linear-gradient(90deg,rgba(37,99,235,.1),transparent);border-left:2px solid var(--accent)}
+.mock-main{flex:1;padding:18px}
+.mock-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.mock-stat{background:#f8fbff;border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.mock-stat .k{font-size:10.5px;color:var(--text-faint)}
+.mock-stat .v{font-size:16px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.mock-chart{height:120px;border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;align-items:flex-end;gap:6px;background:#f8fbff}
+.mock-chart b{flex:1;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#60a5fa,rgba(37,99,235,.25))}
+.mock-ai{
+  margin-top:14px;border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:10px 12px;
+  background:rgba(124,58,237,.05);font-size:12px;
+}
+.mock-ai .q{color:var(--accent-3);font-weight:600}
+.mock-ai .a{color:var(--text-dim);margin-top:4px}
+.mock-ai .a em{color:var(--green);font-style:normal;font-family:var(--mono)}
+
+/* ---------- sections ---------- */
+section{padding:84px 0}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 52px}
+.sec-tag{font-size:13px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.sec-head h2{font-size:36px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
+.sec-head p{margin-top:14px;color:var(--text-dim);font-size:16px}
+
+/* ai feature band */
+.ai-band{
+  border:1px solid var(--border);border-radius:22px;padding:44px;
+  background:
+    radial-gradient(600px 240px at 12% 0%,rgba(124,58,237,.08),transparent),
+    radial-gradient(600px 240px at 88% 100%,rgba(14,165,233,.08),transparent),
+    #fff;
+  display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center;
+  box-shadow:0 10px 40px rgba(37,99,235,.06);
+}
+.ai-band h3{font-size:28px;font-weight:800;margin-bottom:14px;color:var(--text)}
+.ai-band p{color:var(--text-dim);font-size:15.5px}
+.ai-points{list-style:none;margin-top:22px;display:grid;gap:12px}
+.ai-points li{display:flex;gap:10px;font-size:15px;color:var(--text-dim)}
+.ai-points li::before{content:"✓";color:var(--green);font-weight:800}
+.chat-demo{
+  background:#f8fbff;border:1px solid var(--border);border-radius:16px;
+  padding:20px;font-size:13.5px;display:grid;gap:14px;
+}
+.bubble{padding:11px 15px;border-radius:12px;max-width:88%}
+.bubble.user{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;justify-self:end;box-shadow:0 4px 12px rgba(37,99,235,.2)}
+.bubble.bot{background:#fff;border:1px solid var(--border);color:var(--text-dim)}
+.bubble.bot .hl{color:var(--accent);font-family:var(--mono)}
+.bubble.bot .ok{color:var(--green)}
+
+/* features grid */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feat{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:26px 24px;transition:all .25s;position:relative;overflow:hidden;
+  box-shadow:0 4px 18px rgba(37,99,235,.04);
+}
+.feat:hover{transform:translateY(-5px);border-color:rgba(37,99,235,.35);box-shadow:0 16px 40px rgba(37,99,235,.1)}
+.feat .icon{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;margin-bottom:16px;background:rgba(37,99,235,.1);
+}
+.feat h4{font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.feat p{font-size:14px;color:var(--text-dim)}
+.feat .tags{margin-top:14px;display:flex;gap:6px;flex-wrap:wrap}
+.feat .tags span{font-size:11.5px;padding:3px 9px;border-radius:999px;background:#eef4ff;color:var(--text-dim);border:1px solid var(--border)}
+
+/* architecture */
+.arch{
+  border:1px solid var(--border);border-radius:22px;background:#fff;
+  padding:44px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px;
+  box-shadow:0 10px 40px rgba(37,99,235,.05);
+}
+.arch-col{display:grid;gap:14px;align-content:start}
+.arch-col h5{font-size:13px;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;margin-bottom:2px}
+.arch-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:14px}
+.arch-box b{display:block;font-size:14.5px;margin-bottom:3px;color:var(--text)}
+.arch-box span{font-size:12.5px;color:var(--text-faint)}
+.arch-arrow{display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:20px}
+.arch-note{grid-column:1/-1;text-align:center;font-size:13px;color:var(--text-faint);border-top:1px dashed var(--border);padding-top:18px;margin-top:6px}
+
+/* quickstart */
+.qs-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.terminal-box{
+  background:#0b1220;border:1px solid #1e293b;border-radius:16px;overflow:hidden;
+  box-shadow:0 18px 50px rgba(15,23,42,.25);
+}
+.terminal-box .bar{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #1e293b}
+.terminal-box .bar i{width:11px;height:11px;border-radius:50%}
+.terminal-box .bar i:nth-child(1){background:#ff5f57}.terminal-box .bar i:nth-child(2){background:#febc2e}.terminal-box .bar i:nth-child(3){background:#28c840}
+.terminal-box pre{
+  padding:20px;font-family:var(--mono);font-size:13.5px;line-height:2;color:#94a3b8;
+  overflow-x:auto;
+}
+.terminal-box .c{color:#64748b}
+.terminal-box .d{color:#38bdf8}
+.terminal-box .g{color:#4ade80}
+.terminal-box .y{color:#facc15}
+.qs-steps{display:grid;gap:16px}
+.qs-step{display:flex;gap:16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:0 4px 18px rgba(37,99,235,.04)}
+.qs-step .num{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;
+}
+.qs-step b{display:block;font-size:15.5px;margin-bottom:3px;color:var(--text)}
+.qs-step span{font-size:13.5px;color:var(--text-dim)}
+
+/* api section */
+.api-wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:44px;align-items:center}
+.api-wrap h3{font-size:28px;font-weight:800;margin-bottom:14px;color:var(--text)}
+.api-wrap p{color:var(--text-dim);font-size:15.5px}
+.api-list{list-style:none;margin-top:20px;display:grid;gap:11px;font-size:14.5px;color:var(--text-dim)}
+.api-list li{display:flex;gap:10px;align-items:flex-start}
+.api-list li::before{content:"›";color:var(--accent);font-weight:800}
+.code-card{background:#0b1220;border:1px solid #1e293b;border-radius:16px;overflow:hidden;box-shadow:0 18px 50px rgba(15,23,42,.2)}
+.code-card .head{padding:11px 18px;font-size:12.5px;color:#64748b;border-bottom:1px solid #1e293b;font-family:var(--mono);display:flex;justify-content:space-between}
+.code-card pre{padding:20px;font-family:var(--mono);font-size:13px;line-height:1.9;color:#94a3b8;overflow-x:auto}
+.code-card .k{color:#c792ea}.code-card .s{color:#89ddff}.code-card .u{color:#f78c6c}.code-card .ok{color:#4ade80}
+
+/* highlights band */
+.hl-sec{padding:0 0 84px}
+.hl-band{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:-10px}
+.hl{
+  display:flex;gap:14px;align-items:flex-start;
+  background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px 22px;
+  box-shadow:0 4px 18px rgba(37,99,235,.04);transition:all .2s;
+}
+.hl:hover{border-color:rgba(37,99,235,.35);transform:translateY(-3px)}
+.hl .ic{
+  width:40px;height:40px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:19px;background:rgba(37,99,235,.1);
+}
+.hl b{display:block;font-size:15.5px;color:var(--text);margin-bottom:2px}
+.hl span{font-size:13.5px;color:var(--text-dim)}
+
+/* stats band */
+.stats-band{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:18px;
+  border:1px solid var(--border);border-radius:20px;padding:36px;background:#fff;
+  box-shadow:0 10px 40px rgba(37,99,235,.05);
+}
+.stat{text-align:center}
+.stat .v{font-size:34px;font-weight:800;font-family:var(--mono);background:linear-gradient(120deg,#2563eb,#0ea5e9);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .k{font-size:13px;color:var(--text-faint);margin-top:4px}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto;display:grid;gap:12px}
+.faq details{background:#fff;border:1px solid var(--border);border-radius:14px;padding:0 22px;transition:border-color .2s;box-shadow:0 4px 18px rgba(37,99,235,.04)}
+.faq details[open]{border-color:rgba(37,99,235,.4)}
+.faq summary{cursor:pointer;font-weight:700;font-size:15.5px;padding:18px 0;list-style:none;display:flex;justify-content:space-between;align-items:center;color:var(--text)}
+.faq summary::after{content:"+";color:var(--accent);font-size:20px;transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{padding:0 0 18px;color:var(--text-dim);font-size:14.5px}
+
+/* cta */
+.cta{
+  text-align:center;border:1px solid var(--border);border-radius:24px;padding:70px 30px;position:relative;overflow:hidden;
+  background:
+    radial-gradient(500px 200px at 50% 0%,rgba(59,130,246,.12),transparent),
+    #fff;
+  box-shadow:0 10px 40px rgba(37,99,235,.05);
+}
+.cta h2{font-size:34px;font-weight:800;margin-bottom:12px;color:var(--text)}
+.cta p{color:var(--text-dim);margin-bottom:30px;font-size:16px}
+
+/* footer */
+footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-faint);font-size:13.5px;background:#fff}
+.foot-grid{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.foot-grid .brand img{height:22px;margin-bottom:10px;opacity:.9}
+.foot-cols{display:flex;gap:64px;flex-wrap:wrap}
+.foot-cols h6{color:var(--text-dim);font-size:13px;margin-bottom:10px}
+.foot-cols a{display:block;padding:3px 0;transition:color .2s}
+.foot-cols a:hover{color:var(--accent)}
+.foot-bottom{margin-top:34px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+@media (max-width:960px){
+  .hero-grid,.ai-band,.qs-grid,.api-wrap{grid-template-columns:1fr}
+  .feat-grid{grid-template-columns:repeat(2,1fr)}
+  .arch{grid-template-columns:1fr}
+  .arch-arrow{transform:rotate(90deg)}
+  .stats-band{grid-template-columns:repeat(2,1fr)}
+  .hero h1{font-size:38px}
+  .hero{padding:120px 0 70px}
+  section{padding:60px 0}
+  .nav-links{
+    position:absolute;top:64px;left:0;right:0;margin:0;
+    flex-direction:column;gap:0;display:none;
+    background:#fff;border-bottom:1px solid var(--border);
+    box-shadow:0 20px 40px rgba(15,23,42,.08);
+  }
+  .nav-links.open{display:flex}
+  .nav-links a{padding:15px 24px;border-top:1px solid var(--border)}
+  .hamburger{display:flex}
+}
+@media (max-width:600px){
+  .feat-grid{grid-template-columns:1fr}
+  .stats-band{grid-template-columns:1fr 1fr}
+  .hero h1{font-size:30px}
+  .hero p.lead{font-size:16px}
+  .hero{padding:110px 0 56px}
+  .hero-meta{gap:14px}
+  .sec-head h2{font-size:27px}
+  .ai-band,.arch,.cta{padding:28px 20px}
+  .nav-right .btn{display:none}
+  .mock-side{width:96px}
+  .mockup-body{min-height:300px}
+  .foot-grid{flex-direction:column}
+  .foot-cols{gap:32px}
+  .nav-logo .tagline{display:none}
+  .hl-band{grid-template-columns:1fr}
+  .hl-sec{padding:0 0 60px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a class="nav-logo" href="#top"><img src="assets/logo.png" alt="OpsMini"><span class="tagline" data-i18n="nav.tagline">AI 驱动的主机运维面板</span></a>
+    <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="navLinks">
+      <a href="#features" data-i18n="nav.features">功能</a>
+      <a href="#ai" data-i18n="nav.ai">AI 运维</a>
+      <a href="#arch" data-i18n="nav.arch">架构</a>
+      <a href="#quickstart" data-i18n="nav.quickstart">快速开始</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      <a href="https://github.com/unixhot/opsmini/" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.opsmini.com/docs/" target="_blank" rel="noopener" data-i18n="nav.docs">文档</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang" id="lang">
+        <button class="lang-btn" id="langBtn">
+          <span class="globe">🌐</span>
+          <span id="langLabel">简体中文</span>
+          <span class="caret">▼</span>
+        </button>
+        <div class="lang-menu" id="langMenu"></div>
+      </div>
+      <a class="btn btn-primary btn-sm" href="#quickstart" data-i18n="nav.cta">立即体验</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero" id="top">
+  <div class="container hero-grid">
+    <div>
+      <div class="hero-badge"><span class="dot"></span><span data-i18n="hero.badge">AI-Powered · 单二进制交付 · 零依赖运行</span></div>
+      <h1 data-i18n-html="hero.title">一个文件，<br>管好一台<span class="grad">服务器</span></h1>
+      <p class="lead" data-i18n="hero.lead">OpsMini 是 AI 驱动的轻量单机运维面板。自然语言诊断、Docker 管理、Web 终端、安全中心、监控告警——全部装进一个不到几十 MB 的二进制文件。</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#quickstart" data-i18n="hero.ctaPrimary">快速开始 →</a>
+        <a class="btn btn-ghost" href="#features" data-i18n="hero.ctaGhost">了解功能</a>
+      </div>
+      <div class="hero-meta">
+        <span data-i18n-html="hero.meta1"><b>Go</b> + Vue 3</span>
+        <span data-i18n-html="hero.meta2"><b>SQLite</b> 纯 Go 驱动</span>
+        <span data-i18n-html="hero.meta3"><b>7</b> 种界面语言</span>
+        <span data-i18n-html="hero.meta4"><b>REST</b> 双 API</span>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-bar"><i></i><i></i><i></i><span class="url">http://your-server:8888</span></div>
+      <div class="mockup-body">
+        <div class="mock-side">
+          <div class="on" data-i18n="hero.side.dash">📊 仪表盘</div>
+          <div data-i18n="hero.side.ai">🤖 AI 助手</div>
+          <div data-i18n="hero.side.sec">🛡️ 安全中心</div>
+          <div data-i18n="hero.side.docker">🐳 容器</div>
+          <div data-i18n="hero.side.term">⌨️ 终端</div>
+          <div data-i18n="hero.side.file">📁 文件</div>
+        </div>
+        <div class="mock-main">
+          <div class="mock-stats">
+            <div class="mock-stat"><div class="k">CPU</div><div class="v">12%</div></div>
+            <div class="mock-stat"><div class="k" data-i18n="hero.stat.mem">内存</div><div class="v">3.2G</div></div>
+            <div class="mock-stat"><div class="k" data-i18n="hero.stat.disk">磁盘</div><div class="v">41%</div></div>
+          </div>
+          <div class="mock-chart">
+            <b style="height:34%"></b><b style="height:52%"></b><b style="height:41%"></b><b style="height:66%"></b>
+            <b style="height:48%"></b><b style="height:72%"></b><b style="height:58%"></b><b style="height:84%"></b>
+            <b style="height:62%"></b><b style="height:47%"></b><b style="height:69%"></b><b style="height:55%"></b>
+          </div>
+          <div class="mock-ai">
+            <div class="q" data-i18n="hero.aiq">🤖 用户：磁盘占用突然涨了，帮我看看</div>
+            <div class="a" data-i18n-html="hero.aia">分析 /var/log：journal 日志未轮转，占 <em>6.8 GB</em>。建议执行 journalctl --vacuum-size=500M，预计释放 <em>6.3 GB</em> ✅</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HIGHLIGHTS ================= -->
+<section class="hl-sec">
+  <div class="container">
+    <div class="hl-band">
+      <div class="hl">
+        <div class="ic">🤖</div>
+        <div><b data-i18n="hl1.t">100% 代码由 AI 编写</b><span data-i18n="hl1.d">全部代码由 AI 自动生成，人类负责审核与验证</span></div>
+      </div>
+      <div class="hl">
+        <div class="ic">🔓</div>
+        <div><b data-i18n="hl2.t">永久开源 · 无商业版</b><span data-i18n="hl2.d">完全开源，无功能阉割、无付费墙、无商业版计划</span></div>
+      </div>
+      <div class="hl">
+        <div class="ic">🔌</div>
+        <div><b data-i18n="hl3.t">支持 MCP 与 Skill</b><span data-i18n="hl3.d">对接 MCP 协议与自定义 Skill，自由扩展 AI 能力</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AI BAND ================= -->
+<section id="ai">
+  <div class="container">
+    <div class="ai-band">
+      <div>
+        <div class="sec-tag" data-i18n="ai.tag">AI Operations</div>
+        <h3 data-i18n="ai.h3">把"运维经验"装进面板里</h3>
+        <p data-i18n="ai.p">不只是又一个控制台。OpsMini 内置 AI 运维助手，用自然语言描述问题，它读取系统实时状态、分析日志、给出诊断结论，甚至直接帮你执行修复命令。</p>
+        <ul class="ai-points">
+          <li data-i18n="ai.l1">自然语言诊断：「为什么内存占用这么高」</li>
+          <li data-i18n="ai.l2">日志智能分析：自动 tail 相关日志并归因</li>
+          <li data-i18n="ai.l3">命令生成与执行：建议 → 确认 → 执行，全程审计</li>
+          <li data-i18n="ai.l4">技能市场（Skills）：可安装、可上传的 AI 运维技能包</li>
+          <li data-i18n="ai.l5">流式输出（SSE），边思考边给结果</li>
+        </ul>
+      </div>
+      <div class="chat-demo">
+        <div class="bubble user" data-i18n="ai.b1q">最近服务器总是半夜被重启，帮我查一下原因</div>
+        <div class="bubble bot" data-i18n-html="ai.b1a">已检查 <span class="hl">/var/log/messages</span> 与 systemd 日志：<br>· 03:14 <span class="hl">oom-killer</span> 触发，杀掉进程 <span class="hl">java -Xmx4g</span><br>· 物理内存 4G，JVM 堆 + 页缓存溢出<br>建议：将 Xmx 降至 2g，或添加 swap。要我帮你执行吗？ <span class="ok">[y/N]</span></div>
+        <div class="bubble user" data-i18n="ai.b2q">执行第一条</div>
+        <div class="bubble bot" data-i18n="ai.b2a">✅ 已修改 systemd 单元并重启服务。将持续监控 48h，若再次 OOM 会通过告警通知你。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section id="features">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag" data-i18n="feat.tag">Features</div>
+      <h2 data-i18n="feat.h2">单机运维，一站配齐</h2>
+      <p data-i18n="feat.p">从监控到安全，从容器到计划任务，覆盖一台服务器日常运维的全部高频场景。</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat"><div class="icon">📊</div><h4 data-i18n="f1.t">实时监控与趋势</h4><p data-i18n="f1.d">CPU / 内存 / 磁盘 / 网络实时指标，ECharts 可视化，数据持久化 SQLite 保留 30 天，24h / 7d 趋势一目了然。</p><div class="tags" data-i18n-html="f1.tags"><span>仪表盘</span><span>历史趋势</span><span>Prometheus 指标</span></div></div>
+      <div class="feat"><div class="icon">🔔</div><h4 data-i18n="f2.t">告警与通知</h4><p data-i18n="f2.d">自定义告警规则（CPU、内存、磁盘、端口存活等），事件中心集中管理，未读通知角标实时提醒。</p><div class="tags" data-i18n-html="f2.tags"><span>告警规则</span><span>事件中心</span><span>站内通知</span></div></div>
+      <div class="feat"><div class="icon">🛡️</div><h4 data-i18n="f3.t">安全中心</h4><p data-i18n="f3.d">安全基线扫描、文件完整性监控（FIM）、威胁检测、防火墙端口管理、登录与 SSH 安全分析，主机加固一个入口搞定。</p><div class="tags" data-i18n-html="f3.tags"><span>基线扫描</span><span>FIM</span><span>防火墙</span><span>威胁检测</span></div></div>
+      <div class="feat"><div class="icon">🐳</div><h4 data-i18n="f4.t">Docker 管理</h4><p data-i18n="f4.d">容器启停与日志、镜像拉取、卷与网络管理，还能直接打开容器内终端——Alpine 等精简镜像也开箱即用。</p><div class="tags" data-i18n-html="f4.tags"><span>容器</span><span>镜像</span><span>卷</span><span>网络</span><span>exec 终端</span></div></div>
+      <div class="feat"><div class="icon">⌨️</div><h4 data-i18n="f5.t">Web 终端</h4><p data-i18n="f5.d">WebSocket + pty 的浏览器 SSH 级交互终端，vim、htop 等全屏程序完整兼容，随时随地登录服务器。</p><div class="tags" data-i18n-html="f5.tags"><span>xterm</span><span>pty</span><span>WebSocket</span></div></div>
+      <div class="feat"><div class="icon">📁</div><h4 data-i18n="f6.t">文件管理器</h4><p data-i18n="f6.d">在线浏览、上传、下载、重命名、新建目录、批量删除，大文件断点无忧。</p><div class="tags" data-i18n-html="f6.tags"><span>上传下载</span><span>在线管理</span></div></div>
+      <div class="feat"><div class="icon">⏰</div><h4 data-i18n="f7.t">计划任务</h4><p data-i18n="f7.d">系统级与用户级 crontab 可视化管理，脚本在线运行，执行记录可追溯。</p><div class="tags" data-i18n-html="f7.tags"><span>cron</span><span>脚本执行</span></div></div>
+      <div class="feat"><div class="icon">📦</div><h4 data-i18n="f8.t">应用商店</h4><p data-i18n="f8.d">常用应用一键部署，支持官方仓库同步与本地导入，网站与数据库管理配套齐全。</p><div class="tags" data-i18n-html="f8.tags"><span>一键部署</span><span>网站</span><span>数据库</span></div></div>
+      <div class="feat"><div class="icon">🔐</div><h4 data-i18n="f9.t">权限与审计</h4><p data-i18n="f9.d">用户 / 角色 / 权限组 RBAC 体系，TOTP 两步验证（MFA），全操作审计日志，团队协作安全合规。</p><div class="tags" data-i18n-html="f9.tags"><span>RBAC</span><span>MFA</span><span>审计日志</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ARCH ================= -->
+<section id="arch">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag" data-i18n="arch.tag">Architecture</div>
+      <h2 data-i18n="arch.h2">为"单机交付"而生的架构</h2>
+      <p data-i18n="arch.p">没有外部数据库、没有消息队列、没有运行时依赖。拷贝一个文件，chmod +x，直接运行。</p>
+    </div>
+    <div class="arch">
+      <div class="arch-col">
+        <h5 data-i18n="arch.c1">浏览器</h5>
+        <div class="arch-box"><b data-i18n="arch.b1t">Vue 3 单页应用</b><span data-i18n="arch.b1s">go:embed 嵌入二进制，7 语言 i18n</span></div>
+        <div class="arch-box"><b data-i18n="arch.b2t">ECharts 可视化</b><span data-i18n="arch.b2s">仪表盘 / 趋势图 / 告警面板</span></div>
+        <div class="arch-box"><b data-i18n="arch.b3t">xterm.js 终端</b><span data-i18n="arch.b3s">WebSocket 全双工交互</span></div>
+      </div>
+      <div class="arch-arrow">⇄</div>
+      <div class="arch-col">
+        <h5 data-i18n="arch.c2">OpsMini 服务</h5>
+        <div class="arch-box"><b data-i18n="arch.b4t">Go · Gin 路由层</b><span data-i18n="arch.b4s">/api/v1（UI）+ /agent/v1（机器对机器）</span></div>
+        <div class="arch-box"><b data-i18n="arch.b5t">Service 层</b><span data-i18n="arch.b5s">AI / 安全 / Docker / 监控 / 文件 / 计划任务…</span></div>
+        <div class="arch-box"><b data-i18n="arch.b6t">JWT 鉴权 + RBAC + MFA</b><span data-i18n="arch.b6s">中间件链式校验</span></div>
+      </div>
+      <div class="arch-arrow">⇄</div>
+      <div class="arch-col">
+        <h5 data-i18n="arch.c3">宿主机</h5>
+        <div class="arch-box"><b data-i18n="arch.b7t">SQLite（纯 Go 驱动）</b><span data-i18n="arch.b7s">单文件存储，免安装数据库</span></div>
+        <div class="arch-box"><b data-i18n="arch.b8t">Docker Engine / systemd / procfs</b><span data-i18n="arch.b8s">系统与容器直接对接</span></div>
+        <div class="arch-box"><b data-i18n="arch.b9t">pty / crontab / 防火墙</b><span data-i18n="arch.b9s">原生系统能力封装</span></div>
+      </div>
+      <div class="arch-note" data-i18n="arch.note">交叉编译支持 Linux amd64 / arm64 —— 树莓派、国产化服务器同样能跑</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= QUICKSTART ================= -->
+<section id="quickstart">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag" data-i18n="qs.tag">Quick Start</div>
+      <h2 data-i18n="qs.h2">三分钟跑起来</h2>
+      <p data-i18n="qs.p">下载、执行、打开浏览器——没有安装向导，没有依赖地狱。</p>
+    </div>
+    <div class="qs-grid">
+      <div class="terminal-box">
+        <div class="bar"><i></i><i></i><i></i></div>
+        <pre><span class="c"># download (or build: make build-all)</span>
+<span class="d">$</span> wget https://opsmini.com/dist/opsmini-linux-amd64
+<span class="d">$</span> chmod +x opsmini-linux-amd64
+
+<span class="c"># run</span>
+<span class="d">$</span> ./opsmini-linux-amd64 -config configs/config.yaml
+<span class="g">✓</span> OpsMini <span class="y">v1.6.x</span> started
+<span class="g">✓</span> listening on :8888
+<span class="y">➜</span> initial password is printed in the startup log
+
+<span class="c"># open the panel</span>
+<span class="d">$</span> open http://your-server:8888</pre>
+      </div>
+      <div class="qs-steps">
+        <div class="qs-step"><div class="num">1</div><div><b data-i18n="qs.s1t">获取二进制</b><span data-i18n="qs.s1d">下载对应架构的发布包，或 make build 一条命令本地构建。</span></div></div>
+        <div class="qs-step"><div class="num">2</div><div><b data-i18n="qs.s2t">运行并登录</b><span data-i18n="qs.s2d">默认端口 8888，初始账号 opsmini，密码在启动日志中输出，登录后立即修改。</span></div></div>
+        <div class="qs-step"><div class="num">3</div><div><b data-i18n="qs.s3t">加固与接入</b><span data-i18n="qs.s3d">开启 MFA 两步验证、配置防火墙端口；外部系统通过 /agent/v1 API 接入监控与自动化。</span></div></div>
+        <div class="qs-step"><div class="num">4</div><div><b data-i18n="qs.s4t">常驻运行（推荐）</b><span data-i18n="qs.s4d">注册为 systemd 服务，开机自启、崩溃自动拉起。</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STATS ================= -->
+<section>
+  <div class="container">
+    <div class="stats-band">
+      <div class="stat"><div class="v">1</div><div class="k" data-i18n="st.k1">个二进制文件</div></div>
+      <div class="stat"><div class="v">0</div><div class="k" data-i18n="st.k2">运行时依赖</div></div>
+      <div class="stat"><div class="v">7</div><div class="k" data-i18n="st.k3">种界面语言</div></div>
+      <div class="stat"><div class="v">2</div><div class="k" data-i18n="st.k4">套 REST API</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section id="faq">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag" data-i18n="faq.tag">FAQ</div>
+      <h2 data-i18n="faq.h2">常见问题</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary data-i18n="faq.q1">OpsMini 和宝塔、1Panel 有什么区别？</summary>
+        <p data-i18n="faq.a1">定位类似，都是单机运维面板。OpsMini 的差异点在于：① 内置 AI 运维助手，自然语言即可诊断和执行；② 提供 /agent/v1 机器对机器 API 与 MCP 支持，便于接入你自己的自动化体系；③ 纯 Go + SQLite 单文件交付，极简部署、无运行时依赖。</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q2">支持哪些系统 / 架构？</summary>
+        <p data-i18n="faq.a2">Linux amd64 与 arm64（含树莓派、国产化服务器）。面板本身是静态编译的 Go 二进制，只要内核版本不是特别古老即可运行。</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q3">数据存在哪里？会丢吗？</summary>
+        <p data-i18n="faq.a3">所有配置、用户、审计、监控数据都存于同目录下的 SQLite 单文件（默认 opsmini.db），备份就是复制这个文件。监控指标持久化保留 30 天，重启不丢失。</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q4">AI 功能需要外接大模型吗？</summary>
+        <p data-i18n="faq.a4">AI 助手对接外部大模型服务，在「设置」中填入你的模型地址与密钥即可启用；不配置也不影响面板其他功能正常使用。</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q5">如何保证安全？</summary>
+        <p data-i18n="faq.a5">JWT 鉴权 + TOTP 两步验证（MFA）+ RBAC 角色权限 + 全量操作审计日志；登录安全分析会识别暴力破解与异常登录。建议公网部署时配合防火墙限制来源 IP。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section>
+  <div class="container">
+    <div class="cta">
+      <h2 data-i18n="cta.h2">让运维回归简单</h2>
+      <p data-i18n="cta.p">一个文件、一次拷贝、打开浏览器，你的服务器就有了 AI 运维专家。</p>
+      <a class="btn btn-primary" href="#quickstart" data-i18n="cta.btn">下载 OpsMini →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="brand">
+        <img src="assets/logo.png" alt="OpsMini">
+      </div>
+      <div class="foot-cols">
+        <div>
+          <h6 data-i18n="foot.c1t">产品</h6>
+          <a href="#features" data-i18n="foot.c1a">功能特性</a>
+          <a href="#ai" data-i18n="foot.c1b">AI 运维</a>
+          <a href="#quickstart" data-i18n="foot.c1c">快速开始</a>
+        </div>
+        <div>
+          <h6 data-i18n="foot.c2t">开发者</h6>
+          <a href="https://github.com/unixhot/opsmini/" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://www.opsmini.com/docs/" target="_blank" rel="noopener" data-i18n="nav.docs">文档</a>
+          <a href="#arch" data-i18n="foot.c2b">架构说明</a>
+        </div>
+        <div>
+          <h6 data-i18n="foot.c3t">社区</h6>
+          <a href="#faq" data-i18n="foot.faq">常见问题</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span data-i18n="foot.bottom">OpsMini © 2026 北京速云科技有限公司（opsmini.com）</span>
+      <span>Go · Gin · GORM · SQLite · Vue 3 · ECharts</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const I18N = {
+'zh-CN': {
+  'title':'OpsMini — AI 驱动的轻量服务器运维面板','foot.faq':'常见问题',
+  'hl1.t':'100% 代码由 AI 编写','hl1.d':'全部代码由 AI 自动生成，人类负责审核与验证','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力',
+  'nav.features':'功能','nav.ai':'AI 运维','nav.arch':'架构','nav.quickstart':'快速开始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即体验','nav.tagline':'AI 驱动的主机运维面板','nav.docs':'文档',
+  'hero.badge':'AI-Powered · 单二进制交付 · 零依赖运行',
+  'hero.title':'一个文件，<br>管好一台<span class="grad">服务器</span>',
+  'hero.lead':'OpsMini 是 AI 驱动的轻量单机运维面板。自然语言诊断、Docker 管理、Web 终端、安全中心、监控告警——全部装进一个不到几十 MB 的二进制文件。',
+  'hero.ctaPrimary':'快速开始 →','hero.ctaGhost':'了解功能',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 纯 Go 驱动','hero.meta3':'<b>7</b> 种界面语言','hero.meta4':'<b>REST</b> 双 API',
+  'hero.side.dash':'📊 仪表盘','hero.side.ai':'🤖 AI 助手','hero.side.sec':'🛡️ 安全中心','hero.side.docker':'🐳 容器','hero.side.term':'⌨️ 终端','hero.side.file':'📁 文件',
+  'hero.stat.mem':'内存','hero.stat.disk':'磁盘',
+  'hero.aiq':'🤖 用户：磁盘占用突然涨了，帮我看看',
+  'hero.aia':'分析 /var/log：journal 日志未轮转，占 <em>6.8 GB</em>。建议执行 journalctl --vacuum-size=500M，预计释放 <em>6.3 GB</em> ✅',
+  'ai.tag':'AI Operations','ai.h3':'把“运维经验”装进面板里','ai.p':'不只是又一个控制台。OpsMini 内置 AI 运维助手，用自然语言描述问题，它读取系统实时状态、分析日志、给出诊断结论，甚至直接帮你执行修复命令。',
+  'ai.l1':'自然语言诊断：「为什么内存占用这么高」','ai.l2':'日志智能分析：自动 tail 相关日志并归因','ai.l3':'命令生成与执行：建议 → 确认 → 执行，全程审计','ai.l4':'技能市场（Skills）：可安装、可上传的 AI 运维技能包','ai.l5':'流式输出（SSE），边思考边给结果',
+  'ai.b1q':'最近服务器总是半夜被重启，帮我查一下原因',
+  'ai.b1a':'已检查 <span class="hl">/var/log/messages</span> 与 systemd 日志：<br>· 03:14 <span class="hl">oom-killer</span> 触发，杀掉进程 <span class="hl">java -Xmx4g</span><br>· 物理内存 4G，JVM 堆 + 页缓存溢出<br>建议：将 Xmx 降至 2g，或添加 swap。要我帮你执行吗？ <span class="ok">[y/N]</span>',
+  'ai.b2q':'执行第一条','ai.b2a':'✅ 已修改 systemd 单元并重启服务。将持续监控 48h，若再次 OOM 会通过告警通知你。',
+  'feat.tag':'Features','feat.h2':'单机运维，一站配齐','feat.p':'从监控到安全，从容器到计划任务，覆盖一台服务器日常运维的全部高频场景。',
+  'f1.t':'实时监控与趋势','f1.d':'CPU / 内存 / 磁盘 / 网络实时指标，ECharts 可视化，数据持久化 SQLite 保留 30 天，24h / 7d 趋势一目了然。','f1.tags':'<span>仪表盘</span><span>历史趋势</span><span>Prometheus 指标</span>',
+  'f2.t':'告警与通知','f2.d':'自定义告警规则（CPU、内存、磁盘、端口存活等），事件中心集中管理，未读通知角标实时提醒。','f2.tags':'<span>告警规则</span><span>事件中心</span><span>站内通知</span>',
+  'f3.t':'安全中心','f3.d':'安全基线扫描、文件完整性监控（FIM）、威胁检测、防火墙端口管理、登录与 SSH 安全分析，主机加固一个入口搞定。','f3.tags':'<span>基线扫描</span><span>FIM</span><span>防火墙</span><span>威胁检测</span>',
+  'f4.t':'Docker 管理','f4.d':'容器启停与日志、镜像拉取、卷与网络管理，还能直接打开容器内终端——Alpine 等精简镜像也开箱即用。','f4.tags':'<span>容器</span><span>镜像</span><span>卷</span><span>网络</span><span>exec 终端</span>',
+  'f5.t':'Web 终端','f5.d':'WebSocket + pty 的浏览器 SSH 级交互终端，vim、htop 等全屏程序完整兼容，随时随地登录服务器。','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'文件管理器','f6.d':'在线浏览、上传、下载、重命名、新建目录、批量删除，大文件断点无忧。','f6.tags':'<span>上传下载</span><span>在线管理</span>',
+  'f7.t':'计划任务','f7.d':'系统级与用户级 crontab 可视化管理，脚本在线运行，执行记录可追溯。','f7.tags':'<span>cron</span><span>脚本执行</span>',
+  'f8.t':'应用商店','f8.d':'常用应用一键部署，支持官方仓库同步与本地导入，网站与数据库管理配套齐全。','f8.tags':'<span>一键部署</span><span>网站</span><span>数据库</span>',
+  'f9.t':'权限与审计','f9.d':'用户 / 角色 / 权限组 RBAC 体系，TOTP 两步验证（MFA），全操作审计日志，团队协作安全合规。','f9.tags':'<span>RBAC</span><span>MFA</span><span>审计日志</span>',
+  'arch.tag':'Architecture','arch.h2':'为“单机交付”而生的架构','arch.p':'没有外部数据库、没有消息队列、没有运行时依赖。拷贝一个文件，chmod +x，直接运行。',
+  'arch.c1':'浏览器','arch.c2':'OpsMini 服务','arch.c3':'宿主机',
+  'arch.b1t':'Vue 3 单页应用','arch.b1s':'go:embed 嵌入二进制，7 语言 i18n','arch.b2t':'ECharts 可视化','arch.b2s':'仪表盘 / 趋势图 / 告警面板','arch.b3t':'xterm.js 终端','arch.b3s':'WebSocket 全双工交互',
+  'arch.b4t':'Go · Gin 路由层','arch.b4s':'/api/v1（UI）+ /agent/v1（机器对机器）','arch.b5t':'Service 层','arch.b5s':'AI / 安全 / Docker / 监控 / 文件 / 计划任务…','arch.b6t':'JWT 鉴权 + RBAC + MFA','arch.b6s':'中间件链式校验',
+  'arch.b7t':'SQLite（纯 Go 驱动）','arch.b7s':'单文件存储，免安装数据库','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系统与容器直接对接','arch.b9t':'pty / crontab / 防火墙','arch.b9s':'原生系统能力封装',
+  'arch.note':'交叉编译支持 Linux amd64 / arm64 —— 树莓派、国产化服务器同样能跑',
+  'qs.tag':'Quick Start','qs.h2':'三分钟跑起来','qs.p':'下载、执行、打开浏览器——没有安装向导，没有依赖地狱。',
+  'qs.s1t':'获取二进制','qs.s1d':'下载对应架构的发布包，或 make build 一条命令本地构建。','qs.s2t':'运行并登录','qs.s2d':'默认端口 8888，初始账号 opsmini，密码在启动日志中输出，登录后立即修改。','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙端口；外部系统通过 /agent/v1 API 接入监控与自动化。','qs.s4t':'常驻运行（推荐）','qs.s4d':'注册为 systemd 服务，开机自启、崩溃自动拉起。',
+  'api.tag':'Developer API','api.h2':'为自动化而生','api.p':'面板能做的事，API 都能做。人用浏览器，程序用接口。','api.h3':'双通道 REST API',
+  'api.p2':'面向浏览器的 <b>/api/v1</b> 与面向机器的 <b>/agent/v1</b> 完全独立，令牌隔离、权限隔离。配合 MCP 协议支持，可被 AI Agent 直接调用。',
+  'api.l1':'JWT 鉴权 + 刷新令牌，Agent 长期凭证独立管理','api.l2':'覆盖容器、文件、监控、告警、安全、计划任务全模块','api.l3':'原生 MCP 接入，让外部 AI 助手直接操作你的服务器','api.l4':'OpenAPI 风格路由，curl 即可完成全部自动化',
+  'api.code.title':'curl 示例',
+  'st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'套 REST API',
+  'faq.tag':'FAQ','faq.h2':'常见问题',
+  'faq.q1':'OpsMini 和宝塔、1Panel 有什么区别？','faq.a1':'定位类似，都是单机运维面板。OpsMini 的差异点在于：① 内置 AI 运维助手，自然语言即可诊断和执行；② 提供 /agent/v1 机器对机器 API 与 MCP 支持，便于接入你自己的自动化体系；③ 纯 Go + SQLite 单文件交付，极简部署、无运行时依赖。',
+  'faq.q2':'支持哪些系统 / 架构？','faq.a2':'Linux amd64 与 arm64（含树莓派、国产化服务器）。面板本身是静态编译的 Go 二进制，只要内核版本不是特别古老即可运行。',
+  'faq.q3':'数据存在哪里？会丢吗？','faq.a3':'所有配置、用户、审计、监控数据都存于同目录下的 SQLite 单文件（默认 opsmini.db），备份就是复制这个文件。监控指标持久化保留 30 天，重启不丢失。',
+  'faq.q4':'AI 功能需要外接大模型吗？','faq.a4':'AI 助手对接外部大模型服务，在「设置」中填入你的模型地址与密钥即可启用；不配置也不影响面板其他功能正常使用。',
+  'faq.q5':'如何保证安全？','faq.a5':'JWT 鉴权 + TOTP 两步验证（MFA）+ RBAC 角色权限 + 全量操作审计日志；登录安全分析会识别暴力破解与异常登录。建议公网部署时配合防火墙限制来源 IP。',
+  'cta.h2':'让运维回归简单','cta.p':'一个文件、一次拷贝、打开浏览器，你的服务器就有了 AI 运维专家。','cta.btn':'下载 OpsMini →',
+  'foot.brand':'AI 驱动的轻量服务器运维面板','foot.c1t':'产品','foot.c1a':'功能特性','foot.c1b':'AI 运维','foot.c1c':'快速开始','foot.c2t':'开发者','foot.c2a':'REST API','foot.c2b':'架构说明','foot.c2c':'FAQ','foot.c3t':'社区','foot.c3b':'问题反馈','foot.bottom':'OpsMini © 2026 北京速云科技有限公司（opsmini.com）'
+},
+'en': {
+  'title':'OpsMini — AI-Powered Lightweight Server Panel','foot.faq':'FAQ',
+  'hl1.t':'100% AI-written code','hl1.d':'Every line generated by AI, reviewed and verified by humans','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities',
+  'nav.features':'Features','nav.ai':'AI Ops','nav.arch':'Architecture','nav.quickstart':'Quick Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Get Started','nav.tagline':'AI-Powered Server Operations Panel','nav.docs':'Docs',
+  'hero.badge':'AI-Powered · Single Binary · Zero Dependencies',
+  'hero.title':'One file to run a<br>whole <span class="grad">server</span>',
+  'hero.lead':'OpsMini is an AI-powered lightweight server panel. Natural-language diagnosis, Docker management, web terminal, security center and alerting — all inside a single binary of just a few dozen MB.',
+  'hero.ctaPrimary':'Quick Start →','hero.ctaGhost':'See Features',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> pure-Go driver','hero.meta3':'<b>7</b> UI languages','hero.meta4':'<b>REST</b> dual APIs',
+  'hero.side.dash':'📊 Dashboard','hero.side.ai':'🤖 AI Assistant','hero.side.sec':'🛡️ Security','hero.side.docker':'🐳 Containers','hero.side.term':'⌨️ Terminal','hero.side.file':'📁 Files',
+  'hero.stat.mem':'Memory','hero.stat.disk':'Disk',
+  'hero.aiq':'🤖 User: disk usage suddenly spiked, can you check?',
+  'hero.aia':'Analyzing /var/log: journal logs are not rotated, taking up <em>6.8 GB</em>. Suggest running journalctl --vacuum-size=500M to free <em>6.3 GB</em> ✅',
+  'ai.tag':'AI Operations','ai.h3':'Ops expertise, built right in','ai.p':'Not just another console. OpsMini ships an AI operations assistant: describe the problem in natural language and it reads live system state, analyzes logs, delivers a diagnosis, and can even run the fix for you.',
+  'ai.l1':'Natural-language diagnosis — "why is memory so high?"','ai.l2':'Smart log analysis: auto-tails relevant logs and attributes causes','ai.l3':'Command generation & execution: suggest → confirm → run, fully audited','ai.l4':'Skills marketplace: installable, uploadable AI ops skill packs','ai.l5':'Streaming output (SSE) — see results as it thinks',
+  'ai.b1q':'My server keeps rebooting in the middle of the night, can you find out why?',
+  'ai.b1a':'Checked <span class="hl">/var/log/messages</span> and systemd logs:<br>· 03:14 <span class="hl">oom-killer</span> fired, killed process <span class="hl">java -Xmx4g</span><br>· 4G physical RAM, JVM heap + page cache overflow<br>Suggestion: lower Xmx to 2g, or add swap. Run it for you? <span class="ok">[y/N]</span>',
+  'ai.b2q':'Run the first one','ai.b2a':'✅ Modified the systemd unit and restarted the service. I will keep monitoring for 48h and notify you if it OOMs again.',
+  'feat.tag':'Features','feat.h2':'Everything for one server','feat.p':'From monitoring to security, containers to cron jobs — every high-frequency task for a single server.',
+  'f1.t':'Realtime Monitoring','f1.d':'Live CPU / memory / disk / network metrics with ECharts visualization, persisted in SQLite for 30 days with 24h / 7d trends.','f1.tags':'<span>Dashboard</span><span>Trends</span><span>Prometheus metrics</span>',
+  'f2.t':'Alerts & Notifications','f2.d':'Custom alert rules (CPU, memory, disk, port liveness), a central event center, and unread notification badges.','f2.tags':'<span>Alert rules</span><span>Events</span><span>In-app notices</span>',
+  'f3.t':'Security Center','f3.d':'Security baseline scans, file integrity monitoring (FIM), threat detection, firewall port management, and login/SSH security analysis — all in one place.','f3.tags':'<span>Baseline</span><span>FIM</span><span>Firewall</span><span>Threats</span>',
+  'f4.t':'Docker Management','f4.d':'Start/stop containers, view logs, pull images, manage volumes and networks, and even open a shell inside a container — Alpine and slim images work out of the box.','f4.tags':'<span>Containers</span><span>Images</span><span>Volumes</span><span>Networks</span><span>exec shell</span>',
+  'f5.t':'Web Terminal','f5.d':'An SSH-grade browser terminal over WebSocket + pty, fully compatible with full-screen apps like vim and htop — log in from anywhere.','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'File Manager','f6.d':'Browse, upload, download, rename, create directories and batch-delete online, with large files handled gracefully.','f6.tags':'<span>Upload/download</span><span>Online</span>',
+  'f7.t':'Cron Jobs','f7.d':'Visual management of system and user crontabs, run scripts online, with traceable execution history.','f7.tags':'<span>cron</span><span>Scripts</span>',
+  'f8.t':'App Store','f8.d':'One-click deployment of common apps, official repo sync, local import, plus website and database management.','f8.tags':'<span>One-click</span><span>Websites</span><span>Databases</span>',
+  'f9.t':'Access & Audit','f9.d':'RBAC with users / roles / permission groups, TOTP two-factor (MFA), and full audit logs for secure team collaboration.','f9.tags':'<span>RBAC</span><span>MFA</span><span>Audit log</span>',
+  'arch.tag':'Architecture','arch.h2':'Built for single-binary delivery','arch.p':'No external database, no message queue, no runtime dependencies. Copy one file, chmod +x, and run.',
+  'arch.c1':'Browser','arch.c2':'OpsMini Service','arch.c3':'Host',
+  'arch.b1t':'Vue 3 SPA','arch.b1s':'embedded via go:embed, 7-language i18n','arch.b2t':'ECharts viz','arch.b2s':'dashboard / trends / alerts','arch.b3t':'xterm.js terminal','arch.b3s':'full-duplex WebSocket',
+  'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) + /agent/v1 (M2M)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'chained middleware',
+  'arch.b7t':'SQLite (pure-Go)','arch.b7s':'single-file storage, no DB install','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direct system & container access','arch.b9t':'pty / crontab / firewall','arch.b9s':'native system wrappers',
+  'arch.note':'Cross-compiles to Linux amd64 / arm64 — runs on Raspberry Pi and domestic servers alike',
+  'qs.tag':'Quick Start','qs.h2':'Up and running in minutes','qs.p':'Download, execute, open the browser — no install wizard, no dependency hell.',
+  'qs.s1t':'Get the binary','qs.s1d':'Download the release for your arch, or run make build locally.','qs.s2t':'Run & log in','qs.s2d':'Default port 8888, initial account opsmini, password printed in the startup log — change it right after login.','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA, configure firewall ports; external systems integrate via the /agent/v1 API.','qs.s4t':'Run as a service (recommended)','qs.s4d':'Register as a systemd service for auto-start and crash recovery.',
+  'api.tag':'Developer API','api.h2':'Made for automation','api.p':'Whatever the panel can do, the API can do. Humans use the browser, programs use the API.','api.h3':'Dual-channel REST API',
+  'api.p2':'The browser-facing <b>/api/v1</b> and machine-facing <b>/agent/v1</b> are fully isolated — separate tokens, separate permissions. With MCP support, AI agents can call it directly.',
+  'api.l1':'JWT auth + refresh tokens, independent long-lived agent credentials','api.l2':'Covers containers, files, monitoring, alerts, security and cron','api.l3':'Native MCP so external AI assistants can operate your server','api.l4':'OpenAPI-style routes — full automation with plain curl',
+  'api.code.title':'curl example',
+  'st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'REST APIs',
+  'faq.tag':'FAQ','faq.h2':'Frequently Asked Questions',
+  'faq.q1':'How is OpsMini different from BaoTa or 1Panel?','faq.a1':'Similar positioning — all are single-server panels. OpsMini differs by: ① a built-in AI assistant for natural-language diagnosis and execution; ② an /agent/v1 machine-to-machine API plus MCP support to plug into your own automation; ③ pure Go + SQLite single-file delivery with minimal deployment and no runtime dependencies.',
+  'faq.q2':'Which systems / architectures are supported?','faq.a2':'Linux amd64 and arm64 (including Raspberry Pi and domestic servers). The panel is a statically compiled Go binary, so it runs as long as the kernel is not too old.',
+  'faq.q3':'Where is data stored? Can it be lost?','faq.a3':'All config, users, audit and monitoring data live in a single SQLite file in the same directory (default opsmini.db) — backing up is just copying that file. Metrics are persisted for 30 days and survive restarts.',
+  'faq.q4':'Does the AI feature need an external LLM?','faq.a4':'The AI assistant connects to an external LLM service; fill in your model endpoint and key under Settings to enable it. The rest of the panel works normally without it.',
+  'faq.q5':'How is security ensured?','faq.a5':'JWT auth + TOTP two-factor (MFA) + RBAC role permissions + full audit logging; login security analysis detects brute force and anomalous logins. For public deployments, restrict source IPs with the firewall.',
+  'cta.h2':'Make operations simple again','cta.p':'One file, one copy, open the browser — and your server gets an AI ops expert.','cta.btn':'Download OpsMini →',
+  'foot.brand':'AI-powered lightweight server management panel','foot.c1t':'Product','foot.c1a':'Features','foot.c1b':'AI Ops','foot.c1c':'Quick Start','foot.c2t':'Developers','foot.c2a':'REST API','foot.c2b':'Architecture','foot.c2c':'FAQ','foot.c3t':'Community','foot.c3b':'Feedback','foot.bottom':'OpsMini © 2026 Beijing Suyun Technology Co., Ltd. (opsmini.com)'
+},
+'zh-TW': {
+  'title':'OpsMini — AI 驅動的輕量伺服器維運面板','foot.faq':'常見問題',
+  'hl1.t':'100% 程式碼由 AI 編寫','hl1.d':'全部程式碼由 AI 自動生成，人類負責審核與驗證','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力',
+  'nav.features':'功能','nav.ai':'AI 維運','nav.arch':'架構','nav.quickstart':'快速開始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即體驗','nav.tagline':'AI 驅動的主機維運面板','nav.docs':'文件',
+  'hero.badge':'AI-Powered · 單一二進位交付 · 零依賴運行',
+  'hero.title':'一個檔案，<br>管好一台<span class="grad">伺服器</span>',
+  'hero.lead':'OpsMini 是 AI 驅動的輕量單機維運面板。自然語言診斷、Docker 管理、Web 終端、安全中心、監控告警——全部裝進一個不到幾十 MB 的二進位檔案。',
+  'hero.ctaPrimary':'快速開始 →','hero.ctaGhost':'了解功能',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 純 Go 驅動','hero.meta3':'<b>7</b> 種介面語言','hero.meta4':'<b>REST</b> 雙 API',
+  'hero.side.dash':'📊 儀表板','hero.side.ai':'🤖 AI 助手','hero.side.sec':'🛡️ 安全中心','hero.side.docker':'🐳 容器','hero.side.term':'⌨️ 終端','hero.side.file':'📁 檔案',
+  'hero.stat.mem':'記憶體','hero.stat.disk':'磁碟',
+  'hero.aiq':'🤖 使用者：磁碟占用突然變高，幫我看看',
+  'hero.aia':'分析 /var/log：journal 日誌未輪轉，占 <em>6.8 GB</em>。建議執行 journalctl --vacuum-size=500M，預計釋放 <em>6.3 GB</em> ✅',
+  'ai.tag':'AI Operations','ai.h3':'把「維運經驗」裝進面板裡','ai.p':'不只是又一個控制台。OpsMini 內建 AI 維運助手，用自然語言描述問題，它讀取系統即時狀態、分析日誌、給出診斷結論，甚至直接幫你執行修復命令。',
+  'ai.l1':'自然語言診斷：「為什麼記憶體占用這麼高」','ai.l2':'日誌智慧分析：自動 tail 相關日誌並歸因','ai.l3':'命令生成與執行：建議 → 確認 → 執行，全程稽核','ai.l4':'技能市場（Skills）：可安裝、可上傳的 AI 維運技能包','ai.l5':'串流輸出（SSE），邊思考邊給結果',
+  'ai.b1q':'最近伺服器總是半夜被重啟，幫我查一下原因',
+  'ai.b1a':'已檢查 <span class="hl">/var/log/messages</span> 與 systemd 日誌：<br>· 03:14 <span class="hl">oom-killer</span> 觸發，殺掉程序 <span class="hl">java -Xmx4g</span><br>· 實體記憶體 4G，JVM 堆 + 頁快取溢出<br>建議：將 Xmx 降至 2g，或加入 swap。要我幫你執行嗎？ <span class="ok">[y/N]</span>',
+  'ai.b2q':'執行第一條','ai.b2a':'✅ 已修改 systemd 單元並重啟服務。將持續監控 48h，若再次 OOM 會透過告警通知你。',
+  'feat.tag':'Features','feat.h2':'單機維運，一站配齊','feat.p':'從監控到安全，從容器到排程任務，涵蓋一台伺服器日常維運的全部高頻場景。',
+  'f1.t':'即時監控與趨勢','f1.d':'CPU / 記憶體 / 磁碟 / 網路即時指標，ECharts 視覺化，資料持久化 SQLite 保留 30 天，24h / 7d 趨勢一目了然。','f1.tags':'<span>儀表板</span><span>歷史趨勢</span><span>Prometheus 指標</span>',
+  'f2.t':'告警與通知','f2.d':'自訂告警規則（CPU、記憶體、磁碟、連接埠存活等），事件中心集中管理，未讀通知角標即時提醒。','f2.tags':'<span>告警規則</span><span>事件中心</span><span>站內通知</span>',
+  'f3.t':'安全中心','f3.d':'安全基線掃描、檔案完整性監控（FIM）、威脅偵測、防火牆連接埠管理、登入與 SSH 安全分析，主機加固一個入口搞定。','f3.tags':'<span>基線掃描</span><span>FIM</span><span>防火牆</span><span>威脅偵測</span>',
+  'f4.t':'Docker 管理','f4.d':'容器啟停與日誌、映像檔拉取、卷與網路管理，還能直接開啟容器內終端——Alpine 等精簡映像也開箱即用。','f4.tags':'<span>容器</span><span>映像</span><span>卷</span><span>網路</span><span>exec 終端</span>',
+  'f5.t':'Web 終端','f5.d':'WebSocket + pty 的瀏覽器 SSH 級互動終端，vim、htop 等全螢幕程式完整相容，隨時隨地登入伺服器。','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'檔案管理器','f6.d':'線上瀏覽、上傳、下載、重新命名、新增目錄、批次刪除，大檔案斷點無憂。','f6.tags':'<span>上傳下載</span><span>線上管理</span>',
+  'f7.t':'排程任務','f7.d':'系統級與使用者級 crontab 視覺化管理，腳本線上執行，執行紀錄可追溯。','f7.tags':'<span>cron</span><span>腳本執行</span>',
+  'f8.t':'應用商店','f8.d':'常用應用一鍵部署，支援官方倉庫同步與本地匯入，網站與資料庫管理配套齊全。','f8.tags':'<span>一鍵部署</span><span>網站</span><span>資料庫</span>',
+  'f9.t':'權限與稽核','f9.d':'使用者 / 角色 / 權限群組 RBAC 體系，TOTP 兩步驗證（MFA），全操作稽核日誌，團隊協作安全合規。','f9.tags':'<span>RBAC</span><span>MFA</span><span>稽核日誌</span>',
+  'arch.tag':'Architecture','arch.h2':'為「單機交付」而生的架構','arch.p':'沒有外部資料庫、沒有訊息佇列、沒有執行時依賴。拷貝一個檔案，chmod +x，直接執行。',
+  'arch.c1':'瀏覽器','arch.c2':'OpsMini 服務','arch.c3':'主機',
+  'arch.b1t':'Vue 3 單頁應用','arch.b1s':'go:embed 嵌入二進位，7 語言 i18n','arch.b2t':'ECharts 視覺化','arch.b2s':'儀表板 / 趨勢圖 / 告警面板','arch.b3t':'xterm.js 終端','arch.b3s':'WebSocket 全雙工互動',
+  'arch.b4t':'Go · Gin 路由層','arch.b4s':'/api/v1（UI）+ /agent/v1（機器對機器）','arch.b5t':'Service 層','arch.b5s':'AI / 安全 / Docker / 監控 / 檔案 / 排程任務…','arch.b6t':'JWT 鑑權 + RBAC + MFA','arch.b6s':'中介層鏈式校驗',
+  'arch.b7t':'SQLite（純 Go 驅動）','arch.b7s':'單檔案儲存，免安裝資料庫','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系統與容器直接對接','arch.b9t':'pty / crontab / 防火牆','arch.b9s':'原生系統能力封裝',
+  'arch.note':'交叉編譯支援 Linux amd64 / arm64 —— 樹莓派、國產化伺服器同樣能跑',
+  'qs.tag':'Quick Start','qs.h2':'三分鐘跑起來','qs.p':'下載、執行、開啟瀏覽器——沒有安裝精靈，沒有依賴地獄。',
+  'qs.s1t':'取得二進位','qs.s1d':'下載對應架構的發布包，或 make build 一條命令本地建置。','qs.s2t':'執行並登入','qs.s2d':'預設連接埠 8888，初始帳號 opsmini，密碼在啟動日誌中輸出，登入後立即修改。','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、配置防火牆連接埠；外部系統透過 /agent/v1 API 接入監控與自動化。','qs.s4t':'常駐執行（推薦）','qs.s4d':'註冊為 systemd 服務，開機自啟、崩潰自動拉起。',
+  'api.tag':'Developer API','api.h2':'為自動化而生','api.p':'面板能做的事，API 都能做。人用瀏覽器，程式用介面。','api.h3':'雙通道 REST API',
+  'api.p2':'面向瀏覽器的 <b>/api/v1</b> 與面向機器的 <b>/agent/v1</b> 完全獨立，令牌隔離、權限隔離。配合 MCP 協定支援，可被 AI Agent 直接呼叫。',
+  'api.l1':'JWT 鑑權 + 刷新令牌，Agent 長期憑證獨立管理','api.l2':'涵蓋容器、檔案、監控、告警、安全、排程任務全模組','api.l3':'原生 MCP 接入，讓外部 AI 助手直接操作你的伺服器','api.l4':'OpenAPI 風格路由，curl 即可完成全部自動化',
+  'api.code.title':'curl 範例',
+  'st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'套 REST API',
+  'faq.tag':'FAQ','faq.h2':'常見問題',
+  'faq.q1':'OpsMini 和寶塔、1Panel 有什麼區別？','faq.a1':'定位類似，都是單機維運面板。OpsMini 的差異點在於：① 內建 AI 維運助手，自然語言即可診斷和執行；② 提供 /agent/v1 機器對機器 API 與 MCP 支援，便於接入你自己的自動化體系；③ 純 Go + SQLite 單檔案交付，極簡部署、無執行時依賴。',
+  'faq.q2':'支援哪些系統 / 架構？','faq.a2':'Linux amd64 與 arm64（含樹莓派、國產化伺服器）。面板本身是靜態編譯的 Go 二進位，只要核心版本不是特別古老即可執行。',
+  'faq.q3':'資料存在哪裡？會丟嗎？','faq.a3':'所有配置、使用者、稽核、監控資料都存於同目錄下的 SQLite 單檔案（預設 opsmini.db），備份就是複製這個檔案。監控指標持久化保留 30 天，重啟不丟失。',
+  'faq.q4':'AI 功能需要外接大模型嗎？','faq.a4':'AI 助手對接外部大模型服務，在「設定」中填入你的模型地址與金鑰即可啟用；不配置也不影響面板其他功能正常使用。',
+  'faq.q5':'如何保證安全？','faq.a5':'JWT 鑑權 + TOTP 兩步驗證（MFA）+ RBAC 角色權限 + 全量操作稽核日誌；登入安全分析會識別暴力破解與異常登入。建議公網部署時配合防火牆限制來源 IP。',
+  'cta.h2':'讓維運回歸簡單','cta.p':'一個檔案、一次拷貝、開啟瀏覽器，你的伺服器就有了 AI 維運專家。','cta.btn':'下載 OpsMini →',
+  'foot.brand':'AI 驅動的輕量伺服器維運面板','foot.c1t':'產品','foot.c1a':'功能特性','foot.c1b':'AI 維運','foot.c1c':'快速開始','foot.c2t':'開發者','foot.c2a':'REST API','foot.c2b':'架構說明','foot.c2c':'FAQ','foot.c3t':'社群','foot.c3b':'問題回報','foot.bottom':'OpsMini © 2026 北京速雲科技有限公司（opsmini.com）'
+},
+'ja': {
+  'title':'OpsMini — AI 駆動の軽量サーバー管理パネル','foot.faq':'よくある質問',
+  'hl1.t':'100% AI がコードを生成','hl1.d':'すべてのコードは AI が自動生成し、人間がレビュー・検証','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張',
+  'nav.features':'機能','nav.ai':'AI 運用','nav.arch':'アーキテクチャ','nav.quickstart':'クイックスタート','nav.api':'API','nav.faq':'FAQ','nav.cta':'はじめる','nav.tagline':'AI駆動のサーバー運用パネル','nav.docs':'ドキュメント',
+  'hero.badge':'AI-Powered · 単一バイナリ · 依存ゼロ',
+  'hero.title':'1つのファイルで、<br>1台をまるごと<span class="grad">管理</span>',
+  'hero.lead':'OpsMini は AI 駆動の軽量サーバー管理パネル。自然言語による診断、Docker 管理、Web ターミナル、セキュリティセンター、アラートまで——数十 MB の単一バイナリにすべて内包。',
+  'hero.ctaPrimary':'クイックスタート →','hero.ctaGhost':'機能を見る',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 純 Go ドライバ','hero.meta3':'<b>7</b> 言語対応','hero.meta4':'<b>REST</b> 二重 API',
+  'hero.side.dash':'📊 ダッシュボード','hero.side.ai':'🤖 AI アシスタント','hero.side.sec':'🛡️ セキュリティ','hero.side.docker':'🐳 コンテナ','hero.side.term':'⌨️ ターミナル','hero.side.file':'📁 ファイル',
+  'hero.stat.mem':'メモリ','hero.stat.disk':'ディスク',
+  'hero.aiq':'🤖 ユーザー：ディスク使用量が急に増えました。調べてください',
+  'hero.aia':'/var/log を分析：journal ログがローテーションされておらず <em>6.8 GB</em> を占有。journalctl --vacuum-size=500M の実行を推奨、<em>6.3 GB</em> 解放見込み ✅',
+  'ai.tag':'AI Operations','ai.h3':'運用ノウハウをパネルに内蔵','ai.p':'ただのコンソールではありません。OpsMini には AI 運用アシスタントが内蔵され、自然言語で問題を伝えると、システムのリアルタイム状態を読み取り、ログを分析し、診断結果を提示。修正コマンドの実行まで行います。',
+  'ai.l1':'自然言語診断：「なぜメモリ使用量がこんなに高いのか」','ai.l2':'スマートログ分析：関連ログを自動 tail して原因を特定','ai.l3':'コマンド生成と実行：提案 → 確認 → 実行、全工程を監査','ai.l4':'スキルマーケット：インストール・アップロード可能な AI 運用スキル','ai.l5':'ストリーミング出力（SSE）で思考しながら結果を表示',
+  'ai.b1q':'サーバーが夜中に何度も再起動されます。原因を調べてください',
+  'ai.b1a':'<span class="hl">/var/log/messages</span> と systemd ログを確認：<br>· 03:14 <span class="hl">oom-killer</span> が発動し、プロセス <span class="hl">java -Xmx4g</span> を強制終了<br>· 物理メモリ 4G、JVM ヒープ＋ページキャッシュがオーバーフロー<br>提案：Xmx を 2g に下げるか、swap を追加。実行しますか？ <span class="ok">[y/N]</span>',
+  'ai.b2q':'1つ目を実行','ai.b2a':'✅ systemd ユニットを修正してサービスを再起動しました。48時間監視を継続し、再び OOM が発生した場合はアラートでお知らせします。',
+  'feat.tag':'Features','feat.h2':'1台のサーバーに必要なすべて','feat.p':'監視からセキュリティ、コンテナから cron まで、単一サーバー運用の高頻度タスクをすべてカバー。',
+  'f1.t':'リアルタイム監視','f1.d':'CPU / メモリ / ディスク / ネットワークのリアルタイム指標を ECharts で可視化。SQLite に 30 日間保存され、24h / 7d のトレンドも一目瞭然。','f1.tags':'<span>ダッシュボード</span><span>トレンド</span><span>Prometheus 指標</span>',
+  'f2.t':'アラートと通知','f2.d':'カスタムアラートルール（CPU・メモリ・ディスク・ポート死活など）、イベントセンター、未読通知バッジでリアルタイムに通知。','f2.tags':'<span>アラートルール</span><span>イベント</span><span>通知</span>',
+  'f3.t':'セキュリティセンター','f3.d':'セキュリティベースラインスキャン、ファイル整合性監視（FIM）、脅威検出、ファイアウォールのポート管理、ログイン・SSH セキュリティ分析を一元化。','f3.tags':'<span>ベースライン</span><span>FIM</span><span>ファイアウォール</span><span>脅威検出</span>',
+  'f4.t':'Docker 管理','f4.d':'コンテナの起動停止とログ、イメージ取得、ボリューム・ネットワーク管理。コンテナ内ターミナルも直接起動——Alpine などの軽量イメージもそのまま使えます。','f4.tags':'<span>コンテナ</span><span>イメージ</span><span>ボリューム</span><span>ネットワーク</span><span>exec ターミナル</span>',
+  'f5.t':'Web ターミナル','f5.d':'WebSocket + pty による SSH 級のブラウザターミナル。vim や htop などの全画面アプリにも完全対応し、どこからでもログインできます。','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'ファイルマネージャー','f6.d':'オンラインで閲覧・アップロード・ダウンロード・リネーム・ディレクトリ作成・一括削除。大容量ファイルも安心。','f6.tags':'<span>アップロード/ダウンロード</span><span>オンライン管理</span>',
+  'f7.t':'cron ジョブ','f7.d':'システムとユーザーの crontab を視覚的に管理し、スクリプトをオンライン実行。実行履歴も追跡可能。','f7.tags':'<span>cron</span><span>スクリプト</span>',
+  'f8.t':'アプリストア','f8.d':'よく使うアプリをワンクリックでデプロイ。公式リポジトリ同期とローカルインポートに対応し、Web サイトとデータベース管理も完備。','f8.tags':'<span>ワンクリック</span><span>Web サイト</span><span>データベース</span>',
+  'f9.t':'権限と監査','f9.d':'ユーザー / ロール / 権限グループの RBAC、TOTP 二段階認証（MFA）、全操作の監査ログで、安全なチーム運用を実現。','f9.tags':'<span>RBAC</span><span>MFA</span><span>監査ログ</span>',
+  'arch.tag':'Architecture','arch.h2':'単一バイナリ配布のための設計','arch.p':'外部データベースなし、メッセージキューなし、ランタイム依存なし。ファイルを1つコピーして chmod +x すれば動きます。',
+  'arch.c1':'ブラウザ','arch.c2':'OpsMini サービス','arch.c3':'ホスト',
+  'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed でバイナリに埋め込み、7 言語 i18n','arch.b2t':'ECharts 可視化','arch.b2s':'ダッシュボード / トレンド / アラート','arch.b3t':'xterm.js ターミナル','arch.b3s':'全二重 WebSocket',
+  'arch.b4t':'Go · Gin ルーター','arch.b4s':'/api/v1（UI）+ /agent/v1（M2M）','arch.b5t':'Service 層','arch.b5s':'AI / セキュリティ / Docker / 監視 / ファイル / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'ミドルウェアチェーン検証',
+  'arch.b7t':'SQLite（純 Go）','arch.b7s':'単一ファイル保存、DB 不要','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'システム・コンテナへ直接アクセス','arch.b9t':'pty / crontab / ファイアウォール','arch.b9s':'ネイティブ機能のラッパー',
+  'arch.note':'Linux amd64 / arm64 にクロスコンパイル——Raspberry Pi や国産サーバーでも動作',
+  'qs.tag':'Quick Start','qs.h2':'数分で起動','qs.p':'ダウンロード、実行、ブラウザを開くだけ——インストールウィザードも依存地獄もありません。',
+  'qs.s1t':'バイナリを入手','qs.s1d':'対応アーキテクチャのリリースをダウンロード、または make build でローカルビルド。','qs.s2t':'実行してログイン','qs.s2d':'デフォルトポート 8888、初期アカウント opsmini、パスワードは起動ログに表示されます。ログイン後すぐに変更してください。','qs.s3t':'強化と連携','qs.s3d':'MFA を有効化し、ファイアウォールのポートを設定。外部システムは /agent/v1 API で監視と自動化に接続できます。','qs.s4t':'サービスとして常駐（推奨）','qs.s4d':'systemd サービスに登録して、自動起動とクラッシュ時の自動復旧を実現。',
+  'api.tag':'Developer API','api.h2':'自動化のために','api.p':'パネルでできることは API でもできる。人はブラウザ、プログラムは API。','api.h3':'二重チャネル REST API',
+  'api.p2':'ブラウザ向け <b>/api/v1</b> とマシン向け <b>/agent/v1</b> は完全に独立し、トークンと権限が分離。MCP 対応により AI エージェントから直接呼び出せます。',
+  'api.l1':'JWT 認証 + リフレッシュトークン、エージェント長期資格情報を独立管理','api.l2':'コンテナ・ファイル・監視・アラート・セキュリティ・cron をすべてカバー','api.l3':'ネイティブ MCP で外部 AI アシスタントからサーバーを操作','api.l4':'OpenAPI スタイルのルートで、curl だけで完全自動化',
+  'api.code.title':'curl の例',
+  'st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'REST API',
+  'faq.tag':'FAQ','faq.h2':'よくある質問',
+  'faq.q1':'OpsMini と宝塔・1Panel の違いは？','faq.a1':'位置づけは似ており、いずれも単一サーバー管理パネルです。OpsMini の違いは：① AI アシスタント内蔵で自然言語による診断と実行が可能；② /agent/v1 のマシン間 API と MCP 対応で自社の自動化に組み込み可能；③ 純 Go + SQLite の単一ファイル配布で、最小構成・ランタイム依存なし。',
+  'faq.q2':'対応システム / アーキテクチャは？','faq.a2':'Linux amd64 と arm64（Raspberry Pi や国産サーバーを含む）。静的コンパイルされた Go バイナリなので、カーネルが古すぎなければ動作します。',
+  'faq.q3':'データはどこに保存されますか？','faq.a3':'設定・ユーザー・監査・監視データはすべて同ディレクトリの SQLite 単一ファイル（デフォルト opsmini.db）に保存され、バックアップはそのファイルをコピーするだけ。監視指標は 30 日間保持され、再起動しても失われません。',
+  'faq.q4':'AI 機能に外部 LLM は必要ですか？','faq.a4':'AI アシスタントは外部 LLM サービスに接続します。「設定」でモデルのエンドポイントとキーを入力すれば有効化できます。未設定でもパネルの他の機能は正常に動作します。',
+  'faq.q5':'セキュリティはどう担保されますか？','faq.a5':'JWT 認証 + TOTP 二段階認証（MFA）+ RBAC 権限 + 全操作の監査ログ。ログインセキュリティ分析がブルートフォースや異常ログインを検出します。公開デプロイ時はファイアウォールで送信元 IP を制限することを推奨します。',
+  'cta.h2':'運用をシンプルに','cta.p':'ファイル1つ、コピー1回、ブラウザを開くだけ。あなたのサーバーに AI 運用エキスパートが加わります。','cta.btn':'OpsMini をダウンロード →',
+  'foot.brand':'AI 駆動の軽量サーバー管理パネル','foot.c1t':'製品','foot.c1a':'機能','foot.c1b':'AI 運用','foot.c1c':'クイックスタート','foot.c2t':'開発者','foot.c2a':'REST API','foot.c2b':'アーキテクチャ','foot.c2c':'FAQ','foot.c3t':'コミュニティ','foot.c3b':'フィードバック','foot.bottom':'OpsMini © 2026 北京速雲科技有限公司（opsmini.com）'
+},
+'ko': {
+  'title':'OpsMini — AI 기반 경량 서버 관리 패널','foot.faq':'FAQ',
+  'hl1.t':'100% AI가 작성한 코드','hl1.d':'모든 코드는 AI가 자동 생성하고 사람이 검토·검증','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장',
+  'nav.features':'기능','nav.ai':'AI 운영','nav.arch':'아키텍처','nav.quickstart':'빠른 시작','nav.api':'API','nav.faq':'FAQ','nav.cta':'시작하기','nav.tagline':'AI 기반 서버 운영 패널','nav.docs':'문서',
+  'hero.badge':'AI 기반 · 단일 바이너리 · 의존성 없음',
+  'hero.title':'파일 하나로<br>서버 한 대를<span class="grad">완벽 관리</span>',
+  'hero.lead':'OpsMini 는 AI 기반의 경량 서버 관리 패널입니다. 자연어 진단, Docker 관리, 웹 터미널, 보안 센터, 알림까지——수십 MB 의 단일 바이너리에 모두 담았습니다.',
+  'hero.ctaPrimary':'빠른 시작 →','hero.ctaGhost':'기능 보기',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 순수 Go 드라이버','hero.meta3':'<b>7</b>개 UI 언어','hero.meta4':'<b>REST</b> 이중 API',
+  'hero.side.dash':'📊 대시보드','hero.side.ai':'🤖 AI 어시스턴트','hero.side.sec':'🛡️ 보안 센터','hero.side.docker':'🐳 컨테이너','hero.side.term':'⌨️ 터미널','hero.side.file':'📁 파일',
+  'hero.stat.mem':'메모리','hero.stat.disk':'디스크',
+  'hero.aiq':'🤖 사용자: 디스크 사용량이 갑자기 늘었어요. 확인해 주세요',
+  'hero.aia':'/var/log 분석: journal 로그가 로테이션되지 않아 <em>6.8 GB</em> 차지. journalctl --vacuum-size=500M 실행 권장, <em>6.3 GB</em> 확보 예상 ✅',
+  'ai.tag':'AI Operations','ai.h3':'운영 노하우를 패널에 내장','ai.p':'단순한 콘솔이 아닙니다. OpsMini 에는 AI 운영 어시스턴트가 내장되어 자연어로 문제를 설명하면 시스템 실시간 상태를 읽고 로그를 분석해 진단 결과를 제시하고, 수정 명령 실행까지 도와줍니다.',
+  'ai.l1':'자연어 진단 — "메모리가 왜 이렇게 높지?"','ai.l2':'스마트 로그 분석: 관련 로그를 자동 tail 하여 원인 귀속','ai.l3':'명령 생성 및 실행: 제안 → 확인 → 실행, 전 과정 감사','ai.l4':'스킬 마켓: 설치·업로드 가능한 AI 운영 스킬팩','ai.l5':'스트리밍 출력(SSE)으로 생각하며 결과 제공',
+  'ai.b1q':'서버가 밤마다 재부팅돼요. 원인을 찾아주세요',
+  'ai.b1a':'<span class="hl">/var/log/messages</span> 와 systemd 로그 확인:<br>· 03:14 <span class="hl">oom-killer</span> 발동, 프로세스 <span class="hl">java -Xmx4g</span> 종료<br>· 물리 메모리 4G, JVM 힙 + 페이지 캐시 오버플로<br>제안: Xmx 를 2g 로 낮추거나 swap 추가. 실행할까요? <span class="ok">[y/N]</span>',
+  'ai.b2q':'첫 번째 실행','ai.b2a':'✅ systemd 유닛을 수정하고 서비스를 재시작했습니다. 48시간 모니터링을 지속하며 다시 OOM 이 발생하면 알림으로 알려드립니다.',
+  'feat.tag':'Features','feat.h2':'서버 한 대에 필요한 모든 것','feat.p':'모니터링부터 보안, 컨테이너부터 크론까지 단일 서버 운영의 모든 고빈도 작업을 커버합니다.',
+  'f1.t':'실시간 모니터링','f1.d':'CPU / 메모리 / 디스크 / 네트워크 실시간 지표를 ECharts 로 시각화하고 SQLite 에 30일 보관하여 24h / 7d 추이를 한눈에 확인합니다.','f1.tags':'<span>대시보드</span><span>추이</span><span>Prometheus 지표</span>',
+  'f2.t':'알림','f2.d':'사용자 정의 알림 규칙(CPU·메모리·디스크·포트 생존 등), 이벤트 센터, 읽지 않은 알림 배지로 실시간 안내합니다.','f2.tags':'<span>알림 규칙</span><span>이벤트</span><span>알림</span>',
+  'f3.t':'보안 센터','f3.d':'보안 베이스라인 스캔, 파일 무결성 모니터링(FIM), 위협 탐지, 방화벽 포트 관리, 로그인·SSH 보안 분석을 한곳에서 처리합니다.','f3.tags':'<span>베이스라인</span><span>FIM</span><span>방화벽</span><span>위협 탐지</span>',
+  'f4.t':'Docker 관리','f4.d':'컨테이너 시작/중지 및 로그, 이미지 풀, 볼륨·네트워크 관리, 컨테이너 내부 터미널까지——Alpine 같은 경량 이미지도 바로 사용 가능합니다.','f4.tags':'<span>컨테이너</span><span>이미지</span><span>볼륨</span><span>네트워크</span><span>exec 터미널</span>',
+  'f5.t':'웹 터미널','f5.d':'WebSocket + pty 기반의 SSH 수준 브라우저 터미널. vim, htop 등 전체화면 프로그램과 완벽히 호환되어 어디서든 로그인할 수 있습니다.','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'파일 관리자','f6.d':'온라인으로 탐색·업로드·다운로드·이름 변경·디렉터리 생성·일괄 삭제까지, 대용량 파일도 안심입니다.','f6.tags':'<span>업로드/다운로드</span><span>온라인 관리</span>',
+  'f7.t':'크론 작업','f7.d':'시스템 및 사용자 crontab 을 시각적으로 관리하고 스크립트를 온라인 실행하며 실행 기록도 추적합니다.','f7.tags':'<span>cron</span><span>스크립트</span>',
+  'f8.t':'앱 스토어','f8.d':'자주 쓰는 앱을 원클릭 배포하고 공식 저장소 동기화와 로컬 가져오기를 지원하며 웹사이트·데이터베이스 관리도 갖췄습니다.','f8.tags':'<span>원클릭</span><span>웹사이트</span><span>데이터베이스</span>',
+  'f9.t':'권한 및 감사','f9.d':'사용자 / 역할 / 권한 그룹 RBAC, TOTP 2단계 인증(MFA), 전체 감사 로그로 안전한 팀 협업을 지원합니다.','f9.tags':'<span>RBAC</span><span>MFA</span><span>감사 로그</span>',
+  'arch.tag':'Architecture','arch.h2':'단일 바이너리 배포를 위한 설계','arch.p':'외부 DB 없음, 메시지 큐 없음, 런타임 의존성 없음. 파일 하나 복사하고 chmod +x 하면 바로 실행됩니다.',
+  'arch.c1':'브라우저','arch.c2':'OpsMini 서비스','arch.c3':'호스트',
+  'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed 로 바이너리에 내장, 7개 언어 i18n','arch.b2t':'ECharts 시각화','arch.b2s':'대시보드 / 추이 / 알림','arch.b3t':'xterm.js 터미널','arch.b3s':'전이중 WebSocket',
+  'arch.b4t':'Go · Gin 라우터','arch.b4s':'/api/v1(UI) + /agent/v1(M2M)','arch.b5t':'Service 계층','arch.b5s':'AI / 보안 / Docker / 모니터링 / 파일 / 크론…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'미들웨어 체인 검증',
+  'arch.b7t':'SQLite(순수 Go)','arch.b7s':'단일 파일 저장, DB 설치 불필요','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'시스템·컨테이너 직접 연동','arch.b9t':'pty / crontab / 방화벽','arch.b9s':'네이티브 시스템 래퍼',
+  'arch.note':'Linux amd64 / arm64 크로스 컴파일——라즈베리파이와 국산 서버에서도 동작',
+  'qs.tag':'Quick Start','qs.h2':'몇 분이면 실행','qs.p':'다운로드, 실행, 브라우저 열기——설치 마법사도 의존성 지옥도 없습니다.',
+  'qs.s1t':'바이너리 받기','qs.s1d':'해당 아키텍처 릴리스를 다운로드하거나 make build 로 로컬 빌드하세요.','qs.s2t':'실행 및 로그인','qs.s2d':'기본 포트 8888, 초기 계정 opsmini, 비밀번호는 시작 로그에 출력됩니다. 로그인 후 바로 변경하세요.','qs.s3t':'강화 및 연동','qs.s3d':'MFA 를 활성화하고 방화벽 포트를 설정하세요. 외부 시스템은 /agent/v1 API 로 모니터링과 자동화에 연동됩니다.','qs.s4t':'서비스로 상시 실행(권장)','qs.s4d':'systemd 서비스로 등록하면 부팅 시 자동 시작되고 크래시 시 자동 복구됩니다.',
+  'api.tag':'Developer API','api.h2':'자동화를 위해','api.p':'패널이 할 수 있는 일은 API 도 할 수 있습니다. 사람은 브라우저, 프로그램은 API 를 사용합니다.','api.h3':'이중 채널 REST API',
+  'api.p2':'브라우저용 <b>/api/v1</b> 과 머신용 <b>/agent/v1</b> 은 완전히 독립되어 토큰과 권한이 분리됩니다. MCP 지원으로 AI 에이전트가 직접 호출할 수 있습니다.',
+  'api.l1':'JWT 인증 + 리프레시 토큰, 에이전트 장기 자격증명 독립 관리','api.l2':'컨테이너·파일·모니터링·알림·보안·크론 전 모듈 커버','api.l3':'네이티브 MCP 로 외부 AI 어시스턴트가 서버를 직접 조작','api.l4':'OpenAPI 스타일 라우트, curl 만으로 완전 자동화',
+  'api.code.title':'curl 예시',
+  'st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'REST API',
+  'faq.tag':'FAQ','faq.h2':'자주 묻는 질문',
+  'faq.q1':'OpsMini 와 바오타·1Panel 의 차이는?','faq.a1':'포지셔닝은 유사하며 모두 단일 서버 패널입니다. OpsMini 의 차별점은: ① AI 어시스턴트 내장으로 자연어 진단과 실행이 가능; ② /agent/v1 머신 간 API 와 MCP 지원으로 자체 자동화 체계에 연동 가능; ③ 순수 Go + SQLite 단일 파일 배포로 최소 구성·런타임 의존성 없음.',
+  'faq.q2':'어떤 시스템 / 아키텍처를 지원하나요?','faq.a2':'Linux amd64 와 arm64(라즈베리파이, 국산 서버 포함). 패널은 정적 컴파일된 Go 바이너리라 커널이 너무 오래되지 않았다면 실행됩니다.',
+  'faq.q3':'데이터는 어디에 저장되나요?','faq.a3':'설정·사용자·감사·모니터링 데이터는 모두 같은 디렉터리의 SQLite 단일 파일(기본 opsmini.db)에 저장되며, 백업은 그 파일을 복사하는 것뿐입니다. 모니터링 지표는 30일 보관되고 재시작해도 유지됩니다.',
+  'faq.q4':'AI 기능에 외부 LLM 이 필요한가요?','faq.a4':'AI 어시스턴트는 외부 LLM 서비스에 연결됩니다. 설정에서 모델 엔드포인트와 키를 입력하면 활성화됩니다. 미설정해도 패널의 다른 기능은 정상 동작합니다.',
+  'faq.q5':'보안은 어떻게 보장되나요?','faq.a5':'JWT 인증 + TOTP 2단계 인증(MFA) + RBAC 권한 + 전체 감사 로그. 로그인 보안 분석이 무차별 대입과 비정상 로그인을 탐지합니다. 공개 배포 시 방화벽으로 출발지 IP 를 제한하는 것을 권장합니다.',
+  'cta.h2':'운영을 다시 단순하게','cta.p':'파일 하나, 복사 한 번, 브라우저를 열면 서버에 AI 운영 전문가가 생깁니다.','cta.btn':'OpsMini 다운로드 →',
+  'foot.brand':'AI 기반 경량 서버 관리 패널','foot.c1t':'제품','foot.c1a':'기능','foot.c1b':'AI 운영','foot.c1c':'빠른 시작','foot.c2t':'개발자','foot.c2a':'REST API','foot.c2b':'아키텍처','foot.c2c':'FAQ','foot.c3t':'커뮤니티','foot.c3b':'피드백','foot.bottom':'OpsMini © 2026 베이징 쑤윈 테크놀로지 (opsmini.com)'
+},
+'th': {
+  'title':'OpsMini — แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.faq':'คำถามที่พบบ่อย',
+  'hl1.t':'โค้ด 100% เขียนโดย AI','hl1.d':'โค้ดทั้งหมดสร้างโดย AI อัตโนมัติ มนุษย์ทำหน้าที่ตรวจสอบและยืนยัน','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI',
+  'nav.features':'ฟีเจอร์','nav.ai':'AI Ops','nav.arch':'สถาปัตยกรรม','nav.quickstart':'เริ่มต้นใช้งาน','nav.api':'API','nav.faq':'FAQ','nav.cta':'เริ่มใช้งาน','nav.tagline':'แผงจัดการเซิร์ฟเวอร์ขับเคลื่อนด้วย AI','nav.docs':'เอกสาร',
+  'hero.badge':'ขับเคลื่อนด้วย AI · ไบนารีเดียว · ไม่มี Dependency',
+  'hero.title':'ไฟล์เดียว<br>จัดการทั้ง<span class="grad">เซิร์ฟเวอร์</span>',
+  'hero.lead':'OpsMini คือแผงจัดการเซิร์ฟเวอร์น้ำหนักเบาที่ขับเคลื่อนด้วย AI วินิจฉัยด้วยภาษาธรรมชาติ จัดการ Docker, เว็บเทอร์มินัล, ศูนย์ความปลอดภัย และการแจ้งเตือน——ทั้งหมดอยู่ในไบนารีไฟล์เดียวขนาดไม่กี่สิบ MB',
+  'hero.ctaPrimary':'เริ่มต้นใช้งาน →','hero.ctaGhost':'ดูฟีเจอร์',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> ไดรเวอร์ pure-Go','hero.meta3':'<b>7</b> ภาษา','hero.meta4':'<b>REST</b> สอง API',
+  'hero.side.dash':'📊 แดชบอร์ด','hero.side.ai':'🤖 ผู้ช่วย AI','hero.side.sec':'🛡️ ความปลอดภัย','hero.side.docker':'🐳 คอนเทนเนอร์','hero.side.term':'⌨️ เทอร์มินัล','hero.side.file':'📁 ไฟล์',
+  'hero.stat.mem':'หน่วยความจำ','hero.stat.disk':'ดิสก์',
+  'hero.aiq':'🤖 ผู้ใช้: ดิสก์ใช้พื้นที่เพิ่มขึ้นกะทันหัน ช่วยดูหน่อย',
+  'hero.aia':'วิเคราะห์ /var/log: journal log ไม่ถูกหมุนเวียน ใช้ไป <em>6.8 GB</em> แนะนำให้รัน journalctl --vacuum-size=500M คาดว่าจะคืนพื้นที่ <em>6.3 GB</em> ✅',
+  'ai.tag':'AI Operations','ai.h3':'ใส่ "ประสบการณ์运维" ลงในแผง','ai.p':'ไม่ใช่แค่คอนโซลอีกตัว OpsMini มีผู้ช่วย AI ด้านการ运维ในตัว เพียงอธิบายปัญหาด้วยภาษาธรรมชาติ มันจะอ่านสถานะระบบแบบเรียลไทม์ วิเคราะห์ล็อก ให้ข้อสรุปการวินิจฉัย และช่วยรันคำสั่งแก้ไขให้ด้วย',
+  'ai.l1':'วินิจฉัยด้วยภาษาธรรมชาติ — "ทำไมหน่วยความจำถึงสูงจัง"','ai.l2':'วิเคราะห์ล็อกอัจฉริยะ: tail ล็อกที่เกี่ยวข้องและหาสาเหตุโดยอัตโนมัติ','ai.l3':'สร้างและรันคำสั่ง: แนะนำ → ยืนยัน → รัน พร้อมการตรวจสอบตลอด','ai.l4':'ตลาดสกิล (Skills): แพ็กสกิล AI ที่ติดตั้งและอัปโหลดได้','ai.l5':'เอาต์พุตแบบสตรีม (SSE) เห็นผลระหว่างคิด',
+  'ai.b1q':'เซิร์ฟเวอร์รีบูตเองตอนกลางคืนบ่อยมาก ช่วยหาสาเหตุหน่อย',
+  'ai.b1a':'ตรวจสอบ <span class="hl">/var/log/messages</span> และ systemd log แล้ว:<br>· 03:14 <span class="hl">oom-killer</span> ทำงาน ฆ่ากระบวนการ <span class="hl">java -Xmx4g</span><br>· RAM จริง 4G, JVM heap + page cache ล้น<br>แนะนำ: ลด Xmx ลงเหลือ 2g หรือเพิ่ม swap จะรันให้ไหม? <span class="ok">[y/N]</span>',
+  'ai.b2q':'รันอันแรก','ai.b2a':'✅ แก้ไข systemd unit และรีสตาร์ทบริการแล้ว จะเฝ้าดู 48 ชม. หาก OOM อีกจะแจ้งเตือนให้ทราบ',
+  'feat.tag':'Features','feat.h2':'ครบทุกอย่างสำหรับหนึ่งเซิร์ฟเวอร์','feat.p':'จากการมอนิเตอร์ถึงความปลอดภัย จากคอนเทนเนอร์ถึง cron ครอบคลุมทุกงานที่ใช้บ่อยในการดูแลเซิร์ฟเวอร์เครื่องเดียว',
+  'f1.t':'มอนิเตอร์เรียลไทม์','f1.d':'ตัวชี้วัด CPU / หน่วยความจำ / ดิสก์ / เครือข่ายแบบเรียลไทม์ แสดงผลด้วย ECharts เก็บใน SQLite นาน 30 วัน ดูแนวโน้ม 24h / 7d ได้ชัดเจน','f1.tags':'<span>แดชบอร์ด</span><span>แนวโน้ม</span><span>Prometheus metrics</span>',
+  'f2.t':'การแจ้งเตือน','f2.d':'กฎแจ้งเตือนที่ปรับแต่งได้ (CPU, หน่วยความจำ, ดิสก์, port alive ฯลฯ), ศูนย์เหตุการณ์ และแจ้งเตือนที่ยังไม่ได้อ่าน','f2.tags':'<span>กฎแจ้งเตือน</span><span>เหตุการณ์</span><span>แจ้งเตือน</span>',
+  'f3.t':'ศูนย์ความปลอดภัย','f3.d':'สแกน baseline, ตรวจความสมบูรณ์ของไฟล์ (FIM), ตรวจจับภัยคุกคาม, จัดการพอร์ตไฟร์วอลล์, วิเคราะห์ความปลอดภัยการล็อกอินและ SSH รวมไว้ที่เดียว','f3.tags':'<span>Baseline</span><span>FIM</span><span>ไฟร์วอลล์</span><span>ภัยคุกคาม</span>',
+  'f4.t':'จัดการ Docker','f4.d':'เริ่ม/หยุดคอนเทนเนอร์และดูล็อก, pull image, จัดการ volume และ network และเปิดเทอร์มินัลในคอนเทนเนอร์ได้——image แบบ Alpine ก็ใช้ได้ทันที','f4.tags':'<span>คอนเทนเนอร์</span><span>อิมเมจ</span><span>วอลุ่ม</span><span>เน็ตเวิร์ก</span><span>exec shell</span>',
+  'f5.t':'เว็บเทอร์มินัล','f5.d':'เทอร์มินัลในเบราว์เซอร์ระดับ SSH ผ่าน WebSocket + pty รองรับโปรแกรมเต็มจออย่าง vim, htop ครบถ้วน ล็อกอินได้จากทุกที่','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'ตัวจัดการไฟล์','f6.d':'เรียกดู อัปโหลด ดาวน์โหลด เปลี่ยนชื่อ สร้างโฟลเดอร์ และลบแบบหลายรายการออนไลน์ ไฟล์ใหญ่ก็ไม่มีปัญหา','f6.tags':'<span>อัปโหลด/ดาวน์โหลด</span><span>ออนไลน์</span>',
+  'f7.t':'งานตามกำหนด (cron)','f7.d':'จัดการ crontab ระดับระบบและผู้ใช้แบบเห็นภาพ รันสคริปต์ออนไลน์ และติดตามประวัติการทำงาน','f7.tags':'<span>cron</span><span>สคริปต์</span>',
+  'f8.t':'App Store','f8.d':'ติดตั้งแอปที่ใช้บ่อยด้วยคลิกเดียว รองรับการซิงก์ repo ทางการและนำเข้าภายใน พร้อมการจัดการเว็บไซต์และฐานข้อมูล','f8.tags':'<span>คลิกเดียว</span><span>เว็บไซต์</span><span>ฐานข้อมูล</span>',
+  'f9.t':'สิทธิ์และการตรวจสอบ','f9.d':'ระบบ RBAC ผู้ใช้ / บทบาท / กลุ่มสิทธิ์, ยืนยันตัวตนสองขั้น TOTP (MFA) และ audit log ครบถ้วนเพื่อความปลอดภัย','f9.tags':'<span>RBAC</span><span>MFA</span><span>Audit log</span>',
+  'arch.tag':'Architecture','arch.h2':'ออกแบบมาเพื่อ "ส่งมอบเป็นไฟล์เดียว"','arch.p':'ไม่มีฐานข้อมูลภายนอก ไม่มี message queue ไม่มี runtime dependency คัดลอกไฟล์เดียว chmod +x แล้วรันได้เลย',
+  'arch.c1':'เบราว์เซอร์','arch.c2':'บริการ OpsMini','arch.c3':'โฮสต์',
+  'arch.b1t':'Vue 3 SPA','arch.b1s':'ฝังในไบนารีด้วย go:embed รองรับ 7 ภาษา','arch.b2t':'ECharts','arch.b2s':'แดชบอร์ด / แนวโน้ม / การแจ้งเตือน','arch.b3t':'เทอร์มินัล xterm.js','arch.b3s':'WebSocket แบบ full-duplex',
+  'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) + /agent/v1 (M2M)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'middleware แบบ chain',
+  'arch.b7t':'SQLite (pure-Go)','arch.b7s':'เก็บไฟล์เดียว ไม่ต้องติดตั้ง DB','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'เข้าถึงระบบและคอนเทนเนอร์โดยตรง','arch.b9t':'pty / crontab / ไฟร์วอลล์','arch.b9s':'wrapper ความสามารถระบบดั้งเดิม',
+  'arch.note':'คอมไพล์ข้ามแพลตฟอร์ม Linux amd64 / arm64 —— ใช้ได้กับ Raspberry Pi และเซิร์ฟเวอร์ในประเทศ',
+  'qs.tag':'Quick Start','qs.h2':'ใช้งานได้ในไม่กี่นาที','qs.p':'ดาวน์โหลด รัน เปิดเบราว์เซอร์——ไม่มี wizard ติดตั้ง ไม่มี dependency ที่วุ่นวาย',
+  'qs.s1t':'รับไบนารี','qs.s1d':'ดาวน์โหลด release ของสถาปัตยกรรมที่ต้องการ หรือรัน make build เพื่อ build ในเครื่อง','qs.s2t':'รันและล็อกอิน','qs.s2d':'พอร์ตเริ่มต้น 8888, บัญชีเริ่มต้น opsmini, รหัสผ่านแสดงในล็อกตอนเริ่มต้น ควรเปลี่ยนทันทีหลังล็อกอิน','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิดใช้ MFA และตั้งค่าพอร์ตไฟร์วอลล์; ระบบภายนอกเชื่อมต่อผ่าน /agent/v1 API','qs.s4t':'รันเป็นบริการ (แนะนำ)','qs.s4d':'ลงทะเบียนเป็น systemd service เพื่อเริ่มอัตโนมัติและกู้คืนเมื่อล่ม',
+  'api.tag':'Developer API','api.h2':'สร้างมาเพื่อ automation','api.p':'สิ่งที่แผงทำได้ API ก็ทำได้ คนใช้เบราว์เซอร์ โปรแกรมใช้ API','api.h3':'REST API สองช่องทาง',
+  'api.p2':'<b>/api/v1</b> สำหรับเบราว์เซอร์ และ <b>/agent/v1</b> สำหรับเครื่อง แยกเป็นอิสระโดยสิ้นเชิง แยก token และสิทธิ์ พร้อมรองรับ MCP ให้ AI agent เรียกใช้ได้โดยตรง',
+  'api.l1':'JWT + refresh token แยกจัดการ credential ระยะยาวของ agent','api.l2':'ครอบคลุมคอนเทนเนอร์ ไฟล์ มอนิเตอร์ แจ้งเตือน ความปลอดภัย และ cron','api.l3':'MCP ดั้งเดิม ให้ผู้ช่วย AI ภายนอกสั่งการเซิร์ฟเวอร์ได้','api.l4':'เส้นทางแบบ OpenAPI ใช้ curl ก็ทำ automation ได้ครบ',
+  'api.code.title':'ตัวอย่าง curl',
+  'st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'REST API',
+  'faq.tag':'FAQ','faq.h2':'คำถามที่พบบ่อย',
+  'faq.q1':'OpsMini ต่างจาก BaoTa หรือ 1Panel อย่างไร?','faq.a1':'ตำแหน่งใกล้เคียงกัน ต่างเป็นแผงจัดการเซิร์ฟเวอร์เครื่องเดียว จุดต่างของ OpsMini: ① มีผู้ช่วย AI ในตัว วินิจฉัยและรันด้วยภาษาธรรมชาติ ② มี API แบบ machine-to-machine /agent/v1 และรองรับ MCP เพื่อเชื่อมกับระบบอัตโนมัติของคุณ ③ ส่งมอบเป็นไฟล์เดียวด้วย Go + SQLite ติดตั้งง่าย ไม่มี runtime dependency',
+  'faq.q2':'รองรับระบบ / สถาปัตยกรรมใดบ้าง?','faq.a2':'Linux amd64 และ arm64 (รวม Raspberry Pi และเซิร์ฟเวอร์ในประเทศ) แผงเป็น Go binary แบบ static compile จึงรันได้ตราบใดที่ kernel ไม่เก่าเกินไป',
+  'faq.q3':'ข้อมูลเก็บอยู่ที่ไหน? หายไหม?','faq.a3':'ข้อมูล config, ผู้ใช้, audit และ monitoring ทั้งหมดเก็บในไฟล์ SQLite เดียวในโฟลเดอร์เดียวกัน (ค่าเริ่มต้น opsmini.db) การ backup ก็แค่คัดลอกไฟล์นั้น ตัวชี้วัดถูกเก็บนาน 30 วัน ไม่หายหลังรีสตาร์ท',
+  'faq.q4':'ฟีเจอร์ AI ต้องต่อ LLM ภายนอกไหม?','faq.a4':'ผู้ช่วย AI เชื่อมต่อกับบริการ LLM ภายนอก ใส่ endpoint และคีย์ใน "การตั้งค่า" ก็เปิดใช้ได้ หากไม่ตั้งค่าก็ไม่กระทบฟังก์ชันอื่นของแผง',
+  'faq.q5':'มั่นใจเรื่องความปลอดภัยได้อย่างไร?','faq.a5':'JWT + TOTP สองขั้น (MFA) + RBAC สิทธิ์ตามบทบาท + audit log ครบถ้วน การวิเคราะห์ความปลอดภัยการล็อกอินจะตรวจจับ brute force และการล็อกอินผิดปกติ แนะนำให้จำกัด IP ต้นทางด้วยไฟร์วอลล์เมื่อเปิดสู่สาธารณะ',
+  'cta.h2':'ทำให้การ运维กลับมาง่ายอีกครั้ง','cta.p':'ไฟล์เดียว คัดลอกครั้งเดียว เปิดเบราว์เซอร์ เซิร์ฟเวอร์ของคุณก็มีผู้เชี่ยวชาญ AI แล้ว','cta.btn':'ดาวน์โหลด OpsMini →',
+  'foot.brand':'แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.c1t':'ผลิตภัณฑ์','foot.c1a':'ฟีเจอร์','foot.c1b':'AI Ops','foot.c1c':'เริ่มต้นใช้งาน','foot.c2t':'นักพัฒนา','foot.c2a':'REST API','foot.c2b':'สถาปัตยกรรม','foot.c2c':'FAQ','foot.c3t':'ชุมชน','foot.c3b':'ติชม','foot.bottom':'OpsMini © 2026 บริษัท ปักกิ่ง ซู่หยุน เทคโนโลยี จำกัด (opsmini.com)'
+},
+'de': {
+  'title':'OpsMini — KI-gesteuertes Leichtgewichts-Serverpanel','foot.faq':'FAQ',
+  'hl1.t':'100% KI-geschriebener Code','hl1.d':'Jede Zeile von KI generiert, von Menschen geprüft und verifiziert','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern',
+  'nav.features':'Funktionen','nav.ai':'KI-Ops','nav.arch':'Architektur','nav.quickstart':'Schnellstart','nav.api':'API','nav.faq':'FAQ','nav.cta':'Loslegen','nav.tagline':'KI-gesteuertes Server-Betriebs-Panel','nav.docs':'Dokumentation',
+  'hero.badge':'KI-gesteuert · Einzelne Binary · Null Abhängigkeiten',
+  'hero.title':'Eine Datei,<br>der ganze<span class="grad">Server</span>',
+  'hero.lead':'OpsMini ist ein KI-gesteuertes Leichtgewichts-Serverpanel. Diagnose in natürlicher Sprache, Docker-Verwaltung, Web-Terminal, Sicherheitscenter und Alarming — alles in einer einzigen, nur wenige Dutzend MB großen Binary.',
+  'hero.ctaPrimary':'Schnellstart →','hero.ctaGhost':'Funktionen ansehen',
+  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> pure-Go-Treiber','hero.meta3':'<b>7</b> Sprachen','hero.meta4':'<b>REST</b> zwei APIs',
+  'hero.side.dash':'📊 Dashboard','hero.side.ai':'🤖 KI-Assistent','hero.side.sec':'🛡️ Sicherheit','hero.side.docker':'🐳 Container','hero.side.term':'⌨️ Terminal','hero.side.file':'📁 Dateien',
+  'hero.stat.mem':'Arbeitsspeicher','hero.stat.disk':'Festplatte',
+  'hero.aiq':'🤖 Benutzer: Die Festplattennutzung ist plötzlich gestiegen, schau bitte nach',
+  'hero.aia':'Analyse von /var/log: Journal-Logs nicht rotiert, belegen <em>6,8 GB</em>. Empfehlung: journalctl --vacuum-size=500M ausführen, gibt voraussichtlich <em>6,3 GB</em> frei ✅',
+  'ai.tag':'AI Operations','ai.h3':'Betriebs-Know-how direkt im Panel','ai.p':'Nicht nur eine weitere Konsole. OpsMini bringt einen KI-Ops-Assistenten mit: Problem in natürlicher Sprache beschreiben — er liest den Live-Systemzustand, analysiert Logs, liefert eine Diagnose und führt auf Wunsch sogar die Reparatur aus.',
+  'ai.l1':'Diagnose in natürlicher Sprache — „Warum ist der Speicher so voll?"','ai.l2':'Smarte Log-Analyse: tailt automatisch relevante Logs und ordnet Ursachen zu','ai.l3':'Befehle generieren & ausführen: vorschlagen → bestätigen → ausführen, vollständig auditiert','ai.l4':'Skills-Marktplatz: installierbare, hochladbare KI-Ops-Skill-Pakete','ai.l5':'Streaming-Ausgabe (SSE) — Ergebnisse schon beim Denken',
+  'ai.b1q':'Mein Server startet nachts ständig neu, kannst du die Ursache finden?',
+  'ai.b1a':'<span class="hl">/var/log/messages</span> und systemd-Logs geprüft:<br>· 03:14 <span class="hl">oom-killer</span> ausgelöst, Prozess <span class="hl">java -Xmx4g</span> beendet<br>· 4 GB RAM, JVM-Heap + Page-Cache-Überlauf<br>Vorschlag: Xmx auf 2g senken oder Swap hinzufügen. Soll ich es ausführen? <span class="ok">[y/N]</span>',
+  'ai.b2q':'Führe das erste aus','ai.b2a':'✅ systemd-Unit angepasst und Dienst neu gestartet. Ich überwache 48 h weiter und melde mich, falls es erneut zu OOM kommt.',
+  'feat.tag':'Features','feat.h2':'Alles für einen Server','feat.p':'Von Monitoring über Sicherheit bis hin zu Containern und Cron-Jobs — alle häufigen Aufgaben für einen einzelnen Server.',
+  'f1.t':'Echtzeit-Monitoring','f1.d':'Live-Metriken für CPU / Speicher / Festplatte / Netzwerk mit ECharts-Visualisierung, 30 Tage in SQLite persistiert, 24h-/7d-Trends auf einen Blick.','f1.tags':'<span>Dashboard</span><span>Trends</span><span>Prometheus-Metriken</span>',
+  'f2.t':'Alarme & Benachrichtigungen','f2.d':'Eigene Alarmregeln (CPU, Speicher, Festplatte, Port-Erreichbarkeit), zentrale Ereignisübersicht und Ungelesen-Badges.','f2.tags':'<span>Alarmregeln</span><span>Ereignisse</span><span>Benachrichtigungen</span>',
+  'f3.t':'Sicherheitscenter','f3.d':'Sicherheits-Baseline-Scans, File-Integrity-Monitoring (FIM), Bedrohungserkennung, Firewall-Portverwaltung und Login-/SSH-Sicherheitsanalyse — alles an einem Ort.','f3.tags':'<span>Baseline</span><span>FIM</span><span>Firewall</span><span>Bedrohungen</span>',
+  'f4.t':'Docker-Verwaltung','f4.d':'Container starten/stoppen, Logs ansehen, Images pullen, Volumes und Netzwerke verwalten und sogar eine Shell im Container öffnen — Alpine & Co. funktionieren sofort.','f4.tags':'<span>Container</span><span>Images</span><span>Volumes</span><span>Netzwerke</span><span>exec-Shell</span>',
+  'f5.t':'Web-Terminal','f5.d':'SSH-wertiges Browser-Terminal über WebSocket + pty, voll kompatibel mit Vollbild-Programmen wie vim und htop — von überall anmelden.','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
+  'f6.t':'Dateimanager','f6.d':'Online durchsuchen, hochladen, herunterladen, umbenennen, Verzeichnisse anlegen und löschen — auch große Dateien kein Problem.','f6.tags':'<span>Upload/Download</span><span>Online</span>',
+  'f7.t':'Cron-Jobs','f7.d':'Visuelle Verwaltung von System- und Benutzer-Crontabs, Skripte online ausführen, mit nachvollziehbarer Historie.','f7.tags':'<span>cron</span><span>Skripte</span>',
+  'f8.t':'App-Store','f8.d':'Ein-Klick-Deployment gängiger Apps, Sync mit offiziellen Repos, lokaler Import sowie Website- und Datenbankverwaltung.','f8.tags':'<span>Ein-Klick</span><span>Websites</span><span>Datenbanken</span>',
+  'f9.t':'Berechtigungen & Audit','f9.d':'RBAC mit Benutzern / Rollen / Berechtigungsgruppen, TOTP-Zwei-Faktor (MFA) und vollständige Audit-Logs für sichere Zusammenarbeit.','f9.tags':'<span>RBAC</span><span>MFA</span><span>Audit-Log</span>',
+  'arch.tag':'Architecture','arch.h2':'Gebaut für Single-Binary-Auslieferung','arch.p':'Keine externe Datenbank, keine Message-Queue, keine Laufzeit-Abhängigkeiten. Eine Datei kopieren, chmod +x, fertig.',
+  'arch.c1':'Browser','arch.c2':'OpsMini-Dienst','arch.c3':'Host',
+  'arch.b1t':'Vue-3-SPA','arch.b1s':'per go:embed eingebettet, 7 Sprachen i18n','arch.b2t':'ECharts-Visualisierung','arch.b2s':'Dashboard / Trends / Alarme','arch.b3t':'xterm.js-Terminal','arch.b3s':'Vollduplex-WebSocket',
+  'arch.b4t':'Go · Gin-Router','arch.b4s':'/api/v1 (UI) + /agent/v1 (M2M)','arch.b5t':'Service-Schicht','arch.b5s':'KI / Sicherheit / Docker / Monitoring / Dateien / Cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'verkettete Middleware',
+  'arch.b7t':'SQLite (pure Go)','arch.b7s':'Einzeldatei-Speicher, keine DB-Installation','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direkter System- & Container-Zugriff','arch.b9t':'pty / crontab / Firewall','arch.b9s':'native System-Wrapper',
+  'arch.note':'Cross-Compile für Linux amd64 / arm64 — läuft auf Raspberry Pi ebenso wie auf heimischen Servern',
+  'qs.tag':'Quick Start','qs.h2':'In Minuten einsatzbereit','qs.p':'Herunterladen, ausführen, Browser öffnen — kein Installationsassistent, kein Abhängigkeits-Albtraum.',
+  'qs.s1t':'Binary besorgen','qs.s1d':'Release für deine Architektur herunterladen oder lokal mit make build bauen.','qs.s2t':'Starten & anmelden','qs.s2d':'Standardport 8888, Standardkonto opsmini, Passwort erscheint im Start-Log — direkt nach dem Login ändern.','qs.s3t':'Härten & integrieren','qs.s3d':'MFA aktivieren, Firewall-Ports konfigurieren; externe Systeme binden sich über die /agent/v1-API an.','qs.s4t':'Als Dienst ausführen (empfohlen)','qs.s4d':'Als systemd-Dienst registrieren für Autostart und automatische Wiederherstellung.',
+  'api.tag':'Developer API','api.h2':'Gebaut für Automatisierung','api.p':'Was das Panel kann, kann auch die API. Menschen nutzen den Browser, Programme die API.','api.h3':'Zweikanal-REST-API',
+  'api.p2':'Das browserorientierte <b>/api/v1</b> und das maschinenorientierte <b>/agent/v1</b> sind vollständig getrennt — eigene Tokens, eigene Berechtigungen. Mit MCP-Unterstützung direkt von KI-Agenten aufrufbar.',
+  'api.l1':'JWT-Auth + Refresh-Tokens, unabhängige Langzeit-Zugangsdaten für Agenten','api.l2':'Deckt Container, Dateien, Monitoring, Alarme, Sicherheit und Cron ab','api.l3':'Natives MCP, damit externe KI-Assistenten deinen Server bedienen können','api.l4':'OpenAPI-artige Routen — vollständige Automatisierung mit reinem curl',
+  'api.code.title':'curl-Beispiel',
+  'st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'REST-APIs',
+  'faq.tag':'FAQ','faq.h2':'Häufig gestellte Fragen',
+  'faq.q1':'Wie unterscheidet sich OpsMini von BaoTa oder 1Panel?','faq.a1':'Ähnliche Positionierung — alles Einzel-Server-Panels. OpsMini unterscheidet sich durch: ① einen eingebauten KI-Assistenten für Diagnose und Ausführung in natürlicher Sprache; ② eine /agent/v1-Machine-to-Machine-API plus MCP-Unterstützung für deine eigene Automatisierung; ③ pure Go + SQLite als Einzeldatei mit minimalem Deployment und ohne Laufzeit-Abhängigkeiten.',
+  'faq.q2':'Welche Systeme / Architekturen werden unterstützt?','faq.a2':'Linux amd64 und arm64 (inkl. Raspberry Pi und heimischer Server). Das Panel ist eine statisch kompilierte Go-Binary und läuft, solange der Kernel nicht zu alt ist.',
+  'faq.q3':'Wo werden die Daten gespeichert? Können sie verloren gehen?','faq.a3':'Alle Konfigurationen, Benutzer, Audit- und Monitoring-Daten liegen in einer einzigen SQLite-Datei im selben Verzeichnis (Standard opsmini.db) — Back-up ist einfach das Kopieren dieser Datei. Metriken werden 30 Tage persistiert und überstehen Neustarts.',
+  'faq.q4':'Braucht die KI-Funktion ein externes LLM?','faq.a4':'Der KI-Assistent verbindet sich mit einem externen LLM-Dienst; Endpunkt und Schlüssel unter „Einstellungen" eintragen, um ihn zu aktivieren. Ohne Konfiguration funktioniert der Rest des Panels normal.',
+  'faq.q5':'Wie wird die Sicherheit gewährleistet?','faq.a5':'JWT-Auth + TOTP-Zwei-Faktor (MFA) + RBAC-Berechtigungen + vollständige Audit-Logs; die Login-Sicherheitsanalyse erkennt Brute-Force und anomale Anmeldungen. Bei öffentlichem Betrieb Quell-IPs per Firewall einschränken.',
+  'cta.h2':'Betrieb wieder einfach machen','cta.p':'Eine Datei, ein Kopieren, Browser öffnen — und dein Server hat einen KI-Ops-Experten.','cta.btn':'OpsMini herunterladen →',
+  'foot.brand':'KI-gesteuertes Leichtgewichts-Serverpanel','foot.c1t':'Produkt','foot.c1a':'Funktionen','foot.c1b':'KI-Ops','foot.c1c':'Schnellstart','foot.c2t':'Entwickler','foot.c2a':'REST API','foot.c2b':'Architektur','foot.c2c':'FAQ','foot.c3t':'Community','foot.c3b':'Feedback','foot.bottom':'OpsMini © 2026 Beijing Suyun Technology Co., Ltd. (opsmini.com)'
+}
+};
+
+const LANGS = [
+  {code:'zh-CN', label:'简体中文', flag:'🇨🇳'},
+  {code:'en', label:'English', flag:'🇺🇸'},
+  {code:'zh-TW', label:'繁體中文', flag:'🇹🇼'},
+  {code:'ja', label:'日本語', flag:'🇯🇵'},
+  {code:'ko', label:'한국어', flag:'🇰🇷'},
+  {code:'th', label:'ไทย', flag:'🇹🇭'},
+  {code:'de', label:'Deutsch', flag:'🇩🇪'}
+];
+
+const langBtn = document.getElementById('langBtn');
+const langLabel = document.getElementById('langLabel');
+const langMenu = document.getElementById('langMenu');
+const langWrap = document.getElementById('lang');
+
+// build menu
+LANGS.forEach(l => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.innerHTML = '<span class="flag">' + l.flag + '</span>' + l.label;
+  b.addEventListener('click', () => setLang(l.code));
+  langMenu.appendChild(b);
+});
+
+function applyLang(code){
+  const dict = I18N[code] || I18N['zh-CN'];
+  document.documentElement.lang = code;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = dict[el.dataset.i18n];
+    if (v !== undefined) el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const v = dict[el.dataset.i18nHtml];
+    if (v !== undefined) el.innerHTML = v;
+  });
+  if (dict['title']) document.title = dict['title'];
+  const cur = LANGS.find(l => l.code === code) || LANGS[0];
+  langLabel.textContent = cur.label;
+  langMenu.querySelectorAll('button').forEach((b, i) => {
+    b.classList.toggle('on', LANGS[i].code === code);
+  });
+}
+
+function setLang(code){
+  localStorage.setItem('opsmini-lang', code);
+  applyLang(code);
+  langWrap.classList.remove('open');
+}
+
+// toggle menu
+langBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  langWrap.classList.toggle('open');
+});
+document.addEventListener('click', () => langWrap.classList.remove('open'));
+
+// hamburger menu
+const hamburger = document.getElementById('hamburger');
+const navLinks = document.getElementById('navLinks');
+hamburger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hamburger.classList.toggle('open');
+  navLinks.classList.toggle('open');
+});
+navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  hamburger.classList.remove('open');
+  navLinks.classList.remove('open');
+}));
+document.addEventListener('click', () => {
+  hamburger.classList.remove('open');
+  navLinks.classList.remove('open');
+});
+
+// map browser timezone to a supported language
+function langFromTimezone(tz){
+  if (!tz) return 'zh-CN';
+  if (/^(Asia\/(Shanghai|Chongqing|Harbin|Urumqi|Macau|Singapore)|PRC|Asia\/Kuala_Lumpur)$/.test(tz)) return 'zh-CN';
+  if (/^(Asia\/(Taipei|Hong_Kong|Macau))$/.test(tz)) return 'zh-TW';
+  if (/^Asia\/Tokyo$/.test(tz)) return 'ja';
+  if (/^Asia\/Seoul$/.test(tz)) return 'ko';
+  if (/^Asia\/Bangkok$/.test(tz)) return 'th';
+  if (/^(Europe\/(Berlin|Busingen|Vienna|Zurich))$/.test(tz)) return 'de';
+  if (/^(Asia|Europe|America|Africa|Australia|Pacific|Atlantic|Indian)\//.test(tz)) return 'en';
+  return 'en';
+}
+
+// init: saved lang, else timezone-based, else zh-CN
+let saved = localStorage.getItem('opsmini-lang');
+if (!saved) {
+  let tz = 'zh-CN';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'zh-CN'; } catch(e){}
+  saved = langFromTimezone(tz);
+}
+applyLang(saved);
+</script>
+</body>
+</html>
