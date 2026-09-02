@@ -1,6 +1,6 @@
 # OpsMini 官方文档
 
-基于 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 的文档站点，发布到 docs.opsmini.com。全站 **7 语言**：
+基于 [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) 的文档站点，发布到 https://www.opsmini.com/docs/。全站 **7 语言**：
 简体中文（zh，源语言）、繁體中文（zh-TW）、English（en）、日本語（ja）、한국어（ko）、ไทย（th）、Deutsch（de）。
 
 ## 本地构建
