@@ -19,9 +19,9 @@
 - 每个用户可独立绑定/解绑 TOTP 验证器（Google Authenticator / 1Password / 各云厂商验证器 APP 兼容）
 - 丢失验证器时，可登录服务器用 `opsmini -reset-mfa <username>` 重置
 
-详见 [用户与权限](../features/users-rbac.md#双因素验证-2fa)。
+详见 [用户与权限](../features/users-rbac.md#2fa)。
 
-## AI 大模型接入
+## AI 大模型接入 {: #ai-config }
 
 统一在此配置内置 AI 助手的模型接入，替代原先的 `config.yaml` `ai` 段：
 

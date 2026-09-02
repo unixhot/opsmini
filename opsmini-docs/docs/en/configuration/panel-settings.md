@@ -19,7 +19,7 @@ The panel "Settings" page centralizes runtime configuration. Changes take effect
 - Each user can independently bind/unbind a TOTP authenticator (Google Authenticator / 1Password / cloud-vendor authenticator apps)
 - If the authenticator is lost, run `opsmini -reset-mfa <username>` on the server to reset it
 
-## AI Model Integration
+## AI Model Integration {: #ai-config }
 
 Configure the built-in AI assistant's model access here, replacing the former `config.yaml` `ai` section:
 

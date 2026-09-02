@@ -48,6 +48,6 @@ server:
 
 ## 6. 下一步
 
-- [配置 AI 助手](../configuration/panel-settings.md#ai-大模型接入)
+- [配置 AI 助手](../configuration/panel-settings.md#ai-config)
 - [启用对外 REST API](../api/agent-api.md)
 - [探索功能](../features/index.md)

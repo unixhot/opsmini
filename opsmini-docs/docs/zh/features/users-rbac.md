@@ -28,7 +28,7 @@ OpsMini 采用基于角色的访问控制（RBAC），精细管理面板操作�
 - `settings.view` / `settings.edit`（面板设置）
 - `apps.install`、`cron.create`、`database.create`、`file.write`、`mcp.manage`、`skill.manage`、`alert.manage` 等
 
-## 双因素验证（2FA）
+## 双因素验证（2FA） {: #2fa }
 
 - **全局开关**：面板「设置 → 二步验证」开启后，所有已绑定验证器的账号登录时均需输入 6 位动态码
 - **每用户绑定**：用户在个人安全设置中生成二维码，用 Google Authenticator / 1Password / 各云厂商验证器 APP 扫码绑定

@@ -27,7 +27,7 @@ OpsMini 内置 AI 大模型运维能力，用自然语言完成系统诊断、�
 - 模型服务商 / 模型名 / API Key / API 地址
 - 自然语言执行操作 / 日志智能分析 / 告警智能诊断 开关
 
-> 配置优先级：环境变量 `OPSMINI_AI_KEY` > 面板设置 > 配置文件残留的 `ai.*`。建议用环境变量存密钥，避免落盘。详见 [面板设置](../configuration/panel-settings.md#ai-大模型接入)。
+> 配置优先级：环境变量 `OPSMINI_AI_KEY` > 面板设置 > 配置文件残留的 `ai.*`。建议用环境变量存密钥，避免落盘。详见 [面板设置](../configuration/panel-settings.md#ai-config)。
 
 ## 安全机制
 
