@@ -14,7 +14,7 @@ theme:
   name: material
   custom_dir: overrides
   language: zh
-  logo: assets/logo.svg
+  logo: assets/logo.png
   favicon: assets/favicon.svg
   icon:
     repo: fontawesome/brands/github
