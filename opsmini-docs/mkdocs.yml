@@ -1,7 +1,7 @@
 # OpsMini 官网 + 官方文档（Material for MkDocs）
 # 7 语言：zh（默认）/ zh-TW / en / ja / ko / th / de
 
-site_name: OpsMini
+site_name: AI 驱动的单机面板
 site_description: 轻量级 Linux 主机运维面板 — 内置 AI 大模型运维 + 标准 REST API
 site_url: https://opsmini.com/
 repo_url: https://github.com/unixhot/opsmini
@@ -34,15 +34,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: custom
-      accent: indigo
+      primary: white
+      accent: custom
       toggle:
         icon: material/weather-night
         name: 切换深色模式
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: custom
-      accent: indigo
+      primary: black
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: 切换浅色模式
