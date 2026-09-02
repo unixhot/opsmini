@@ -13,7 +13,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/opsmini/opsmini -config /opt/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=3
 # 安全加固（可选）
@@ -30,7 +30,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin opsmini || true
-sudo chown -R opsmini:opsmini /var/lib/opsmini /opt/opsmini
+sudo chown -R opsmini:opsmini /data/opsmini /data/opsmini
 sudo systemctl daemon-reload
 sudo systemctl enable --now opsmini
 sudo systemctl status opsmini
@@ -50,5 +50,5 @@ journalctl -u opsmini -f    # 实时查看日志
 部分容器/精简系统没有 systemd，可手动启动：
 
 ```bash
-nohup /opt/opsmini/opsmini -config /opt/opsmini/config.yaml > /var/log/opsmini.log 2>&1 &
+nohup /data/opsmini/opsmini -config /data/opsmini/config.yaml > /var/log/opsmini.log 2>&1 &
 ```

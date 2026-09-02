@@ -15,7 +15,7 @@ sudo systemctl daemon-reload
 # Remove the install directory (default /data/opsmini, or your custom path)
 sudo rm -rf /data/opsmini
 # or
-sudo rm -rf /opt/opsmini /var/lib/opsmini
+sudo rm -rf /data/opsmini /data/opsmini
 ```
 
 ## Remove the Dedicated User (Optional)

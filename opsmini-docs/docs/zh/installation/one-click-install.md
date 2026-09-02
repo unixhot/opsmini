@@ -15,7 +15,7 @@ sudo ./install.sh -b ./opsmini
 sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
 
 # 自定义目录与端口
-sudo ./install.sh -b ./opsmini -d /opt/opsmini -p 9999
+sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
 ## 参数

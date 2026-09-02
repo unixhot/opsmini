@@ -56,30 +56,29 @@ file dist/*
 ### Directory Layout
 
 ```
-/opt/opsmini/
+/data/opsmini/
 ├── opsmini              # binary
-└── config.yaml          # config file
-/var/lib/opsmini/
+├── config.yaml          # config file
 └── opsmini.db           # data (auto-created on first start)
 ```
 
 ### Place Binary and Config
 
 ```bash
-sudo mkdir -p /opt/opsmini /var/lib/opsmini
-sudo cp dist/opsmini-*-linux-amd64 /opt/opsmini/opsmini
-sudo cp configs/config.yaml /opt/opsmini/config.yaml
+sudo mkdir -p /data/opsmini
+sudo cp dist/opsmini-*-linux-amd64 /data/opsmini/opsmini
+sudo cp configs/config.yaml /data/opsmini/config.yaml
 
 # Update config: absolute database path (JWT signing secret needs no config — auto-generated on first start)
-sudo sed -i 's|path: "opsmini.db"|path: "/var/lib/opsmini/opsmini.db"|' /opt/opsmini/config.yaml
+sudo sed -i 's|path: "opsmini.db"|path: "/data/opsmini/opsmini.db"|' /data/opsmini/config.yaml
 
-sudo chmod +x /opt/opsmini/opsmini
+sudo chmod +x /data/opsmini/opsmini
 ```
 
 ### Run
 
 ```bash
-/opt/opsmini/opsmini -config /opt/opsmini/config.yaml
+/data/opsmini/opsmini -config /data/opsmini/config.yaml
 ```
 
 The first start creates tables and the default admin account. Open `http://<host>:8888`.

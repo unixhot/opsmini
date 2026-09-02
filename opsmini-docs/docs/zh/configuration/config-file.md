@@ -1,6 +1,6 @@
 # 主配置文件
 
-OpsMini 使用 YAML 配置文件，默认路径 `configs/config.yaml`，可用 `-config` 参数指定。配置文件不存在时，程序使用内置默认值启动。
+OpsMini 使用 YAML 配置文件。官方一键安装后默认位于 `/data/opsmini/config.yaml`；从源码运行时默认 `configs/config.yaml`，均可用 `-config` 参数指定。配置文件不存在时，程序使用内置默认值启动。
 
 官方随包提供的示例已精简为**最小可运行配置**，其余运行时配置（AI、Agent 令牌、监控认证等）已迁移到面板「设置」页。
 
@@ -111,7 +111,7 @@ metrics:
 
 | 参数 | 说明 |
 |------|------|
-| `-config <path>` | 指定配置文件路径，默认 `configs/config.yaml` |
+| `-config <path>` | 指定配置文件路径（一键安装默认 `/data/opsmini/config.yaml`，源码运行默认 `configs/config.yaml`） |
 | `-version` | 打印版本信息并退出 |
 | `-reset-mfa <username>` | 重置指定用户的 MFA 绑定（丢失验证码时使用），完成后退出 |
 | `-reset-pass <username>` | 重置指定用户密码为随机强密码并打印，完成后退出 |

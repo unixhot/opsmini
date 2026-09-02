@@ -13,7 +13,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/opsmini/opsmini -config /opt/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=3
 # Optional hardening
@@ -30,7 +30,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin opsmini || true
-sudo chown -R opsmini:opsmini /var/lib/opsmini /opt/opsmini
+sudo chown -R opsmini:opsmini /data/opsmini /data/opsmini
 sudo systemctl daemon-reload
 sudo systemctl enable --now opsmini
 sudo systemctl status opsmini
@@ -48,5 +48,5 @@ journalctl -u opsmini -f    # follow logs
 ## Environments without systemd
 
 ```bash
-nohup /opt/opsmini/opsmini -config /opt/opsmini/config.yaml > /var/log/opsmini.log 2>&1 &
+nohup /data/opsmini/opsmini -config /data/opsmini/config.yaml > /var/log/opsmini.log 2>&1 &
 ```

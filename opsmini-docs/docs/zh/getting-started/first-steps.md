@@ -10,7 +10,7 @@
 initial admin account created: username=opsmini password=ggFKEX65ZVF6RNTm
 ```
 
-密码也可在安装目录的 `.init_passwd`（权限 600）中查看。
+密码也可在安装目录的 `/data/opsmini/.init_passwd`（权限 600）中查看。
 
 ## 2. 登录面板
 

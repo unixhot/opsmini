@@ -4,7 +4,7 @@ OpsMini 使用嵌入式 SQLite 存储全部业务数据（用户、任务、告�
 
 ## 数据文件
 
-- 默认路径：`opsmini.db`（与配置文件同目录，或 `config.yaml` 中 `database.path` 指定）
+- 默认路径：一键安装为 `/data/opsmini/opsmini.db`（由 `config.yaml` 中 `database.path` 指定，默认相对配置文件同目录）
 - 首次启动自动创建并建表（GORM 自动迁移）
 - 敏感字段（密钥 / Token / TOTP secret）使用 AES-GCM 加密后落库
 
@@ -15,7 +15,7 @@ SQLite 是单文件，直接拷贝即可备份：
 ```bash
 # 建议先停服务再备份，保证一致性
 sudo systemctl stop opsmini
-cp /var/lib/opsmini/opsmini.db /backup/opsmini.db.$(date +%s)
+cp /data/opsmini/opsmini.db /backup/opsmini.db.$(date +%s)
 sudo systemctl start opsmini
 ```
 
@@ -23,7 +23,7 @@ sudo systemctl start opsmini
 
 ```bash
 sudo systemctl stop opsmini
-cp /backup/opsmini.db.<ts> /var/lib/opsmini/opsmini.db
+cp /backup/opsmini.db.<ts> /data/opsmini/opsmini.db
 sudo systemctl start opsmini
 ```
 

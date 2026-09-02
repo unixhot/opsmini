@@ -5,10 +5,10 @@
 ```bash
 # 1. 停止服务并备份数据
 sudo systemctl stop opsmini
-cp /var/lib/opsmini/opsmini.db /var/lib/opsmini/opsmini.db.bak.$(date +%s)
+cp /data/opsmini/opsmini.db /data/opsmini/opsmini.db.bak.$(date +%s)
 
 # 2. 替换二进制
-sudo cp dist/opsmini-<new>-linux-amd64 /opt/opsmini/opsmini
+sudo cp dist/opsmini-<new>-linux-amd64 /data/opsmini/opsmini
 
 # 3. 重启
 sudo systemctl start opsmini
@@ -26,8 +26,8 @@ sudo systemctl start opsmini
 
 ```bash
 sudo systemctl stop opsmini
-sudo cp /opt/opsmini/opsmini /opt/opsmini/opsmini.new.bad
-sudo cp /opt/opsmini/opsmini.old /opt/opsmini/opsmini   # 用旧二进制
-sudo cp /var/lib/opsmini/opsmini.db.bak.<ts> /var/lib/opsmini/opsmini.db
+sudo cp /data/opsmini/opsmini /data/opsmini/opsmini.new.bad
+sudo cp /data/opsmini/opsmini.old /data/opsmini/opsmini   # 用旧二进制
+sudo cp /data/opsmini/opsmini.db.bak.<ts> /data/opsmini/opsmini.db
 sudo systemctl start opsmini
 ```

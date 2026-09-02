@@ -15,7 +15,7 @@ SQLite 是單檔案，直接複製即可備份：
 ```bash
 # 建议先停服务再备份，保证一致性
 sudo systemctl stop opsmini
-cp /var/lib/opsmini/opsmini.db /backup/opsmini.db.$(date +%s)
+cp /data/opsmini/opsmini.db /backup/opsmini.db.$(date +%s)
 sudo systemctl start opsmini
 ```
 
@@ -23,7 +23,7 @@ sudo systemctl start opsmini
 
 ```bash
 sudo systemctl stop opsmini
-cp /backup/opsmini.db.<ts> /var/lib/opsmini/opsmini.db
+cp /backup/opsmini.db.<ts> /data/opsmini/opsmini.db
 sudo systemctl start opsmini
 ```
 

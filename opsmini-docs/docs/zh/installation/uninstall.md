@@ -16,7 +16,7 @@ sudo systemctl daemon-reload
 # 移除安装目录（默认 /data/opsmini，或你的自定义目录）
 sudo rm -rf /data/opsmini
 # 或
-sudo rm -rf /opt/opsmini /var/lib/opsmini
+sudo rm -rf /data/opsmini /data/opsmini
 ```
 
 ## 移除专用用户（可选）

@@ -15,7 +15,7 @@ sudo ./install.sh -b ./opsmini
 sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
 
 # Custom directory and port
-sudo ./install.sh -b ./opsmini -d /opt/opsmini -p 9999
+sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
 ## Options

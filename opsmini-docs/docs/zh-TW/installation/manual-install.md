@@ -59,30 +59,29 @@ file dist/*
 ### 目錄規劃
 
 ```
-/opt/opsmini/
+/data/opsmini/
 ├── opsmini              # 二进制
-└── config.yaml          # 配置文件
-/var/lib/opsmini/
+├── config.yaml          # 配置文件
 └── opsmini.db           # 数据（首次启动自动生成）
 ```
 
 ### 放置二進位制與配置
 
 ```bash
-sudo mkdir -p /opt/opsmini /var/lib/opsmini
-sudo cp dist/opsmini-*-linux-amd64 /opt/opsmini/opsmini
-sudo cp configs/config.yaml /opt/opsmini/config.yaml
+sudo mkdir -p /data/opsmini
+sudo cp dist/opsmini-*-linux-amd64 /data/opsmini/opsmini
+sudo cp configs/config.yaml /data/opsmini/config.yaml
 
 # 修改配置：数据库绝对路径（JWT 签名密钥无需配置，首次启动自动生成）
-sudo sed -i 's|path: "opsmini.db"|path: "/var/lib/opsmini/opsmini.db"|' /opt/opsmini/config.yaml
+sudo sed -i 's|path: "opsmini.db"|path: "/data/opsmini/opsmini.db"|' /data/opsmini/config.yaml
 
-sudo chmod +x /opt/opsmini/opsmini
+sudo chmod +x /data/opsmini/opsmini
 ```
 
 ### 執行
 
 ```bash
-/opt/opsmini/opsmini -config /opt/opsmini/config.yaml
+/data/opsmini/opsmini -config /data/opsmini/config.yaml
 ```
 
 首次啟動自動建表並寫入預設管理員賬號，日誌列印賬號密碼。訪問 `http://<host>:8888` 即見面板。
