@@ -78,6 +78,34 @@ plugins:
             面板 API: 面板 API
             Agent API: Agent API
             Prometheus 指标: Prometheus 指標
+            5 分钟快速安装: 5 分鐘快速安裝
+            首次登录: 首次登入
+            产品介绍: 產品介紹
+            环境要求: 環境要求
+            一键脚本安装: 一鍵腳本安裝
+            手动安装: 手動安裝
+            systemd 托管: systemd 託管
+            升级: 升級
+            卸载: 解除安裝
+            主配置文件: 主設定檔
+            面板设置: 面板設定
+            数据存储: 資料儲存
+            端口与反向代理: 連接埠與反向代理
+            HTTPS 与证书: HTTPS 與憑證
+            面板多语言: 面板多語言
+            仪表盘与监控: 儀表板與監控
+            AI 助手: AI 助手
+            应用管理: 應用管理
+            文件 / 终端 / 计划任务 / 日志: 檔案 / 終端 / 排程 / 日誌
+            系统管理: 系統管理
+            用户与权限: 用戶與權限
+            主机安全: 主機安全
+            总体架构: 總體架構
+            技术栈: 技術棧
+            目录结构: 目錄結構
+            构建与部署: 構建與部署
+            本地开发环境: 本地開發環境
+            贡献指南: 貢獻指南
         - locale: en
           name: English
           build: true
@@ -96,6 +124,34 @@ plugins:
             面板 API: Panel API
             Agent API: Agent API
             Prometheus 指标: Prometheus Metrics
+            5 分钟快速安装: 5-Minute Install
+            首次登录: First Login
+            产品介绍: Introduction
+            环境要求: Requirements
+            一键脚本安装: One-Click Install
+            手动安装: Manual Install
+            systemd 托管: systemd
+            升级: Upgrade
+            卸载: Uninstall
+            主配置文件: Main Config File
+            面板设置: Panel Settings
+            数据存储: Data Storage
+            端口与反向代理: Ports & Reverse Proxy
+            HTTPS 与证书: HTTPS & Certificates
+            面板多语言: Panel Languages
+            仪表盘与监控: Dashboard & Monitoring
+            AI 助手: AI Assistant
+            应用管理: Apps
+            文件 / 终端 / 计划任务 / 日志: Files / Terminal / Cron / Logs
+            系统管理: System
+            用户与权限: Users & RBAC
+            主机安全: Host Security
+            总体架构: Architecture
+            技术栈: Tech Stack
+            目录结构: Directory
+            构建与部署: Build & Deploy
+            本地开发环境: Dev Environment
+            贡献指南: Contributing
         - locale: ja
           name: 日本語
           build: true
@@ -114,6 +170,34 @@ plugins:
             面板 API: パネル API
             Agent API: Agent API
             Prometheus 指标: Prometheus メトリクス
+            5 分钟快速安装: 5分でクイックインストール
+            首次登录: 初回ログイン
+            产品介绍: 製品紹介
+            环境要求: 必要環境
+            一键脚本安装: ワンクリックインストール
+            手动安装: 手動インストール
+            systemd 托管: systemd
+            升级: アップグレード
+            卸载: アンインストール
+            主配置文件: メイン設定ファイル
+            面板设置: パネル設定
+            数据存储: データストレージ
+            端口与反向代理: ポートとリバースプロキシ
+            HTTPS 与证书: HTTPS と証明書
+            面板多语言: パネル多言語
+            仪表盘与监控: ダッシュボードと監視
+            AI 助手: AI アシスタント
+            应用管理: アプリ管理
+            文件 / 终端 / 计划任务 / 日志: ファイル / 端末 / クロン / ログ
+            系统管理: システム管理
+            用户与权限: ユーザーと権限
+            主机安全: ホストセキュリティ
+            总体架构: 全体アーキテクチャ
+            技术栈: 技術スタック
+            目录结构: ディレクトリ構造
+            构建与部署: ビルドとデプロイ
+            本地开发环境: ローカル開発環境
+            贡献指南: 貢献ガイド
         - locale: ko
           name: 한국어
           build: true
@@ -132,6 +216,34 @@ plugins:
             面板 API: 패널 API
             Agent API: Agent API
             Prometheus 指标: Prometheus 지표
+            5 分钟快速安装: 5분 빠른 설치
+            首次登录: 처음 로그인
+            产品介绍: 제품 소개
+            环境要求: 요구 사항
+            一键脚本安装: 원클릭 설치
+            手动安装: 수동 설치
+            systemd 托管: systemd
+            升级: 업그레이드
+            卸载: 제거
+            主配置文件: 기본 설정 파일
+            面板设置: 패널 설정
+            数据存储: 데이터 저장
+            端口与反向代理: 포트 및 리버스 프록시
+            HTTPS 与证书: HTTPS 및 인증서
+            面板多语言: 패널 다국어
+            仪表盘与监控: 대시보드 및 모니터링
+            AI 助手: AI 어시스턴트
+            应用管理: 앱 관리
+            文件 / 终端 / 计划任务 / 日志: 파일 / 터미널 / 크론 / 로그
+            系统管理: 시스템 관리
+            用户与权限: 사용자 및 권한
+            主机安全: 호스트 보안
+            总体架构: 전체 아키텍처
+            技术栈: 기술 스택
+            目录结构: 디렉터리 구조
+            构建与部署: 빌드 및 배포
+            本地开发环境: 로컬 개발 환경
+            贡献指南: 기여 가이드
         - locale: th
           name: ไทย
           build: true
@@ -150,6 +262,34 @@ plugins:
             面板 API: Panel API
             Agent API: Agent API
             Prometheus 指标: Prometheus เมตริก
+            5 分钟快速安装: ติดตั้งใน 5 นาที
+            首次登录: เข้าสู่ระบบครั้งแรก
+            产品介绍: แนะนำผลิตภัณฑ์
+            环境要求: ข้อกำหนด
+            一键脚本安装: ติดตั้งด้วยสคริปต์เดียว
+            手动安装: ติดตั้งด้วยตนเอง
+            systemd 托管: systemd
+            升级: อัปเกรด
+            卸载: ถอนการติดตั้ง
+            主配置文件: ไฟล์กำหนดค่าหลัก
+            面板设置: การตั้งค่าแผง
+            数据存储: การจัดเก็บข้อมูล
+            端口与反向代理: พอร์ตและ Reverse Proxy
+            HTTPS 与证书: HTTPS และใบรับรอง
+            面板多语言: หลายภาษาของแผง
+            仪表盘与监控: แดชบอร์ดและการตรวจสอบ
+            AI 助手: ผู้ช่วย AI
+            应用管理: การจัดการแอป
+            文件 / 终端 / 计划任务 / 日志: ไฟล์ / เทอร์มินัล / Cron / บันทึก
+            系统管理: การจัดการระบบ
+            用户与权限: ผู้ใช้และสิทธิ์
+            主机安全: ความปลอดภัยของโฮสต์
+            总体架构: สถาปัตยกรรมโดยรวม
+            技术栈: เทคโนโลยีสแต็ก
+            目录结构: โครงสร้างไดเรกทอรี
+            构建与部署: บิลด์และปรับใช้
+            本地开发环境: สภาพแวดล้อมการพัฒนา
+            贡献指南: คู่มือการมีส่วนร่วม
         - locale: de
           name: Deutsch
           build: true
@@ -168,6 +308,34 @@ plugins:
             面板 API: Panel-API
             Agent API: Agent-API
             Prometheus 指标: Prometheus-Metriken
+            5 分钟快速安装: 5-Minuten-Installation
+            首次登录: Erster Login
+            产品介绍: Einführung
+            环境要求: Anforderungen
+            一键脚本安装: Ein-Klick-Installation
+            手动安装: Manuelle Installation
+            systemd 托管: systemd
+            升级: Upgrade
+            卸载: Deinstallation
+            主配置文件: Hauptkonfigurationsdatei
+            面板设置: Panel-Einstellungen
+            数据存储: Datenspeicher
+            端口与反向代理: Ports & Reverse-Proxy
+            HTTPS 与证书: HTTPS & Zertifikate
+            面板多语言: Panel-Sprachen
+            仪表盘与监控: Dashboard & Monitoring
+            AI 助手: KI-Assistent
+            应用管理: App-Verwaltung
+            文件 / 终端 / 计划任务 / 日志: Dateien / Terminal / Cron / Logs
+            系统管理: Systemverwaltung
+            用户与权限: Benutzer & RBAC
+            主机安全: Host-Sicherheit
+            总体架构: Gesamtarchitektur
+            技术栈: Tech-Stack
+            目录结构: Verzeichnisstruktur
+            构建与部署: Build & Deploy
+            本地开发环境: Entwicklungsumgebung
+            贡献指南: Beitragsleitfaden
 
 extra:
   alternate:
@@ -236,16 +404,49 @@ markdown_extensions:
 
 nav:
   - 首页: index.md
-  - 快速开始: getting-started/index.md
-  - 安装部署: installation/index.md
-  - 配置指南: configuration/index.md
-  - 功能指南: features/index.md
+  - 快速开始:
+      - 概览: getting-started/index.md
+      - 5 分钟快速安装: getting-started/quick-install.md
+      - 首次登录: getting-started/first-steps.md
+      - 产品介绍: getting-started/introduction.md
+  - 安装部署:
+      - 概览: installation/index.md
+      - 环境要求: installation/requirements.md
+      - 一键脚本安装: installation/one-click-install.md
+      - 手动安装: installation/manual-install.md
+      - systemd 托管: installation/systemd.md
+      - 升级: installation/upgrade.md
+      - 卸载: installation/uninstall.md
+  - 配置指南:
+      - 概览: configuration/index.md
+      - 主配置文件: configuration/config-file.md
+      - 面板设置: configuration/panel-settings.md
+      - 数据存储: configuration/storage.md
+      - 端口与反向代理: configuration/ports-proxy.md
+      - HTTPS 与证书: configuration/https.md
+      - 面板多语言: configuration/i18n.md
+  - 功能指南:
+      - 概览: features/index.md
+      - 仪表盘与监控: features/dashboard-monitoring.md
+      - AI 助手: features/ai-assistant.md
+      - 应用管理: features/apps.md
+      - 文件 / 终端 / 计划任务 / 日志: features/files-terminal-cron.md
+      - 系统管理: features/system.md
+      - 用户与权限: features/users-rbac.md
+      - 主机安全: features/security.md
   - REST API:
       - 概览: api/index.md
       - 面板 API: api/browser-api.md
       - Agent API: api/agent-api.md
       - Prometheus 指标: api/prometheus.md
-  - 架构设计: architecture/index.md
-  - 开发指南: development/index.md
+  - 架构设计:
+      - 总体架构: architecture/index.md
+      - 技术栈: architecture/tech-stack.md
+      - 目录结构: architecture/directory.md
+  - 开发指南:
+      - 概览: development/index.md
+      - 构建与部署: development/build-deploy.md
+      - 本地开发环境: development/dev-env.md
+      - 贡献指南: development/contributing.md
   - FAQ: faq/index.md
   - 更新日志: changelog/index.md
