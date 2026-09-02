@@ -1,0 +1,5 @@
+# 文档站构建产物（由 opsmini-docs 构建后同步到 docs/，不提交到 git）
+docs/
+
+# 系统文件
+.DS_Store

@@ -19,6 +19,18 @@ mkdocs serve
 mkdocs build
 ```
 
+## 部署
+
+`mkdocs build` 的产物在 `site/` 目录，需同步到官网（`opsmini-site/`）的 `/docs/` 子目录，与官网一起发布，最终通过 https://www.opsmini.com/docs/ 访问。
+
+```bash
+mkdocs build
+# 将构建产物同步到官网的 docs/ 子目录
+rsync -av --delete site/ ../opsmini-site/docs/
+```
+
+> 官网源码在 `opsmini-site/`（发布到 https://www.opsmini.com 根域名），文档站作为其 `/docs/` 子路径提供。
+
 ## 目录说明
 
 ```
