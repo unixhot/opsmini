@@ -114,6 +114,7 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 		Metric:   rule.Metric,
 		Level:    level,
 		Message:  msg,
+		Kind:     model.AlertKindAlert,
 		Status:   model.AlertStatusActive,
 	}
 	if err := m.eventRepo.Create(e); err != nil {
@@ -139,7 +140,8 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 	log.Printf("ALERT fired: %s (rule=%s, id=%d)", msg, rule.Name, e.ID)
 }
 
-// resolve recovers an alert: marks the rule's active event as resolved.
+// resolve recovers an alert: marks the rule's active event as resolved and creates a
+// linked recovery event so the history shows both when it fired and when it recovered.
 func (m *AlertMonitor) resolve(rule model.AlertRule) {
 	ev, err := m.eventRepo.FindActiveByRule(rule.ID)
 	if err != nil {
@@ -151,6 +153,20 @@ func (m *AlertMonitor) resolve(rule model.AlertRule) {
 	if err := m.eventRepo.Update(ev); err != nil {
 		log.Printf("alert event resolve: %v", err)
 		return
+	}
+	rec := &model.AlertEvent{
+		RuleID:     rule.ID,
+		RuleName:   rule.Name,
+		Metric:     rule.Metric,
+		Level:      ev.Level,
+		Message:    "已恢复：" + ev.Message,
+		Kind:       model.AlertKindRecovery,
+		RelatedID:  ev.ID,
+		Status:     model.AlertStatusResolved,
+		ResolvedAt: &now,
+	}
+	if err := m.eventRepo.Create(rec); err != nil {
+		log.Printf("recovery event create: %v", err)
 	}
 	log.Printf("ALERT resolved: rule=%s event=%d", rule.Name, ev.ID)
 }
