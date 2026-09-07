@@ -17,11 +17,11 @@ func NewSettingHandler(svc *service.SettingService) *SettingHandler {
 	return &SettingHandler{svc: svc}
 }
 
-// readSensitive are settings that must never be returned to the client:
-// server-side secrets (JWT signing key) and write-only credentials.
+// readSensitive are settings that must never be returned to the client.
+// jwt_secret is a server-side secret (login signing key) that must stay hidden;
+// metrics_pass is intentionally readable so the panel can show/copy it for Prometheus basic_auth config.
 var readSensitive = map[string]bool{
-	"jwt_secret":   true, // server-side JWT signing key (generated automatically on first start)
-	"metrics_pass": true, // Prometheus basic-auth password (write-only)
+	"jwt_secret": true, // server-side JWT signing key (generated automatically on first start)
 }
 
 // writeProtected are settings the client must never overwrite.

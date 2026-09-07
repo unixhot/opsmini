@@ -428,9 +428,11 @@
   .login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:22px}
   .login-field{margin-bottom:16px}
   .pass-wrap{position:relative}
-  .pass-wrap .input{padding-right:40px}
+  .pass-wrap .input{padding-right:72px}
   .pass-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--t3);cursor:pointer;border-radius:6px}
   .pass-eye:hover{color:var(--t1);background:var(--bg)}
+  .pass-copy{position:absolute;right:36px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--t3);cursor:pointer;border-radius:6px}
+  .pass-copy:hover{color:var(--t1);background:var(--bg)}
   .login-row{display:flex;align-items:center;justify-content:space-between;margin:4px 0 20px;font-size:13px;color:var(--t2)}
   .login-row input[type=checkbox]{accent-color:var(--primary);margin-right:4px;vertical-align:-2px}
   .login-btn{width:100%;justify-content:center;padding:11px;font-size:14px}
@@ -2119,6 +2121,9 @@
                         <svg v-if="!metricsAuth.showPass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
                         <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>
                       </button>
+                      <button type="button" class="pass-copy" @click="copyMetricsPass" :title="t('btn.copy')" tabindex="-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -3802,6 +3807,14 @@ createApp({
       return s;
     },
     genMetricsPass(){ this.metricsAuth.pass = this.randomPass(); },
+    copyMetricsPass(){
+      const v = this.metricsAuth.pass || '';
+      if(!v){ this.toast(this.t('set.metricsPassPh')); return; }
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(
+        ()=>this.toast(this.t('btn.copied')),
+        ()=>{ const ta=document.createElement('textarea'); ta.value=v; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); this.toast(this.t('btn.copied')); }
+      );
+    },
     async saveMetricsSettings(){
       const enabled = this.metricsAuth.enabled;
       const user = (this.metricsAuth.user || '').trim();
