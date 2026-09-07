@@ -2103,7 +2103,7 @@
             </div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
               <div class="form-hint" style="margin-top:0">{{ t('set.metricsDesc') }}</div>
-              <div><label class="form-label">{{ t('set.metricsEndpoint') }}</label><div class="kv"><span class="v mono">/metrics</span><span class="tag info">node_exporter</span></div></div>
+              <div><label class="form-label">{{ t('set.metricsEndpoint') }}</label><div class="kv"><span class="v mono">/metrics</span><span class="tag info">node_exporter</span></div><a :href="metricsUrl" target="_blank" rel="noopener noreferrer" style="color:var(--primary);font-size:12px;word-break:break-all;display:inline-block;margin-top:6px">{{ metricsUrl }}</a></div>
               <div class="kv"><span class="k">{{ t('set.metricsAuth') }}</span><span class="switch" :class="{on:metricsAuth.enabled}" @click="metricsAuth.enabled=!metricsAuth.enabled"></span></div>
               <div v-if="metricsAuth.enabled">
                 <div class="form-grid">
@@ -2126,8 +2126,8 @@
                   <button class="btn sm" @click="genMetricsPass">{{ t('set.metricsGen') }}</button>
                 </div>
               </div>
-              <div class="form-hint">{{ t('set.metricsHint') }}</div>
-              <div class="row" style="justify-content:flex-end">
+              <div class="form-hint" style="margin-top:0">{{ t('set.metricsHint') }}</div>
+              <div class="row" style="justify-content:flex-end;position:relative;z-index:1">
                 <button class="btn primary" @click="saveMetricsSettings">{{ t('btn.save') }}</button>
               </div>
             </div>
@@ -3629,6 +3629,7 @@ createApp({
     }
   },
   computed: {
+    metricsUrl(){ return (location.origin || (location.protocol + '//' + location.host)) + '/metrics'; },
     presetAccent(){ const t=this.themePresets.find(x=>x.id===this.themeId); return t ? t.accent : '#4f6ef7'; },
     currentAccent(){ return this.customAccent || this.presetAccent; },
     visibleMenu(){ return this.menu.map(g=>({ title:g.title, items:g.items.filter(i=>{ if(this.menuVisibility[i.id]===false) return false; const p=this.menuPermMap[i.id]; return !p || this.hasPerm(p); }) })).filter(g=>g.items.length>0); },
