@@ -60,7 +60,7 @@
   /* ===== 侧边栏 ===== */
   .brand{display:flex;align-items:center;justify-content:center;gap:10px;padding:18px 18px 16px;border-bottom:1px solid var(--sb-border);position:relative}
   .brand-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
-  .brand-logo-img{height:22px;width:auto;display:block;flex:none}
+  .brand-logo-img{height:22px;width:auto;display:block;flex:none;background:#fff;padding:7px 12px;border-radius:8px}
   .brand-logo-collapsed{display:none}
   .sidebar.collapsed .brand-logo-img{display:none}
   .sidebar.collapsed .brand-logo-collapsed{display:flex}
@@ -2351,7 +2351,7 @@
         <template v-else-if="modal==='alert'">
           <div class="form-item"><label>{{ t('th.ruleName') }}</label><input class="input" v-model="form.ruleName" placeholder="CPU 过高"></div>
           <div class="form-item"><label>{{ t('th.metric') }}</label>
-            <select class="input" v-model="form.metric"><option>CPU 使用率</option><option>内存使用率</option><option>磁盘使用率</option><option>运行中进程数</option><option>网卡下载带宽</option><option>网卡上传带宽</option></select>
+            <select class="input" v-model="form.metric"><option v-for="m in alertMetrics" :key="m">{{ m }}</option></select>
           </div>
           <div class="form-grid">
             <div class="form-item"><label>{{ t('th.condition') }}</label><select class="input" v-model="form.operator"><option>&gt;</option><option>&gt;=</option><option>&lt;</option><option>&lt;=</option><option>=</option></select></div>
@@ -2367,7 +2367,7 @@
         <template v-else-if="modal==='alertEdit'">
           <div class="form-item"><label>{{ t('th.ruleName') }}</label><input class="input" v-model="form.ruleName" placeholder="CPU 过高"></div>
           <div class="form-item"><label>{{ t('th.metric') }}</label>
-            <select class="input" v-model="form.metric"><option>CPU 使用率</option><option>内存使用率</option><option>磁盘使用率</option><option>运行中进程数</option><option>网卡下载带宽</option><option>网卡上传带宽</option></select>
+            <select class="input" v-model="form.metric"><option v-for="m in alertMetrics" :key="m">{{ m }}</option></select>
           </div>
           <div class="form-grid">
             <div class="form-item"><label>{{ t('th.condition') }}</label><select class="input" v-model="form.operator"><option>&gt;</option><option>&gt;=</option><option>&lt;</option><option>&lt;=</option><option>=</option></select></div>
@@ -3585,6 +3585,7 @@ createApp({
       tplEdit: false,           // 是否编辑已有模版（禁用 slug）
       tplForm: { slug:'', name:'', description:'', category:'other', icon:'', color:'#4f6ef7', version:'', ports:'', container_name:'', install_script:'' },
       alertRules: [],  // 告警规则，从后端 /alert-rules 加载
+      alertMetrics: ['CPU 使用率','内存使用率','磁盘使用率','磁盘 inode 使用率','系统负载(1分钟)','系统负载(5分钟)','系统负载(15分钟)','Swap 使用率','磁盘 IO 使用率','磁盘读取速率','磁盘写入速率','网卡下载带宽','网卡上传带宽','网卡接收错误','网卡发送错误','TCP 当前连接数','上下文切换次数','CPU 温度','运行中进程数','阻塞进程数','僵尸进程数'],  // 告警指标选项（对齐 node_exporter 核心指标）
       files: [],
       crons: [],
       processes: [],
@@ -3738,6 +3739,8 @@ createApp({
       else if(id==='security') this.securityTab='overview';
       else if(id==='settings') this.settingsTab='basic';
       else if(id==='logs') this.logType='panel';
+      else if(id==='monitoring') this.monitorTab='chart';
+      else if(id==='ai') this.aiTab='chat';
       this.$nextTick(()=>this.renderCharts()); this.onPageChange();
     },
     goDashboard(){
