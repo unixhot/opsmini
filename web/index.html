@@ -1599,6 +1599,7 @@
           <div><div class="page-title">{{ t('page.security') }}</div><div class="page-desc">{{ t('security.desc') }}</div></div>
           <div class="page-tabs">
             <span :class="{active: securityTab==='overview'}" @click="setSecurityTab('overview')">{{ t('sec.tab.overview') }}</span>
+            <span :class="{active: securityTab==='firewall'}" @click="setSecurityTab('firewall')">{{ t('sec.tab.firewall') }}</span>
             <span :class="{active: securityTab==='login'}" @click="setSecurityTab('login')">{{ t('sec.tab.login') }}</span>
             <span :class="{active: securityTab==='baseline'}" @click="setSecurityTab('baseline')">{{ t('sec.tab.baseline') }}</span>
             <span :class="{active: securityTab==='fim'}" @click="setSecurityTab('fim')">{{ t('sec.tab.fim') }}</span>
@@ -1669,6 +1670,39 @@
               <div class="kv" v-for="s in secSsh" :key="s.key">
                 <span class="k">{{ s.text }}</span>
                 <span class="tag" :class="s.done?'ok':'warn'">{{ s.done ? t('sec.pass') : t('sec.warn') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 防火墙 -->
+        <div v-if="securityTab==='firewall'">
+          <div class="card">
+            <div class="card-head"><div class="card-title">{{ t('sec.fwBackend') }}: {{ secFirewall.backend || 'none' }}</div>
+              <div class="row" style="gap:8px">
+                <span class="tag" :class="secFirewall.enabled?'ok':'err'"><span class="tdot"></span>{{ secFirewall.enabled ? t('common.enabled') : t('common.disabled') }}</span>
+                <button v-if="!secFirewall.enabled && secFirewall.backend!=='iptables' && hasPerm('security.firewall')" class="btn sm primary" @click="fwEnable">{{ t('sec.fwEnable') }}</button>
+                <button v-if="secFirewall.enabled && secFirewall.backend!=='iptables' && hasPerm('security.firewall')" class="btn sm danger" @click="fwDisable">{{ t('sec.fwDisable') }}</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row" style="gap:8px;margin-bottom:12px" v-if="hasPerm('security.firewall')">
+                <input class="input" v-model="fwPort" :placeholder="t('sec.fwPortPh')" style="width:120px">
+                <select class="input" v-model="fwProto" style="width:100px"><option value="tcp">TCP</option><option value="udp">UDP</option></select>
+                <button class="btn primary" @click="fwAllowPort">{{ t('sec.fwAllow') }}</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>{{ t('sec.fwPort') }}</th><th>{{ t('sec.fwProto') }}</th><th>{{ t('sec.fwAction') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
+                  <tbody>
+                    <tr v-for="(r,i) in (secFirewall.rules||[])" :key="i">
+                      <td class="mono">{{ r.port || '-' }}</td><td class="mono">{{ r.proto || '-' }}</td>
+                      <td><span class="tag" :class="r.action==='allow'?'ok':'err'">{{ r.action }}</span></td>
+                      <td><button class="btn sm danger" @click="fwDenyPort(parseInt(r.port,10), r.proto)">{{ t('common.delete') }}</button></td>
+                    </tr>
+                    <tr v-if="(secFirewall.rules||[]).length===0"><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">{{ t('sec.fimEmpty') }}</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1814,42 +1848,6 @@
                 <span class="k">{{ s.text }}</span>
                 <span class="tag" :class="s.done?'ok':'warn'">{{ s.done ? t('sec.pass') : t('sec.warn') }}</span>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ 防火墙 ============ -->
-      <div v-if="page==='firewall'">
-        <div class="page-head">
-          <div><div class="page-title">{{ t('sec.tab.firewall') }}</div><div class="page-desc">{{ t('security.fwDesc') }}</div></div>
-        </div>
-        <div class="card">
-          <div class="card-head"><div class="card-title">{{ t('sec.fwBackend') }}: {{ secFirewall.backend || 'none' }}</div>
-            <div class="row" style="gap:8px">
-              <span class="tag" :class="secFirewall.enabled?'ok':'err'"><span class="tdot"></span>{{ secFirewall.enabled ? t('common.enabled') : t('common.disabled') }}</span>
-              <button v-if="!secFirewall.enabled && secFirewall.backend!=='iptables' && hasPerm('security.firewall')" class="btn sm primary" @click="fwEnable">{{ t('sec.fwEnable') }}</button>
-              <button v-if="secFirewall.enabled && secFirewall.backend!=='iptables' && hasPerm('security.firewall')" class="btn sm danger" @click="fwDisable">{{ t('sec.fwDisable') }}</button>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row" style="gap:8px;margin-bottom:12px" v-if="hasPerm('security.firewall')">
-              <input class="input" v-model="fwPort" :placeholder="t('sec.fwPortPh')" style="width:120px">
-              <select class="input" v-model="fwProto" style="width:100px"><option value="tcp">TCP</option><option value="udp">UDP</option></select>
-              <button class="btn primary" @click="fwAllowPort">{{ t('sec.fwAllow') }}</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>{{ t('sec.fwPort') }}</th><th>{{ t('sec.fwProto') }}</th><th>{{ t('sec.fwAction') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
-                <tbody>
-                  <tr v-for="(r,i) in (secFirewall.rules||[])" :key="i">
-                    <td class="mono">{{ r.port || '-' }}</td><td class="mono">{{ r.proto || '-' }}</td>
-                    <td><span class="tag" :class="r.action==='allow'?'ok':'err'">{{ r.action }}</span></td>
-                    <td><button class="btn sm danger" @click="fwDenyPort(parseInt(r.port,10), r.proto)">{{ t('common.delete') }}</button></td>
-                  </tr>
-                  <tr v-if="(secFirewall.rules||[]).length===0"><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">{{ t('sec.fimEmpty') }}</td></tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
@@ -3441,7 +3439,7 @@ createApp({
       securityTab: 'overview',
       perms: {},           // 当前用户权限点集合 {perm:true}
       permsLoaded: false,  // 权限是否已加载
-      menuPermMap: { monitoring:'monitor.view', ai:'ai.use', terminal:'terminal.use', security:'security.view', firewall:'security.firewall', apps:'apps.view', containers:'container.view', system:'system.view', files:'file.view', cron:'cron.view', logs:'log.view', users:'user.view', settings:'settings.view' },
+      menuPermMap: { monitoring:'monitor.view', ai:'ai.use', terminal:'terminal.use', security:'security.view', apps:'apps.view', containers:'container.view', system:'system.view', files:'file.view', cron:'cron.view', logs:'log.view', users:'user.view', settings:'settings.view' },
       roles: [],           // 角色列表
       permGroups: [],      // 权限分组
       usersTab: 'list',    // 用户管理页 tab:list/roles
@@ -3634,7 +3632,6 @@ createApp({
         ]},
         { title:'group.security', items:[
           { id:'security', label:'menu.security', icon:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
-          { id:'firewall', label:'menu.firewall', icon:'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z' },
           { id:'terminal', label:'menu.terminal', icon:'M4 17l6-5-6-5 M12 19h8' },
           { id:'logs', label:'menu.logs', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8' },
         ]},
@@ -3788,7 +3785,6 @@ createApp({
       else if(p==='settings'){ this.loadMetricsSettings && this.loadMetricsSettings(); this.loadAiSettings && this.loadAiSettings(); this.loadSecuritySettings && this.loadSecuritySettings(); this.loadMfaStatus && this.loadMfaStatus(); }
       else if(p==='profile'){ this.loadProfile && this.loadProfile(); }
       else if(p==='security'){ this.loadSecurityData && this.loadSecurityData(); }
-      else if(p==='firewall'){ this.loadSecurityData && this.loadSecurityData(); }
       else if(p==='ai') this.loadAiSettings && this.loadAiSettings();
       else if(p==='terminal') this.connectTerminal();
     },
@@ -3919,10 +3915,8 @@ createApp({
     // ===== 主机安全 =====
     setSecurityTab(tab){ this.securityTab = tab; if(tab==='login') this.secBrutePage = 1; this.loadSecurityData(); },
     async loadSecurityData(){
-      const p = this.page;
+      const t = this.securityTab;
       try{
-        if(p === 'firewall'){ this.secFirewall = await this.api('/security/firewall'); return; }
-        const t = this.securityTab;
         if(t === 'overview'){
           this.secOverview = await this.api('/security/overview');
           this.secLogin = await this.api('/security/login');
@@ -3932,6 +3926,7 @@ createApp({
         else if(t === 'baseline') this.secBaseline = await this.api('/security/baseline/latest');
         else if(t === 'fim'){ this.secFimBaselines = await this.api('/security/fim/baselines'); this.secFimEvents = await this.api('/security/fim/events'); }
         else if(t === 'threat') this.secThreats = await this.api('/security/threats');
+        else if(t === 'firewall') this.secFirewall = await this.api('/security/firewall');
       }catch(e){}
     },
     async runBaselineScan(){
