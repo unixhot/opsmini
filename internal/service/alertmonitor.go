@@ -1,8 +1,12 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/smtp"
 	"regexp"
 	"strconv"
@@ -137,6 +141,8 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 	if strings.Contains(strings.ToLower(rule.Notify), "email") || strings.Contains(strings.ToLower(rule.Notify), "邮件") {
 		m.sendEmailAlert(rule.Name, level, msg)
 	}
+	// send to group-robot webhooks (WeCom / DingTalk / Feishu) if configured.
+	m.sendWebhooks(rule.Name, level, msg)
 	log.Printf("ALERT fired: %s (rule=%s, id=%d)", msg, rule.Name, e.ID)
 }
 
@@ -259,6 +265,53 @@ func formatMetricValue(metric string, v float64) string {
 	default:
 		return strconv.FormatFloat(v, 'f', 1, 64) + "%"
 	}
+}
+
+// sendWebhooks sends the alert to configured group-robot webhooks (WeCom / DingTalk / Feishu).
+func (m *AlertMonitor) sendWebhooks(ruleName, level, msg string) {
+	if m.settings == nil {
+		return
+	}
+	kv := m.settings()
+	content := ruleName + ": " + msg
+	targets := []struct{ key, name string }{
+		{"wecom_webhook", "WeCom"},
+		{"dingtalk_webhook", "DingTalk"},
+		{"feishu_webhook", "Feishu"},
+	}
+	for _, t := range targets {
+		url := kv[t.key]
+		if url == "" {
+			continue
+		}
+		if err := sendWebhook(url, t.name, content); err != nil {
+			log.Printf("%s webhook send failed: %v", t.name, err)
+		}
+	}
+}
+
+// sendWebhook posts a text message to a group-robot webhook, adapting the payload per platform.
+func sendWebhook(url, platform, content string) error {
+	var body map[string]interface{}
+	if platform == "Feishu" {
+		body = map[string]interface{}{"msg_type": "text", "content": map[string]string{"text": content}}
+	} else {
+		// WeCom and DingTalk share the same text format.
+		body = map[string]interface{}{"msgtype": "text", "text": map[string]string{"content": content}}
+	}
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("status %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // sendEmailAlert sends an email notification via SMTP if configured.
