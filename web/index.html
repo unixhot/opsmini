@@ -2024,7 +2024,13 @@
               <div class="form-hint" style="margin-top:0">{{ t('set.apiTokenDesc') }}</div>
               <div><label class="form-label">{{ t('set.apiTokenLabel') }}</label>
                 <div class="row" style="gap:8px">
-                  <input class="input mono" type="password" v-model="agentToken.value" :placeholder="t('set.apiTokenPh')" style="flex:1">
+                  <div class="pass-wrap" style="flex:1">
+                    <input class="input mono" :type="agentToken.show ? 'text' : 'password'" v-model="agentToken.value" :placeholder="t('set.apiTokenPh')" style="width:100%;padding-right:40px">
+                    <button type="button" class="pass-eye" @click="agentToken.show=!agentToken.show" :title="agentToken.show ? t('login.hidePass') : t('login.showPass')" tabindex="-1">
+                      <svg v-if="!agentToken.show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>
+                    </button>
+                  </div>
                   <button class="btn" @click="genAgentToken">{{ t('set.apiTokenGen') }}</button>
                   <button class="btn" @click="copyAgentToken">{{ t('btn.copy') }}</button>
                 </div>
@@ -3544,7 +3550,7 @@ createApp({
       net: { down:'2.4 MB/s', up:'860 KB/s', total:12.6, iface:'eth0' },
       uptime: '23 天 14 小时',
       ai: { enabled:true, model:'deepseek-chat', key:'', base:'https://api.deepseek.com/v1', exec:true, logAna:true, diag:true },
-      agentToken: { value:'', loaded:false },
+      agentToken: { value:'', loaded:false, show:false },
       set: { https:true, tfa:false, autoup:true },
       services: [
         { name:'Nginx', short:'N', desc:'svc.web', color:'#16b879', running:true, pid:1024 },
