@@ -94,6 +94,7 @@ func (s *FimService) Check() []model.FimChange {
 	return changes
 }
 
+// record persists a FIM change event and returns it.
 func (s *FimService) record(b model.FimBaseline, c model.FimChange) model.FimChange {
 	_ = s.changeRepo.Create(&c)
 	return c
@@ -122,6 +123,7 @@ func sha256File(path string) (string, int64, int64, error) {
 	return hex.EncodeToString(h.Sum(nil)), fi.Size(), fi.ModTime().Unix(), nil
 }
 
+// levelFor returns the severity level for a monitored path ("critical" for high-value files, otherwise "warning").
 func levelFor(path string) string {
 	if criticalFimPaths[path] {
 		return "critical"

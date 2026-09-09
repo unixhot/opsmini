@@ -140,7 +140,7 @@ func seedAdmin(db *gorm.DB) error {
 	}
 
 	// Initial password priority: environment variable OPSMINI_INIT_PASSWORD > random generation.
-	// The install script (install/opsmini-install.sh) injects a preset password via this variable,
+	// The install script (install/install.sh) injects a preset password via this variable,
 	// so the password can be written to the .init_passwd file and shown to the user.
 	pwd := os.Getenv("OPSMINI_INIT_PASSWORD")
 	generated := pwd == ""

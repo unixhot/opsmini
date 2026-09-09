@@ -52,6 +52,7 @@ func (m *AlertMonitor) Start() {
 // Stop stops detection.
 func (m *AlertMonitor) Stop() { close(m.stopCh) }
 
+// loop evaluates alert rules periodically (every 60s) and cleans up expired events hourly.
 func (m *AlertMonitor) loop() {
 	// evaluate once immediately, then every 60s; clean up expired events every hour.
 	m.evaluate()

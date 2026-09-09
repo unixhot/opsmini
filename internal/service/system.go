@@ -615,6 +615,7 @@ func (s *SystemService) NetRate() (recvRate, sentRate uint64) {
 	return uint64(float64(io1[0].BytesRecv-r0) / window), uint64(float64(io1[0].BytesSent-s0) / window)
 }
 
+// itoa converts a uint64 to its decimal string representation without allocation (used in port keys).
 func itoa(v uint64) string {
 	if v == 0 {
 		return "0"

@@ -33,7 +33,7 @@ make build          # build for current platform
 make build-all      # cross-compile for Linux amd64/arm64
 
 ./dist/opsmini -config configs/config.yaml
-# open http://localhost:8888  (default account: opsmini — password shown in startup log)
+# open http://localhost:8888  (default account: opsmini — initial password is written to .init_passwd)
 ```
 
 ### Documentation

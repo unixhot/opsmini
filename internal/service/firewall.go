@@ -172,6 +172,7 @@ func (s *FirewallService) guard(port int, proto string) error {
 	return nil
 }
 
+// requireRoot returns an error unless the process runs as root (required to manage firewalls).
 func requireRoot() error {
 	if os.Geteuid() != 0 {
 		return ErrNeedRoot
@@ -197,6 +198,7 @@ func runFirewallCmd(name string, args ...string) (string, error) {
 
 // ---- rule parsing (best-effort) ----
 
+// ufwRules parses the "ufw status" output into firewall rules (best-effort).
 func (s *FirewallService) ufwRules() []FirewallRule {
 	out, _ := runFirewallCmd("ufw", "status")
 	var rules []FirewallRule
@@ -215,6 +217,7 @@ func (s *FirewallService) ufwRules() []FirewallRule {
 	return rules
 }
 
+// firewalldRules parses "firewall-cmd --list-ports" output into firewall rules (best-effort).
 func (s *FirewallService) firewalldRules() []FirewallRule {
 	out, _ := runFirewallCmd("firewall-cmd", "--list-ports")
 	var rules []FirewallRule
@@ -227,6 +230,7 @@ func (s *FirewallService) firewalldRules() []FirewallRule {
 	return rules
 }
 
+// iptablesRules parses "iptables -L INPUT -n --line-numbers" output into firewall rules (best-effort).
 func (s *FirewallService) iptablesRules() []FirewallRule {
 	out, _ := runFirewallCmd("iptables", "-L", "INPUT", "-n", "--line-numbers")
 	var rules []FirewallRule

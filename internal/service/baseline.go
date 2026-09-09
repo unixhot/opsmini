@@ -181,6 +181,7 @@ func (s *BaselineService) items() []checkItem {
 
 // ---- the following are helper functions (file parsing) ----
 
+// readFileTrim reads a file and returns its trimmed content, or "" on any error.
 func readFileTrim(path string) string {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -225,6 +226,7 @@ func loginDefsValue(key string) string {
 	return ""
 }
 
+// baselineOrElse returns v when non-empty, otherwise def.
 func baselineOrElse(v, def string) string {
 	if v == "" {
 		return def
@@ -232,6 +234,7 @@ func baselineOrElse(v, def string) string {
 	return v
 }
 
+// filePerm returns the permission bits of a file, or ok=false if it cannot be stat'd.
 func filePerm(path string) (uint32, bool) {
 	fi, err := os.Stat(path)
 	if err != nil {

@@ -176,7 +176,9 @@ func (h *AgentHandler) Commands(c *gin.Context) {
 // isAllowed checks whether the command matches the whitelist (exact command-name match, and blocks shell metacharacter injection).
 func (h *AgentHandler) isAllowed(cmd string) bool {
 	// Block shell metacharacters to prevent bypassing the whitelist via sh -c injection (e.g. "ps; rm -rf /").
-	if strings.ContainsAny(cmd, ";&|`$><()\n\r") {
+	// Also block tab/vertical-tab/form-feed: they act as command separators in POSIX shell,
+	// so "ps<TAB>whoami" would otherwise slip past the first-field check.
+	if strings.ContainsAny(cmd, ";&|`$><()\t\n\r\v\f") {
 		return false
 	}
 	fields := strings.Fields(cmd)
@@ -308,7 +310,8 @@ func (h *AgentHandler) FileUpload(c *gin.Context) {
 	// If dest_path is an existing directory, save under it with the original filename.
 	finalPath := destPath
 	if st, err := os.Stat(destPath); err == nil && st.IsDir() {
-		finalPath = filepath.Join(destPath, fileHeader.Filename)
+		// Strip any path components from the client-supplied filename to prevent directory traversal.
+		finalPath = filepath.Join(destPath, filepath.Base(fileHeader.Filename))
 	}
 	if err := os.MkdirAll(filepath.Dir(finalPath), 0o755); err != nil {
 		response.Error(c, 500, response.CodeInternal, "mkdir: "+err.Error())

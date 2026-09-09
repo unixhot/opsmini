@@ -82,6 +82,7 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
+// defaultConfig returns the built-in configuration used when no config file is present.
 func defaultConfig() *Config {
 	return &Config{
 		Server: Server{Host: "0.0.0.0", Port: 8888},

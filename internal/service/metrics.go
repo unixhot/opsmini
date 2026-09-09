@@ -68,6 +68,7 @@ func (m *MetricCollector) Stop() {
 	close(m.stopCh)
 }
 
+// loop samples metrics at the configured interval until stopped, cleaning up old points hourly.
 func (m *MetricCollector) loop() {
 	cleanTicker := time.NewTicker(time.Hour)
 	defer cleanTicker.Stop()
@@ -97,6 +98,7 @@ func (m *MetricCollector) cleanup() {
 	}
 }
 
+// sample collects one metric point (CPU/memory/disk/network) and persists it.
 func (m *MetricCollector) sample() {
 	// CPU percentage uses blocking sampling; interval is the observation window.
 	cpuPerc, _ := cpu.Percent(m.interval, false)

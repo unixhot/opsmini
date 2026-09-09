@@ -27,6 +27,7 @@ type PermissionGroup struct {
 	Perms []Permission `json:"perms"`
 }
 
+// perm builds a Permission from a key and a display label.
 func perm(key, label string) Permission { return Permission{Key: key, Label: label} }
 
 // PermGroups returns all permission groups (hard-coded, the single source of truth).
@@ -141,6 +142,7 @@ func readonlyPerms() string {
 	return joinPerms(keys)
 }
 
+// joinPerms joins permission keys into a single comma-separated string.
 func joinPerms(keys []string) string {
 	out := ""
 	for i, k := range keys {

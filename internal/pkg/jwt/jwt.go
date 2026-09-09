@@ -62,6 +62,7 @@ func (m *Manager) IsMFA(tokenStr string) bool {
 	return err == nil && claims.Purpose == "mfa"
 }
 
+// sign issues a signed JWT for the given user with the given purpose (access/refresh) and TTL.
 func (m *Manager) sign(userID uint, role, purpose string, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := Claims{

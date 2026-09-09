@@ -62,6 +62,7 @@ func (s *RoleService) PermsOf(roleName string) []string {
 	return out
 }
 
+// hasPerm reports whether the comma-separated perms string contains the given permission.
 func hasPerm(perms, perm string) bool {
 	for _, p := range strings.Split(perms, ",") {
 		if strings.TrimSpace(p) == perm {

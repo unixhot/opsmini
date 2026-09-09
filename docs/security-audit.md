@@ -133,4 +133,4 @@
 1. 运行 `govulncheck ./...` 检查依赖已知漏洞（本轮未执行 CVE 扫描）。
 2. 对「建议跟进」的 5 项低危问题评估是否纳入下个迭代。
 3. 考虑给 `/metrics` 端点默认关闭或强制认证。
-4. 生产部署务必通过 `install/opsmini-install.sh`（已自动生成随机 JWT secret 与密码），或确认 config.yaml 中 `jwt.secret` 已改为强随机值。
+4. 生产部署务必通过 `install/install.sh`（`curl -fsSL https://opsmini.com/install.sh | sudo bash`）；JWT 签名密钥与 Agent token 已改为首次启动时自动生成并持久化到数据库，无需（也不应）在 config.yaml 中配置。

@@ -167,6 +167,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	response.OK(c, nil)
 }
 
+// toUint converts a context value into a uint (used to read the JWT userID claim).
 func toUint(v interface{}) uint {
 	switch n := v.(type) {
 	case uint:

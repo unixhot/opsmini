@@ -173,5 +173,7 @@ func (s *LoginSecurityService) SSHHardening() []SSHSuggestion {
 	}
 }
 
+// isYes reports whether an sshd value means root login is disabled ("no" or "prohibit-password").
 func isYes(v string) bool { return strings.EqualFold(v, "no") || strings.EqualFold(v, "prohibit-password") }
+// isNo reports whether an sshd value is exactly "no".
 func isNo(v string) bool  { return strings.EqualFold(v, "no") }

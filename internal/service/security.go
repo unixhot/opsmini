@@ -150,10 +150,12 @@ func (s *SecurityService) Overview() (*SecurityOverview, error) {
 	return ov, nil
 }
 
+// summaryf formats a security finding summary string.
 func summaryf(format string, args ...interface{}) string {
 	return fmt.Sprintf(format, args...)
 }
 
+// gradeOf maps a 0-100 security score to a grade label.
 func gradeOf(score int) string {
 	switch {
 	case score >= 90:

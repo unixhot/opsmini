@@ -31,6 +31,7 @@ func (m *SecurityMonitor) Stop() {
 	}
 }
 
+// loop runs the periodic security checks: FIM check and threat scan.
 func (m *SecurityMonitor) loop() {
 	// run once on startup
 	m.fim.Check()

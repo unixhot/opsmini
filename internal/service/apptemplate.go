@@ -40,6 +40,7 @@ func (s *AppStoreService) templateRoot() string {
 	return dir
 }
 
+// templateDir returns the on-disk directory for an app template.
 func (s *AppStoreService) templateDir(slug string) string {
 	return filepath.Join(s.templateRoot(), slug)
 }
@@ -283,6 +284,7 @@ func (s *AppStoreService) SyncOfficial() (int, error) {
 	return count, nil
 }
 
+// fetchOfficialManifest downloads and decodes the official app-template manifest.
 func fetchOfficialManifest(client *http.Client) (*OfficialManifest, error) {
 	resp, err := client.Get(officialManifestURL)
 	if err != nil {
@@ -299,6 +301,7 @@ func fetchOfficialManifest(client *http.Client) (*OfficialManifest, error) {
 	return &m, nil
 }
 
+// downloadZip downloads a URL and returns its bytes, requiring a 200 status.
 func downloadZip(client *http.Client, url string) ([]byte, error) {
 	resp, err := client.Get(url)
 	if err != nil {
