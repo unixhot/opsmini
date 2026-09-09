@@ -125,24 +125,29 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 		log.Printf("alert event create: %v", err)
 		return
 	}
-	// also create a panel notification so users notice immediately.
-	if m.notifRepo != nil {
-		notifLevel := model.NotifLevelWarn
-		if level == "critical" {
-			notifLevel = model.NotifLevelError
+	// Route notifications by the rule's notify channels (comma-separated labels).
+	notify := rule.Notify
+	has := func(kw string) bool { return strings.Contains(notify, kw) }
+	// in-panel notification (bell)
+	if has("面板") || has("站内") {
+		if m.notifRepo != nil {
+			notifLevel := model.NotifLevelWarn
+			if level == "critical" {
+				notifLevel = model.NotifLevelError
+			}
+			_ = m.notifRepo.Create(&model.Notification{
+				Level:   notifLevel,
+				Title:   "告警触发：" + rule.Name,
+				Content: msg,
+			})
 		}
-		_ = m.notifRepo.Create(&model.Notification{
-			Level:   notifLevel,
-			Title:   "告警触发：" + rule.Name,
-			Content: msg,
-		})
 	}
-	// send email if the rule requests it and SMTP is configured.
-	if strings.Contains(strings.ToLower(rule.Notify), "email") || strings.Contains(strings.ToLower(rule.Notify), "邮件") {
+	// email
+	if has("邮件") || strings.Contains(strings.ToLower(notify), "email") {
 		m.sendEmailAlert(rule.Name, level, msg)
 	}
-	// send to group-robot webhooks (WeCom / DingTalk / Feishu) if configured.
-	m.sendWebhooks(rule.Name, level, msg)
+	// group-robot webhooks (WeCom / DingTalk / Feishu), per channel.
+	m.sendWebhooks(notify, rule.Name, level, msg)
 	log.Printf("ALERT fired: %s (rule=%s, id=%d)", msg, rule.Name, e.ID)
 }
 
@@ -267,19 +272,22 @@ func formatMetricValue(metric string, v float64) string {
 	}
 }
 
-// sendWebhooks sends the alert to configured group-robot webhooks (WeCom / DingTalk / Feishu).
-func (m *AlertMonitor) sendWebhooks(ruleName, level, msg string) {
+// sendWebhooks sends the alert to the group-robot webhooks selected in the rule's notify field.
+func (m *AlertMonitor) sendWebhooks(notify, ruleName, level, msg string) {
 	if m.settings == nil {
 		return
 	}
 	kv := m.settings()
 	content := ruleName + ": " + msg
-	targets := []struct{ key, name string }{
-		{"wecom_webhook", "WeCom"},
-		{"dingtalk_webhook", "DingTalk"},
-		{"feishu_webhook", "Feishu"},
+	targets := []struct{ key, kw, name string }{
+		{"wecom_webhook", "企业微信", "WeCom"},
+		{"dingtalk_webhook", "钉钉", "DingTalk"},
+		{"feishu_webhook", "飞书", "Feishu"},
 	}
 	for _, t := range targets {
+		if !strings.Contains(notify, t.kw) {
+			continue
+		}
 		url := kv[t.key]
 		if url == "" {
 			continue

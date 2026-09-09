@@ -77,16 +77,16 @@ func seedRoles(db *gorm.DB) error {
 // Covers node_exporter core metrics so the panel ships with practical, community-standard alert rules out of the box.
 func seedAlertRules(db *gorm.DB) error {
 	rules := []model.AlertRule{
-		{Name: "CPU 过高", Metric: "CPU 使用率", Condition: "> 90%", Duration: "5 分钟", Notify: "邮件 + 面板", Enabled: true},
-		{Name: "内存不足", Metric: "内存使用率", Condition: "> 85%", Duration: "5 分钟", Notify: "邮件", Enabled: true},
-		{Name: "磁盘即将写满", Metric: "磁盘使用率", Condition: "> 90%", Duration: "1 分钟", Notify: "邮件 + 面板", Enabled: true},
-		{Name: "磁盘 inode 即将耗尽", Metric: "磁盘 inode 使用率", Condition: "> 90%", Duration: "5 分钟", Notify: "邮件", Enabled: true},
-		{Name: "系统负载过高", Metric: "系统负载(5分钟)", Condition: "> CPU 核数", Duration: "5 分钟", Notify: "邮件 + 面板", Enabled: true},
-		{Name: "Swap 使用率过高", Metric: "Swap 使用率", Condition: "> 80%", Duration: "5 分钟", Notify: "邮件", Enabled: true},
+		{Name: "CPU 过高", Metric: "CPU 使用率", Condition: "> 90%", Duration: "5 分钟", Notify: "面板,邮件,企业微信,钉钉,飞书", Enabled: true},
+		{Name: "内存不足", Metric: "内存使用率", Condition: "> 85%", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "磁盘即将写满", Metric: "磁盘使用率", Condition: "> 90%", Duration: "1 分钟", Notify: "面板,邮件,企业微信,钉钉,飞书", Enabled: true},
+		{Name: "磁盘 inode 即将耗尽", Metric: "磁盘 inode 使用率", Condition: "> 90%", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "系统负载过高", Metric: "系统负载(5分钟)", Condition: "> CPU 核数", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "Swap 使用率过高", Metric: "Swap 使用率", Condition: "> 80%", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "磁盘 IO 繁忙", Metric: "磁盘 IO 使用率", Condition: "> 90%", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "网络接收错误", Metric: "网卡接收错误", Condition: "> 0", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "TCP 连接数过高", Metric: "TCP 当前连接数", Condition: "> 1000", Duration: "5 分钟", Notify: "面板", Enabled: true},
-		{Name: "CPU 温度过高", Metric: "CPU 温度", Condition: "> 80°C", Duration: "5 分钟", Notify: "邮件", Enabled: true},
+		{Name: "CPU 温度过高", Metric: "CPU 温度", Condition: "> 80°C", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "运行中进程数过多", Metric: "运行中进程数", Condition: "> 500", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "上下文切换过高", Metric: "上下文切换次数", Condition: "> 100000", Duration: "5 分钟", Notify: "面板", Enabled: true},
 	}
