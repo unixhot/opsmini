@@ -287,6 +287,49 @@ func (s *SystemService) MonitorSummary() (*MonitorSummary, error) {
 	return sum, nil
 }
 
+// loginShellsOnce guards lazy loading of valid login shells from /etc/shells.
+var (
+	loginShellsOnce sync.Once
+	loginShells     map[string]bool
+)
+
+// isLoginShell reports whether the shell is a valid login shell (i.e. listed in /etc/shells).
+// System accounts like sync/shutdown/halt have pseudo-shells (/bin/sync, /sbin/shutdown, /sbin/halt)
+// that are not real login shells, so they must NOT be considered loggable. Merely checking for
+// "nologin"/"false" is insufficient and wrongly marks those accounts as loggable.
+func isLoginShell(shell string) bool {
+	if shell == "" {
+		return false
+	}
+	loginShellsOnce.Do(func() {
+		loginShells = map[string]bool{}
+		data, err := os.ReadFile("/etc/shells")
+		if err != nil {
+			loginShells = nil // signal fallback
+			return
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			s := strings.TrimSpace(line)
+			if s != "" && !strings.HasPrefix(s, "#") {
+				loginShells[s] = true
+			}
+		}
+	})
+	if loginShells == nil {
+		// Fallback when /etc/shells is unavailable: treat nologin/false as non-login,
+		// and only allow a known set of common login shells.
+		if strings.Contains(shell, "nologin") || strings.Contains(shell, "false") {
+			return false
+		}
+		switch shell {
+		case "/bin/bash", "/bin/sh", "/bin/zsh", "/bin/dash", "/bin/fish", "/bin/ksh", "/usr/bin/bash", "/usr/bin/zsh":
+			return true
+		}
+		return false
+	}
+	return loginShells[shell]
+}
+
 // countUsers counts total users and loggable users from /etc/passwd.
 func countUsers() (total, login int) {
 	data, err := os.ReadFile("/etc/passwd")
@@ -302,8 +345,7 @@ func countUsers() (total, login int) {
 			continue
 		}
 		total++
-		shell := parts[6]
-		if !strings.Contains(shell, "nologin") && !strings.Contains(shell, "false") {
+		if isLoginShell(parts[6]) {
 			login++
 		}
 	}
@@ -672,7 +714,7 @@ func (s *SystemService) Users() []UserAccount {
 			GID:       parts[3],
 			Home:      parts[5],
 			Shell:     shell,
-			Loginable: !strings.Contains(shell, "nologin") && !strings.Contains(shell, "false"),
+			Loginable: isLoginShell(shell),
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].UID < out[j].UID })
