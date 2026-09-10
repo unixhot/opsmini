@@ -19,18 +19,18 @@
 <script src="./static/qrcode.js"></script>
 <style>
   :root{
-    --bg:#f3f5fa; --card:#ffffff; --border:#e7eaf2;
-    --t1:#1a2233; --t2:#59657a; --t3:#98a2b5;
-    --primary:#4f6ef7; --primary-2:#7b5cf0; --primary-soft:#eef1fe;
-    --primary-glow:rgba(79,110,247,.16); --primary-shadow:rgba(79,110,247,.4);
-    --success:#15b879; --success-soft:#e6f7f0;
-    --warning:#f5a13a; --warning-soft:#fdf3e6;
-    --danger:#f05050; --danger-soft:#fdeaea;
-    --info:#3b9cf0; --info-soft:#e9f4fd;
-    --sb:#1d2a5c; --sb2:#253571; --sb-border:#35468a; --sb-text:#bcc7ea; --sb-active:#fff;
-    --th:#fafbfe; --row-hover:#f8f9fd; --divider:#f2f4f9;
-    --switch-off:#d5dbe8; --chart-axis:#e7eaf2; --chart-split:#f0f2f8; --chart-label:#98a2b5;
-    --radius:10px; --shadow:0 1px 2px rgba(20,30,60,.04),0 4px 16px rgba(20,30,60,.05);
+    --bg:#fafafa; --card:#ffffff; --border:#e5e7eb;
+    --t1:#111111; --t2:#4b5563; --t3:#9ca3af;
+    --primary:#2563eb; --primary-2:#3b82f6; --primary-soft:#eff6ff;
+    --primary-glow:rgba(37,99,235,.12); --primary-shadow:rgba(37,99,235,.35);
+    --success:#16a34a; --success-soft:#f0fdf4;
+    --warning:#d97706; --warning-soft:#fffbeb;
+    --danger:#dc2626; --danger-soft:#fef2f2;
+    --info:#0284c7; --info-soft:#f0f9ff;
+    --sb:#ffffff; --sb2:#f3f4f6; --sb-border:#e5e7eb; --sb-text:#111111; --sb-active:#2563eb;
+    --th:#f9fafb; --row-hover:#f9fafb; --divider:#f3f4f6;
+    --switch-off:#d1d5db; --chart-axis:#e5e7eb; --chart-split:#f3f4f6; --chart-label:#9ca3af;
+    --radius:10px; --shadow:0 1px 2px rgba(17,24,39,.04),0 4px 16px rgba(17,24,39,.05);
     --sb-width:200px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -53,16 +53,16 @@
   .brand-logo-collapsed{display:none}
   .sidebar.collapsed .brand-logo-img{display:none}
   .sidebar.collapsed .brand-logo-collapsed{display:flex}
-  .brand-name{color:#fff;font-weight:700;font-size:16px;letter-spacing:.3px}
+  .brand-name{color:#111111;font-weight:700;font-size:16px;letter-spacing:.3px}
   .brand-sub{font-size:11px;color:var(--sb-text);margin-top:1px}
   .nav{flex:1;overflow-y:auto;padding:10px 10px 20px;scrollbar-width:thin;scrollbar-color:var(--sb-border) transparent}
   .nav::-webkit-scrollbar{width:6px}
   .nav::-webkit-scrollbar-thumb{background:var(--sb-border);border-radius:3px}
-  .nav::-webkit-scrollbar-thumb:hover{background:#33405c}
+  .nav::-webkit-scrollbar-thumb:hover{background:#cbd5e1}
   .nav-group{margin-top:10px}
-  .nav-group-title{padding:8px 12px 6px;font-size:11px;color:#5d6880;text-transform:uppercase;letter-spacing:.6px}
+  .nav-group-title{padding:8px 12px 6px;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px}
   .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--sb-text);font-size:13.5px;user-select:none;position:relative;transition:.15s}
-  .nav-item:hover{background:var(--sb2);color:#dbe2f0}
+  .nav-item:hover{background:var(--sb2);color:#111111}
   .nav-item.active{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;box-shadow:0 4px 12px var(--primary-shadow)}
   .nav-item .ico{width:18px;height:18px;flex:none}
   .nav-item .arrow{margin-left:auto;width:14px;height:14px;transition:.2s}
@@ -70,14 +70,14 @@
   .nav-sub{overflow:hidden;max-height:0;transition:max-height .25s}
   .nav-sub.open{max-height:400px}
   .nav-sub .nav-item{padding-left:40px;font-size:13px}
-  .nav-sub .nav-item.active{background:var(--primary-glow);color:#fff;box-shadow:none}
-  .nav-sub .nav-item .dot{width:5px;height:5px;border-radius:50%;background:#4a5470;margin-left:auto}
-  .nav-sub .nav-item.active .dot{background:#fff}
+  .nav-sub .nav-item.active{background:var(--primary-soft);color:var(--primary);box-shadow:none}
+  .nav-sub .nav-item .dot{width:5px;height:5px;border-radius:50%;background:#d1d5db;margin-left:auto}
+  .nav-sub .nav-item.active .dot{background:var(--primary)}
   .sidebar-foot{border-top:1px solid var(--sb-border);padding:12px 14px;font-size:12px;color:var(--sb-text)}
   .sb-ver{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;background:var(--sb2);cursor:pointer}
-  .sb-ver b{color:#dbe2f0;font-weight:600}
+  .sb-ver b{color:#111111;font-weight:600}
   .sb-collapse{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--sb-text);font-size:12px;margin-bottom:8px;user-select:none;transition:.15s}
-  .sb-collapse:hover{background:var(--sb2);color:#fff}
+  .sb-collapse:hover{background:var(--sb2);color:#111111}
   .sb-collapse svg{transition:transform .2s;flex:none}
   /* 折叠态：只显示图标 */
   .sidebar.collapsed{width:64px;min-width:64px}
@@ -110,7 +110,7 @@
   .icon-btn .badge{position:absolute;top:4px;right:4px;background:var(--danger);color:#fff;font-size:10px;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px}
   .notif-item{display:flex;gap:8px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:background .15s}
   .notif-item:hover{background:var(--bg)}
-  .notif-item.unread{background:var(--primary-weak, rgba(79,110,247,.06))}
+  .notif-item.unread{background:var(--primary-soft)}
   .notif-title{font-weight:500;color:var(--t1);font-size:13px;line-height:1.4}
   .notif-title.bold{font-weight:600}
   .notif-content{color:var(--t2);font-size:12px;margin-top:2px;line-height:1.5;word-break:break-all}
@@ -235,7 +235,7 @@
   .terminal-input{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#161b22}
   .terminal-input input{flex:1;background:none;border:none;outline:none;color:#c9d1d9;font-family:inherit;font-size:13px}
   .t-user{color:#4fddbf}
-  .t-path{color:#4f6ef7}
+  .t-path{color:var(--primary)}
   .t-ok{color:#7ee787}
   .t-warn{color:#f5a13a}
   .t-dim{color:#6e7681}
@@ -322,10 +322,10 @@
   .chart-sm{width:100%;height:120px}
   .tabs{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:8px;width:max-content}
   .tab{padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--t2);font-weight:500}
-  .tab.active{background:var(--card);color:var(--t1);box-shadow:0 1px 4px rgba(20,30,60,.08)}
+  .tab.active{background:var(--card);color:var(--t1);box-shadow:0 1px 4px rgba(17,24,39,.08)}
   .seg{display:inline-flex;background:var(--bg);border-radius:8px;padding:3px}
   .seg span{padding:5px 12px;border-radius:6px;font-size:12.5px;cursor:pointer;color:var(--t2);font-weight:500}
-  .seg span.active{background:var(--card);color:var(--t1);box-shadow:0 1px 3px rgba(20,30,60,.1)}
+  .seg span.active{background:var(--card);color:var(--t1);box-shadow:0 1px 3px rgba(17,24,39,.1)}
   .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--divider);font-size:13px}
   .kv:last-child{border-bottom:none}
   .kv .k{color:var(--t3)}
@@ -436,7 +436,7 @@
   .page-tabs{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:9px;flex-wrap:wrap;border:1px solid var(--border)}
   .page-tabs span{padding:7px 16px;border-radius:7px;font-size:13px;cursor:pointer;color:var(--t2);font-weight:500;white-space:nowrap;transition:.15s}
   .page-tabs span:hover{color:var(--primary);background:var(--card)}
-  .page-tabs span.active{background:var(--primary);color:#fff;box-shadow:0 1px 6px rgba(79,110,247,.35);font-weight:600}
+  .page-tabs span.active{background:var(--primary);color:#fff;box-shadow:0 1px 6px rgba(37,99,235,.35);font-weight:600}
   @media(max-width:768px){.page-tabs{width:100%}.page-tabs span{flex:1;text-align:center;padding:7px 6px}}
 
   /* ===== 弹窗 ===== */
@@ -3484,7 +3484,7 @@ createApp({
       uploadFileName: '',
       menuVisibility: {},
       themePresets: [
-        { id:'light',  name:'浅色', mode:'light', accent:'#4f6ef7' },
+        { id:'light',  name:'浅色', mode:'light', accent:'#2563eb' },
         { id:'green',  name:'绿色', mode:'light', accent:'#16a34a' },
         { id:'blue',   name:'蓝色', mode:'light', accent:'#2563eb' },
         { id:'purple', name:'紫色', mode:'light', accent:'#7c3aed' },
@@ -3571,8 +3571,8 @@ createApp({
         { name:'Nginx', short:'N', desc:'svc.web', color:'#16b879', running:true, pid:1024 },
         { name:'MySQL', short:'M', desc:'svc.db', color:'#3b9cf0', running:true, pid:1180 },
         { name:'Redis', short:'R', desc:'svc.cache', color:'#f05050', running:true, pid:1212 },
-        { name:'Docker', short:'D', desc:'svc.container', color:'#4f6ef7', running:true, pid:890 },
-        { name:'PHP 8.2', short:'P', desc:'svc.php', color:'#7b5cf0', running:true, pid:1340 },
+        { name:'Docker', short:'D', desc:'svc.container', color:'#2563eb', running:true, pid:890 },
+        { name:'PHP 8.2', short:'P', desc:'svc.php', color:'#3b82f6', running:true, pid:1340 },
         { name:'SSH', short:'S', desc:'svc.ssh', color:'#f5a13a', running:true, pid:756 },
       ],
       websites: [
@@ -3587,7 +3587,7 @@ createApp({
           { name:'blog_db', charset:'utf8mb4', size:'86 MB' },
           { name:'app_prod', charset:'utf8mb4', size:'1.2 GB' },
         ]},
-        { type:'PostgreSQL', color:'#4f6ef7', dbs:[
+        { type:'PostgreSQL', color:'#2563eb', dbs:[
           { name:'analytics', charset:'UTF8', size:'540 MB' },
           { name:'opsmini', charset:'UTF8', size:'12 MB' },
         ]},
@@ -3606,7 +3606,7 @@ createApp({
       catForm: { id:0, key:'', name:'', builtin:false },
       tplModal: false,          // 应用模版编辑弹窗
       tplEdit: false,           // 是否编辑已有模版（禁用 slug）
-      tplForm: { slug:'', name:'', description:'', category:'other', icon:'', color:'#4f6ef7', version:'', ports:'', container_name:'', install_script:'' },
+      tplForm: { slug:'', name:'', description:'', category:'other', icon:'', color:'#2563eb', version:'', ports:'', container_name:'', install_script:'' },
       alertRules: [],  // 告警规则，从后端 /alert-rules 加载
       alertMetrics: ['CPU 使用率','内存使用率','磁盘使用率','磁盘 inode 使用率','系统负载(1分钟)','系统负载(5分钟)','系统负载(15分钟)','Swap 使用率','磁盘 IO 使用率','磁盘读取速率','磁盘写入速率','网卡下载带宽','网卡上传带宽','网卡接收错误','网卡发送错误','TCP 当前连接数','上下文切换次数','CPU 温度','运行中进程数','阻塞进程数','僵尸进程数'],  // 告警指标选项（对齐 node_exporter 核心指标）
       files: [],
@@ -3660,7 +3660,7 @@ createApp({
     metricsUrl(){ return (location.origin || (location.protocol + '//' + location.host)) + '/metrics'; },
     panelHost(){ return location.hostname; },
     panelPort(){ return location.port || (location.protocol === 'https:' ? '443' : '80'); },
-    presetAccent(){ const t=this.themePresets.find(x=>x.id===this.themeId); return t ? t.accent : '#4f6ef7'; },
+    presetAccent(){ const t=this.themePresets.find(x=>x.id===this.themeId); return t ? t.accent : '#2563eb'; },
     currentAccent(){ return this.customAccent || this.presetAccent; },
     visibleMenu(){ return this.menu.map(g=>({ title:g.title, items:g.items.filter(i=>{ if(this.menuVisibility[i.id]===false) return false; const p=this.menuPermMap[i.id]; return !p || this.hasPerm(p); }) })).filter(g=>g.items.length>0); },
     allMenuItems(){ const arr=[]; this.menu.forEach(g=>g.items.forEach(i=>arr.push(i))); return arr; },
@@ -4477,7 +4477,7 @@ createApp({
         // 按 type 分组
         const groups = {};
         for(const d of list){
-          if(!groups[d.type]) groups[d.type] = { type: d.type==='mysql'?'MySQL':d.type==='postgresql'?'PostgreSQL':d.type, color: d.type==='mysql'?'#3b9cf0':'#4f6ef7', dbs:[] };
+          if(!groups[d.type]) groups[d.type] = { type: d.type==='mysql'?'MySQL':d.type==='postgresql'?'PostgreSQL':d.type, color: d.type==='mysql'?'#3b9cf0':'#2563eb', dbs:[] };
           groups[d.type].dbs.push({ id:d.id, name:d.name, charset:d.charset, size:'-' });
         }
         this.databases = Object.values(groups);
@@ -5131,11 +5131,11 @@ createApp({
     openTplModal(a){
       if(a){
         this.tplEdit = true;
-        this.tplForm = { slug:a.slug, name:a.name, description:a.description||'', category:a.category||'other', icon:a.icon||'', color:a.color||'#4f6ef7', version:a.version||'', ports:a.ports||'', container_name:a.container_name||'', install_script:'' };
+        this.tplForm = { slug:a.slug, name:a.name, description:a.description||'', category:a.category||'other', icon:a.icon||'', color:a.color||'#2563eb', version:a.version||'', ports:a.ports||'', container_name:a.container_name||'', install_script:'' };
         this.loadAppScript(a.slug);
       } else {
         this.tplEdit = false;
-        this.tplForm = { slug:'', name:'', description:'', category:'other', icon:'', color:'#4f6ef7', version:'', ports:'', container_name:'', install_script:'' };
+        this.tplForm = { slug:'', name:'', description:'', category:'other', icon:'', color:'#2563eb', version:'', ports:'', container_name:'', install_script:'' };
       }
       this.tplModal = true;
     },
@@ -5718,7 +5718,7 @@ createApp({
             xAxis:{type:'category',data:times.length?times:['--'],...axis},
             yAxis:{type:'value',max:100,...axis},
             series:[
-              {name:'CPU %',type:'line',smooth:true,symbol:'none',data:cpuData,lineStyle:{width:2,color:'#4f6ef7'},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(79,110,247,.25)'},{offset:1,color:'rgba(79,110,247,0)'}]}}},
+              {name:'CPU %',type:'line',smooth:true,symbol:'none',data:cpuData,lineStyle:{width:2,color:'#2563eb'},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(37,99,235,.25)'},{offset:1,color:'rgba(37,99,235,0)'}]}}},
               {name:'内存 %',type:'line',smooth:true,symbol:'none',data:memData,lineStyle:{width:2,color:'#3b9cf0'}},
             ]
           }, true);
@@ -5741,7 +5741,7 @@ createApp({
           xAxis:{type:'category',data:times.length?times:['--'],...axis},
           yAxis:{type:'value',...axis},
           series:[
-            {name:'CPU %',type:'line',smooth:true,symbol:'none',data:cpuData,lineStyle:{width:2,color:'#4f6ef7'}},
+            {name:'CPU %',type:'line',smooth:true,symbol:'none',data:cpuData,lineStyle:{width:2,color:'#2563eb'}},
             {name:'内存 %',type:'line',smooth:true,symbol:'none',data:memData,lineStyle:{width:2,color:'#3b9cf0'}},
             {name:'负载',type:'line',smooth:true,symbol:'none',data:loadData,lineStyle:{width:2,color:'#15b879'}},
             {name:'网络 KB/s',type:'line',smooth:true,symbol:'none',data:netData,lineStyle:{width:2,color:'#f5a13a'}},
