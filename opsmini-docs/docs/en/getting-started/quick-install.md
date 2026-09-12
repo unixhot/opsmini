@@ -11,13 +11,13 @@ Use the official `install.sh` to deploy OpsMini on Linux in one shot.
 ## One-Click Install
 
 ```bash
-# One-line install (recommended, auto-downloads the binary from the official site)
+# One-line install (recommended, auto-downloads the binary from Alibaba Cloud OSS)
 curl -fsSL https://opsmini.com/install.sh | sudo bash
 
-# Option 1: download and install from a URL (GitHub Release)
-sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
+# Download and install from a URL
+sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-linux-amd64
 
-# Option 2: install from a local binary (defaults to /data/opsmini, port 8888)
+# Install from a local binary (defaults to /data/opsmini, port 8888)
 sudo ./install.sh -b ./opsmini
 
 # Custom directory and port
@@ -30,23 +30,17 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 |--------|-------------|---------|
 | `-d, --dir <path>` | Install directory | `/data/opsmini` |
 | `-p, --port <port>` | Panel port | `8888` |
-| `-b, --binary <path>` | Binary path | auto-detect |
-| `-u, --url <url>` | Download from URL | — |
+| `-b, --binary <path>` | Binary path | auto-download from OSS |
+| `-u, --url <url>` | Download from URL (raw binary or `.tar.gz`) | official OSS URL |
 | `-n, --no-systemd` | Skip systemd registration | — |
 
 ## First Login
 
-The startup log prints something like:
-
-```
-initial admin account created: username=opsmini password=ggFKEX65ZVF6RNTm
-```
-
 - Open `http://<host>:8888`
 - Username: `opsmini`
-- Password: in the startup log or `/data/opsmini/.init_passwd`
+- Password: the password printed by the install script, or `/data/opsmini/.init_passwd`
 
-> ⚠️ Record the password immediately and change it after login.
+> ⚠️ Record the password immediately and change it after login. Reinstalling resets the password and prints a new one.
 
 ## Next Steps
 

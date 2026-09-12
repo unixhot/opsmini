@@ -17,6 +17,10 @@ database:
 jwt:
   access_ttl_seconds: 900     # access token TTL (15 min)
   refresh_ttl_seconds: 604800 # refresh token TTL (7 days)
+
+log:
+  level: error               # log level: info / warn / error
+  path: ""                   # log file path; empty logs to stdout (systemd journal)
 ```
 
 ## Options Reference
@@ -45,6 +49,15 @@ With `secret_entry` set, the panel and all APIs mount under the prefix (e.g. `ht
 | `refresh_ttl_seconds` | Refresh token TTL (seconds) | `604800` |
 
 > The JWT signing secret is **no longer** configured here. On first start a 32-byte random secret is generated and persisted to the database — never written to the config file or shown in the UI.
+
+### log
+
+| Key | Description | Default |
+|-----|-------------|---------|
+| `level` | Log level: `info` / `warn` / `error` | `error` |
+| `path` | Log file path; empty logs to stdout (systemd journal) | empty |
+
+The level controls verbosity: `error` logs only errors (recommended for production, avoids SQL query log spam); `warn` additionally logs slow queries and warnings; `info` logs everything (including SQL queries, for troubleshooting). The one-click installer defaults to `/data/opsmini/opsmini.log`.
 
 ## Optional Sections
 

@@ -78,7 +78,9 @@ Configure alert notification channels:
 | Channel | Description |
 |---------|-------------|
 | SMTP Email | SMTP server / port / sender / recipient / username / password |
-| SNMP | SNMP server / port / version / community |
+| WeCom | Group robot Webhook URL |
+| DingTalk | Group robot Webhook URL |
+| Feishu | Group robot Webhook URL |
 
 Alerts are sent through the configured channels when triggered.
 

@@ -17,6 +17,10 @@ database:
 jwt:
   access_ttl_seconds: 900     # access token 有效期（15 分钟）
   refresh_ttl_seconds: 604800 # refresh token 有效期（7 天）
+
+log:
+  level: error               # 日誌級別：info / warn / error
+  path: ""                   # 日誌檔案路徑，留空則只輸出到 stdout（systemd journal）
 ```
 
 ## 配置項說明
@@ -45,6 +49,15 @@ jwt:
 | `refresh_ttl_seconds` | refresh token 有效期（秒） | `604800` |
 
 > JWT 簽名金鑰**不再**在此配置。首次啟動時自動生成 32 位元組隨機金鑰並持久化到資料庫，不落配置檔案、也不在介面展示，無需手動維護。
+
+### log
+
+| 引數 | 說明 | 預設 |
+|------|------|------|
+| `level` | 日誌級別：`info` / `warn` / `error` | `error` |
+| `path` | 日誌檔案路徑，留空則只輸出到 stdout（systemd journal） | 空 |
+
+日誌級別控制輸出詳細程度：`error` 僅輸出錯誤（生產推薦，避免 SQL 查詢日誌刷屏）；`warn` 額外輸出慢查詢與警告；`info` 輸出全部日誌（含 SQL 查詢，適合排查問題）。一鍵安裝預設寫入 `/data/opsmini/opsmini.log`。
 
 ## 可選配置段
 
