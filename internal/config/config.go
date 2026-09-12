@@ -56,6 +56,12 @@ type Metrics struct {
 	Password string `yaml:"password"` // basic auth password
 }
 
+// Log holds the application logging configuration.
+type Log struct {
+	Level string `yaml:"level"` // log level: info / warn / error (default error)
+	Path  string `yaml:"path"`  // log file path; empty logs to stdout (systemd journal)
+}
+
 // Config holds the top-level configuration.
 type Config struct {
 	Server   Server   `yaml:"server"`
@@ -64,6 +70,7 @@ type Config struct {
 	AI       AI       `yaml:"ai"`
 	Agent    Agent    `yaml:"agent"`
 	Metrics  Metrics  `yaml:"metrics"`
+	Log      Log      `yaml:"log"`
 }
 
 // Load loads the configuration from path; returns the default configuration when the file does not exist.
@@ -105,6 +112,9 @@ func defaultConfig() *Config {
 		},
 		Metrics: Metrics{
 			Enabled: true,
+		},
+		Log: Log{
+			Level: "error",
 		},
 	}
 }

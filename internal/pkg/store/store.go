@@ -3,20 +3,34 @@ package store
 
 import (
 	"crypto/rand"
+	"io"
 	"log"
 	"math/big"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/opsmini/opsmini/internal/model"
 )
 
 // Init opens SQLite (pure Go driver), auto-migrates, and writes seed data.
-func Init(path string) (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+// logLevel controls the GORM logger verbosity (info/warn/error); logWriter is where logs are written.
+func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
+	gormLogger := logger.New(
+		log.New(logWriter, "", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  gormLogLevel(logLevel),
+			IgnoreRecordNotFoundError: true, // "record not found" is normal control flow, not an error
+			Colorful:                  false,
+		},
+	)
+	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{Logger: gormLogger})
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +53,18 @@ func Init(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+// gormLogLevel maps a config log level string to a GORM logger level.
+func gormLogLevel(level string) logger.LogLevel {
+	switch strings.ToLower(level) {
+	case "info":
+		return logger.Info
+	case "warn":
+		return logger.Warn
+	default: // "error" or empty
+		return logger.Error
+	}
 }
 
 // seedCategories writes the four built-in categories (websites/databases/middleware/others).

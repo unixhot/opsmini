@@ -195,6 +195,10 @@ database:
 jwt:
   access_ttl_seconds: 900
   refresh_ttl_seconds: 604800
+
+log:
+  level: error
+  path: "${INSTALL_DIR}/opsmini.log"
 EOF
   chmod 600 "${INSTALL_DIR}/config.yaml"
 }
@@ -272,6 +276,7 @@ main() {
   echo -e "  密码     : ${C_BOLD}${password}${C_RESET}"
   echo "  密码文件 : ${INSTALL_DIR}/.init_passwd"
   echo "  配置文件 : ${INSTALL_DIR}/config.yaml"
+  echo "  日志文件 : ${INSTALL_DIR}/opsmini.log"
   echo "  服务管理 : systemctl {start|stop|restart|status} opsmini"
   echo "=============================================================="
 }

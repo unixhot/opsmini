@@ -4,7 +4,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/config"
@@ -39,6 +41,13 @@ func main() {
 	// Note: the JWT signing key and Agent API token are generated on first start and persisted
 	// in the database (see router.New -> SettingService.EnsureSecret), not in the config file.
 
+	// Configure logging: writes to the configured log file (or stdout) and sets the log level.
+	logWriter, err := initLogging(cfg)
+	if err != nil {
+		log.Printf("warning: init logging: %v (falling back to stdout)", err)
+		logWriter = os.Stdout
+	}
+
 	// Account recovery subcommand: operates on the database directly and exits without starting the server.
 	if *resetMFA != "" {
 		recoverAccount(cfg, *resetMFA, false)
@@ -49,7 +58,7 @@ func main() {
 		return
 	}
 
-	db, err := store.Init(cfg.Database.Path)
+	db, err := store.Init(cfg.Database.Path, cfg.Log.Level, logWriter)
 	if err != nil {
 		log.Fatalf("init store: %v", err)
 	}
@@ -66,9 +75,25 @@ func main() {
 	}
 }
 
+// initLogging configures the standard logger output and returns the writer used for logs.
+// When cfg.Log.Path is set, logs are written to that file (and stdout); otherwise they go to stdout only.
+func initLogging(cfg *config.Config) (io.Writer, error) {
+	if cfg.Log.Path == "" {
+		return os.Stdout, nil
+	}
+	f, err := os.OpenFile(cfg.Log.Path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return os.Stdout, err
+	}
+	// Write to both the file and stdout so systemd journal keeps a copy while a file exists for easy reading.
+	w := io.MultiWriter(os.Stdout, f)
+	log.SetOutput(w)
+	return w, nil
+}
+
 // recoverAccount performs account recovery: resets MFA or password.
 func recoverAccount(cfg *config.Config, username string, resetPassword bool) {
-	db, err := store.Init(cfg.Database.Path)
+	db, err := store.Init(cfg.Database.Path, cfg.Log.Level, os.Stdout)
 	if err != nil {
 		log.Fatalf("init store: %v", err)
 	}
