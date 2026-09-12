@@ -40,7 +40,7 @@ error() { echo -e "${C_RED}[ERROR]${C_RESET} $*"; }
 
 usage() {
   cat <<EOF
-${C_BOLD}OpsMini 安装脚本${C_RESET}
+OpsMini 安装脚本
 
 用法: $0 [选项]
 
@@ -269,7 +269,7 @@ main() {
   echo "=============================================================="
   echo "  访问地址 : http://<服务器IP>:${PORT}"
   echo "  用户名   : opsmini"
-  echo "  密码     : ${C_BOLD}${password}${C_RESET}"
+  echo -e "  密码     : ${C_BOLD}${password}${C_RESET}"
   echo "  密码文件 : ${INSTALL_DIR}/.init_passwd"
   echo "  配置文件 : ${INSTALL_DIR}/config.yaml"
   echo "  服务管理 : systemctl {start|stop|restart|status} opsmini"
