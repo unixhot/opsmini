@@ -251,7 +251,25 @@ main() {
   write_config
 
   local password
-  password="$(write_password)"
+  if [ -f "${INSTALL_DIR}/opsmini.db" ]; then
+    # 已安装（数据库已存在）：seedAdmin 会跳过初始化，OPSMINI_INIT_PASSWORD 不生效，
+    # 改用 -reset-pass 重置密码，确保输出的密码能真正登录。
+    info "检测到已安装，重置管理员密码..."
+    systemctl stop opsmini >/dev/null 2>&1 || true
+    sleep 1
+    local reset_out
+    reset_out="$("${INSTALL_DIR}/opsmini" -config "${INSTALL_DIR}/config.yaml" -reset-pass opsmini 2>&1)"
+    password="$(printf '%s\n' "$reset_out" | sed -nE 's/.*密码为：([A-Za-z0-9]+).*/\1/p' | head -1)"
+    if [ -z "$password" ]; then
+      warn "密码重置失败，使用生成的新密码（若无法登录请手动执行 -reset-pass）"
+      password="$(write_password)"
+    else
+      printf '%s\n' "$password" > "${INSTALL_DIR}/.init_passwd"
+      chmod 600 "${INSTALL_DIR}/.init_passwd"
+    fi
+  else
+    password="$(write_password)"
+  fi
 
   if [ "$NO_SYSTEMD" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
     install_systemd "$password"
