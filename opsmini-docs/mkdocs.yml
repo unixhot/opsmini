@@ -3,7 +3,7 @@
 
 site_name: AI 驱动的单机面板
 site_description: 轻量级 Linux 主机运维面板 — 内置 AI 大模型运维 + 标准 REST API
-site_url: https://opsmini.com/
+site_url: https://opsmini.com/docs/
 repo_url: https://github.com/unixhot/opsmini
 repo_name: unixhot/opsmini
 edit_uri: ""
@@ -62,7 +62,7 @@ plugins:
         - locale: zh-TW
           name: 繁體中文
           build: true
-          link: /zh-TW/
+          link: /docs/zh-TW/
           nav_translations:
             首页: 首頁
             快速开始: 快速開始
@@ -74,6 +74,7 @@ plugins:
             开发指南: 開發指南
             FAQ: FAQ
             更新日志: 更新日誌
+            官网: 官網
             概览: 概覽
             面板 API: 面板 API
             Agent API: Agent API
@@ -120,6 +121,7 @@ plugins:
             开发指南: Development
             FAQ: FAQ
             更新日志: Changelog
+            官网: Website
             概览: Overview
             面板 API: Panel API
             Agent API: Agent API
@@ -166,6 +168,7 @@ plugins:
             开发指南: 開発
             FAQ: FAQ
             更新日志: 更新履歴
+            官网: 公式サイト
             概览: 概要
             面板 API: パネル API
             Agent API: Agent API
@@ -212,6 +215,7 @@ plugins:
             开发指南: 개발
             FAQ: FAQ
             更新日志: 변경 로그
+            官网: 공식 웹사이트
             概览: 개요
             面板 API: 패널 API
             Agent API: Agent API
@@ -258,6 +262,7 @@ plugins:
             开发指南: การพัฒนา
             FAQ: FAQ
             更新日志: บันทึกการเปลี่ยนแปลง
+            官网: เว็บไซต์
             概览: ภาพรวม
             面板 API: Panel API
             Agent API: Agent API
@@ -304,6 +309,7 @@ plugins:
             开发指南: Entwicklung
             FAQ: FAQ
             更新日志: Änderungsprotokoll
+            官网: Webseite
             概览: Übersicht
             面板 API: Panel-API
             Agent API: Agent-API
@@ -338,27 +344,28 @@ plugins:
             贡献指南: Beitragsleitfaden
 
 extra:
+  homepage: https://opsmini.com/
   alternate:
     - name: 简体中文
-      link: /
+      link: /docs/
       lang: zh
     - name: 繁體中文
-      link: /zh-TW/
+      link: /docs/zh-TW/
       lang: zh-TW
     - name: English
-      link: /en/
+      link: /docs/en/
       lang: en
     - name: 日本語
-      link: /ja/
+      link: /docs/ja/
       lang: ja
     - name: 한국어
-      link: /ko/
+      link: /docs/ko/
       lang: ko
     - name: ไทย
-      link: /th/
+      link: /docs/th/
       lang: th
     - name: Deutsch
-      link: /de/
+      link: /docs/de/
       lang: de
   social:
     - icon: fontawesome/brands/github
@@ -450,3 +457,4 @@ nav:
       - 贡献指南: development/contributing.md
   - FAQ: faq/index.md
   - 更新日志: changelog/index.md
+  - 官网: https://opsmini.com/
