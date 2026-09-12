@@ -5,7 +5,7 @@
 # 功能：
 #   - 默认安装到 /data/opsmini
 #   - 默认端口 8888
-#   - 默认从 https://opsmini.com 下载对应架构的二进制
+#   - 默认从阿里云 OSS（opsmini.oss-cn-beijing.aliyuncs.com）下载对应架构的二进制
 #   - 首次启动随机生成管理员密码，写入 <安装目录>/.init_passwd 并展示
 #   - 注册 systemd 服务 opsmini.service（开机自启）
 #
@@ -23,7 +23,8 @@ PORT=8888
 HOST="0.0.0.0"
 BINARY=""
 BINARY_URL=""
-DEFAULT_URL_BASE="https://opsmini.com/dist"
+VERSION="v1.0.0"                                                    # 默认下载的版本号（发布新版本时更新）
+DEFAULT_URL_BASE="https://opsmini.oss-cn-beijing.aliyuncs.com"     # 阿里云 OSS 下载地址
 NO_SYSTEMD=0
 
 # ===== 颜色 =====
@@ -54,7 +55,7 @@ ${C_BOLD}OpsMini 安装脚本${C_RESET}
 示例:
   curl -fsSL https://opsmini.com/install.sh | sudo bash
   $0 -b ./dist/opsmini-dev-linux-amd64
-  $0 -u https://github.com/unixhot/opsmini/releases/download/v1.0.0/opsmini-v1.0.0-linux-amd64.tar.gz
+  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-linux-amd64
 EOF
 }
 
@@ -137,7 +138,7 @@ prepare_binary() {
   # 确定下载地址：-u 指定 > 默认官方 URL（仅当未指定 -b 本地二进制时）
   local url="$BINARY_URL"
   if [ -z "$url" ] && [ -z "$BINARY" ]; then
-    url="${DEFAULT_URL_BASE}/opsmini-linux-${GOARCH}"
+    url="${DEFAULT_URL_BASE}/opsmini-${VERSION}-linux-${GOARCH}"
   fi
 
   if [ -n "$url" ]; then
