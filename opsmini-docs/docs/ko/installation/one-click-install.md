@@ -61,7 +61,7 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 - `x86_64` / `aarch64`만 지원
 - systemd가 없는 환경에서는 `-n`으로 서비스 등록을 건너뛰고 수동 시작을 사용합니다
 
-## 계정 복구
+## 계정 복구 {: #account-recovery }
 
 비밀번호를 잊거나 MFA 인증 코드를 분실하면 서버에서 실행합니다（먼저 서비스를 중지하고, 작업 완료 후 다시 시작）:
 

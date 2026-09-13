@@ -61,7 +61,7 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 - Nur `x86_64` / `aarch64` werden unterstützt
 - In Umgebungen ohne systemd mit `-n` die Dienstregistrierung überspringen und stattdessen manuell starten
 
-## Konto-Wiederherstellung
+## Konto-Wiederherstellung {: #account-recovery }
 
 Bei vergessenem Passwort oder verlorenem MFA-Code auf dem Server ausführen (zuerst den Dienst stoppen, nach Abschluss wieder starten):
 

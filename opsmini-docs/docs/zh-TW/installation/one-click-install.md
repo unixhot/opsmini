@@ -61,7 +61,7 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 - 僅支援 `x86_64` / `aarch64`
 - 無 systemd 的環境用 `-n` 跳過服務註冊，改用手動啟動
 
-## 賬號恢復
+## 賬號恢復 {: #account-recovery }
 
 忘記密碼或丟失 MFA 驗證碼時，在伺服器上執行（先停服務，操作完再啟動）：
 

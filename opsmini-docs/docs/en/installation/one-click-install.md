@@ -56,7 +56,7 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 - **Official (Alibaba Cloud OSS)**: `https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v<version>-linux-<arch>`, downloaded by default
 - **Local development**: `make build-all` in the repo root produces `dist/opsmini-<ver>-linux-amd64` / `-arm64`
 
-## Account Recovery
+## Account Recovery {: #account-recovery }
 
 To reset a forgotten password or lost MFA, run on the server (stop the service first):
 

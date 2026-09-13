@@ -502,7 +502,7 @@
       </div>
       <div class="login-row" v-if="!mfaRequired">
         <label><input type="checkbox" v-model="remember"> {{ t('login.remember') }}</label>
-        <span class="link" @click="toast('请联系管理员重置密码（原型演示）')">{{ t('login.forgot') }}</span>
+        <a class="link" href="https://www.opsmini.com/docs/installation/one-click-install/#account-recovery" target="_blank" rel="noopener">{{ t('login.forgot') }}</a>
       </div>
       <!-- MFA 验证步骤 -->
       <div v-if="mfaRequired" class="login-field">
@@ -891,7 +891,7 @@
                   <td class="mono">{{ img.size }}</td>
                   <td class="mono">{{ img.created }}</td>
                   <td>
-                    <button class="btn sm ghost" @click="toast('用 '+img.name+' 创建容器')" v-if="hasPerm('container.create')">{{ t('btn.createContainer') }}</button>
+                    <button class="btn sm ghost" @click="createContainerFromImage(img.name)" v-if="hasPerm('container.create')">{{ t('btn.createContainer') }}</button>
                     <button class="btn sm danger" @click="removeImage(img.id, img.name)" v-if="hasPerm('container.delete')">{{ t('common.delete') }}</button>
                   </td>
                 </tr>
@@ -916,7 +916,7 @@
                   <td class="mono">{{ v.driver }}</td>
                   <td class="mono">{{ v.mount }}</td>
                   <td class="mono">{{ v.size }}</td>
-                  <td><button class="btn sm danger" @click="toast('删除卷 '+v.name+' 需确认')" v-if="hasPerm('container.delete')">{{ t('common.delete') }}</button></td>
+                  <td><button class="btn sm danger" @click="removeVolume(v.name)" v-if="hasPerm('container.delete')">{{ t('common.delete') }}</button></td>
                 </tr>
               </tbody>
             </table>
@@ -940,7 +940,7 @@
                   <td class="mono">{{ n.subnet }}</td>
                   <td class="mono">{{ n.gateway }}</td>
                   <td>{{ n.containers }}</td>
-                  <td><button class="btn sm danger" @click="toast('删除网络 '+n.name+' 需确认')" v-if="hasPerm('container.delete')">{{ t('common.delete') }}</button></td>
+                  <td><button class="btn sm danger" @click="removeNetwork(n.name)" v-if="hasPerm('container.delete')">{{ t('common.delete') }}</button></td>
                 </tr>
               </tbody>
             </table>
@@ -1735,7 +1735,7 @@
                     <td class="mono">{{ b.path }}</td>
                     <td class="mono" style="font-size:11px">{{ b.sha256 }}</td>
                     <td class="mono">{{ fmtBytes(b.size) }}</td>
-                    <td><button class="btn sm danger" @click="toast('移除 '+b.path)">{{ t('sec.fimRemove') }}</button></td>
+                    <td><button class="btn sm danger" @click="removeFimBaseline(b)">{{ t('sec.fimRemove') }}</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -4766,6 +4766,30 @@ createApp({
       if(!confirm(this.t('container.delImgConfirm') + ' ' + (name || id) + '？')) return;
       try{ await this.api('/images/'+id, { method:'DELETE' }); await this.loadContainers(); this.toast('已删除'); }
       catch(e){ this.toast('删除失败：' + e.message); }
+    },
+    async removeVolume(name){
+      if(!name){ this.toast('卷名缺失'); return; }
+      if(!confirm(this.t('common.delete') + ' ' + name + '？')) return;
+      try{ await this.api('/volumes/'+encodeURIComponent(name), { method:'DELETE' }); await this.loadContainers(); this.toast(this.t('common.deleted')); }
+      catch(e){ this.toast('删除失败：' + e.message); }
+    },
+    async removeNetwork(name){
+      if(!name){ this.toast('网络名缺失'); return; }
+      if(!confirm(this.t('common.delete') + ' ' + name + '？')) return;
+      try{ await this.api('/networks/'+encodeURIComponent(name), { method:'DELETE' }); await this.loadContainers(); this.toast(this.t('common.deleted')); }
+      catch(e){ this.toast('删除失败：' + e.message); }
+    },
+    async removeFimBaseline(b){
+      if(!b || !b.id){ this.toast('基线 ID 缺失'); return; }
+      if(!confirm(this.t('sec.fimRemove') + ' ' + b.path + '？')) return;
+      try{ await this.api('/security/fim/baselines/'+b.id, { method:'DELETE' }); await this.loadSecurityData(); this.toast(this.t('common.deleted')); }
+      catch(e){ this.toast('移除失败：' + e.message); }
+    },
+    createContainerFromImage(name){
+      this.containerTab = 'list';
+      this.form = this.defaultForm();
+      this.form.image = name;
+      this.modal = 'container';
     },
     async deleteUser(id){
       if(!id){ this.toast('原型数据无 ID'); return; }

@@ -61,7 +61,7 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 - 仅支持 `x86_64` / `aarch64`
 - 无 systemd 的环境用 `-n` 跳过服务注册，改用手动启动
 
-## 账号恢复
+## 账号恢复 {: #account-recovery }
 
 忘记密码或丢失 MFA 验证码时，在服务器上执行（先停服务，操作完再启动）：
 
