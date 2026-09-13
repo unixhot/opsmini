@@ -3949,29 +3949,34 @@ createApp({
     async fwAllowPort(){
       const port = parseInt(this.fwPort, 10);
       if(!port || port < 1 || port > 65535){ this.toast(this.t('sec.fwPortPh')); return; }
-      if(!confirm(this.t('sec.fwAllow') + ' ' + port + '/' + this.fwProto + '？')) return;
-      try{ await this.api('/security/firewall/port', { method:'POST', body: JSON.stringify({ port, proto: this.fwProto }) }); this.fwPort = ''; await this.loadSecurityData(); this.toast('OK'); }
-      catch(e){ this.toast(e.message); }
+      this.confirmDialog(this.t('sec.fwAllow') + ' ' + port + '/' + this.fwProto + '？', async () => {
+        try{ await this.api('/security/firewall/port', { method:'POST', body: JSON.stringify({ port, proto: this.fwProto }) }); this.fwPort = ''; await this.loadSecurityData(); this.toast('OK'); }
+        catch(e){ this.toast(e.message); }
+      });
     },
-    async fwDenyPort(port, proto){
-      if(!confirm(this.t('container.delConfirm') + ' ' + port + '/' + (proto||'tcp') + '？')) return;
-      try{ await this.api('/security/firewall/port', { method:'DELETE', body: JSON.stringify({ port, proto: proto||'tcp' }) }); await this.loadSecurityData(); this.toast('OK'); }
-      catch(e){ this.toast(e.message); }
+    fwDenyPort(port, proto){
+      this.confirmDialog(this.t('container.delConfirm') + ' ' + port + '/' + (proto||'tcp') + '？', async () => {
+        try{ await this.api('/security/firewall/port', { method:'DELETE', body: JSON.stringify({ port, proto: proto||'tcp' }) }); await this.loadSecurityData(); this.toast('OK'); }
+        catch(e){ this.toast(e.message); }
+      });
     },
-    async fwEnable(){
-      if(!confirm(this.t('sec.fwEnable') + '？')) return;
-      try{ await this.api('/security/firewall/enable', { method:'POST', body:'{}' }); await this.loadSecurityData(); }
-      catch(e){ this.toast(e.message); }
+    fwEnable(){
+      this.confirmDialog(this.t('sec.fwEnable') + '？', async () => {
+        try{ await this.api('/security/firewall/enable', { method:'POST', body:'{}' }); await this.loadSecurityData(); }
+        catch(e){ this.toast(e.message); }
+      });
     },
-    async fwDisable(){
-      if(!confirm(this.t('sec.fwDisable') + '？')) return;
-      try{ await this.api('/security/firewall/disable', { method:'POST', body:'{}' }); await this.loadSecurityData(); }
-      catch(e){ this.toast(e.message); }
+    fwDisable(){
+      this.confirmDialog(this.t('sec.fwDisable') + '？', async () => {
+        try{ await this.api('/security/firewall/disable', { method:'POST', body:'{}' }); await this.loadSecurityData(); }
+        catch(e){ this.toast(e.message); }
+      });
     },
-    async fimRebuild(){
-      if(!confirm(this.t('sec.fimRebuild') + '？')) return;
-      try{ await this.api('/security/fim/rebuild', { method:'POST', body:'{}' }); await this.loadSecurityData(); this.toast('OK'); }
-      catch(e){ this.toast(e.message); }
+    fimRebuild(){
+      this.confirmDialog(this.t('sec.fimRebuild') + '？', async () => {
+        try{ await this.api('/security/fim/rebuild', { method:'POST', body:'{}' }); await this.loadSecurityData(); this.toast('OK'); }
+        catch(e){ this.toast(e.message); }
+      });
     },
     async resolveThreat(id){
       try{ await this.api('/security/threats/'+id+'/resolve', { method:'POST', body:'{}' }); await this.loadSecurityData(); }
@@ -4015,14 +4020,15 @@ createApp({
         this.toast(this.t('mfa.enabled'));
       }catch(e){ this.toast(this.t('mfa.invalid')); }
     },
-    async disableMfa(){
-      if(!confirm(this.t('mfa.disableConfirm'))) return;
-      try{
-        await this.api('/auth/mfa/disable', { method:'POST' });
-        this.mfa.enabled = false;
-        this.mfaSecret = ''; this.mfaOtpUrl = ''; this.mfaQrData = ''; this.mfaCodeInput = '';
-        this.toast(this.t('mfa.disabled'));
-      }catch(e){ this.toast(this.t('set.saveFail') + ': ' + e.message); }
+    disableMfa(){
+      this.confirmDialog(this.t('mfa.disableConfirm'), async () => {
+        try{
+          await this.api('/auth/mfa/disable', { method:'POST' });
+          this.mfa.enabled = false;
+          this.mfaSecret = ''; this.mfaOtpUrl = ''; this.mfaQrData = ''; this.mfaCodeInput = '';
+          this.toast(this.t('mfa.disabled'));
+        }catch(e){ this.toast(this.t('set.saveFail') + ': ' + e.message); }
+      });
     },
     genQr(text){
       if(!window.qrcode) return '';
@@ -4221,10 +4227,11 @@ createApp({
         this.toast(this.t('common.saved'));
       }catch(e){ this.toast(e.message); }
     },
-    async deleteRole(id){
-      if(!confirm(this.t('common.delete') + '？')) return;
-      try{ await this.api('/roles/'+id, { method:'DELETE' }); await this.loadRoles(); this.toast(this.t('common.deleted')); }
-      catch(e){ this.toast(e.message); }
+    deleteRole(id){
+      this.confirmDialog(this.t('common.delete') + '？', async () => {
+        try{ await this.api('/roles/'+id, { method:'DELETE' }); await this.loadRoles(); this.toast(this.t('common.deleted')); }
+        catch(e){ this.toast(e.message); }
+      });
     },
     // ===== 数据加载（对接后端真实数据）=====
     fmtBytes(b){ if(b==null || b===0) return '0 B'; const u=['B','KB','MB','GB','TB']; let i=0, v=b; while(v>=1024 && i<u.length-1){ v/=1024; i++; } return v.toFixed(v>=100?0:1)+' '+u[i]; },
@@ -4406,10 +4413,11 @@ createApp({
       // 自动发送诊断请求，让 AI 基于上述上下文分析（而非仅打开对话框）
       this.send('请根据以上告警信息和本机基础信息，分析该告警最可能的原因，并给出排查步骤和处置建议。');
     },
-    async deleteAlertEvent(id){
-      if(!confirm(this.t('alertEvent.deleteConfirm'))) return;
-      try{ await this.api('/alert-events/'+id, { method:'DELETE' }); await this.loadAlertEvents(); this.toast(this.t('store.uninstalled')); }
-      catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+    deleteAlertEvent(id){
+      this.confirmDialog(this.t('alertEvent.deleteConfirm'), async () => {
+        try{ await this.api('/alert-events/'+id, { method:'DELETE' }); await this.loadAlertEvents(); this.toast(this.t('store.uninstalled')); }
+        catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+      });
     },
     async loadAlertRules(){
       try{ this.alertRules = await this.api('/alert-rules'); }catch(e){ this.toast(e.message); }
@@ -4446,13 +4454,14 @@ createApp({
         a.enabled = !a.enabled;
       }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
     },
-    async deleteAlertRule(id){
-      if(!confirm(this.t('alert.deleteConfirm'))) return;
-      try{
-        await this.api('/alert-rules/'+id, { method:'DELETE' });
-        await this.loadAlertRules();
-        this.toast(this.t('store.uninstalled'));
-      }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+    deleteAlertRule(id){
+      this.confirmDialog(this.t('alert.deleteConfirm'), async () => {
+        try{
+          await this.api('/alert-rules/'+id, { method:'DELETE' });
+          await this.loadAlertRules();
+          this.toast(this.t('store.uninstalled'));
+        }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+      });
     },
     updateClock(){
       const d = new Date();
@@ -4546,11 +4555,12 @@ createApp({
         this.toast(this.t('common.created'));
       }catch(e){ this.toast('创建失败：' + e.message); }
     },
-    async deleteWebsite(id){
+    deleteWebsite(id){
       if(!id){ this.toast('原型数据无 ID'); return; }
-      if(!confirm('确认删除该站点？')) return;
-      try{ await this.api('/websites/'+id, { method:'DELETE' }); await this.loadWebsites(); this.toast('已删除'); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog('确认删除该站点？', async () => {
+        try{ await this.api('/websites/'+id, { method:'DELETE' }); await this.loadWebsites(); this.toast('已删除'); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
     async createDatabase(){
       const f = this.form;
@@ -4560,11 +4570,12 @@ createApp({
         this.toast(this.t('common.created'));
       }catch(e){ this.toast('创建失败：' + e.message); }
     },
-    async deleteDatabase(id){
+    deleteDatabase(id){
       if(!id){ this.toast('原型数据无 ID'); return; }
-      if(!confirm('确认删除该数据库？')) return;
-      try{ await this.api('/databases/'+id, { method:'DELETE' }); await this.loadDatabases(); this.toast('已删除'); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog('确认删除该数据库？', async () => {
+        try{ await this.api('/databases/'+id, { method:'DELETE' }); await this.loadDatabases(); this.toast('已删除'); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
     async createCron(){
       const f = this.form;
@@ -4574,11 +4585,12 @@ createApp({
         this.toast(this.t('common.created'));
       }catch(e){ this.toast('创建失败：' + e.message); }
     },
-    async deleteCron(id){
+    deleteCron(id){
       if(!id){ this.toast('系统/用户任务只读，不可删除'); return; }
-      if(!confirm('确认删除该任务？')) return;
-      try{ await this.api('/cron-jobs/'+id, { method:'DELETE' }); await this.loadCrons(); this.toast('已删除'); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog('确认删除该任务？', async () => {
+        try{ await this.api('/cron-jobs/'+id, { method:'DELETE' }); await this.loadCrons(); this.toast('已删除'); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
     async createContainer(){
       const f = this.form;
@@ -4755,35 +4767,40 @@ createApp({
       if(this._ctermRO){ try{ this._ctermRO.disconnect(); }catch(e){} this._ctermRO = null; }
       if(this._cterm){ try{ this._cterm.dispose(); }catch(e){} this._cterm = null; }
     },
-    async deleteContainer(id, name){
+    deleteContainer(id, name){
       if(!id){ this.toast('容器 ID 缺失'); return; }
-      if(!confirm(this.t('container.delConfirm') + ' ' + (name || id) + '？')) return;
-      try{ await this.api('/containers/'+id, { method:'DELETE' }); await this.loadContainers(); this.toast('已删除'); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog(this.t('container.delConfirm') + ' ' + (name || id) + '？', async () => {
+        try{ await this.api('/containers/'+id, { method:'DELETE' }); await this.loadContainers(); this.toast('已删除'); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
-    async removeImage(id, name){
+    removeImage(id, name){
       if(!id){ this.toast('镜像 ID 缺失'); return; }
-      if(!confirm(this.t('container.delImgConfirm') + ' ' + (name || id) + '？')) return;
-      try{ await this.api('/images/'+id, { method:'DELETE' }); await this.loadContainers(); this.toast('已删除'); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog(this.t('container.delImgConfirm') + ' ' + (name || id) + '？', async () => {
+        try{ await this.api('/images/'+id, { method:'DELETE' }); await this.loadContainers(); this.toast('已删除'); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
-    async removeVolume(name){
+    removeVolume(name){
       if(!name){ this.toast('卷名缺失'); return; }
-      if(!confirm(this.t('common.delete') + ' ' + name + '？')) return;
-      try{ await this.api('/volumes/'+encodeURIComponent(name), { method:'DELETE' }); await this.loadContainers(); this.toast(this.t('common.deleted')); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog(this.t('common.delete') + ' ' + name + '？', async () => {
+        try{ await this.api('/volumes/'+encodeURIComponent(name), { method:'DELETE' }); await this.loadContainers(); this.toast(this.t('common.deleted')); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
-    async removeNetwork(name){
+    removeNetwork(name){
       if(!name){ this.toast('网络名缺失'); return; }
-      if(!confirm(this.t('common.delete') + ' ' + name + '？')) return;
-      try{ await this.api('/networks/'+encodeURIComponent(name), { method:'DELETE' }); await this.loadContainers(); this.toast(this.t('common.deleted')); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog(this.t('common.delete') + ' ' + name + '？', async () => {
+        try{ await this.api('/networks/'+encodeURIComponent(name), { method:'DELETE' }); await this.loadContainers(); this.toast(this.t('common.deleted')); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
-    async removeFimBaseline(b){
+    removeFimBaseline(b){
       if(!b || !b.id){ this.toast('基线 ID 缺失'); return; }
-      if(!confirm(this.t('sec.fimRemove') + ' ' + b.path + '？')) return;
-      try{ await this.api('/security/fim/baselines/'+b.id, { method:'DELETE' }); await this.loadSecurityData(); this.toast(this.t('common.deleted')); }
-      catch(e){ this.toast('移除失败：' + e.message); }
+      this.confirmDialog(this.t('sec.fimRemove') + ' ' + b.path + '？', async () => {
+        try{ await this.api('/security/fim/baselines/'+b.id, { method:'DELETE' }); await this.loadSecurityData(); this.toast(this.t('common.deleted')); }
+        catch(e){ this.toast('移除失败：' + e.message); }
+      });
     },
     createContainerFromImage(name){
       this.containerTab = 'list';
@@ -4791,11 +4808,12 @@ createApp({
       this.form.image = name;
       this.modal = 'container';
     },
-    async deleteUser(id){
+    deleteUser(id){
       if(!id){ this.toast('原型数据无 ID'); return; }
-      if(!confirm('确认删除该用户？')) return;
-      try{ await this.api('/users/'+id, { method:'DELETE' }); await this.loadUsers(); this.toast('已删除'); }
-      catch(e){ this.toast('删除失败：' + e.message); }
+      this.confirmDialog('确认删除该用户？', async () => {
+        try{ await this.api('/users/'+id, { method:'DELETE' }); await this.loadUsers(); this.toast('已删除'); }
+        catch(e){ this.toast('删除失败：' + e.message); }
+      });
     },
     async loadUsers(){
       if(!this.roles || this.roles.length === 0){ await this.loadRoles(); }
@@ -5064,14 +5082,20 @@ createApp({
       }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
       finally{ this.appInstalling = ''; }
     },
-    async appAction(a, action){
+    appAction(a, action){
       const label = { start:this.t('store.start'), stop:this.t('store.stop'), restart:this.t('store.restart'), uninstall:this.t('common.delete') }[action] || action;
-      if(action === 'uninstall' && !confirm(this.t('store.uninstallConfirm') + ' ' + a.name + '?')) return;
-      try{
-        await this.api('/apps/'+a.slug+'/'+action, { method:'POST' });
-        this.toast(label + ' ✓');
-        await this.loadStoreApps();
-      }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+      const doAction = async () => {
+        try{
+          await this.api('/apps/'+a.slug+'/'+action, { method:'POST' });
+          this.toast(label + ' ✓');
+          await this.loadStoreApps();
+        }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+      };
+      if(action === 'uninstall'){
+        this.confirmDialog(this.t('store.uninstallConfirm') + ' ' + a.name + '?', doAction);
+      } else {
+        doAction();
+      }
     },
     async loadAppCategories(){
       try{ this.appCategories = await this.api('/app-categories') || []; }catch(e){ this.appCategories = []; }
@@ -5111,10 +5135,11 @@ createApp({
       try{ await this.api('/notifications/'+id, { method:'DELETE' }); await this.loadNotifications(); }
       catch(e){ this.toast(e.message); }
     },
-    async clearNotifs(){
-      if(!confirm(this.t('notif.clearConfirm'))) return;
-      try{ await this.api('/notifications', { method:'DELETE' }); await this.loadNotifications(); this.toast(this.t('notif.cleared')); }
-      catch(e){ this.toast(e.message); }
+    clearNotifs(){
+      this.confirmDialog(this.t('notif.clearConfirm'), async () => {
+        try{ await this.api('/notifications', { method:'DELETE' }); await this.loadNotifications(); this.toast(this.t('notif.cleared')); }
+        catch(e){ this.toast(e.message); }
+      });
     },
     goNotifications(){ this.notifOpen=false; this.page='profile'; this.profileTab='messages'; this.loadNotifications(); },
     notifLevelLabel(level){ return { error:this.t('notif.levelError'), warn:this.t('notif.levelWarn'), info:this.t('notif.levelInfo') }[level] || level; },
@@ -5147,10 +5172,11 @@ createApp({
         this.toast(this.t('common.saved'));
       }catch(e){ this.toast(e.message); }
     },
-    async deleteCategory(id){
-      if(!confirm(this.t('common.delete') + '？')) return;
-      try{ await this.api('/app-categories/'+id, { method:'DELETE' }); await this.loadAppCategories(); }
-      catch(e){ this.toast(e.message); }
+    deleteCategory(id){
+      this.confirmDialog(this.t('common.delete') + '？', async () => {
+        try{ await this.api('/app-categories/'+id, { method:'DELETE' }); await this.loadAppCategories(); }
+        catch(e){ this.toast(e.message); }
+      });
     },
     openTplModal(a){
       if(a){
@@ -5175,10 +5201,11 @@ createApp({
         this.toast(this.t('common.saved'));
       }catch(e){ this.toast(e.message); }
     },
-    async deleteTemplate(slug){
-      if(!confirm(this.t('common.delete') + '？')) return;
-      try{ await this.api('/apps/'+slug, { method:'DELETE' }); await this.loadStoreApps(); }
-      catch(e){ this.toast(e.message); }
+    deleteTemplate(slug){
+      this.confirmDialog(this.t('common.delete') + '？', async () => {
+        try{ await this.api('/apps/'+slug, { method:'DELETE' }); await this.loadStoreApps(); }
+        catch(e){ this.toast(e.message); }
+      });
     },
     triggerImport(){ this.$refs.tplFileInput && this.$refs.tplFileInput.click(); },
     async onImportZip(e){
@@ -5428,10 +5455,11 @@ createApp({
       try{ await this.api('/skills', { method:'POST', body: JSON.stringify({ name, description }) }); this.toast(this.t('common.created')); await this.loadSkills(); }
       catch(e){ this.toast(e.message); }
     },
-    async deleteSkill(name){
-      if(!confirm(this.t('skill.deleteConfirm') + ' ' + name + '?')) return;
-      try{ await this.api('/skills/' + encodeURIComponent(name), { method:'DELETE' }); this.toast(this.t('common.deleted')); await this.loadSkills(); }
-      catch(e){ this.toast(e.message); }
+    deleteSkill(name){
+      this.confirmDialog(this.t('skill.deleteConfirm') + ' ' + name + '?', async () => {
+        try{ await this.api('/skills/' + encodeURIComponent(name), { method:'DELETE' }); this.toast(this.t('common.deleted')); await this.loadSkills(); }
+        catch(e){ this.toast(e.message); }
+      });
     },
     async toggleSkill(s){
       try{
@@ -5457,10 +5485,11 @@ createApp({
         m.enabled = !m.enabled;
       }catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
     },
-    async deleteMcp(id){
-      if(!confirm(this.t('mcp.deleteConfirm'))) return;
-      try{ await this.api('/mcp/'+id, { method:'DELETE' }); await this.loadMcp(); this.toast(this.t('store.uninstalled')); }
-      catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+    deleteMcp(id){
+      this.confirmDialog(this.t('mcp.deleteConfirm'), async () => {
+        try{ await this.api('/mcp/'+id, { method:'DELETE' }); await this.loadMcp(); this.toast(this.t('store.uninstalled')); }
+        catch(e){ this.toast(this.t('store.opFail') + ': ' + e.message); }
+      });
     },
     // ===== Web 终端（xterm.js + WebSocket + pty，真正交互式）=====
     connectTerminal(){
