@@ -559,10 +559,9 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 <span class="d" data-page-node-id="GkBoeYx42hLRpIcSQJDT6i">$</span> open http://your-server:8888</pre>
       </div>
       <div class="qs-steps" data-page-node-id="hwrO6hFLmVd5MZOSqJqIDz">
-        <div class="qs-step" data-page-node-id="UuwLYrsXxJwLBwMmlW7Xse"><div class="num" data-page-node-id="4wvzIscLnYuoyRvTK7k6Li">1</div><div data-page-node-id="mRBlCXiDl4TGSTaUSx8wpd"><b data-i18n="qs.s1t" data-page-node-id="kKVgFsRgqwEBis6TtZIOZX">获取二进制</b><span data-i18n="qs.s1d" data-page-node-id="qdR8gQqkv2x3MSMJHm9SMS">下载对应架构的发布包，或 make build 一条命令本地构建。</span></div></div>
-        <div class="qs-step" data-page-node-id="XgOKeYvVGu3T9cGn2Blzgj"><div class="num" data-page-node-id="8Fg7b7gwRiQViUqRTQO0Fw">2</div><div data-page-node-id="pcwmYDy6kg36U81AfvRfLp"><b data-i18n="qs.s2t" data-page-node-id="fbDAtyGTdbD9D6v36KZdnN">运行并登录</b><span data-i18n="qs.s2d" data-page-node-id="VNEUnRixE360SOho1t9wOF">默认端口 8888，初始账号 opsmini，密码在启动日志中输出，登录后立即修改。</span></div></div>
-        <div class="qs-step" data-page-node-id="eNJHcWKcj6qe2puAxglpH1"><div class="num" data-page-node-id="ZH27s49EhEkjC8fKkJFAKz">3</div><div data-page-node-id="8ZLFRzbdHw1LxS0fPCCO33"><b data-i18n="qs.s3t" data-page-node-id="xZqosQZncW9ecOgMeOGIqv">加固与接入</b><span data-i18n="qs.s3d" data-page-node-id="jDcsuqSq832sOhwySfrJZ4">开启 MFA 两步验证、配置防火墙端口；外部系统通过 /agent/v1 API 接入监控与自动化。</span></div></div>
-        <div class="qs-step" data-page-node-id="GVjj9tHsh02uY8x4ZQxHxD"><div class="num" data-page-node-id="25PZzFS6m53FuXk8tkIZ4A">4</div><div data-page-node-id="7PsaTKrTF1xIeGC1whFFsV"><b data-i18n="qs.s4t" data-page-node-id="95ibACEpJiGuz4UcEt5Vd6">常驻运行（推荐）</b><span data-i18n="qs.s4d" data-page-node-id="BD4QVMtZ7peaiu5YrniKmr">注册为 systemd 服务，开机自启、崩溃自动拉起。</span></div></div>
+        <div class="qs-step" data-page-node-id="UuwLYrsXxJwLBwMmlW7Xse"><div class="num" data-page-node-id="4wvzIscLnYuoyRvTK7k6Li">1</div><div data-page-node-id="mRBlCXiDl4TGSTaUSx8wpd"><b data-i18n="qs.s1t" data-page-node-id="kKVgFsRgqwEBis6TtZIOZX">一键安装</b><span data-i18n="qs.s1d" data-page-node-id="qdR8gQqkv2x3MSMJHm9SMS">一条命令自动下载二进制、生成配置并注册 systemd 服务。</span></div></div>
+        <div class="qs-step" data-page-node-id="XgOKeYvVGu3T9cGn2Blzgj"><div class="num" data-page-node-id="8Fg7b7gwRiQViUqRTQO0Fw">2</div><div data-page-node-id="pcwmYDy6kg36U81AfvRfLp"><b data-i18n="qs.s2t" data-page-node-id="fbDAtyGTdbD9D6v36KZdnN">打开登录</b><span data-i18n="qs.s2d" data-page-node-id="VNEUnRixE360SOho1t9wOF">访问 http://&lt;IP&gt;:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件。</span></div></div>
+        <div class="qs-step" data-page-node-id="eNJHcWKcj6qe2puAxglpH1"><div class="num" data-page-node-id="ZH27s49EhEkjC8fKkJFAKz">3</div><div data-page-node-id="8ZLFRzbdHw1LxS0fPCCO33"><b data-i18n="qs.s3t" data-page-node-id="xZqosQZncW9ecOgMeOGIqv">加固与接入</b><span data-i18n="qs.s3d" data-page-node-id="jDcsuqSq832sOhwySfrJZ4">开启 MFA 两步验证、配置防火墙；外部系统通过 /agent/v1 API 接入。</span></div></div>
       </div>
     </div>
   </div>
@@ -659,7 +658,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 const I18N = {
 'zh-CN': {
   'title':'OpsMini — AI 驱动的轻量服务器运维面板','foot.faq':'常见问题',
-  'hl1.t':'100% 代码由 AI 编写','hl1.d':'全部代码由 AI 自动生成，人类负责审核与验证','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力',
+  'hl1.t':'内置 AI 运维助手','hl1.d':'自然语言诊断、日志分析、命令执行，让运维经验真正落地','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力',
   'nav.features':'功能','nav.ai':'AI 运维','nav.arch':'架构','nav.quickstart':'快速开始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即体验','nav.tagline':'AI 驱动的主机运维面板','nav.docs':'文档',
   'hero.badge':'AI-Powered · 单二进制交付 · 零依赖运行',
   'hero.title':'一个文件，<br>管好一台<span class="grad">服务器</span>',
@@ -692,7 +691,7 @@ const I18N = {
   'arch.b7t':'SQLite（纯 Go 驱动）','arch.b7s':'单文件存储，免安装数据库','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系统与容器直接对接','arch.b9t':'pty / crontab / 防火墙','arch.b9s':'原生系统能力封装',
   'arch.note':'交叉编译支持 Linux amd64 / arm64 —— 树莓派、国产化服务器同样能跑',
   'qs.tag':'Quick Start','qs.h2':'三分钟跑起来','qs.p':'下载、执行、打开浏览器——没有安装向导，没有依赖地狱。',
-  'qs.s1t':'获取二进制','qs.s1d':'下载对应架构的发布包，或 make build 一条命令本地构建。','qs.s2t':'运行并登录','qs.s2d':'默认端口 8888，初始账号 opsmini，密码在启动日志中输出，登录后立即修改。','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙端口；外部系统通过 /agent/v1 API 接入监控与自动化。','qs.s4t':'常驻运行（推荐）','qs.s4d':'注册为 systemd 服务，开机自启、崩溃自动拉起。',
+  'qs.s1t':'一键安装','qs.s1d':'一条命令自动下载二进制、生成配置并注册 systemd 服务','qs.s2t':'打开登录','qs.s2d':'访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙；外部系统通过 /agent/v1 API 接入',
   'api.tag':'Developer API','api.h2':'为自动化而生','api.p':'面板能做的事，API 都能做。人用浏览器，程序用接口。','api.h3':'双通道 REST API',
   'api.p2':'面向浏览器的 <b>/api/v1</b> 与面向机器的 <b>/agent/v1</b> 完全独立，令牌隔离、权限隔离。配合 MCP 协议支持，可被 AI Agent 直接调用。',
   'api.l1':'JWT 鉴权 + 刷新令牌，Agent 长期凭证独立管理','api.l2':'覆盖容器、文件、监控、告警、安全、计划任务全模块','api.l3':'原生 MCP 接入，让外部 AI 助手直接操作你的服务器','api.l4':'OpenAPI 风格路由，curl 即可完成全部自动化',
@@ -709,7 +708,7 @@ const I18N = {
 },
 'en': {
   'title':'OpsMini — AI-Powered Lightweight Server Panel','foot.faq':'FAQ',
-  'hl1.t':'100% AI-written code','hl1.d':'Every line generated by AI, reviewed and verified by humans','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities',
+  'hl1.t':'Built-in AI Ops Assistant','hl1.d':'Natural-language diagnosis, log analysis, and command execution — real ops expertise in your panel','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities',
   'nav.features':'Features','nav.ai':'AI Ops','nav.arch':'Architecture','nav.quickstart':'Quick Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Get Started','nav.tagline':'AI-Powered Server Operations Panel','nav.docs':'Docs',
   'hero.badge':'AI-Powered · Single Binary · Zero Dependencies',
   'hero.title':'One file to run a<br>whole <span class="grad">server</span>',
@@ -742,7 +741,7 @@ const I18N = {
   'arch.b7t':'SQLite (pure-Go)','arch.b7s':'single-file storage, no DB install','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direct system & container access','arch.b9t':'pty / crontab / firewall','arch.b9s':'native system wrappers',
   'arch.note':'Cross-compiles to Linux amd64 / arm64 — runs on Raspberry Pi and domestic servers alike',
   'qs.tag':'Quick Start','qs.h2':'Up and running in minutes','qs.p':'Download, execute, open the browser — no install wizard, no dependency hell.',
-  'qs.s1t':'Get the binary','qs.s1d':'Download the release for your arch, or run make build locally.','qs.s2t':'Run & log in','qs.s2d':'Default port 8888, initial account opsmini, password printed in the startup log — change it right after login.','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA, configure firewall ports; external systems integrate via the /agent/v1 API.','qs.s4t':'Run as a service (recommended)','qs.s4d':'Register as a systemd service for auto-start and crash recovery.',
+  'qs.s1t':'One-click install','qs.s1d':'One command downloads the binary, generates config, and registers a systemd service','qs.s2t':'Open & log in','qs.s2d':'Visit http://<IP>:8888, user opsmini, password from the script output or .init_passwd','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA, configure firewall; integrate external systems via /agent/v1',
   'api.tag':'Developer API','api.h2':'Made for automation','api.p':'Whatever the panel can do, the API can do. Humans use the browser, programs use the API.','api.h3':'Dual-channel REST API',
   'api.p2':'The browser-facing <b>/api/v1</b> and machine-facing <b>/agent/v1</b> are fully isolated — separate tokens, separate permissions. With MCP support, AI agents can call it directly.',
   'api.l1':'JWT auth + refresh tokens, independent long-lived agent credentials','api.l2':'Covers containers, files, monitoring, alerts, security and cron','api.l3':'Native MCP so external AI assistants can operate your server','api.l4':'OpenAPI-style routes — full automation with plain curl',
@@ -759,7 +758,7 @@ const I18N = {
 },
 'zh-TW': {
   'title':'OpsMini — AI 驅動的輕量伺服器維運面板','foot.faq':'常見問題',
-  'hl1.t':'100% 程式碼由 AI 編寫','hl1.d':'全部程式碼由 AI 自動生成，人類負責審核與驗證','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力',
+  'hl1.t':'內建 AI 維運助手','hl1.d':'自然語言診斷、日誌分析、命令執行，讓維運經驗真正落地','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力',
   'nav.features':'功能','nav.ai':'AI 維運','nav.arch':'架構','nav.quickstart':'快速開始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即體驗','nav.tagline':'AI 驅動的主機維運面板','nav.docs':'文件',
   'hero.badge':'AI-Powered · 單一二進位交付 · 零依賴運行',
   'hero.title':'一個檔案，<br>管好一台<span class="grad">伺服器</span>',
@@ -792,7 +791,7 @@ const I18N = {
   'arch.b7t':'SQLite（純 Go 驅動）','arch.b7s':'單檔案儲存，免安裝資料庫','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系統與容器直接對接','arch.b9t':'pty / crontab / 防火牆','arch.b9s':'原生系統能力封裝',
   'arch.note':'交叉編譯支援 Linux amd64 / arm64 —— 樹莓派、國產化伺服器同樣能跑',
   'qs.tag':'Quick Start','qs.h2':'三分鐘跑起來','qs.p':'下載、執行、開啟瀏覽器——沒有安裝精靈，沒有依賴地獄。',
-  'qs.s1t':'取得二進位','qs.s1d':'下載對應架構的發布包，或 make build 一條命令本地建置。','qs.s2t':'執行並登入','qs.s2d':'預設連接埠 8888，初始帳號 opsmini，密碼在啟動日誌中輸出，登入後立即修改。','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、配置防火牆連接埠；外部系統透過 /agent/v1 API 接入監控與自動化。','qs.s4t':'常駐執行（推薦）','qs.s4d':'註冊為 systemd 服務，開機自啟、崩潰自動拉起。',
+  'qs.s1t':'一鍵安裝','qs.s1d':'一條命令自動下載二進位制、產生設定並註冊 systemd 服務','qs.s2t':'開啟登入','qs.s2d':'訪問 http://<IP>:8888，帳號 opsmini，密碼見指令碼輸出或 .init_passwd 檔案','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、設定防火牆；外部系統透過 /agent/v1 API 接入',
   'api.tag':'Developer API','api.h2':'為自動化而生','api.p':'面板能做的事，API 都能做。人用瀏覽器，程式用介面。','api.h3':'雙通道 REST API',
   'api.p2':'面向瀏覽器的 <b>/api/v1</b> 與面向機器的 <b>/agent/v1</b> 完全獨立，令牌隔離、權限隔離。配合 MCP 協定支援，可被 AI Agent 直接呼叫。',
   'api.l1':'JWT 鑑權 + 刷新令牌，Agent 長期憑證獨立管理','api.l2':'涵蓋容器、檔案、監控、告警、安全、排程任務全模組','api.l3':'原生 MCP 接入，讓外部 AI 助手直接操作你的伺服器','api.l4':'OpenAPI 風格路由，curl 即可完成全部自動化',
@@ -809,7 +808,7 @@ const I18N = {
 },
 'ja': {
   'title':'OpsMini — AI 駆動の軽量サーバー管理パネル','foot.faq':'よくある質問',
-  'hl1.t':'100% AI がコードを生成','hl1.d':'すべてのコードは AI が自動生成し、人間がレビュー・検証','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張',
+  'hl1.t':'AI 運用アシスタント内蔵','hl1.d':'自然言語での診断・ログ分析・コマンド実行、運用ノウハウをパネルに','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張',
   'nav.features':'機能','nav.ai':'AI 運用','nav.arch':'アーキテクチャ','nav.quickstart':'クイックスタート','nav.api':'API','nav.faq':'FAQ','nav.cta':'はじめる','nav.tagline':'AI駆動のサーバー運用パネル','nav.docs':'ドキュメント',
   'hero.badge':'AI-Powered · 単一バイナリ · 依存ゼロ',
   'hero.title':'1つのファイルで、<br>1台をまるごと<span class="grad">管理</span>',
@@ -842,7 +841,7 @@ const I18N = {
   'arch.b7t':'SQLite（純 Go）','arch.b7s':'単一ファイル保存、DB 不要','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'システム・コンテナへ直接アクセス','arch.b9t':'pty / crontab / ファイアウォール','arch.b9s':'ネイティブ機能のラッパー',
   'arch.note':'Linux amd64 / arm64 にクロスコンパイル——Raspberry Pi や国産サーバーでも動作',
   'qs.tag':'Quick Start','qs.h2':'数分で起動','qs.p':'ダウンロード、実行、ブラウザを開くだけ——インストールウィザードも依存地獄もありません。',
-  'qs.s1t':'バイナリを入手','qs.s1d':'対応アーキテクチャのリリースをダウンロード、または make build でローカルビルド。','qs.s2t':'実行してログイン','qs.s2d':'デフォルトポート 8888、初期アカウント opsmini、パスワードは起動ログに表示されます。ログイン後すぐに変更してください。','qs.s3t':'強化と連携','qs.s3d':'MFA を有効化し、ファイアウォールのポートを設定。外部システムは /agent/v1 API で監視と自動化に接続できます。','qs.s4t':'サービスとして常駐（推奨）','qs.s4d':'systemd サービスに登録して、自動起動とクラッシュ時の自動復旧を実現。',
+  'qs.s1t':'ワンクリックインストール','qs.s1d':'1 コマンドでバイナリのダウンロード・設定生成・systemd 登録まで完了','qs.s2t':'開いてログイン','qs.s2d':'http://<IP>:8888 にアクセス、ユーザー opsmini、パスワードはスクリプト出力または .init_passwd','qs.s3t':'強化と連携','qs.s3d':'MFA を有効化、ファイアウォールを設定；外部システムは /agent/v1 API で接続',
   'api.tag':'Developer API','api.h2':'自動化のために','api.p':'パネルでできることは API でもできる。人はブラウザ、プログラムは API。','api.h3':'二重チャネル REST API',
   'api.p2':'ブラウザ向け <b>/api/v1</b> とマシン向け <b>/agent/v1</b> は完全に独立し、トークンと権限が分離。MCP 対応により AI エージェントから直接呼び出せます。',
   'api.l1':'JWT 認証 + リフレッシュトークン、エージェント長期資格情報を独立管理','api.l2':'コンテナ・ファイル・監視・アラート・セキュリティ・cron をすべてカバー','api.l3':'ネイティブ MCP で外部 AI アシスタントからサーバーを操作','api.l4':'OpenAPI スタイルのルートで、curl だけで完全自動化',
@@ -859,7 +858,7 @@ const I18N = {
 },
 'ko': {
   'title':'OpsMini — AI 기반 경량 서버 관리 패널','foot.faq':'FAQ',
-  'hl1.t':'100% AI가 작성한 코드','hl1.d':'모든 코드는 AI가 자동 생성하고 사람이 검토·검증','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장',
+  'hl1.t':'내장 AI 운영 어시스턴트','hl1.d':'자연어 진단·로그 분석·명령 실행으로 운영 경험을 패널에 담다','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장',
   'nav.features':'기능','nav.ai':'AI 운영','nav.arch':'아키텍처','nav.quickstart':'빠른 시작','nav.api':'API','nav.faq':'FAQ','nav.cta':'시작하기','nav.tagline':'AI 기반 서버 운영 패널','nav.docs':'문서',
   'hero.badge':'AI 기반 · 단일 바이너리 · 의존성 없음',
   'hero.title':'파일 하나로<br>서버 한 대를<span class="grad">완벽 관리</span>',
@@ -892,7 +891,7 @@ const I18N = {
   'arch.b7t':'SQLite(순수 Go)','arch.b7s':'단일 파일 저장, DB 설치 불필요','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'시스템·컨테이너 직접 연동','arch.b9t':'pty / crontab / 방화벽','arch.b9s':'네이티브 시스템 래퍼',
   'arch.note':'Linux amd64 / arm64 크로스 컴파일——라즈베리파이와 국산 서버에서도 동작',
   'qs.tag':'Quick Start','qs.h2':'몇 분이면 실행','qs.p':'다운로드, 실행, 브라우저 열기——설치 마법사도 의존성 지옥도 없습니다.',
-  'qs.s1t':'바이너리 받기','qs.s1d':'해당 아키텍처 릴리스를 다운로드하거나 make build 로 로컬 빌드하세요.','qs.s2t':'실행 및 로그인','qs.s2d':'기본 포트 8888, 초기 계정 opsmini, 비밀번호는 시작 로그에 출력됩니다. 로그인 후 바로 변경하세요.','qs.s3t':'강화 및 연동','qs.s3d':'MFA 를 활성화하고 방화벽 포트를 설정하세요. 외부 시스템은 /agent/v1 API 로 모니터링과 자동화에 연동됩니다.','qs.s4t':'서비스로 상시 실행(권장)','qs.s4d':'systemd 서비스로 등록하면 부팅 시 자동 시작되고 크래시 시 자동 복구됩니다.',
+  'qs.s1t':'원클릭 설치','qs.s1d':'한 줄 명령으로 바이너리 다운로드·설정 생성·systemd 등록까지 완료','qs.s2t':'열고 로그인','qs.s2d':'http://<IP>:8888 접속, 계정 opsmini, 비밀번호는 스크립트 출력 또는 .init_passwd','qs.s3t':'강화 및 연동','qs.s3d':'MFA 활성화, 방화벽 설정; 외부 시스템은 /agent/v1 API 로 연동',
   'api.tag':'Developer API','api.h2':'자동화를 위해','api.p':'패널이 할 수 있는 일은 API 도 할 수 있습니다. 사람은 브라우저, 프로그램은 API 를 사용합니다.','api.h3':'이중 채널 REST API',
   'api.p2':'브라우저용 <b>/api/v1</b> 과 머신용 <b>/agent/v1</b> 은 완전히 독립되어 토큰과 권한이 분리됩니다. MCP 지원으로 AI 에이전트가 직접 호출할 수 있습니다.',
   'api.l1':'JWT 인증 + 리프레시 토큰, 에이전트 장기 자격증명 독립 관리','api.l2':'컨테이너·파일·모니터링·알림·보안·크론 전 모듈 커버','api.l3':'네이티브 MCP 로 외부 AI 어시스턴트가 서버를 직접 조작','api.l4':'OpenAPI 스타일 라우트, curl 만으로 완전 자동화',
@@ -909,7 +908,7 @@ const I18N = {
 },
 'th': {
   'title':'OpsMini — แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.faq':'คำถามที่พบบ่อย',
-  'hl1.t':'โค้ด 100% เขียนโดย AI','hl1.d':'โค้ดทั้งหมดสร้างโดย AI อัตโนมัติ มนุษย์ทำหน้าที่ตรวจสอบและยืนยัน','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI',
+  'hl1.t':'ผู้ช่วย AI Ops ในตัว','hl1.d':'วินิจฉัยด้วยภาษาธรรมชาติ วิเคราะห์ล็อก และรันคำสั่ง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI',
   'nav.features':'ฟีเจอร์','nav.ai':'AI Ops','nav.arch':'สถาปัตยกรรม','nav.quickstart':'เริ่มต้นใช้งาน','nav.api':'API','nav.faq':'FAQ','nav.cta':'เริ่มใช้งาน','nav.tagline':'แผงจัดการเซิร์ฟเวอร์ขับเคลื่อนด้วย AI','nav.docs':'เอกสาร',
   'hero.badge':'ขับเคลื่อนด้วย AI · ไบนารีเดียว · ไม่มี Dependency',
   'hero.title':'ไฟล์เดียว<br>จัดการทั้ง<span class="grad">เซิร์ฟเวอร์</span>',
@@ -942,7 +941,7 @@ const I18N = {
   'arch.b7t':'SQLite (pure-Go)','arch.b7s':'เก็บไฟล์เดียว ไม่ต้องติดตั้ง DB','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'เข้าถึงระบบและคอนเทนเนอร์โดยตรง','arch.b9t':'pty / crontab / ไฟร์วอลล์','arch.b9s':'wrapper ความสามารถระบบดั้งเดิม',
   'arch.note':'คอมไพล์ข้ามแพลตฟอร์ม Linux amd64 / arm64 —— ใช้ได้กับ Raspberry Pi และเซิร์ฟเวอร์ในประเทศ',
   'qs.tag':'Quick Start','qs.h2':'ใช้งานได้ในไม่กี่นาที','qs.p':'ดาวน์โหลด รัน เปิดเบราว์เซอร์——ไม่มี wizard ติดตั้ง ไม่มี dependency ที่วุ่นวาย',
-  'qs.s1t':'รับไบนารี','qs.s1d':'ดาวน์โหลด release ของสถาปัตยกรรมที่ต้องการ หรือรัน make build เพื่อ build ในเครื่อง','qs.s2t':'รันและล็อกอิน','qs.s2d':'พอร์ตเริ่มต้น 8888, บัญชีเริ่มต้น opsmini, รหัสผ่านแสดงในล็อกตอนเริ่มต้น ควรเปลี่ยนทันทีหลังล็อกอิน','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิดใช้ MFA และตั้งค่าพอร์ตไฟร์วอลล์; ระบบภายนอกเชื่อมต่อผ่าน /agent/v1 API','qs.s4t':'รันเป็นบริการ (แนะนำ)','qs.s4d':'ลงทะเบียนเป็น systemd service เพื่อเริ่มอัตโนมัติและกู้คืนเมื่อล่ม',
+  'qs.s1t':'ติดตั้งคลิกเดียว','qs.s1d':'หนึ่งคำสั่งดาวน์โหลดไบนารี สร้างคอนฟิก และลงทะเบียน systemd ให้อัตโนมัติ','qs.s2t':'เปิดและเข้าสู่ระบบ','qs.s2d':'เข้า http://<IP>:8888 ผู้ใช้ opsmini รหัสผ่านจากเอาต์พุตสคริปต์หรือ .init_passwd','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิด MFA ตั้งไฟร์วอลล์; เชื่อมระบบภายนอกผ่าน /agent/v1 API',
   'api.tag':'Developer API','api.h2':'สร้างมาเพื่อ automation','api.p':'สิ่งที่แผงทำได้ API ก็ทำได้ คนใช้เบราว์เซอร์ โปรแกรมใช้ API','api.h3':'REST API สองช่องทาง',
   'api.p2':'<b>/api/v1</b> สำหรับเบราว์เซอร์ และ <b>/agent/v1</b> สำหรับเครื่อง แยกเป็นอิสระโดยสิ้นเชิง แยก token และสิทธิ์ พร้อมรองรับ MCP ให้ AI agent เรียกใช้ได้โดยตรง',
   'api.l1':'JWT + refresh token แยกจัดการ credential ระยะยาวของ agent','api.l2':'ครอบคลุมคอนเทนเนอร์ ไฟล์ มอนิเตอร์ แจ้งเตือน ความปลอดภัย และ cron','api.l3':'MCP ดั้งเดิม ให้ผู้ช่วย AI ภายนอกสั่งการเซิร์ฟเวอร์ได้','api.l4':'เส้นทางแบบ OpenAPI ใช้ curl ก็ทำ automation ได้ครบ',
@@ -959,7 +958,7 @@ const I18N = {
 },
 'de': {
   'title':'OpsMini — KI-gesteuertes Leichtgewichts-Serverpanel','foot.faq':'FAQ',
-  'hl1.t':'100% KI-geschriebener Code','hl1.d':'Jede Zeile von KI generiert, von Menschen geprüft und verifiziert','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern',
+  'hl1.t':'Integrierter AI-Ops-Assistent','hl1.d':'Diagnose in natürlicher Sprache, Log-Analyse und Befehlsausführung','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern',
   'nav.features':'Funktionen','nav.ai':'KI-Ops','nav.arch':'Architektur','nav.quickstart':'Schnellstart','nav.api':'API','nav.faq':'FAQ','nav.cta':'Loslegen','nav.tagline':'KI-gesteuertes Server-Betriebs-Panel','nav.docs':'Dokumentation',
   'hero.badge':'KI-gesteuert · Einzelne Binary · Null Abhängigkeiten',
   'hero.title':'Eine Datei,<br>der ganze<span class="grad">Server</span>',
@@ -992,7 +991,7 @@ const I18N = {
   'arch.b7t':'SQLite (pure Go)','arch.b7s':'Einzeldatei-Speicher, keine DB-Installation','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direkter System- & Container-Zugriff','arch.b9t':'pty / crontab / Firewall','arch.b9s':'native System-Wrapper',
   'arch.note':'Cross-Compile für Linux amd64 / arm64 — läuft auf Raspberry Pi ebenso wie auf heimischen Servern',
   'qs.tag':'Quick Start','qs.h2':'In Minuten einsatzbereit','qs.p':'Herunterladen, ausführen, Browser öffnen — kein Installationsassistent, kein Abhängigkeits-Albtraum.',
-  'qs.s1t':'Binary besorgen','qs.s1d':'Release für deine Architektur herunterladen oder lokal mit make build bauen.','qs.s2t':'Starten & anmelden','qs.s2d':'Standardport 8888, Standardkonto opsmini, Passwort erscheint im Start-Log — direkt nach dem Login ändern.','qs.s3t':'Härten & integrieren','qs.s3d':'MFA aktivieren, Firewall-Ports konfigurieren; externe Systeme binden sich über die /agent/v1-API an.','qs.s4t':'Als Dienst ausführen (empfohlen)','qs.s4d':'Als systemd-Dienst registrieren für Autostart und automatische Wiederherstellung.',
+  'qs.s1t':'Ein-Klick-Installation','qs.s1d':'Ein Befehl lädt die Binärdatei, erzeugt die Konfiguration und registriert den systemd-Dienst','qs.s2t':'Öffnen & anmelden','qs.s2d':'http://<IP>:8888 aufrufen, Benutzer opsmini, Passwort aus der Skriptausgabe oder .init_passwd','qs.s3t':'Absichern & integrieren','qs.s3d':'MFA aktivieren, Firewall konfigurieren; externe Systeme über /agent/v1 integrieren',
   'api.tag':'Developer API','api.h2':'Gebaut für Automatisierung','api.p':'Was das Panel kann, kann auch die API. Menschen nutzen den Browser, Programme die API.','api.h3':'Zweikanal-REST-API',
   'api.p2':'Das browserorientierte <b>/api/v1</b> und das maschinenorientierte <b>/agent/v1</b> sind vollständig getrennt — eigene Tokens, eigene Berechtigungen. Mit MCP-Unterstützung direkt von KI-Agenten aufrufbar.',
   'api.l1':'JWT-Auth + Refresh-Tokens, unabhängige Langzeit-Zugangsdaten für Agenten','api.l2':'Deckt Container, Dateien, Monitoring, Alarme, Sicherheit und Cron ab','api.l3':'Natives MCP, damit externe KI-Assistenten deinen Server bedienen können','api.l4':'OpenAPI-artige Routen — vollständige Automatisierung mit reinem curl',
