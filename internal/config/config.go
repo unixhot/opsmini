@@ -41,16 +41,13 @@ type AI struct {
 	APIKey   string `yaml:"api_key"`
 }
 
-// Agent holds the Agent API configuration (external standard REST API authentication).
+// Agent holds the gRPC Agent configuration (去 SaltStack 化).
+// The Agent actively dials an OpsAnt "OpsMini Server" over a single gRPC stream.
+// Empty ServerAddr disables this feature; the standalone panel is unaffected.
 type Agent struct {
-	Token    string   `yaml:"token"`           // Agent authentication token; empty disables the Agent API
-	Commands []string `yaml:"allowed_commands"` // command allowlist prefixes (only commands starting with these prefixes are allowed)
-
-	// gRPC Agent (去 SaltStack 化): actively dials an OpsAnt "OpsMini Server".
-	// Empty ServerAddr disables this feature; the standalone panel is unaffected.
-	ServerAddr       string `yaml:"server_addr"`        // OpsMini Server address (host:port)
-	ServerToken      string `yaml:"server_token"`       // authentication token for the Server
-	HeartbeatSeconds int    `yaml:"heartbeat_seconds"`  // heartbeat interval in seconds (default 30)
+	ServerAddr       string `yaml:"server_addr"`       // OpsMini Server address (host:port)
+	ServerToken      string `yaml:"server_token"`      // authentication token for the Server
+	HeartbeatSeconds int    `yaml:"heartbeat_seconds"` // heartbeat interval in seconds (default 30)
 }
 
 // Metrics holds the Prometheus metrics endpoint configuration (node_exporter compatible).
@@ -112,9 +109,6 @@ func defaultConfig() *Config {
 			Provider: "openai",
 			Model:    "gpt-4o",
 			BaseURL:  "https://api.openai.com/v1",
-		},
-		Agent: Agent{
-			Commands: []string{"ps", "df", "free", "uptime", "docker", "systemctl", "nginx", "who"},
 		},
 		Metrics: Metrics{
 			Enabled: true,

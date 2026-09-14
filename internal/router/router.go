@@ -192,7 +192,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return v
 	}, sysSvc, firewallSvc, mcpSvc, skillSvc)
 	aiHandler := v1.NewAIHandler(aiSvc)
-	agentHandler := v1.NewAgentHandler(&cfg.Agent, version, sysSvc, websiteSvc, databaseSvc, cronSvc, dockerSvc, auditSvc)
 
 	// Software store: app list + one-click install/uninstall via Docker Shell scripts.
 	appStoreSvc := service.NewAppStoreService(
@@ -435,29 +434,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		if dockerHandler != nil {
 			api.GET("/containers/:id/exec", dockerHandler.ContainerExec)
 		}
-	}
-
-	// Agent API (external machine interface with independent token authentication)
-	agentGroup := root.Group("/agent/v1")
-	agentGroup.Use(middleware.AgentAuth(func() string {
-		v, _ := settingSvc.Get("agent_token")
-		return v
-	}))
-	{
-		agentGroup.GET("/health", agentHandler.Health)
-		agentGroup.GET("/version", agentHandler.Version)
-		agentGroup.GET("/status", agentHandler.Status)
-		agentGroup.GET("/system/info", agentHandler.SystemInfo)
-		agentGroup.GET("/system/processes", agentHandler.Processes)
-		agentGroup.GET("/system/ports", agentHandler.Ports)
-		agentGroup.GET("/system/disks", agentHandler.Disks)
-		agentGroup.GET("/websites", agentHandler.Websites)
-		agentGroup.GET("/databases", agentHandler.Databases)
-		agentGroup.GET("/cron-jobs", agentHandler.CronJobs)
-		agentGroup.GET("/containers", agentHandler.Containers)
-		agentGroup.POST("/commands", agentHandler.Commands)
-		agentGroup.POST("/script/run", agentHandler.ScriptRun)
-		agentGroup.POST("/file/upload", agentHandler.FileUpload)
 	}
 
 	// Frontend static assets (embedded in the single binary). Static library content is stable, so add a one-year strong cache to avoid re-downloading large libraries on every login.
