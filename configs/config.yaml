@@ -11,6 +11,10 @@ jwt:
 log:
     level: error # 日志级别：info / warn / error（默认 error，生产建议 error）
     path: "" # 日志文件路径，留空则只输出到 stdout（systemd journal）
+agent:
+    server_addr: "" # OpsMini Server 地址（host:port），留空则不启用 gRPC Agent（不影响单机面板）
+    server_token: "" # 连接 Server 的认证 token
+    heartbeat_seconds: 30 # 心跳间隔（秒）
 # JWT 签名密钥在首次启动时自动生成并持久化到数据库（不在配置文件、不在界面展示）。
 # AI 大模型配置已迁移到面板「设置 → AI 大模型接入」页面（模型 / API Key / Base URL / 启用开关）。
 # Agent API 令牌（/agent/v1）已迁移到面板「设置 → API Token」页面生成与管理。

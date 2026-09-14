@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "github.com/opsmini/opsmini/internal/agent/pb;agentpb";
+
+// AgentService 是 Agent（被控端）与 Server（控制端）之间的 gRPC 服务。
+//
+// 通信模型（去 SaltStack 化，2026-09-07 定稿）：
+//   - Agent 只主动 outbound 连 Server 单端口（免 SSH、穿透 NAT/防火墙）。
+//   - 一条 HTTP/2 多路复用连接同时承载下发流与回传流，无需 SaltStack 式双端口。
+//   - Agent 断线后指数退避重连、周期心跳；仅配置 Server 地址 + 端口 + token。
+service AgentService {
+  // Stream 是 Agent 与 Server 之间的双向流长连接。
+  // Agent 主动建立连接后：先发 Register，收到 RegisterAck 后进入工作态；
+  // 期间上行心跳/结果/文件确认，下行接收任务与心跳探测。
+  rpc Stream(stream AgentMessage) returns (stream ServerMessage);
+}
+
+// ===== 上行消息：Agent -> Server =====
+
+message AgentMessage {
+  oneof payload {
+    Register register = 1;     // 注册
+    Heartbeat heartbeat = 2;   // 心跳
+    TaskResult result = 3;     // 任务结果回报
+    FileChunkAck file_ack = 4; // 文件分片确认（断点续传）
+  }
+}
+
+// ===== 下行消息：Server -> Agent =====
+
+message ServerMessage {
+  oneof payload {
+    RegisterAck register_ack = 1; // 注册确认
+    ExecuteTask execute = 2;       // 执行命令/脚本
+    PushFileTask push_file = 3;    // 文件分发（分片）
+    Ping ping = 4;                 // 心跳探测
+  }
+}
+
+// Register 注册请求（Agent -> Server）。
+message Register {
+  string token = 1;     // 认证 token
+  string hostname = 2;  // 主机名
+  string version = 3;   // Agent 版本
+  string os = 4;        // 操作系统，如 linux
+  string arch = 5;      // 架构，如 amd64 / arm64
+}
+
+// RegisterAck 注册确认（Server -> Agent）。
+message RegisterAck {
+  bool ok = 1;
+  string message = 2;
+  string agent_id = 3; // Server 分配的 Agent ID
+}
+
+// Heartbeat 心跳（Agent -> Server）。
+message Heartbeat {
+  string agent_id = 1;
+  int64 timestamp = 2; // Unix 秒
+}
+
+// Ping 心跳探测（Server -> Agent）。
+message Ping {
+  int64 timestamp = 1; // Unix 秒
+}
+
+// ExecuteTask 执行命令/脚本任务（Server -> Agent）。
+message ExecuteTask {
+  string job_id = 1;
+  oneof kind {
+    CommandSpec command = 2; // 执行命令
+    ScriptSpec script = 3;   // 执行脚本
+  }
+  int32 timeout = 4; // 超时（秒），<=0 使用默认值
+}
+
+// CommandSpec 命令执行参数。
+message CommandSpec {
+  string command = 1; // 命令行（sh -c 执行）
+}
+
+// ScriptSpec 脚本执行参数。
+message ScriptSpec {
+  string script = 1;   // 脚本内容
+  string language = 2; // shell | python
+}
+
+// PushFileTask 文件分发任务（Server -> Agent），分片传输。
+// Server 按序发送多个分片（offset 递增），Agent 收到 last 分片后校验 md5 并回报 FileChunkAck。
+message PushFileTask {
+  string job_id = 1;
+  string path = 2;  // 目标绝对路径
+  string mode = 3;  // 权限（octal 字符串，如 "0755"），空则默认 0644
+  int64 size = 4;   // 文件总大小
+  string md5 = 5;   // 整文件 MD5
+  int64 offset = 6; // 分片偏移（断点续传：Agent 回报已接收字节数，Server 从该处续传）
+  bytes chunk = 7;  // 分片数据
+  bool last = 8;    // 是否最后一个分片
+}
+
+// FileChunkAck 文件分片确认（Agent -> Server），用于断点续传。
+message FileChunkAck {
+  string job_id = 1;
+  int64 received = 2; // 已接收字节数
+  string md5 = 3;     // 完成后整文件 MD5（仅 last 分片时有效）
+  string error = 4;   // 错误信息（非空表示该分片/文件失败）
+}
+
+// TaskResult 任务结果回报（Agent -> Server）。
+message TaskResult {
+  string job_id = 1;
+  string status = 2;    // success | failed | timeout | cancelled
+  int32 exit_code = 3;
+  string stdout = 4;
+  string stderr = 5;
+  int64 duration_ms = 6;
+}

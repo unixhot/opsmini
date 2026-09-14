@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/opsmini/opsmini/internal/agent"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/pkg/store"
 	"github.com/opsmini/opsmini/internal/router"
@@ -67,6 +69,19 @@ func main() {
 	metrics := service.NewMetricCollector(10*time.Second, 8640, db)
 	metrics.Start()
 	defer metrics.Stop()
+
+	// gRPC Agent (optional): actively dial an OpsAnt "OpsMini Server" when configured.
+	// Disabled by default (empty server_addr); does not affect the standalone panel.
+	if cfg.Agent.ServerAddr != "" {
+		hostname, _ := os.Hostname()
+		agentClient := agent.New(agent.Config{
+			ServerAddr: cfg.Agent.ServerAddr,
+			Token:      cfg.Agent.ServerToken,
+			Heartbeat:  time.Duration(cfg.Agent.HeartbeatSeconds) * time.Second,
+		}, hostname, version)
+		go agentClient.Run(context.Background())
+		log.Printf("agent: connecting to OpsMini Server %s", cfg.Agent.ServerAddr)
+	}
 
 	r := router.New(cfg, db, metrics, version)
 	log.Printf("OpsMini agent listening on %s", cfg.Server.Addr())

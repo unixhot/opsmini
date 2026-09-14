@@ -45,6 +45,12 @@ type AI struct {
 type Agent struct {
 	Token    string   `yaml:"token"`           // Agent authentication token; empty disables the Agent API
 	Commands []string `yaml:"allowed_commands"` // command allowlist prefixes (only commands starting with these prefixes are allowed)
+
+	// gRPC Agent (去 SaltStack 化): actively dials an OpsAnt "OpsMini Server".
+	// Empty ServerAddr disables this feature; the standalone panel is unaffected.
+	ServerAddr       string `yaml:"server_addr"`        // OpsMini Server address (host:port)
+	ServerToken      string `yaml:"server_token"`       // authentication token for the Server
+	HeartbeatSeconds int    `yaml:"heartbeat_seconds"`  // heartbeat interval in seconds (default 30)
 }
 
 // Metrics holds the Prometheus metrics endpoint configuration (node_exporter compatible).
