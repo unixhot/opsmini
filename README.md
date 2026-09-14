@@ -29,6 +29,13 @@ Go · Gin · GORM · SQLite (pure Go) · Vue 3 · ECharts
 ### Quick Start
 
 ```bash
+
+# For Ops
+
+curl -fsSL https://opsmini.com/install.sh | sudo bash
+
+# For Dev
+
 make build          # build for current platform
 make build-all      # cross-compile for Linux amd64/arm64
 
