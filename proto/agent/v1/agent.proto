@@ -24,7 +24,8 @@ message AgentMessage {
     Register register = 1;     // 注册
     Heartbeat heartbeat = 2;   // 心跳
     TaskResult result = 3;     // 任务结果回报
-    FileChunkAck file_ack = 4; // 文件分片确认（断点续传）
+    FileChunkAck file_ack = 4; // 文件下发分片确认（断点续传）
+    FileChunkData file_data = 5; // 文件拉取的分片数据（Agent -> Server）
   }
 }
 
@@ -34,8 +35,9 @@ message ServerMessage {
   oneof payload {
     RegisterAck register_ack = 1; // 注册确认
     ExecuteTask execute = 2;       // 执行命令/脚本
-    PushFileTask push_file = 3;    // 文件分发（分片）
+    PushFileTask push_file = 3;    // 文件下发（分片）
     Ping ping = 4;                 // 心跳探测
+    PullFileTask pull_file = 5;    // 文件拉取（请求 Agent 上传指定路径文件）
   }
 }
 
@@ -116,4 +118,23 @@ message TaskResult {
   string stdout = 4;
   string stderr = 5;
   int64 duration_ms = 6;
+}
+
+// PullFileTask 文件拉取请求（Server -> Agent），要求 Agent 上传指定路径的文件。
+message PullFileTask {
+  string job_id = 1;
+  string path = 2; // 要拉取的文件的绝对路径
+}
+
+// FileChunkData 文件拉取的分片数据（Agent -> Server）。
+// Agent 按序发送多个分片（offset 递增），last 分片携带 size/md5 供 Server 校验。
+message FileChunkData {
+  string job_id = 1;
+  string path = 2;  // 源文件路径
+  int64 size = 3;   // 文件总大小（last 分片时有效，或首分片即知）
+  string md5 = 4;   // 整文件 MD5（last 分片时有效）
+  int64 offset = 5; // 分片偏移
+  bytes chunk = 6;  // 分片数据
+  bool last = 7;    // 是否最后一个分片
+  string error = 8; // 错误信息（文件不存在/无权限等，非空表示失败）
 }

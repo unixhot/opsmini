@@ -3,6 +3,8 @@ package agent
 import (
 	"context"
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -74,5 +76,75 @@ func TestServerRejectsBadToken(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	if srv.Agent("badhost") != nil {
 		t.Fatal("agent registered despite wrong token")
+	}
+}
+
+// TestServerPullFile verifies the Server can pull a file from an Agent.
+func TestServerPullFile(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "source.txt")
+	content := []byte("hello pull file\n")
+	if err := os.WriteFile(src, content, 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	srv := NewServer("secret")
+	go srv.Serve(lis)
+
+	c := New(Config{ServerAddr: lis.Addr().String(), Token: "secret", Heartbeat: time.Hour}, "pullhost", "test")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go c.Run(ctx)
+
+	deadline := time.Now().Add(3 * time.Second)
+	for srv.Agent("pullhost") == nil {
+		if time.Now().After(deadline) {
+			t.Fatal("agent not registered in time")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	data, err := srv.PullFile(context.Background(), "pullhost", src)
+	if err != nil {
+		t.Fatalf("pull: %v", err)
+	}
+	if string(data) != string(content) {
+		t.Fatalf("content mismatch: got %q want %q", data, content)
+	}
+}
+
+// TestServerStatus verifies AgentStatuses reports online status after registration.
+func TestServerStatus(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	srv := NewServer("secret")
+	go srv.Serve(lis)
+
+	c := New(Config{ServerAddr: lis.Addr().String(), Token: "secret", Heartbeat: time.Hour}, "statushost", "test")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go c.Run(ctx)
+
+	deadline := time.Now().Add(3 * time.Second)
+	for srv.Agent("statushost") == nil {
+		if time.Now().After(deadline) {
+			t.Fatal("agent not registered in time")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	statuses := srv.AgentStatuses()
+	if len(statuses) != 1 {
+		t.Fatalf("AgentStatuses() len=%d, want 1", len(statuses))
+	}
+	st := statuses[0]
+	if st.Hostname != "statushost" || !st.Online {
+		t.Fatalf("unexpected status: %+v", st)
 	}
 }

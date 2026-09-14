@@ -29,6 +29,7 @@ type AgentMessage struct {
 	//	*AgentMessage_Heartbeat
 	//	*AgentMessage_Result
 	//	*AgentMessage_FileAck
+	//	*AgentMessage_FileData
 	Payload       isAgentMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -107,6 +108,15 @@ func (x *AgentMessage) GetFileAck() *FileChunkAck {
 	return nil
 }
 
+func (x *AgentMessage) GetFileData() *FileChunkData {
+	if x != nil {
+		if x, ok := x.Payload.(*AgentMessage_FileData); ok {
+			return x.FileData
+		}
+	}
+	return nil
+}
+
 type isAgentMessage_Payload interface {
 	isAgentMessage_Payload()
 }
@@ -124,7 +134,11 @@ type AgentMessage_Result struct {
 }
 
 type AgentMessage_FileAck struct {
-	FileAck *FileChunkAck `protobuf:"bytes,4,opt,name=file_ack,json=fileAck,proto3,oneof"` // 文件分片确认（断点续传）
+	FileAck *FileChunkAck `protobuf:"bytes,4,opt,name=file_ack,json=fileAck,proto3,oneof"` // 文件下发分片确认（断点续传）
+}
+
+type AgentMessage_FileData struct {
+	FileData *FileChunkData `protobuf:"bytes,5,opt,name=file_data,json=fileData,proto3,oneof"` // 文件拉取的分片数据（Agent -> Server）
 }
 
 func (*AgentMessage_Register) isAgentMessage_Payload() {}
@@ -135,6 +149,8 @@ func (*AgentMessage_Result) isAgentMessage_Payload() {}
 
 func (*AgentMessage_FileAck) isAgentMessage_Payload() {}
 
+func (*AgentMessage_FileData) isAgentMessage_Payload() {}
+
 type ServerMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
@@ -143,6 +159,7 @@ type ServerMessage struct {
 	//	*ServerMessage_Execute
 	//	*ServerMessage_PushFile
 	//	*ServerMessage_Ping
+	//	*ServerMessage_PullFile
 	Payload       isServerMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -221,6 +238,15 @@ func (x *ServerMessage) GetPing() *Ping {
 	return nil
 }
 
+func (x *ServerMessage) GetPullFile() *PullFileTask {
+	if x != nil {
+		if x, ok := x.Payload.(*ServerMessage_PullFile); ok {
+			return x.PullFile
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Payload interface {
 	isServerMessage_Payload()
 }
@@ -234,11 +260,15 @@ type ServerMessage_Execute struct {
 }
 
 type ServerMessage_PushFile struct {
-	PushFile *PushFileTask `protobuf:"bytes,3,opt,name=push_file,json=pushFile,proto3,oneof"` // 文件分发（分片）
+	PushFile *PushFileTask `protobuf:"bytes,3,opt,name=push_file,json=pushFile,proto3,oneof"` // 文件下发（分片）
 }
 
 type ServerMessage_Ping struct {
 	Ping *Ping `protobuf:"bytes,4,opt,name=ping,proto3,oneof"` // 心跳探测
+}
+
+type ServerMessage_PullFile struct {
+	PullFile *PullFileTask `protobuf:"bytes,5,opt,name=pull_file,json=pullFile,proto3,oneof"` // 文件拉取（请求 Agent 上传指定路径文件）
 }
 
 func (*ServerMessage_RegisterAck) isServerMessage_Payload() {}
@@ -248,6 +278,8 @@ func (*ServerMessage_Execute) isServerMessage_Payload() {}
 func (*ServerMessage_PushFile) isServerMessage_Payload() {}
 
 func (*ServerMessage_Ping) isServerMessage_Payload() {}
+
+func (*ServerMessage_PullFile) isServerMessage_Payload() {}
 
 // Register 注册请求（Agent -> Server）。
 type Register struct {
@@ -938,22 +970,179 @@ func (x *TaskResult) GetDurationMs() int64 {
 	return 0
 }
 
+// PullFileTask 文件拉取请求（Server -> Agent），要求 Agent 上传指定路径的文件。
+type PullFileTask struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"` // 要拉取的文件的绝对路径
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PullFileTask) Reset() {
+	*x = PullFileTask{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PullFileTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PullFileTask) ProtoMessage() {}
+
+func (x *PullFileTask) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PullFileTask.ProtoReflect.Descriptor instead.
+func (*PullFileTask) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PullFileTask) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *PullFileTask) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+// FileChunkData 文件拉取的分片数据（Agent -> Server）。
+// Agent 按序发送多个分片（offset 递增），last 分片携带 size/md5 供 Server 校验。
+type FileChunkData struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`      // 源文件路径
+	Size          int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`     // 文件总大小（last 分片时有效，或首分片即知）
+	Md5           string                 `protobuf:"bytes,4,opt,name=md5,proto3" json:"md5,omitempty"`        // 整文件 MD5（last 分片时有效）
+	Offset        int64                  `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"` // 分片偏移
+	Chunk         []byte                 `protobuf:"bytes,6,opt,name=chunk,proto3" json:"chunk,omitempty"`    // 分片数据
+	Last          bool                   `protobuf:"varint,7,opt,name=last,proto3" json:"last,omitempty"`     // 是否最后一个分片
+	Error         string                 `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`    // 错误信息（文件不存在/无权限等，非空表示失败）
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileChunkData) Reset() {
+	*x = FileChunkData{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileChunkData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileChunkData) ProtoMessage() {}
+
+func (x *FileChunkData) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileChunkData.ProtoReflect.Descriptor instead.
+func (*FileChunkData) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *FileChunkData) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *FileChunkData) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *FileChunkData) GetSize() int64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *FileChunkData) GetMd5() string {
+	if x != nil {
+		return x.Md5
+	}
+	return ""
+}
+
+func (x *FileChunkData) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *FileChunkData) GetChunk() []byte {
+	if x != nil {
+		return x.Chunk
+	}
+	return nil
+}
+
+func (x *FileChunkData) GetLast() bool {
+	if x != nil {
+		return x.Last
+	}
+	return false
+}
+
+func (x *FileChunkData) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 var File_proto_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproto/agent/v1/agent.proto\x12\bagent.v1\"\xe5\x01\n" +
+	"\x1aproto/agent/v1/agent.proto\x12\bagent.v1\"\x9d\x02\n" +
 	"\fAgentMessage\x120\n" +
 	"\bregister\x18\x01 \x01(\v2\x12.agent.v1.RegisterH\x00R\bregister\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x12.\n" +
 	"\x06result\x18\x03 \x01(\v2\x14.agent.v1.TaskResultH\x00R\x06result\x123\n" +
-	"\bfile_ack\x18\x04 \x01(\v2\x16.agent.v1.FileChunkAckH\x00R\afileAckB\t\n" +
-	"\apayload\"\xe6\x01\n" +
+	"\bfile_ack\x18\x04 \x01(\v2\x16.agent.v1.FileChunkAckH\x00R\afileAck\x126\n" +
+	"\tfile_data\x18\x05 \x01(\v2\x17.agent.v1.FileChunkDataH\x00R\bfileDataB\t\n" +
+	"\apayload\"\x9d\x02\n" +
 	"\rServerMessage\x12:\n" +
 	"\fregister_ack\x18\x01 \x01(\v2\x15.agent.v1.RegisterAckH\x00R\vregisterAck\x121\n" +
 	"\aexecute\x18\x02 \x01(\v2\x15.agent.v1.ExecuteTaskH\x00R\aexecute\x125\n" +
 	"\tpush_file\x18\x03 \x01(\v2\x16.agent.v1.PushFileTaskH\x00R\bpushFile\x12$\n" +
-	"\x04ping\x18\x04 \x01(\v2\x0e.agent.v1.PingH\x00R\x04pingB\t\n" +
+	"\x04ping\x18\x04 \x01(\v2\x0e.agent.v1.PingH\x00R\x04ping\x125\n" +
+	"\tpull_file\x18\x05 \x01(\v2\x16.agent.v1.PullFileTaskH\x00R\bpullFileB\t\n" +
 	"\apayload\"z\n" +
 	"\bRegister\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1a\n" +
@@ -1004,7 +1193,19 @@ const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\x06stdout\x18\x04 \x01(\tR\x06stdout\x12\x16\n" +
 	"\x06stderr\x18\x05 \x01(\tR\x06stderr\x12\x1f\n" +
 	"\vduration_ms\x18\x06 \x01(\x03R\n" +
-	"durationMs2M\n" +
+	"durationMs\"9\n" +
+	"\fPullFileTask\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\"\xb8\x01\n" +
+	"\rFileChunkData\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
+	"\x04size\x18\x03 \x01(\x03R\x04size\x12\x10\n" +
+	"\x03md5\x18\x04 \x01(\tR\x03md5\x12\x16\n" +
+	"\x06offset\x18\x05 \x01(\x03R\x06offset\x12\x14\n" +
+	"\x05chunk\x18\x06 \x01(\fR\x05chunk\x12\x12\n" +
+	"\x04last\x18\a \x01(\bR\x04last\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error2M\n" +
 	"\fAgentService\x12=\n" +
 	"\x06Stream\x12\x16.agent.v1.AgentMessage\x1a\x17.agent.v1.ServerMessage(\x010\x01B6Z4github.com/opsmini/opsmini/internal/agent/pb;agentpbb\x06proto3"
 
@@ -1020,7 +1221,7 @@ func file_proto_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_proto_agent_v1_agent_proto_rawDescData
 }
 
-var file_proto_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_proto_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_agent_v1_agent_proto_goTypes = []any{
 	(*AgentMessage)(nil),  // 0: agent.v1.AgentMessage
 	(*ServerMessage)(nil), // 1: agent.v1.ServerMessage
@@ -1034,25 +1235,29 @@ var file_proto_agent_v1_agent_proto_goTypes = []any{
 	(*PushFileTask)(nil),  // 9: agent.v1.PushFileTask
 	(*FileChunkAck)(nil),  // 10: agent.v1.FileChunkAck
 	(*TaskResult)(nil),    // 11: agent.v1.TaskResult
+	(*PullFileTask)(nil),  // 12: agent.v1.PullFileTask
+	(*FileChunkData)(nil), // 13: agent.v1.FileChunkData
 }
 var file_proto_agent_v1_agent_proto_depIdxs = []int32{
 	2,  // 0: agent.v1.AgentMessage.register:type_name -> agent.v1.Register
 	4,  // 1: agent.v1.AgentMessage.heartbeat:type_name -> agent.v1.Heartbeat
 	11, // 2: agent.v1.AgentMessage.result:type_name -> agent.v1.TaskResult
 	10, // 3: agent.v1.AgentMessage.file_ack:type_name -> agent.v1.FileChunkAck
-	3,  // 4: agent.v1.ServerMessage.register_ack:type_name -> agent.v1.RegisterAck
-	6,  // 5: agent.v1.ServerMessage.execute:type_name -> agent.v1.ExecuteTask
-	9,  // 6: agent.v1.ServerMessage.push_file:type_name -> agent.v1.PushFileTask
-	5,  // 7: agent.v1.ServerMessage.ping:type_name -> agent.v1.Ping
-	7,  // 8: agent.v1.ExecuteTask.command:type_name -> agent.v1.CommandSpec
-	8,  // 9: agent.v1.ExecuteTask.script:type_name -> agent.v1.ScriptSpec
-	0,  // 10: agent.v1.AgentService.Stream:input_type -> agent.v1.AgentMessage
-	1,  // 11: agent.v1.AgentService.Stream:output_type -> agent.v1.ServerMessage
-	11, // [11:12] is the sub-list for method output_type
-	10, // [10:11] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	13, // 4: agent.v1.AgentMessage.file_data:type_name -> agent.v1.FileChunkData
+	3,  // 5: agent.v1.ServerMessage.register_ack:type_name -> agent.v1.RegisterAck
+	6,  // 6: agent.v1.ServerMessage.execute:type_name -> agent.v1.ExecuteTask
+	9,  // 7: agent.v1.ServerMessage.push_file:type_name -> agent.v1.PushFileTask
+	5,  // 8: agent.v1.ServerMessage.ping:type_name -> agent.v1.Ping
+	12, // 9: agent.v1.ServerMessage.pull_file:type_name -> agent.v1.PullFileTask
+	7,  // 10: agent.v1.ExecuteTask.command:type_name -> agent.v1.CommandSpec
+	8,  // 11: agent.v1.ExecuteTask.script:type_name -> agent.v1.ScriptSpec
+	0,  // 12: agent.v1.AgentService.Stream:input_type -> agent.v1.AgentMessage
+	1,  // 13: agent.v1.AgentService.Stream:output_type -> agent.v1.ServerMessage
+	13, // [13:14] is the sub-list for method output_type
+	12, // [12:13] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proto_agent_v1_agent_proto_init() }
@@ -1065,12 +1270,14 @@ func file_proto_agent_v1_agent_proto_init() {
 		(*AgentMessage_Heartbeat)(nil),
 		(*AgentMessage_Result)(nil),
 		(*AgentMessage_FileAck)(nil),
+		(*AgentMessage_FileData)(nil),
 	}
 	file_proto_agent_v1_agent_proto_msgTypes[1].OneofWrappers = []any{
 		(*ServerMessage_RegisterAck)(nil),
 		(*ServerMessage_Execute)(nil),
 		(*ServerMessage_PushFile)(nil),
 		(*ServerMessage_Ping)(nil),
+		(*ServerMessage_PullFile)(nil),
 	}
 	file_proto_agent_v1_agent_proto_msgTypes[6].OneofWrappers = []any{
 		(*ExecuteTask_Command)(nil),
@@ -1082,7 +1289,7 @@ func file_proto_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_agent_v1_agent_proto_rawDesc), len(file_proto_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

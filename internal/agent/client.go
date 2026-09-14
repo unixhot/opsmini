@@ -16,6 +16,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -26,6 +27,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 
 	agentpb "github.com/opsmini/opsmini/internal/agent/pb"
 )
@@ -96,7 +98,14 @@ func (c *Client) Run(ctx context.Context) {
 
 // connect performs a single dial + register + receive loop; returns when the stream breaks.
 func (c *Client) connect(ctx context.Context) error {
-	conn, err := grpc.NewClient(c.cfg.ServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(c.cfg.ServerAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                30 * time.Second,
+			Timeout:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
+	)
 	if err != nil {
 		return err
 	}
@@ -173,6 +182,8 @@ func (c *Client) connect(ctx context.Context) error {
 			go c.handleExecute(ctx, p.Execute, sendCh)
 		case *agentpb.ServerMessage_PushFile:
 			go c.handlePushFile(ctx, p.PushFile, sendCh)
+		case *agentpb.ServerMessage_PullFile:
+			go c.handlePullFile(ctx, p.PullFile, sendCh)
 		case *agentpb.ServerMessage_Ping:
 			sendCh <- &agentpb.AgentMessage{Payload: &agentpb.AgentMessage_Heartbeat{
 				Heartbeat: &agentpb.Heartbeat{AgentId: ack.AgentId, Timestamp: time.Now().Unix()},
@@ -325,4 +336,62 @@ func (c *Client) receiveFile(ctx context.Context, t *agentpb.PushFileTask) *agen
 		}
 	}
 	return ack
+}
+
+// chunkSize is the fixed chunk size for file transfer (64 KiB).
+const chunkSize = 64 * 1024
+
+// handlePullFile responds to a file-pull request by uploading the file in chunks.
+func (c *Client) handlePullFile(ctx context.Context, t *agentpb.PullFileTask, sendCh chan<- *agentpb.AgentMessage) {
+	send := func(d *agentpb.FileChunkData) {
+		sendCh <- &agentpb.AgentMessage{Payload: &agentpb.AgentMessage_FileData{FileData: d}}
+	}
+	fail := func(jobID, path, msg string) {
+		send(&agentpb.FileChunkData{JobId: jobID, Path: path, Error: msg})
+	}
+
+	f, err := os.Open(t.Path)
+	if err != nil {
+		fail(t.JobId, t.Path, err.Error())
+		return
+	}
+	defer f.Close()
+
+	st, err := f.Stat()
+	if err != nil {
+		fail(t.JobId, t.Path, err.Error())
+		return
+	}
+	total := st.Size()
+
+	sum := md5.New()
+	buf := make([]byte, chunkSize)
+	var offset int64
+	for {
+		n, readErr := f.Read(buf)
+		if n > 0 {
+			_, _ = sum.Write(buf[:n])
+			offset += int64(n)
+			last := offset >= total // offset reaching total means the final chunk
+			d := &agentpb.FileChunkData{
+				JobId:  t.JobId,
+				Path:   t.Path,
+				Offset: offset - int64(n),
+				Chunk:  buf[:n],
+				Size:   total,
+				Last:   last,
+			}
+			if last {
+				d.Md5 = hex.EncodeToString(sum.Sum(nil))
+			}
+			send(d)
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			fail(t.JobId, t.Path, readErr.Error())
+			return
+		}
+	}
 }
