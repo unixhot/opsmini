@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -39,12 +40,13 @@ type AgentConn struct {
 	ConnectedAt time.Time
 	LastSeen    time.Time
 
-	stream  agentpb.AgentService_StreamServer
-	sendCh  chan *agentpb.ServerMessage
-	results map[string]chan *agentpb.TaskResult   // jobID -> result chan (execute)
-	files   map[string]chan *agentpb.FileChunkData // jobID -> chunk chan (pull)
-	done    chan struct{}
-	mu      sync.Mutex
+	stream   agentpb.AgentService_StreamServer
+	sendCh   chan *agentpb.ServerMessage
+	results  map[string]chan *agentpb.TaskResult    // jobID -> result chan (execute)
+	files    map[string]chan *agentpb.FileChunkData // jobID -> chunk chan (pull)
+	fileAcks map[string]chan *agentpb.FileChunkAck  // jobID -> ack chan (push)
+	done     chan struct{}
+	mu       sync.Mutex
 }
 
 // NewServer creates a Server. token is optional; empty disables registration auth.
@@ -234,6 +236,116 @@ done:
 	return data, nil
 }
 
+// PushFile pushes a local file (srcPath on the Server host) to destPath on the agent.
+func (s *Server) PushFile(ctx context.Context, hostname, srcPath, destPath, mode string) error {
+	ac := s.Agent(hostname)
+	if ac == nil {
+		return fmt.Errorf("agent %q not connected", hostname)
+	}
+	return ac.pushFile(ctx, srcPath, destPath, mode)
+}
+
+// pushFile reads srcPath, streams it in chunks to the agent, and verifies receipt.
+// It sends one chunk at a time and waits for each FileChunkAck (simple and reliable,
+// with resumable transfer: on a short ack it resumes from the acknowledged offset).
+func (ac *AgentConn) pushFile(ctx context.Context, srcPath, destPath, mode string) error {
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("read source %s: %w", srcPath, err)
+	}
+	total := int64(len(data))
+	sum := md5.Sum(data)
+	md5hex := hex.EncodeToString(sum[:])
+
+	jobID := fmt.Sprintf("push-%d", time.Now().UnixNano())
+	ackCh := make(chan *agentpb.FileChunkAck, 16)
+	ac.mu.Lock()
+	ac.fileAcks[jobID] = ackCh
+	ac.mu.Unlock()
+	defer func() {
+		ac.mu.Lock()
+		delete(ac.fileAcks, jobID)
+		ac.mu.Unlock()
+	}()
+
+	send := func(t *agentpb.PushFileTask) error {
+		select {
+		case ac.sendCh <- &agentpb.ServerMessage{Payload: &agentpb.ServerMessage_PushFile{PushFile: t}}:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ac.done:
+			return fmt.Errorf("agent %q disconnected", ac.ID)
+		}
+	}
+	recvAck := func() (*agentpb.FileChunkAck, error) {
+		select {
+		case a := <-ackCh:
+			return a, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ac.done:
+			return nil, fmt.Errorf("agent %q disconnected", ac.ID)
+		}
+	}
+
+	// Empty file: send a single last chunk with no data.
+	if total == 0 {
+		t := &agentpb.PushFileTask{JobId: jobID, Path: destPath, Mode: mode, Size: 0, Md5: md5hex, Offset: 0, Last: true}
+		if err := send(t); err != nil {
+			return err
+		}
+		a, err := recvAck()
+		if err != nil {
+			return err
+		}
+		if a.Error != "" {
+			return fmt.Errorf("push %s: %s", destPath, a.Error)
+		}
+		return nil
+	}
+
+	offset := int64(0)
+	for offset < total {
+		end := offset + chunkSize
+		if end > total {
+			end = total
+		}
+		last := end >= total
+		t := &agentpb.PushFileTask{
+			JobId:  jobID,
+			Path:   destPath,
+			Mode:   mode,
+			Size:   total,
+			Md5:    md5hex,
+			Offset: offset,
+			Chunk:  data[offset:end],
+			Last:   last,
+		}
+		if err := send(t); err != nil {
+			return err
+		}
+		a, err := recvAck()
+		if err != nil {
+			return err
+		}
+		if a.Error != "" {
+			return fmt.Errorf("push %s: %s", destPath, a.Error)
+		}
+		// Resumable transfer: resume from the last acknowledged offset if short.
+		want := offset + int64(len(t.Chunk))
+		if a.Received < want {
+			offset = a.Received
+			continue
+		}
+		if last && a.Md5 != "" && a.Md5 != md5hex {
+			return fmt.Errorf("push %s: md5 mismatch", destPath)
+		}
+		offset = end
+	}
+	return nil
+}
+
 // Stream implements the bidirectional stream: register, then relay messages.
 func (s *Server) Stream(stream agentpb.AgentService_StreamServer) error {
 	// 1. Await the Register message.
@@ -262,6 +374,7 @@ func (s *Server) Stream(stream agentpb.AgentService_StreamServer) error {
 		sendCh:      make(chan *agentpb.ServerMessage, 32),
 		results:     make(map[string]chan *agentpb.TaskResult),
 		files:       make(map[string]chan *agentpb.FileChunkData),
+		fileAcks:    make(map[string]chan *agentpb.FileChunkAck),
 		done:        make(chan struct{}),
 	}
 
@@ -323,7 +436,12 @@ func (s *Server) Stream(stream agentpb.AgentService_StreamServer) error {
 				ch <- p.Result
 			}
 		case *agentpb.AgentMessage_FileAck:
-			// File push (Server->Agent) chunk acknowledgement; resumable transfer is handled by the caller.
+			ac.mu.Lock()
+			ch := ac.fileAcks[p.FileAck.JobId]
+			ac.mu.Unlock()
+			if ch != nil {
+				ch <- p.FileAck
+			}
 		case *agentpb.AgentMessage_FileData:
 			ac.mu.Lock()
 			ch := ac.files[p.FileData.JobId]

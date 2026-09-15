@@ -16,6 +16,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/agent"
@@ -121,6 +122,45 @@ func main() {
 			"size":           len(data),
 			"md5":            hex.EncodeToString(sum[:]),
 			"content_base64": base64.StdEncoding.EncodeToString(data),
+		})
+	})
+
+	// POST /push — push a local file (on the Server host) to an agent's path.
+	// Body: {"hostname":"...", "src":"/local/source", "dest":"/remote/path", "mode":"0755"}
+	mux.HandleFunc("/push", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Hostname string `json:"hostname"`
+			Src      string `json:"src"`
+			Dest     string `json:"dest"`
+			Mode     string `json:"mode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.Hostname == "" || req.Src == "" || req.Dest == "" {
+			http.Error(w, "hostname, src and dest are required", http.StatusBadRequest)
+			return
+		}
+		if err := srv.PushFile(r.Context(), req.Hostname, req.Src, req.Dest, req.Mode); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		data, err := os.ReadFile(req.Src)
+		if err != nil {
+			http.Error(w, "read back source: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		sum := md5.Sum(data)
+		writeJSON(w, map[string]any{
+			"src":  req.Src,
+			"dest": req.Dest,
+			"size": len(data),
+			"md5":  hex.EncodeToString(sum[:]),
 		})
 	})
 
