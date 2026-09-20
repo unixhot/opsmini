@@ -25,6 +25,8 @@ type mcpReq struct {
 	Transport string `json:"transport"`
 	Command   string `json:"command"`
 	URL       string `json:"url"`
+	Headers   string `json:"headers"` // JSON array of {name, value} for sse/http custom headers
+	Timeout   int    `json:"timeout"` // request timeout in seconds
 	Enabled   *bool  `json:"enabled"`
 }
 
@@ -45,9 +47,12 @@ func (h *McpHandler) Create(c *gin.Context) {
 		response.Error(c, 400, response.CodeInvalidParam, err.Error())
 		return
 	}
-	m := &model.McpServer{Name: req.Name, Transport: req.Transport, Command: req.Command, URL: req.URL, Enabled: true}
+	m := &model.McpServer{Name: req.Name, Transport: req.Transport, Command: req.Command, URL: req.URL, Headers: req.Headers, Timeout: req.Timeout, Enabled: true}
 	if req.Transport == "" {
 		m.Transport = "stdio"
+	}
+	if req.Timeout <= 0 {
+		m.Timeout = 30
 	}
 	if req.Enabled != nil {
 		m.Enabled = *req.Enabled
@@ -71,9 +76,12 @@ func (h *McpHandler) Update(c *gin.Context) {
 		response.Error(c, 400, response.CodeInvalidParam, err.Error())
 		return
 	}
-	m := &model.McpServer{ID: uint(id), Name: req.Name, Transport: req.Transport, Command: req.Command, URL: req.URL}
+	m := &model.McpServer{ID: uint(id), Name: req.Name, Transport: req.Transport, Command: req.Command, URL: req.URL, Headers: req.Headers, Timeout: req.Timeout}
 	if m.Transport == "" {
 		m.Transport = "stdio"
+	}
+	if m.Timeout <= 0 {
+		m.Timeout = 30
 	}
 	if req.Enabled != nil {
 		m.Enabled = *req.Enabled

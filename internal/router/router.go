@@ -67,7 +67,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return err == nil && v == "true"
 	}, func() bool {
 		v, err := settingSvc.Get("allow_opsant_sso")
-		return err == nil && v == "true"
+		// 默认打开：只有显式 "false" 才禁用（未设置/空/"true" 均为开启）
+		return err != nil || v == "" || v == "true"
 	}, cfg.Agent.ServerToken)
 	userSvc := service.NewUserService(userRepo)
 	auditSvc := service.NewAuditService(repository.NewAuditLogRepo(db))
