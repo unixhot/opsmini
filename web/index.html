@@ -187,6 +187,7 @@
   /* ===== 表格 ===== */
   .table-wrap{overflow-x:auto}
   table{width:100%;border-collapse:collapse;font-size:13px}
+  .file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
   th{text-align:left;padding:11px 16px;color:var(--t3);font-weight:600;font-size:12px;border-bottom:1px solid var(--border);background:var(--th);white-space:nowrap}
   td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--t1);white-space:nowrap}
   tr:last-child td{border-bottom:none}
@@ -232,6 +233,8 @@
   .term-select{height:26px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:12px;padding:0 6px;outline:none;cursor:pointer}
   .terminal:fullscreen{height:100%;border-radius:0}
   .terminal:fullscreen .terminal-body{overflow:hidden}
+  .terminal.term-fullscreen{position:fixed;inset:0;z-index:9999;width:100%;height:100%;border-radius:0;background:#0d1117}
+  .terminal.term-fullscreen .terminal-body{overflow:hidden}
   .terminal-input{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#161b22}
   .terminal-input input{flex:1;background:none;border:none;outline:none;color:#c9d1d9;font-family:inherit;font-size:13px}
   .t-user{color:#4fddbf}
@@ -1293,10 +1296,10 @@
               <thead><tr><th>{{ t('common.name') }}</th><th>{{ t('common.type') }}</th><th>{{ t('th.size') }}</th><th>{{ t('th.perm') }}</th><th>{{ t('th.mtime') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
               <tbody>
                 <tr v-for="f in files" :key="f.name" @dblclick="f.dir && openFile(f.path)">
-                  <td>
-                    <span class="row" style="gap:8px">
-                      <svg width="16" height="16" :viewBox="f.dir?'0 0 24 24':'0 0 24 24'" fill="none" stroke="currentColor" stroke-width="1.8" :style="{color:f.dir?'var(--warning)':'var(--t3)'}"><path :d="f.dir?'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z':'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6'"/></svg>
-                      <span :class="f.dir?'link':'mono'" @click="f.dir && openFile(f.path)" :style="f.dir?'cursor:pointer':''">{{ f.name }}</span>
+                  <td style="max-width:0;width:100%">
+                    <span class="row" style="gap:8px;min-width:0">
+                      <svg width="16" height="16" :viewBox="f.dir?'0 0 24 24':'0 0 24 24'" fill="none" stroke="currentColor" stroke-width="1.8" :style="{color:f.dir?'var(--warning)':'var(--t3)',flex:'none'}"><path :d="f.dir?'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z':'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6'"/></svg>
+                      <span class="file-name" :class="f.dir?'link':'mono'" :title="f.name" @click="f.dir && openFile(f.path)" :style="f.dir?'cursor:pointer':''">{{ f.name }}</span>
                     </span>
                   </td>
                   <td>{{ f.dir ? t('common.folder') : t('common.file') }}</td>
@@ -1316,7 +1319,7 @@
       </div>
 
       <!-- ============ 终端 ============ -->
-      <div v-if="page==='terminal'" style="height:100%;display:flex;flex-direction:column;min-height:0">
+      <div v-show="page==='terminal'" style="height:100%;display:flex;flex-direction:column;min-height:0">
         <div class="page-head" style="flex:none">
           <div><div class="page-title">{{ t('page.terminal') }}</div><div class="page-desc">{{ t('terminal.desc') }}</div></div>
           <div class="row">
@@ -1338,6 +1341,9 @@
               </span>
               <select class="term-select" v-model="termTheme" @change="applyTermTheme" :title="t('term.theme')">
                 <option v-for="th in termThemes" :key="th.id" :value="th.id">{{ th.name }}</option>
+              </select>
+              <select class="term-select" v-model="termCharset" @change="applyTermCharset" :title="t('term.charset')">
+                <option v-for="cs in termCharsets" :key="cs.id" :value="cs.id">{{ cs.name }}</option>
               </select>
               <button class="term-btn" @click="toggleTermFullscreen" :title="termFullscreen ? t('term.exitFull') : t('term.full')">
                 <svg v-if="!termFullscreen" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -3354,7 +3360,7 @@ const I18N8 = {
     'misc.mount':'挂载点','containers.dockerUnavailable':'未检测到 Docker 服务',
     'topbar.help':'帮助','topbar.docs':'官方文档','topbar.github':'GitHub',
     'monitor.all':'全部','monitor.sysProc':'系统进程','monitor.appProc':'应用进程','process.killTitle':'结束进程','process.signal':'结束信号','net.physical':'物理网卡','net.virtual':'虚拟网卡','net.loopback':'回环接口','monitor.type':'类型',
-    'modal.userEdit':'编辑用户','monitor.newPassword':'新密码','terminal.connected':'已连接','terminal.connecting':'连接中…','term.full':'全屏','term.exitFull':'退出全屏','term.fontUp':'增大字号','term.tab':'终端','term.newTab':'新建会话','term.closeTab':'关闭会话','term.fontDown':'减小字号','term.theme':'配色方案',
+    'modal.userEdit':'编辑用户','monitor.newPassword':'新密码','terminal.connected':'已连接','terminal.connecting':'连接中…','term.full':'全屏','term.exitFull':'退出全屏','term.fontUp':'增大字号','term.tab':'终端','term.newTab':'新建会话','term.closeTab':'关闭会话','term.fontDown':'减小字号','term.theme':'配色方案','term.charset':'字符集',
   },
   'zh-TW': {
     'btn.refresh':'重新整理','monitor.loading':'重新整理中…','monitor.basic':'基本資料','monitor.chartTab':'監控圖表','monitor.rulesTab':'告警規則','monitor.hostname':'主機名稱','monitor.ip':'IP 位址',
@@ -3364,7 +3370,7 @@ const I18N8 = {
     'misc.mount':'掛載點','containers.dockerUnavailable':'未偵測到 Docker 服務',
     'topbar.help':'說明','topbar.docs':'官方文件','topbar.github':'GitHub',
     'monitor.all':'全部','monitor.sysProc':'系統處理程序','monitor.appProc':'應用處理程序','process.killTitle':'結束處理程序','process.signal':'結束訊號','net.physical':'實體網卡','net.virtual':'虛擬網卡','net.loopback':'迴環介面','monitor.type':'類型',
-    'modal.userEdit':'編輯使用者','monitor.newPassword':'新密碼','terminal.connected':'已連線','terminal.connecting':'連線中…','term.full':'全螢幕','term.exitFull':'退出全螢幕','term.fontUp':'增大字號','term.tab':'終端','term.newTab':'新增會話','term.closeTab':'關閉會話','term.fontDown':'減小字號','term.theme':'配色方案',
+    'modal.userEdit':'編輯使用者','monitor.newPassword':'新密碼','terminal.connected':'已連線','terminal.connecting':'連線中…','term.full':'全螢幕','term.exitFull':'退出全螢幕','term.fontUp':'增大字號','term.tab':'終端','term.newTab':'新增會話','term.closeTab':'關閉會話','term.fontDown':'減小字號','term.theme':'配色方案','term.charset':'字元集',
   },
   'en': {
     'btn.refresh':'Refresh','monitor.loading':'Refreshing…','monitor.basic':'Basic Info','monitor.chartTab':'Charts','monitor.rulesTab':'Alert Rules','monitor.hostname':'Hostname','monitor.ip':'IP Address',
@@ -3374,7 +3380,7 @@ const I18N8 = {
     'misc.mount':'Mount','containers.dockerUnavailable':'Docker service not detected',
     'topbar.help':'Help','topbar.docs':'Documentation','topbar.github':'GitHub',
     'monitor.all':'All','monitor.sysProc':'System Process','monitor.appProc':'App Process','process.killTitle':'Kill Process','process.signal':'Signal','net.physical':'Physical NIC','net.virtual':'Virtual NIC','net.loopback':'Loopback','monitor.type':'Type',
-    'modal.userEdit':'Edit User','monitor.newPassword':'New Password','terminal.connected':'Connected','terminal.connecting':'Connecting…','term.full':'Fullscreen','term.exitFull':'Exit fullscreen','term.fontUp':'Increase font','term.tab':'Terminal','term.newTab':'New session','term.closeTab':'Close session','term.fontDown':'Decrease font','term.theme':'Color scheme',
+    'modal.userEdit':'Edit User','monitor.newPassword':'New Password','terminal.connected':'Connected','terminal.connecting':'Connecting…','term.full':'Fullscreen','term.exitFull':'Exit fullscreen','term.fontUp':'Increase font','term.tab':'Terminal','term.newTab':'New session','term.closeTab':'Close session','term.fontDown':'Decrease font','term.theme':'Color scheme','term.charset':'Charset',
   },
   'ja': {
     'btn.refresh':'更新','monitor.loading':'更新中…','monitor.basic':'基本情報','monitor.chartTab':'チャート','monitor.rulesTab':'アラートルール','monitor.hostname':'ホスト名','monitor.ip':'IP アドレス',
@@ -3384,7 +3390,7 @@ const I18N8 = {
     'misc.mount':'マウント','containers.dockerUnavailable':'Docker サービスが検出されません',
     'topbar.help':'ヘルプ','topbar.docs':'ドキュメント','topbar.github':'GitHub',
     'monitor.all':'すべて','monitor.sysProc':'システムプロセス','monitor.appProc':'アプリプロセス','process.killTitle':'プロセス終了','process.signal':'シグナル','net.physical':'物理NIC','net.virtual':'仮想NIC','net.loopback':'ループバック','monitor.type':'種類',
-    'modal.userEdit':'ユーザー編集','monitor.newPassword':'新しいパスワード','terminal.connected':'接続済み','terminal.connecting':'接続中…','term.full':'全画面','term.exitFull':'全画面終了','term.fontUp':'フォント拡大','term.tab':'ターミナル','term.newTab':'新しいセッション','term.closeTab':'セッションを閉じる','term.fontDown':'フォント縮小','term.theme':'配色',
+    'modal.userEdit':'ユーザー編集','monitor.newPassword':'新しいパスワード','terminal.connected':'接続済み','terminal.connecting':'接続中…','term.full':'全画面','term.exitFull':'全画面終了','term.fontUp':'フォント拡大','term.tab':'ターミナル','term.newTab':'新しいセッション','term.closeTab':'セッションを閉じる','term.fontDown':'フォント縮小','term.theme':'配色','term.charset':'文字コード',
   },
   'ko': {
     'btn.refresh':'새로고침','monitor.loading':'새로고침 중…','monitor.basic':'기본 정보','monitor.chartTab':'차트','monitor.rulesTab':'알림 규칙','monitor.hostname':'호스트명','monitor.ip':'IP 주소',
@@ -3394,7 +3400,7 @@ const I18N8 = {
     'misc.mount':'마운트','containers.dockerUnavailable':'Docker 서비스를 찾을 수 없음',
     'topbar.help':'도움말','topbar.docs':'문서','topbar.github':'GitHub',
     'monitor.all':'전체','monitor.sysProc':'시스템 프로세스','monitor.appProc':'앱 프로세스','process.killTitle':'프로세스 종료','process.signal':'시그널','net.physical':'물리 NIC','net.virtual':'가상 NIC','net.loopback':'루프백','monitor.type':'유형',
-    'modal.userEdit':'사용자 편집','monitor.newPassword':'새 비밀번호','terminal.connected':'연결됨','terminal.connecting':'연결 중…','term.full':'전체 화면','term.exitFull':'전체 화면 종료','term.fontUp':'글꼴 확대','term.tab':'터미널','term.newTab':'새 세션','term.closeTab':'세션 닫기','term.fontDown':'글꼴 축소','term.theme':'색상 테마',
+    'modal.userEdit':'사용자 편집','monitor.newPassword':'새 비밀번호','terminal.connected':'연결됨','terminal.connecting':'연결 중…','term.full':'전체 화면','term.exitFull':'전체 화면 종료','term.fontUp':'글꼴 확대','term.tab':'터미널','term.newTab':'새 세션','term.closeTab':'세션 닫기','term.fontDown':'글꼴 축소','term.theme':'색상 테마','term.charset':'문자 집합',
   },
   'th': {
     'btn.refresh':'รีเฟรช','monitor.loading':'กำลังรีเฟรช…','monitor.basic':'ข้อมูลพื้นฐาน','monitor.chartTab':'แผนภูมิ','monitor.rulesTab':'กฎการแจ้งเตือน','monitor.hostname':'ชื่อโฮสต์','monitor.ip':'ที่อยู่ IP',
@@ -3404,7 +3410,7 @@ const I18N8 = {
     'misc.mount':'จุดเมานต์','containers.dockerUnavailable':'ไม่พบบริการ Docker',
     'topbar.help':'ช่วยเหลือ','topbar.docs':'เอกสาร','topbar.github':'GitHub',
     'monitor.all':'ทั้งหมด','monitor.sysProc':'โปรเซสระบบ','monitor.appProc':'โปรเซสแอป','process.killTitle':'สิ้นสุดโปรเซส','process.signal':'สัญญาณ','net.physical':'การ์ดเน็ตจริง','net.virtual':'การ์ดเน็ตเสมือน','net.loopback':'ลูปแบ็ก','monitor.type':'ประเภท',
-    'modal.userEdit':'แก้ไขผู้ใช้','monitor.newPassword':'รหัสผ่านใหม่','terminal.connected':'เชื่อมต่อแล้ว','terminal.connecting':'กำลังเชื่อมต่อ…','term.full':'เต็มหน้าจอ','term.exitFull':'ออกจากเต็มหน้าจอ','term.fontUp':'เพิ่มขนาดตัวอักษร','term.tab':'เทอร์มินัล','term.newTab':'เซสชันใหม่','term.closeTab':'ปิดเซสชัน','term.fontDown':'ลดขนาดตัวอักษร','term.theme':'ชุดสี',
+    'modal.userEdit':'แก้ไขผู้ใช้','monitor.newPassword':'รหัสผ่านใหม่','terminal.connected':'เชื่อมต่อแล้ว','terminal.connecting':'กำลังเชื่อมต่อ…','term.full':'เต็มหน้าจอ','term.exitFull':'ออกจากเต็มหน้าจอ','term.fontUp':'เพิ่มขนาดตัวอักษร','term.tab':'เทอร์มินัล','term.newTab':'เซสชันใหม่','term.closeTab':'ปิดเซสชัน','term.fontDown':'ลดขนาดตัวอักษร','term.theme':'ชุดสี','term.charset':'ชุดอักขระ',
   },
   'de': {
     'btn.refresh':'Aktualisieren','monitor.loading':'Aktualisiere…','monitor.basic':'Basisinformationen','monitor.chartTab':'Diagramme','monitor.rulesTab':'Alarmregeln','monitor.hostname':'Hostname','monitor.ip':'IP-Adresse',
@@ -3414,7 +3420,7 @@ const I18N8 = {
     'misc.mount':'Mount','containers.dockerUnavailable':'Docker-Dienst nicht erkannt',
     'topbar.help':'Hilfe','topbar.docs':'Dokumentation','topbar.github':'GitHub',
     'monitor.all':'Alle','monitor.sysProc':'Systemprozess','monitor.appProc':'App-Prozess','process.killTitle':'Prozess beenden','process.signal':'Signal','net.physical':'Physische NIC','net.virtual':'Virtuelle NIC','net.loopback':'Loopback','monitor.type':'Typ',
-    'modal.userEdit':'Benutzer bearbeiten','monitor.newPassword':'Neues Passwort','terminal.connected':'Verbunden','terminal.connecting':'Verbinde…','term.full':'Vollbild','term.exitFull':'Vollbild verlassen','term.fontUp':'Schrift vergrößern','term.tab':'Terminal','term.newTab':'Neue Sitzung','term.closeTab':'Sitzung schließen','term.fontDown':'Schrift verkleinern','term.theme':'Farbschema',
+    'modal.userEdit':'Benutzer bearbeiten','monitor.newPassword':'Neues Passwort','terminal.connected':'Verbunden','terminal.connecting':'Verbinde…','term.full':'Vollbild','term.exitFull':'Vollbild verlassen','term.fontUp':'Schrift vergrößern','term.tab':'Terminal','term.newTab':'Neue Sitzung','term.closeTab':'Sitzung schließen','term.fontDown':'Schrift verkleinern','term.theme':'Farbschema','term.charset':'Zeichensatz',
   },
 };
 
@@ -3586,6 +3592,13 @@ createApp({
       termFontSize: 16,
       termTheme: 'xshell',
       termFullscreen: false,
+      termCharset: 'utf-8',
+      termCharsets: [
+        { id:'utf-8', name:'UTF-8' },
+        { id:'gbk', name:'GBK' },
+        { id:'gb18030', name:'GB18030' },
+        { id:'big5', name:'Big5' },
+      ],
       termThemes: [
         { id:'xshell', name:'XShell 黑', bg:'#0c0c0c', fg:'#d6d6d6' },
         { id:'ubuntu', name:'Ubuntu 紫', bg:'#300a24', fg:'#ffffff' },
@@ -3826,8 +3839,9 @@ createApp({
     goQuick(q){ if(q.tab && q.to==='apps') this.goApps(q.tab); else this.go(q.to); },
     onPageChange(){
       const p = this.page;
-      // 离开终端页时断开连接，并清除容器终端上下文（回到宿主终端）
-      if(p !== 'terminal'){ this.disconnectTerminal(); this.containerTermId = null; this.containerTermName = ''; }
+      // 终端会话保持：切换页面不断开连接、不重置（v-show 保持 DOM），会话期内终端状态保留。
+      // 仅清理容器终端上下文（容器终端走抽屉，此处为旧字段兼容清理）。
+      if(p !== 'terminal'){ this.containerTermId = null; this.containerTermName = ''; }
       if(p==='dashboard') this.loadDashboard();
       else if(p==='monitoring'){ this.loadMonitor(); this.loadAlertRules && this.loadAlertRules(); }
       else if(p==='system') this.loadSystemData();
@@ -5797,7 +5811,18 @@ createApp({
           ws.send(JSON.stringify({ type:'resize', cols: term.cols, rows: term.rows }));
         }
       };
-      ws.onmessage = (ev) => { if(term) term.write(new Uint8Array(ev.data)); };
+      ws.onmessage = (ev) => {
+        if(!term) return;
+        // 字符集解码：UTF-8 走 xterm 内置流式解码；GBK/GB18030/Big5 用 TextDecoder 流式解码后再写入
+        const cs = this.termCharset || 'utf-8';
+        if(cs === 'utf-8'){
+          term.write(new Uint8Array(ev.data));
+        } else {
+          if(!this._termDecoders) this._termDecoders = {};
+          if(!this._termDecoders[id]) this._termDecoders[id] = new TextDecoder(cs);
+          term.write(this._termDecoders[id].decode(new Uint8Array(ev.data), { stream: true }));
+        }
+      };
       ws.onclose = () => {
         tab.connected = false; tab.connecting = false;
         if(this._sockets) delete this._sockets[id];
@@ -5837,14 +5862,18 @@ createApp({
       if(!th) return;
       if(this._terms){ for(const k in this._terms){ try{ this._terms[k].setOption('theme', { background: th.bg, foreground: th.fg, cursor: th.fg }); }catch(e){} } }
     },
+    applyTermCharset(){
+      // 切换字符集：清空流式解码器，后续 pty 输出按新字符集解码（已显示内容不变，重新执行命令即可）
+      this._termDecoders = {};
+    },
     toggleTermFullscreen(){
+      // 用 CSS 模拟全屏（而非浏览器原生全屏）：浏览器原生全屏按 Esc 会退出全屏，
+      // 与 vim 的 Esc（退出编辑模式）冲突。CSS 全屏下 Esc 只发给终端，不影响全屏。
       const el = document.getElementById('term-container');
       if(!el) return;
-      if(!document.fullscreenElement){
-        if(el.requestFullscreen){ el.requestFullscreen().catch(()=>{}); }
-      }else{
-        if(document.exitFullscreen){ document.exitFullscreen().catch(()=>{}); }
-      }
+      this.termFullscreen = !this.termFullscreen;
+      if(el){ el.classList.toggle('term-fullscreen', this.termFullscreen); }
+      this.$nextTick(() => this.fitTerminal());
     },
     escape(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
     onSearch(){ if(this.search.trim()) this.toast('搜索「'+this.search+'」——原型阶段建议用左侧导航或 ⌘K 全局搜索'); },
@@ -5938,6 +5967,8 @@ createApp({
     if(this.loggedIn){ this.loadPerms(); this.loadNotifications(); this.$nextTick(()=>this.onPageChange()); }
     else { this.trySSOLogin(); }
     this.checkVersion();
+    // 页面标题：OpsMini · 访问地址，便于多标签页区分
+    document.title = 'OpsMini · ' + (location.hostname || location.host || 'localhost');
     this._clockTimer = setInterval(()=>this.updateClock(), 1000);
     window.addEventListener('resize', ()=>this.renderCharts());
     this._fsHandler = () => { this.termFullscreen = !!document.fullscreenElement; this.$nextTick(()=>this.fitTerminal()); };
