@@ -1923,7 +1923,6 @@
               <div class="card-body">
                 <div class="kv"><span class="k">{{ t('set.port') }}</span><span class="v mono">{{ panelPort }}</span></div>
                 <div class="kv"><span class="k">{{ t('set.domain') }}</span><span class="v mono">{{ panelHost }}</span></div>
-                <div class="kv"><span class="k">{{ t('set.autoup') }}</span><span class="switch on" :class="{on:set.autoup}" @click="set.autoup=!set.autoup"></span></div>
                 <div class="kv"><span class="k">{{ t('set.opsantSso') }}</span><span class="switch" :class="{on:set.allowOpsantSso}" @click="toggleOpsantSso"></span></div>
                 <div class="kv"><span class="k">{{ t('set.idleTimeout') }}</span>
                   <span class="row" style="gap:6px"><input class="input" type="number" min="1" max="1440" v-model.number="loginIdleMinutes" style="width:80px"><span style="font-size:13px;color:var(--t3)">{{ t('set.minutes') }}</span></span>
@@ -1950,9 +1949,10 @@
             </div>
           </div>
 
-          <!-- MFA 双因素验证 -->
-          <div class="card mt16" style="max-width:640px">
-            <div class="card-head"><div class="card-title">{{ t('mfa.title') }} <span class="tag info">TOTP</span></div></div>
+          <!-- MFA 双因素验证 + 接入 OpsAnt（并排） -->
+          <div class="grid grid-2 mt16">
+            <div class="card">
+              <div class="card-head"><div class="card-title">{{ t('mfa.title') }} <span class="tag info">TOTP</span></div></div>
             <div class="card-body">
               <div class="kv"><span class="k">{{ t('mfa.enableGlobal') }}</span><span class="switch" :class="{on:mfa.global}" @click="toggleMfaGlobal"></span></div>
               <div class="kv"><span class="k">{{ t('mfa.status') }}</span><span class="tag" :class="mfa.enabled?'ok':'mute'">{{ mfa.enabled ? t('mfa.bound') : t('mfa.unbound') }}</span></div>
@@ -1974,11 +1974,11 @@
               </div>
               <div class="form-hint" style="margin-top:12px;line-height:1.7">{{ t('mfa.appHint') }}</div>
             </div>
-          </div>
+            </div>
 
-          <!-- 接入 OpsAnt -->
-          <div class="card mt16" style="max-width:640px">
-            <div class="card-head"><div class="card-title">{{ t('set.opsantLink') }} <span class="tag" :class="agentCfg.running?'ok':'mute'">{{ agentCfg.running ? t('set.opsantRunning') : t('set.opsantStopped') }}</span></div></div>
+            <!-- 接入 OpsAnt -->
+            <div class="card">
+              <div class="card-head"><div class="card-title">{{ t('set.opsantLink') }} <span class="tag" :class="agentCfg.running?'ok':'mute'">{{ agentCfg.running ? t('set.opsantRunning') : t('set.opsantStopped') }}</span></div></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
               <div class="form-hint" style="line-height:1.7">{{ t('set.opsantLinkDesc') }}</div>
               <div>
@@ -1992,6 +1992,7 @@
               <div class="row" style="justify-content:flex-end">
                 <button class="btn primary" @click="saveAgentConfig">{{ t('btn.save') }}</button>
               </div>
+            </div>
             </div>
           </div>
         </div>
