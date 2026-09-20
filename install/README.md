@@ -12,7 +12,7 @@ curl -fsSL https://opsmini.com/install.sh | sudo bash
 sudo ./install.sh -b ./opsmini
 
 # 从 URL 下载并安装（支持 .tar.gz）
-sudo ./install.sh -u https://example.com/opsmini-v1.0.0-linux-amd64.tar.gz
+sudo ./install.sh -u https://example.com/opsmini-v1.1.0-linux-amd64.tar.gz
 
 # 自定义目录与端口
 sudo ./install.sh -b ./opsmini -d /opt/opsmini -p 9999
