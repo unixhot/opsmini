@@ -2,6 +2,20 @@
 
 各版本变更记录。
 
+## 未发布（开发中）
+
+v1.0.0 之后的 Agent / Server 多机架构能力，暂未正式发布：
+
+- **Agent gRPC 客户端**：Agent 主动连 OpsMini Server（单端口 gRPC 双向流），心跳 + 指数退避重连，接收执行 / 文件任务并回传结果
+- **移除 `/agent/v1` REST API**：改用 gRPC 双向流（原 REST API 及前端「API Token」设置页一并移除）
+- **OpsMini Server 端**：注册 / 心跳 / 连接管理、执行任务下发、结果接收
+- **文件拉取（PullFile）**：Server 从 Agent 拉取文件（分片上传 + size / md5 校验）
+- **文件下发（PushFile）**：Server 向 Agent 下发文件（分片 + 断点续传 + md5 校验）
+- **连接状态检测 + 长连接保活**：Agent 在线 / 离线状态、心跳超时判定、gRPC keepalive
+- **代码架构调整**：OpsMini Server 端代码迁至 OpsAnt 项目（独立 Go 子项目 `opsmini-server/`），OpsMini 仅保留 Agent
+
+> 说明：以上为 v1.0.0 之后的开发进展，尚未正式发布。正式发布时再确定版本号与 Release。
+
 ## v1.0.0（当前 · 首个正式发布）
 
 OpsMini 首个正式版本，单二进制交付，核心能力：
