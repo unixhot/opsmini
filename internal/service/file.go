@@ -1,11 +1,14 @@
 package service
 
 import (
+	"archive/zip"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 )
 
 // FileService handles file management; all paths are restricted within root to prevent directory traversal.
@@ -132,13 +135,17 @@ func (s *FileService) Rename(path, newName string) error {
 	return os.Rename(full, target)
 }
 
-// Delete deletes a file/directory (the directory must be empty).
+// Delete deletes a file or directory recursively.
 func (s *FileService) Delete(path string) error {
 	full, err := s.resolve(path)
 	if err != nil {
 		return err
 	}
-	return os.Remove(full)
+	// 保护：不允许删除 root 目录本身（否则会把整个根目录清空）。
+	if filepath.Clean(full) == filepath.Clean(s.root) {
+		return errors.New("cannot delete the root directory")
+	}
+	return os.RemoveAll(full)
 }
 
 // SaveUploaded saves uploaded file content to the target path.
@@ -167,4 +174,125 @@ func (s *FileService) Open(path string) (string, string, error) {
 		return "", "", errors.New("cannot download a directory")
 	}
 	return full, filepath.Base(full), nil
+}
+
+// DirUsage reports the recursive size of a directory and the disk usage of its containing filesystem.
+type DirUsage struct {
+	Size        int64   `json:"size"`         // recursive bytes of the directory
+	DiskUsed    int64   `json:"disk_used"`    // filesystem used bytes
+	DiskTotal   int64   `json:"disk_total"`   // filesystem total bytes
+	DiskPercent float64 `json:"disk_percent"` // 0-100
+}
+
+// DirUsage computes the directory's recursive size and its filesystem usage.
+func (s *FileService) DirUsage(path string) (*DirUsage, error) {
+	full, err := s.resolve(path)
+	if err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(full)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, errors.New("not a directory")
+	}
+	u := &DirUsage{}
+	_ = filepath.Walk(full, func(_ string, fi os.FileInfo, err error) error {
+		if err == nil && !fi.IsDir() {
+			u.Size += fi.Size()
+		}
+		return nil
+	})
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(full, &st); err == nil {
+		u.DiskTotal = int64(st.Blocks) * int64(st.Bsize)
+		u.DiskUsed = int64(st.Blocks-st.Bfree) * int64(st.Bsize)
+		if u.DiskTotal > 0 {
+			u.DiskPercent = float64(u.DiskUsed) / float64(u.DiskTotal) * 100
+		}
+	}
+	return u, nil
+}
+
+// CompressDir zips a directory into a temporary file, returning the temp path and the download filename.
+// The caller is responsible for removing the temp file after the download completes.
+func (s *FileService) CompressDir(path string) (tempPath, downloadName string, err error) {
+	full, err := s.resolve(path)
+	if err != nil {
+		return "", "", err
+	}
+	info, err := os.Stat(full)
+	if err != nil {
+		return "", "", err
+	}
+	if !info.IsDir() {
+		return "", "", errors.New("not a directory")
+	}
+	base := filepath.Base(full)
+	if base == "." || base == "/" || base == "" || base == string(filepath.Separator) {
+		base = "archive"
+	}
+	tmp, err := os.CreateTemp("", "opsmini-"+base+"-*.zip")
+	if err != nil {
+		return "", "", err
+	}
+	cleanup := func() {
+		tmp.Close()
+		os.Remove(tmp.Name())
+	}
+
+	zw := zip.NewWriter(tmp)
+	root := filepath.Clean(full)
+	walkErr := filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if p == root {
+			return nil // skip the root directory itself
+		}
+		rel, err := filepath.Rel(filepath.Dir(root), p)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		hdr, err := zip.FileInfoHeader(fi)
+		if err != nil {
+			return err
+		}
+		hdr.Name = rel
+		if fi.IsDir() {
+			hdr.Name += "/"
+		}
+		w, err := zw.CreateHeader(hdr)
+		if err != nil {
+			return err
+		}
+		if !fi.IsDir() {
+			f, err := os.Open(p)
+			if err != nil {
+				return err
+			}
+			_, err = io.Copy(w, f)
+			f.Close()
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if walkErr != nil {
+		_ = zw.Close()
+		cleanup()
+		return "", "", walkErr
+	}
+	if err := zw.Close(); err != nil {
+		cleanup()
+		return "", "", err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmp.Name())
+		return "", "", err
+	}
+	return tmp.Name(), base + ".zip", nil
 }

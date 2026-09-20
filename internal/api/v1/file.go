@@ -2,6 +2,7 @@ package v1
 
 import (
 	"io"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
@@ -125,4 +126,27 @@ func (h *FileHandler) Upload(c *gin.Context) {
 		return
 	}
 	response.OK(c, gin.H{"name": file.Filename, "size": len(data)})
+}
+
+// Du GET /files/du?path=... — directory recursive size + filesystem usage (for the download dialog).
+func (h *FileHandler) Du(c *gin.Context) {
+	p := c.Query("path")
+	u, err := h.svc.DirUsage(p)
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, u)
+}
+
+// DownloadDir GET /files/download-dir?path=... — zip the directory and download it.
+func (h *FileHandler) DownloadDir(c *gin.Context) {
+	p := c.Query("path")
+	tmp, name, err := h.svc.CompressDir(p)
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	defer os.Remove(tmp)
+	c.FileAttachment(tmp, name)
 }

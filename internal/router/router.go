@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
+	"github.com/opsmini/opsmini/internal/agent"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/middleware"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
@@ -22,7 +23,8 @@ import (
 )
 
 // New constructs the Gin engine and registers routes. version is the build version, exposed via healthz for silent version detection by the frontend.
-func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, version string) *gin.Engine {
+// agentMgr manages the Agent gRPC client lifecycle, allowing runtime reconfiguration of the OpsAnt link.
+func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, version string, agentMgr *agent.Manager) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
@@ -63,7 +65,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	authSvc := service.NewAuthService(userRepo, jwtMgr, func() bool {
 		v, err := settingSvc.Get("mfa_enabled")
 		return err == nil && v == "true"
-	})
+	}, func() bool {
+		v, err := settingSvc.Get("allow_opsant_sso")
+		return err == nil && v == "true"
+	}, cfg.Agent.ServerToken)
 	userSvc := service.NewUserService(userRepo)
 	auditSvc := service.NewAuditService(repository.NewAuditLogRepo(db))
 	authHandler := v1.NewAuthHandler(authSvc, auditSvc)
@@ -134,6 +139,11 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	}
 
 	settingHandler := v1.NewSettingHandler(settingSvc)
+
+	// OpsAnt link configuration: panel settings override config.yaml, applied at runtime (Agent reconnect).
+	agentConfigSvc := service.NewAgentConfigService(settingSvc, agentMgr, cfg.Agent, int32(cfg.Server.Port))
+	agentConfigSvc.Init()
+	agentConfigHandler := v1.NewAgentConfigHandler(agentConfigSvc)
 
 	// Alert monitor: periodically evaluates rules, records events, and cleans up by retention time.
 	alertMonitor := service.NewAlertMonitor(
@@ -239,6 +249,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": gin.H{"status": "ok", "version": version}})
 		})
 		api.POST("/auth/login", loginLimiter.Limit(), authHandler.Login)
+		api.POST("/auth/sso", authHandler.SSOLogin)
 		api.POST("/auth/refresh", authHandler.Refresh)
 		api.POST("/auth/mfa/verify", loginLimiter.Limit(), authHandler.VerifyMFA)
 		api.POST("/auth/logout", authMw, authHandler.Logout)
@@ -298,6 +309,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			// Panel settings (runtime configuration persisted)
 			authed.GET("/settings", permMw("settings.view"), settingHandler.List)
 			authed.PUT("/settings", permMw("settings.edit"), settingHandler.Update)
+
+			// OpsAnt link configuration (panel visualization)
+			authed.GET("/agent-config", permMw("settings.view"), agentConfigHandler.Get)
+			authed.PUT("/agent-config", permMw("settings.edit"), agentConfigHandler.Update)
 
 			// Dashboard / monitoring
 			authed.GET("/dashboard/overview", dashboardHandler.Overview)
@@ -397,6 +412,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			// File management
 			authed.GET("/files", fileHandler.List)
 			authed.GET("/files/download", permMw("file.view"), fileHandler.Download)
+			authed.GET("/files/download-dir", permMw("file.view"), fileHandler.DownloadDir)
+			authed.GET("/files/du", permMw("file.view"), fileHandler.Du)
 			authed.POST("/files/mkdir", permMw("file.write"), fileHandler.MakeDir)
 			authed.POST("/files/rename", permMw("file.write"), fileHandler.Rename)
 			authed.POST("/files/delete", permMw("file.delete"), fileHandler.Delete)
