@@ -36,6 +36,7 @@ import (
 type Config struct {
 	ServerAddr  string        // OpsMini Server address (host:port)
 	Token       string        // authentication token
+	PanelPort   int32         // 面板 Web 端口（上报给 Server，用于 OpsAnt 免认证跳转）
 	Heartbeat   time.Duration // heartbeat interval (default 30s)
 	RetryMin    time.Duration // min reconnect backoff (default 1s)
 	RetryMax    time.Duration // max reconnect backoff (default 30s)
@@ -61,15 +62,16 @@ func (c Config) withDefaults() Config {
 
 // Client is the Agent gRPC client. Run blocks until ctx is cancelled.
 type Client struct {
-	cfg      Config
-	hostname string
-	version  string
-	agentID  string
+	cfg       Config
+	hostname  string
+	version   string
+	panelPort int32
+	agentID   string
 }
 
 // New creates an Agent client. hostname is usually os.Hostname(); version is the build version.
 func New(cfg Config, hostname, version string) *Client {
-	return &Client{cfg: cfg.withDefaults(), hostname: hostname, version: version}
+	return &Client{cfg: cfg.withDefaults(), hostname: hostname, version: version, panelPort: cfg.PanelPort}
 }
 
 // Run connects and reconnects until ctx is cancelled. Safe to call once per process.
@@ -119,11 +121,12 @@ func (c *Client) connect(ctx context.Context) error {
 	// Register first.
 	if err := stream.Send(&agentpb.AgentMessage{Payload: &agentpb.AgentMessage_Register{
 		Register: &agentpb.Register{
-			Token:    c.cfg.Token,
-			Hostname: c.hostname,
-			Version:  c.version,
-			Os:       runtime.GOOS,
-			Arch:     runtime.GOARCH,
+			Token:     c.cfg.Token,
+			Hostname:  c.hostname,
+			Version:   c.version,
+			Os:        runtime.GOOS,
+			Arch:      runtime.GOARCH,
+			PanelPort: c.panelPort,
 		},
 	}}); err != nil {
 		return err
@@ -292,13 +295,25 @@ func (c *Client) receiveFile(ctx context.Context, t *agentpb.PushFileTask) *agen
 		ack.Error = "invalid absolute path: " + t.Path
 		return ack
 	}
-	if err := os.MkdirAll(filepath.Dir(t.Path), 0o755); err != nil {
+
+	// 目标路径解析：若 path 是已存在的目录，则把文件放入该目录并保留原文件名；
+	// 否则视为文件路径（重命名）。
+	targetPath := t.Path
+	if st, err := os.Stat(t.Path); err == nil && st.IsDir() {
+		if t.Filename == "" {
+			ack.Error = "target is a directory but no filename provided"
+			return ack
+		}
+		targetPath = filepath.Join(t.Path, t.Filename)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		ack.Error = "mkdir: " + err.Error()
 		return ack
 	}
 
 	// Write (append) this chunk at the given offset for resumable transfer.
-	f, err := os.OpenFile(t.Path, os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		ack.Error = "open: " + err.Error()
 		return ack
@@ -312,12 +327,12 @@ func (c *Client) receiveFile(ctx context.Context, t *agentpb.PushFileTask) *agen
 
 	// Last chunk: verify size + md5, then apply mode.
 	if t.Last {
-		if st, err := os.Stat(t.Path); err == nil && t.Size > 0 && st.Size() != t.Size {
+		if st, err := os.Stat(targetPath); err == nil && t.Size > 0 && st.Size() != t.Size {
 			ack.Error = fmt.Sprintf("size mismatch: want %d got %d", t.Size, st.Size())
 			return ack
 		}
 		if t.Md5 != "" {
-			data, err := os.ReadFile(t.Path)
+			data, err := os.ReadFile(targetPath)
 			if err != nil {
 				ack.Error = "read for md5: " + err.Error()
 				return ack
@@ -331,7 +346,7 @@ func (c *Client) receiveFile(ctx context.Context, t *agentpb.PushFileTask) *agen
 		ack.Md5 = t.Md5
 		if t.Mode != "" {
 			if m, err := strconv.ParseUint(t.Mode, 8, 32); err == nil {
-				_ = os.Chmod(t.Path, os.FileMode(m))
+				_ = os.Chmod(targetPath, os.FileMode(m))
 			}
 		}
 	}

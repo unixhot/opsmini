@@ -11,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
 	gnet "github.com/shirou/gopsutil/v4/net"
+	"github.com/shirou/gopsutil/v4/process"
 	"github.com/shirou/gopsutil/v4/sensors"
 )
 
@@ -23,6 +24,7 @@ func (s *SystemService) PrometheusMetrics() string {
 	var b strings.Builder
 	b.WriteString("# OpsMini node metrics (node_exporter compatible)\n")
 
+	writeUsageMetrics(&b)
 	writeCPUMetrics(&b)
 	writeMemoryMetrics(&b)
 	writeFilesystemMetrics(&b)
@@ -35,6 +37,27 @@ func (s *SystemService) PrometheusMetrics() string {
 	writeHostMetrics(&b)
 
 	return b.String()
+}
+
+// writeUsageMetrics emits immediate CPU/memory usage percentages as gauges, so
+// upstream tools (e.g. OpsAnt) can read a single sample without computing rates
+// from the cumulative node_cpu_seconds_total counter.
+func writeUsageMetrics(b *strings.Builder) {
+	b.WriteString("# HELP opsmini_cpu_usage_percent Current CPU usage percentage (0-100).\n")
+	b.WriteString("# TYPE opsmini_cpu_usage_percent gauge\n")
+	if pcts, err := cpu.Percent(200*time.Millisecond, false); err == nil && len(pcts) > 0 {
+		fmt.Fprintf(b, "opsmini_cpu_usage_percent %.2f\n", pcts[0])
+	} else {
+		fmt.Fprintf(b, "opsmini_cpu_usage_percent 0\n")
+	}
+
+	b.WriteString("# HELP opsmini_mem_usage_percent Current memory usage percentage (0-100).\n")
+	b.WriteString("# TYPE opsmini_mem_usage_percent gauge\n")
+	if vm, err := mem.VirtualMemory(); err == nil && vm != nil {
+		fmt.Fprintf(b, "opsmini_mem_usage_percent %.2f\n", vm.UsedPercent)
+	} else {
+		fmt.Fprintf(b, "opsmini_mem_usage_percent 0\n")
+	}
 }
 
 // writeCPUMetrics emits node_cpu_seconds_total (per-core per-mode cumulative seconds).
@@ -153,18 +176,28 @@ func writeLoadMetrics(b *strings.Builder) {
 	fmt.Fprintf(b, "node_load1 %.2f\nnode_load5 %.2f\nnode_load15 %.2f\n", l.Load1, l.Load5, l.Load15)
 }
 
-// writeProcMetrics emits node_forks_total / node_procs_running / node_procs_blocked / node_context_switches_total.
+// writeProcMetrics emits node_forks_total / node_procs_running / node_procs_blocked / node_context_switches_total
+// plus node_procs_total (total number of processes, from /proc).
 func writeProcMetrics(b *strings.Builder) {
 	m, err := load.Misc()
-	if err != nil {
-		return
+	if err == nil {
+		b.WriteString("# HELP node_forks_total Total number of forks.\n")
+		b.WriteString("# TYPE node_forks_total counter\n")
+		fmt.Fprintf(b, "node_forks_total %d\n", m.ProcsTotal)
+		fmt.Fprintf(b, "node_procs_running %d\n", m.ProcsRunning)
+		fmt.Fprintf(b, "node_procs_blocked %d\n", m.ProcsBlocked)
+		fmt.Fprintf(b, "node_context_switches_total %d\n", m.Ctxt)
 	}
-	b.WriteString("# HELP node_forks_total Total number of forks.\n")
-	b.WriteString("# TYPE node_forks_total counter\n")
-	fmt.Fprintf(b, "node_forks_total %d\n", m.ProcsTotal)
-	fmt.Fprintf(b, "node_procs_running %d\n", m.ProcsRunning)
-	fmt.Fprintf(b, "node_procs_blocked %d\n", m.ProcsBlocked)
-	fmt.Fprintf(b, "node_context_switches_total %d\n", m.Ctxt)
+
+	// node_procs_total: 系统总进程数（/proc 下 PID 数量），用于监控图表「进程数」。
+	// node_procs_running 只是运行态(runnable)进程数，通常为个位数，不能代表总进程数。
+	b.WriteString("# HELP node_procs_total Total number of processes.\n")
+	b.WriteString("# TYPE node_procs_total gauge\n")
+	if pids, err := process.Pids(); err == nil {
+		fmt.Fprintf(b, "node_procs_total %d\n", len(pids))
+	} else {
+		fmt.Fprintf(b, "node_procs_total 0\n")
+	}
 }
 
 // writeNetstatMetrics emits node_netstat_Tcp_* (TCP connection counters).

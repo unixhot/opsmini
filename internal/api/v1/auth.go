@@ -3,6 +3,7 @@ package v1
 
 import (
 	"errors"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
@@ -52,6 +53,36 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		h.audit.Record(0, req.Username, "login", "auth", "login success", c.ClientIP())
 	}
 	response.OK(c, result)
+}
+
+type ssoReq struct {
+	SSOToken string `json:"sso_token" binding:"required"`
+}
+
+// SSOLogin POST /auth/sso - login via an OpsAnt-issued one-time SSO token.
+func (h *AuthHandler) SSOLogin(c *gin.Context) {
+	var req ssoReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
+		return
+	}
+	hostname, _ := os.Hostname()
+	pair, err := h.svc.SSOLogin(req.SSOToken, hostname)
+	if err != nil {
+		if h.audit != nil {
+			h.audit.Record(0, "", "login_fail", "auth", "sso: "+err.Error(), c.ClientIP())
+		}
+		if errors.Is(err, service.ErrSSODisabled) {
+			response.Error(c, 403, response.CodeForbidden, err.Error())
+		} else {
+			response.Error(c, 401, response.CodeUnauthorized, err.Error())
+		}
+		return
+	}
+	if h.audit != nil {
+		h.audit.Record(0, "admin", "login", "auth", "sso login success", c.ClientIP())
+	}
+	response.OK(c, pair)
 }
 
 type mfaVerifyReq struct {

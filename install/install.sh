@@ -26,6 +26,8 @@ BINARY_URL=""
 VERSION="v1.0.0"                                                    # 默认下载的版本号（发布新版本时更新）
 DEFAULT_URL_BASE="https://opsmini.oss-cn-beijing.aliyuncs.com"     # 阿里云 OSS 下载地址
 NO_SYSTEMD=0
+SERVER_ADDR=""     # OpsAnt「OpsMini Server」地址（host:port），非空则写入 agent 段实现接入 OpsAnt
+SERVER_TOKEN=""    # 连接 OpsAnt 的认证 token（与 OpsAnt 的 OPSMINI_TOKEN 一致）
 
 # ===== 颜色 =====
 C_GREEN='\033[0;32m'
@@ -50,10 +52,13 @@ OpsMini 安装脚本
   -b, --binary <path>  opsmini 二进制路径
   -u, --url <url>      从 URL 下载二进制（支持 .tar.gz 或裸二进制）
   -n, --no-systemd     不注册 systemd 服务（仅解压 + 初始化）
+      --server-addr <host:port>  接入 OpsAnt 的 Server 地址（如 47.104.172.52:4507）
+      --server-token <token>     接入 OpsAnt 的认证 token（与 OpsAnt 的 OPSMINI_TOKEN 一致）
   -h, --help           显示本帮助
 
 示例:
   curl -fsSL https://opsmini.com/install.sh | sudo bash
+  curl -fsSL https://opsmini.com/install.sh | sudo bash -s -- --server-addr 47.104.172.52:4507 --server-token mytoken
   $0 -b ./dist/opsmini-dev-linux-amd64
   $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-linux-amd64
 EOF
@@ -67,6 +72,8 @@ while [ $# -gt 0 ]; do
     -b|--binary) BINARY="$2"; shift 2 ;;
     -u|--url)    BINARY_URL="$2"; shift 2 ;;
     -n|--no-systemd) NO_SYSTEMD=1; shift ;;
+    --server-addr)   SERVER_ADDR="$2"; shift 2 ;;
+    --server-token)  SERVER_TOKEN="$2"; shift 2 ;;
     -h|--help)   usage; exit 0 ;;
     *) echo "未知参数: $1"; usage; exit 1 ;;
   esac
@@ -200,6 +207,18 @@ log:
   level: error
   path: "${INSTALL_DIR}/opsmini.log"
 EOF
+
+  # 接入 OpsAnt（可选）：传了 --server-addr 才写入 agent 段，安装后 Agent 主动连 OpsAnt
+  if [ -n "$SERVER_ADDR" ]; then
+    info "配置 OpsAnt 接入：${SERVER_ADDR}"
+    cat >> "${INSTALL_DIR}/config.yaml" <<EOF
+agent:
+  server_addr: "${SERVER_ADDR}"
+  server_token: "${SERVER_TOKEN}"
+  heartbeat_seconds: 30
+EOF
+  fi
+
   chmod 600 "${INSTALL_DIR}/config.yaml"
 }
 

@@ -2,7 +2,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -70,20 +69,12 @@ func main() {
 	metrics.Start()
 	defer metrics.Stop()
 
-	// gRPC Agent (optional): actively dial an OpsAnt "OpsMini Server" when configured.
-	// Disabled by default (empty server_addr); does not affect the standalone panel.
-	if cfg.Agent.ServerAddr != "" {
-		hostname, _ := os.Hostname()
-		agentClient := agent.New(agent.Config{
-			ServerAddr: cfg.Agent.ServerAddr,
-			Token:      cfg.Agent.ServerToken,
-			Heartbeat:  time.Duration(cfg.Agent.HeartbeatSeconds) * time.Second,
-		}, hostname, version)
-		go agentClient.Run(context.Background())
-		log.Printf("agent: connecting to OpsMini Server %s", cfg.Agent.ServerAddr)
-	}
+	// gRPC Agent lifecycle: managed by the router so the panel can reconnect it at
+	// runtime (empty server_addr means disconnected; config.yaml is the fallback).
+	hostname, _ := os.Hostname()
+	agentMgr := agent.NewManager(hostname, version)
 
-	r := router.New(cfg, db, metrics, version)
+	r := router.New(cfg, db, metrics, version, agentMgr)
 	log.Printf("OpsMini agent listening on %s", cfg.Server.Addr())
 	if err := r.Run(cfg.Server.Addr()); err != nil {
 		log.Fatalf("server: %v", err)

@@ -2,8 +2,14 @@
 package service
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -22,6 +28,10 @@ var (
 	ErrInvalidMFACode = errors.New("invalid mfa code")
 	// ErrInvalidMFAToken indicates an invalid MFA pre-auth token.
 	ErrInvalidMFAToken = errors.New("invalid mfa token")
+	// ErrSSODisabled indicates the OpsAnt SSO login is disabled.
+	ErrSSODisabled = errors.New("sso login disabled")
+	// ErrInvalidSSOToken indicates an invalid or expired SSO token.
+	ErrInvalidSSOToken = errors.New("invalid sso token")
 )
 
 // TokenPair is the token pair returned on login.
@@ -44,11 +54,13 @@ type AuthService struct {
 	repo       *repository.UserRepo
 	jwt        *jwt.Manager
 	mfaEnabled func() bool // global MFA toggle (read from settings)
+	ssoEnabled func() bool // OpsAnt SSO login toggle (read from settings)
+	ssoSecret  string      // shared secret for verifying OpsAnt SSO tokens (agent.server_token)
 }
 
 // NewAuthService creates an AuthService.
-func NewAuthService(repo *repository.UserRepo, jwtMgr *jwt.Manager, mfaEnabled func() bool) *AuthService {
-	return &AuthService{repo: repo, jwt: jwtMgr, mfaEnabled: mfaEnabled}
+func NewAuthService(repo *repository.UserRepo, jwtMgr *jwt.Manager, mfaEnabled func() bool, ssoEnabled func() bool, ssoSecret string) *AuthService {
+	return &AuthService{repo: repo, jwt: jwtMgr, mfaEnabled: mfaEnabled, ssoEnabled: ssoEnabled, ssoSecret: ssoSecret}
 }
 
 // Login verifies credentials; if MFA is globally enabled and the user has it bound,
@@ -82,6 +94,66 @@ func (s *AuthService) Login(username, password string) (*LoginResult, error) {
 		return nil, err
 	}
 	return &LoginResult{AccessToken: access, RefreshToken: refresh}, nil
+}
+
+// SSOLogin verifies a one-time SSO token issued by OpsAnt and logs in as the admin user.
+func (s *AuthService) SSOLogin(ssoToken, localHostname string) (*TokenPair, error) {
+	if s.ssoEnabled == nil || !s.ssoEnabled() {
+		return nil, ErrSSODisabled
+	}
+	if _, err := verifySSOToken(ssoToken, s.ssoSecret, localHostname); err != nil {
+		return nil, err
+	}
+	// 以管理员身份登录（OpsAnt 已完成认证，信任该来源）
+	var admin *model.User
+	users, err := s.repo.List()
+	if err != nil {
+		return nil, err
+	}
+	for i := range users {
+		if users[i].Role == "admin" && users[i].Status == 1 {
+			admin = &users[i]
+			break
+		}
+	}
+	if admin == nil {
+		return nil, ErrUserDisabled
+	}
+	access, refresh, err := s.jwt.Generate(admin.ID, admin.Role)
+	if err != nil {
+		return nil, err
+	}
+	return &TokenPair{AccessToken: access, RefreshToken: refresh}, nil
+}
+
+// verifySSOToken verifies the OpsAnt-issued SSO token (format: base64url(hostname|expiry|signature)).
+func verifySSOToken(ssoToken, secret, localHostname string) (string, error) {
+	if secret == "" {
+		return "", ErrSSODisabled
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(ssoToken)
+	if err != nil {
+		return "", ErrInvalidSSOToken
+	}
+	parts := strings.Split(string(raw), "|")
+	if len(parts) != 3 {
+		return "", ErrInvalidSSOToken
+	}
+	hostname, expiryStr, sig := parts[0], parts[1], parts[2]
+	expiry, err := strconv.ParseInt(expiryStr, 10, 64)
+	if err != nil || expiry < time.Now().Unix() {
+		return "", ErrInvalidSSOToken
+	}
+	if hostname != localHostname {
+		return "", ErrInvalidSSOToken
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(hostname + "|" + expiryStr))
+	expected := hex.EncodeToString(mac.Sum(nil))
+	if !hmac.Equal([]byte(sig), []byte(expected)) {
+		return "", ErrInvalidSSOToken
+	}
+	return hostname, nil
 }
 
 // VerifyMFALogin verifies the MFA code and issues the formal tokens on success.

@@ -284,11 +284,12 @@ func (*ServerMessage_PullFile) isServerMessage_Payload() {}
 // Register 注册请求（Agent -> Server）。
 type Register struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`       // 认证 token
-	Hostname      string                 `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"` // 主机名
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`   // Agent 版本
-	Os            string                 `protobuf:"bytes,4,opt,name=os,proto3" json:"os,omitempty"`             // 操作系统，如 linux
-	Arch          string                 `protobuf:"bytes,5,opt,name=arch,proto3" json:"arch,omitempty"`         // 架构，如 amd64 / arm64
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`                           // 认证 token
+	Hostname      string                 `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`                     // 主机名
+	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`                       // Agent 版本
+	Os            string                 `protobuf:"bytes,4,opt,name=os,proto3" json:"os,omitempty"`                                 // 操作系统，如 linux
+	Arch          string                 `protobuf:"bytes,5,opt,name=arch,proto3" json:"arch,omitempty"`                             // 架构，如 amd64 / arm64
+	PanelPort     int32                  `protobuf:"varint,6,opt,name=panel_port,json=panelPort,proto3" json:"panel_port,omitempty"` // 面板 Web 端口（默认 8888，用户可改，用于 OpsAnt 免认证跳转）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -356,6 +357,13 @@ func (x *Register) GetArch() string {
 		return x.Arch
 	}
 	return ""
+}
+
+func (x *Register) GetPanelPort() int32 {
+	if x != nil {
+		return x.PanelPort
+	}
+	return 0
 }
 
 // RegisterAck 注册确认（Server -> Agent）。
@@ -719,13 +727,14 @@ func (x *ScriptSpec) GetLanguage() string {
 type PushFileTask struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`      // 目标绝对路径
-	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`      // 权限（octal 字符串，如 "0755"），空则默认 0644
-	Size          int64                  `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`     // 文件总大小
-	Md5           string                 `protobuf:"bytes,5,opt,name=md5,proto3" json:"md5,omitempty"`        // 整文件 MD5
-	Offset        int64                  `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"` // 分片偏移（断点续传：Agent 回报已接收字节数，Server 从该处续传）
-	Chunk         []byte                 `protobuf:"bytes,7,opt,name=chunk,proto3" json:"chunk,omitempty"`    // 分片数据
-	Last          bool                   `protobuf:"varint,8,opt,name=last,proto3" json:"last,omitempty"`     // 是否最后一个分片
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`         // 目标绝对路径（文件=重命名到该路径；目录=放入该目录并保留原文件名）
+	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`         // 权限（octal 字符串，如 "0755"），空则默认 0644
+	Size          int64                  `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`        // 文件总大小
+	Md5           string                 `protobuf:"bytes,5,opt,name=md5,proto3" json:"md5,omitempty"`           // 整文件 MD5
+	Offset        int64                  `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`    // 分片偏移（断点续传：Agent 回报已接收字节数，Server 从该处续传）
+	Chunk         []byte                 `protobuf:"bytes,7,opt,name=chunk,proto3" json:"chunk,omitempty"`       // 分片数据
+	Last          bool                   `protobuf:"varint,8,opt,name=last,proto3" json:"last,omitempty"`        // 是否最后一个分片
+	Filename      string                 `protobuf:"bytes,9,opt,name=filename,proto3" json:"filename,omitempty"` // 原文件名（path 为目录时，拼接 filename 作为最终文件名）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -814,6 +823,13 @@ func (x *PushFileTask) GetLast() bool {
 		return x.Last
 	}
 	return false
+}
+
+func (x *PushFileTask) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
 }
 
 // FileChunkAck 文件分片确认（Agent -> Server），用于断点续传。
@@ -1143,13 +1159,15 @@ const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\tpush_file\x18\x03 \x01(\v2\x16.agent.v1.PushFileTaskH\x00R\bpushFile\x12$\n" +
 	"\x04ping\x18\x04 \x01(\v2\x0e.agent.v1.PingH\x00R\x04ping\x125\n" +
 	"\tpull_file\x18\x05 \x01(\v2\x16.agent.v1.PullFileTaskH\x00R\bpullFileB\t\n" +
-	"\apayload\"z\n" +
+	"\apayload\"\x99\x01\n" +
 	"\bRegister\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1a\n" +
 	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12\x0e\n" +
 	"\x02os\x18\x04 \x01(\tR\x02os\x12\x12\n" +
-	"\x04arch\x18\x05 \x01(\tR\x04arch\"R\n" +
+	"\x04arch\x18\x05 \x01(\tR\x04arch\x12\x1d\n" +
+	"\n" +
+	"panel_port\x18\x06 \x01(\x05R\tpanelPort\"R\n" +
 	"\vRegisterAck\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x19\n" +
@@ -1170,7 +1188,7 @@ const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"ScriptSpec\x12\x16\n" +
 	"\x06script\x18\x01 \x01(\tR\x06script\x12\x1a\n" +
-	"\blanguage\x18\x02 \x01(\tR\blanguage\"\xb5\x01\n" +
+	"\blanguage\x18\x02 \x01(\tR\blanguage\"\xd1\x01\n" +
 	"\fPushFileTask\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
@@ -1179,7 +1197,8 @@ const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\x03md5\x18\x05 \x01(\tR\x03md5\x12\x16\n" +
 	"\x06offset\x18\x06 \x01(\x03R\x06offset\x12\x14\n" +
 	"\x05chunk\x18\a \x01(\fR\x05chunk\x12\x12\n" +
-	"\x04last\x18\b \x01(\bR\x04last\"i\n" +
+	"\x04last\x18\b \x01(\bR\x04last\x12\x1a\n" +
+	"\bfilename\x18\t \x01(\tR\bfilename\"i\n" +
 	"\fFileChunkAck\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1a\n" +
 	"\breceived\x18\x02 \x01(\x03R\breceived\x12\x10\n" +

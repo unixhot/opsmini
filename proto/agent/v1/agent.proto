@@ -48,6 +48,7 @@ message Register {
   string version = 3;   // Agent 版本
   string os = 4;        // 操作系统，如 linux
   string arch = 5;      // 架构，如 amd64 / arm64
+  int32 panel_port = 6; // 面板 Web 端口（默认 8888，用户可改，用于 OpsAnt 免认证跳转）
 }
 
 // RegisterAck 注册确认（Server -> Agent）。
@@ -93,13 +94,14 @@ message ScriptSpec {
 // Server 按序发送多个分片（offset 递增），Agent 收到 last 分片后校验 md5 并回报 FileChunkAck。
 message PushFileTask {
   string job_id = 1;
-  string path = 2;  // 目标绝对路径
+  string path = 2;  // 目标绝对路径（文件=重命名到该路径；目录=放入该目录并保留原文件名）
   string mode = 3;  // 权限（octal 字符串，如 "0755"），空则默认 0644
   int64 size = 4;   // 文件总大小
   string md5 = 5;   // 整文件 MD5
   int64 offset = 6; // 分片偏移（断点续传：Agent 回报已接收字节数，Server 从该处续传）
   bytes chunk = 7;  // 分片数据
   bool last = 8;    // 是否最后一个分片
+  string filename = 9;  // 原文件名（path 为目录时，拼接 filename 作为最终文件名）
 }
 
 // FileChunkAck 文件分片确认（Agent -> Server），用于断点续传。
