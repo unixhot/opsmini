@@ -107,21 +107,34 @@ func (s *FirewallService) DenyPort(port int, proto string) error {
 	}
 }
 
-// Enable enables the firewall.
+// Enable enables the firewall. Before enabling, it always allows the panel's own
+// port and SSH (22) to avoid locking the user out.
 func (s *FirewallService) Enable() error {
 	if err := requireRoot(); err != nil {
 		return err
 	}
-	switch s.sys.FirewallStatus().Backend {
+	backend := s.sys.FirewallStatus().Backend
+	if backend != "ufw" && backend != "firewalld" {
+		return errors.New("当前后端不支持面板内启用，请手动配置防火墙")
+	}
+	// 启用前先放行面板端口 + SSH 22，避免启用后无法访问面板/SSH
+	if s.panelPort > 0 {
+		if err := s.AllowPort(s.panelPort, "tcp"); err != nil {
+			return err
+		}
+	}
+	if err := s.AllowPort(22, "tcp"); err != nil {
+		return err
+	}
+	switch backend {
 	case "ufw":
 		_, err := runFirewallCmd("ufw", "--force", "enable")
 		return err
 	case "firewalld":
 		_, err := runFirewallCmd("systemctl", "enable", "--now", "firewalld")
 		return err
-	default:
-		return errors.New("当前后端不支持面板内启用，请手动配置防火墙")
 	}
+	return nil
 }
 
 // Disable disables the firewall (not provided for the iptables backend, too destructive).
