@@ -123,6 +123,16 @@ func (h *SystemHandler) Networks(c *gin.Context) {
 	response.OK(c, list)
 }
 
+// Routes GET /system/routes - kernel IP routing table.
+func (h *SystemHandler) Routes(c *gin.Context) {
+	list, err := h.svc.Routes()
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, list)
+}
+
 // Users GET /system/users - system users (distinguish login/non-login).
 func (h *SystemHandler) Users(c *gin.Context) {
 	response.OK(c, h.svc.Users())

@@ -1,9 +1,11 @@
 package service
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -146,6 +148,16 @@ type NetInterface struct {
 	Addrs     []string `json:"addrs,omitempty"`
 	BytesRecv uint64   `json:"bytes_recv"`
 	BytesSent uint64   `json:"bytes_sent"`
+}
+
+// RouteEntry is a kernel IP routing table entry (from /proc/net/route).
+type RouteEntry struct {
+	Destination string `json:"destination"` // destination network (0.0.0.0 = default)
+	Gateway     string `json:"gateway"`     // gateway (0.0.0.0 = none)
+	Genmask     string `json:"genmask"`     // subnet mask
+	Flags       int    `json:"flags"`       // route flags (UP=1, Gateway=2, Host=4)
+	Iface       string `json:"iface"`       // network interface
+	Metric      int    `json:"metric"`      // route metric
 }
 
 // HostInfo returns static host information.
@@ -559,6 +571,11 @@ func (s *SystemService) Disks() ([]DiskInfo, error) {
 	}
 	var out []DiskInfo
 	for _, p := range parts {
+		// 过滤 squashfs（snap 只读 loop 挂载，df 默认通过 x-gdu.hide 隐藏它们），
+		// 避免面板显示一堆 100% 使用率的 /snap 分区，与 df -h 展示不一致。
+		if p.Fstype == "squashfs" {
+			continue
+		}
 		di := DiskInfo{
 			Device:     p.Device,
 			Mountpoint: p.Mountpoint,
@@ -596,6 +613,45 @@ func (s *SystemService) Networks() ([]NetInterface, error) {
 		out = append(out, ni)
 	}
 	return out, nil
+}
+
+// Routes returns the kernel IP routing table (Linux reads /proc/net/route).
+func (s *SystemService) Routes() ([]RouteEntry, error) {
+	data, err := os.ReadFile("/proc/net/route")
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(string(data), "\n")
+	var out []RouteEntry
+	for i, line := range lines {
+		if i == 0 || strings.TrimSpace(line) == "" {
+			continue // skip header and blank lines
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 8 {
+			continue
+		}
+		flags, _ := strconv.ParseInt(fields[3], 16, 64)
+		metric, _ := strconv.Atoi(fields[6])
+		out = append(out, RouteEntry{
+			Destination: hexToIPv4(fields[1]),
+			Gateway:     hexToIPv4(fields[2]),
+			Genmask:     hexToIPv4(fields[7]),
+			Flags:       int(flags),
+			Iface:       fields[0],
+			Metric:      metric,
+		})
+	}
+	return out, nil
+}
+
+// hexToIPv4 converts a little-endian 32-bit hex string from /proc/net/route to dotted-quad IP.
+func hexToIPv4(hexStr string) string {
+	v, err := strconv.ParseUint(hexStr, 16, 32)
+	if err != nil {
+		return hexStr
+	}
+	return fmt.Sprintf("%d.%d.%d.%d", byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
 }
 
 // NetRate returns the current aggregate network receive/send rate in bytes per second

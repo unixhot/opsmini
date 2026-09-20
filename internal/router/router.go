@@ -327,6 +327,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/system/ports", systemHandler.Ports)
 			authed.GET("/system/disks", systemHandler.Disks)
 			authed.GET("/system/network", systemHandler.Networks)
+			authed.GET("/system/routes", systemHandler.Routes)
 			authed.GET("/system/users", systemHandler.Users)
 			authed.GET("/system/groups", systemHandler.Groups)
 			authed.GET("/system/firewall", systemHandler.Firewall)
