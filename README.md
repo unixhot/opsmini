@@ -2,54 +2,46 @@
 
 # OpsMini
 
-**AI-Powered Server Management Panel**
+**AI 驱动的主机运维面板**
 
-[English](README.md) · [简体中文](docs/README.zh-CN.md) · [繁體中文](docs/README.zh-TW.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md) · [ไทย](docs/README.th.md) · [Deutsch](docs/README.de.md)
+[English](docs/README.en.md) · [简体中文](README.md) · [繁體中文](docs/README.zh-TW.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md) · [ไทย](docs/README.th.md) · [Deutsch](docs/README.de.md)
 
 </div>
 
 ---
 
+OpsMini 是一款 AI 驱动的主机运维面板（对标宝塔 / 1Panel），以内置 AI 大模型运维与对外标准 REST API 为核心差异化。
 
-OpsMini is an AI-powered server management panel (similar to BaoTa / 1Panel), differentiated by built-in AI operations and a standard REST API for external integration.
+### 特性
 
-### Features
+- **AI 大模型运维** — 自然语言诊断、日志分析、命令执行
+- **标准 REST API** — `/api/v1`（浏览器 UI）与 `/agent/v1`（机器对机器）
+- **Docker 管理** — 容器、镜像、卷、网络
+- **Web 终端** — WebSocket + pty 实现的类 SSH 交互式终端
+- **7 语言 i18n** — 简/繁中文、英文、日文、韩文、泰文、德文
+- **单二进制交付** — 前端通过 `go:embed` 嵌入，零运行时依赖
 
-- **AI-powered operations** — natural-language diagnosis, log analysis, command execution
-- **Standard REST API** — `/api/v1` (browser UI) and `/agent/v1` (machine-to-machine)
-- **Docker management** — containers, images, volumes, networks
-- **Web terminal** — SSH-like interactive shell over WebSocket + pty
-- **7-language i18n** — Simplified/Traditional Chinese, English, Japanese, Korean, Thai, German
-- **Single binary** — frontend embedded via `go:embed`, zero runtime dependencies
+### 技术栈
 
-### Tech Stack
+Go · Gin · GORM · SQLite（纯 Go）· Vue 3 · ECharts
 
-Go · Gin · GORM · SQLite (pure Go) · Vue 3 · ECharts
-
-### Quick Start
+### 快速开始
 
 ```bash
-
-# For Ops
-
-curl -fsSL https://opsmini.com/install.sh | sudo bash
-
-# For Dev
-
-make build          # build for current platform
-make build-all      # cross-compile for Linux amd64/arm64
+make build          # 编译当前平台
+make build-all      # 交叉编译 Linux amd64/arm64
 
 ./dist/opsmini -config configs/config.yaml
-# open http://localhost:8888  (default account: opsmini — initial password is written to .init_passwd)
+# 打开 http://localhost:8888（默认账号 opsmini，密码见首次启动日志）
 ```
 
-### Documentation
+### 文档
 
-- [Developer Guide](docs/developer-guide.md)
-- [Backend Architecture](docs/backend-architecture.md)
-- [Build & Deployment](docs/build-and-deploy.md)
-- [Security Audit](docs/security-audit.md)
+- [开发者手册](docs/developer-guide.zh-CN.md)
+- [后端架构设计](docs/backend-architecture.md)
+- [构建与部署手册](docs/build-and-deploy.md)
+- [主机安全设计](docs/security-audit.md)
 
-### License & Copyright
+### 版权
 
 OpsMini@2026 北京速云科技有限公司 (opsmini.com)

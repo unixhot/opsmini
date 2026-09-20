@@ -13,6 +13,6 @@ Project documentation. Every handbook below is available in **7 languages** — 
 
 ## Project README
 
-The top-level [`../README.md`](../README.md) is the English landing page, with links to its translations:
+The top-level [`../README.md`](../README.md) is the Simplified Chinese landing page, with links to its translations:
 
-[English](../README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Deutsch](README.de.md)
+[English](README.en.md) · [简体中文](../README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Deutsch](README.de.md)
