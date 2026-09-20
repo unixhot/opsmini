@@ -1554,10 +1554,10 @@
         <div class="card">
           <div class="card-body p0 table-wrap">
             <table>
-              <thead><tr><th>{{ t('th.mount') }}</th><th>{{ t('th.fs') }}</th><th>{{ t('th.capacity') }}</th><th>{{ t('th.used') }}</th><th>{{ t('th.usage') }}</th><th>{{ t('th.usageBar') }}</th></tr></thead>
+              <thead><tr><th>{{ t('th.device') }}</th><th>{{ t('th.mount') }}</th><th>{{ t('th.fs') }}</th><th>{{ t('th.capacity') }}</th><th>{{ t('th.used') }}</th><th>{{ t('th.usage') }}</th><th>{{ t('th.usageBar') }}</th></tr></thead>
               <tbody>
                 <tr v-for="d in disks" :key="d.mount">
-                  <td class="mono">{{ d.mount }}</td><td>{{ d.fs }}</td><td class="mono">{{ d.total }}</td><td class="mono">{{ d.used }}</td>
+                  <td class="mono">{{ d.device || '-' }}</td><td class="mono">{{ d.mount }}</td><td>{{ d.fs }}</td><td class="mono">{{ d.total }}</td><td class="mono">{{ d.used }}</td>
                   <td>{{ d.pct }}%</td>
                   <td style="width:220px"><div class="progress"><span :style="{width:d.pct+'%',background:d.pct>85?'var(--danger)':d.pct>70?'var(--warning)':'var(--success)'}"></span></div></td>
                 </tr>
@@ -2908,7 +2908,7 @@ const I18N = {
     'th.dbName':'库名','th.charset':'字符集','th.size':'大小','th.container':'容器名','th.image':'镜像','th.ports':'端口映射',
     'th.pid':'PID','th.process':'进程名','th.user':'用户','th.cpu':'CPU %','th.mem':'内存 %','th.startTime':'启动时间',
     'th.port':'端口','th.protocol':'协议','th.desc':'说明','th.role':'角色','th.auth':'登录方式','th.lastLogin':'最后登录',
-    'th.mount':'挂载点','th.fs':'文件系统','th.capacity':'容量','th.used':'已用','th.usage':'使用率','th.usageBar':'使用情况',
+    'th.device':'设备','th.mount':'挂载点','th.fs':'文件系统','th.capacity':'容量','th.used':'已用','th.usage':'使用率','th.usageBar':'使用情况',
     'th.taskName':'任务名称','th.schedule':'执行周期','th.lastRun':'上次执行','th.perm':'权限','th.mtime':'修改时间',
     'th.ruleName':'规则名','th.metric':'指标','th.condition':'条件','th.duration':'持续时长','th.notify':'通知方式',
     'sec.fwEnableConfirm':'开启防火墙前，将自动放行面板端口与 SSH 端口（22），避免开启后无法访问。确认开启？','set.basic':'基础设置','misc.routes':'路由表','route.destination':'目标网络','route.gateway':'网关','route.genmask':'子网掩码','route.flags':'标志','route.iface':'接口','route.metric':'度量','set.port':'面板端口','set.domain':'面板域名',
@@ -2953,7 +2953,7 @@ const I18N = {
     'th.dbName':'資料庫名稱','th.charset':'字元集','th.size':'大小','th.container':'容器名稱','th.image':'映像','th.ports':'連接埠對應',
     'th.pid':'PID','th.process':'處理程序名稱','th.user':'使用者','th.cpu':'CPU %','th.mem':'記憶體 %','th.startTime':'啟動時間',
     'th.port':'連接埠','th.protocol':'通訊協定','th.desc':'說明','th.role':'角色','th.auth':'登入方式','th.lastLogin':'最後登入',
-    'th.mount':'掛載點','th.fs':'檔案系統','th.capacity':'容量','th.used':'已用','th.usage':'使用率','th.usageBar':'使用情況',
+    'th.device':'裝置','th.mount':'掛載點','th.fs':'檔案系統','th.capacity':'容量','th.used':'已用','th.usage':'使用率','th.usageBar':'使用情況',
     'th.taskName':'任務名稱','th.schedule':'執行週期','th.lastRun':'上次執行','th.perm':'權限','th.mtime':'修改時間',
     'th.ruleName':'規則名稱','th.metric':'指標','th.condition':'條件','th.duration':'持續時間','th.notify':'通知方式',
     'sec.fwEnableConfirm':'開啟防火牆前，將自動放行面板連接埠與 SSH 連接埠（22），避免開啟後無法存取。確認開啟？','set.basic':'基礎設定','misc.routes':'路由表','route.destination':'目標網路','route.gateway':'閘道','route.genmask':'子網路遮罩','route.flags':'旗標','route.iface':'介面','route.metric':'度量','set.port':'面板連接埠','set.domain':'面板網域',
@@ -2998,7 +2998,7 @@ const I18N = {
     'th.dbName':'Database','th.charset':'Charset','th.size':'Size','th.container':'Container','th.image':'Image','th.ports':'Port Mapping',
     'th.pid':'PID','th.process':'Process','th.user':'User','th.cpu':'CPU %','th.mem':'Memory %','th.startTime':'Started',
     'th.port':'Port','th.protocol':'Protocol','th.desc':'Description','th.role':'Role','th.auth':'Auth','th.lastLogin':'Last Login',
-    'th.mount':'Mount','th.fs':'Filesystem','th.capacity':'Capacity','th.used':'Used','th.usage':'Usage','th.usageBar':'Usage',
+    'th.device':'Device','th.mount':'Mount','th.fs':'Filesystem','th.capacity':'Capacity','th.used':'Used','th.usage':'Usage','th.usageBar':'Usage',
     'th.taskName':'Task Name','th.schedule':'Schedule','th.lastRun':'Last Run','th.perm':'Permission','th.mtime':'Modified',
     'th.ruleName':'Rule Name','th.metric':'Metric','th.condition':'Condition','th.duration':'Duration','th.notify':'Notify Via',
     'sec.fwEnableConfirm':'Before enabling, the panel port and SSH port (22) will be allowed automatically to prevent lockout. Continue?','set.basic':'Basic Settings','misc.routes':'Routes','route.destination':'Destination','route.gateway':'Gateway','route.genmask':'Netmask','route.flags':'Flags','route.iface':'Interface','route.metric':'Metric','set.port':'Panel Port','set.domain':'Panel Domain',
@@ -3043,7 +3043,7 @@ const I18N = {
     'th.dbName':'DB 名','th.charset':'文字コード','th.size':'サイズ','th.container':'コンテナ名','th.image':'イメージ','th.ports':'ポート',
     'th.pid':'PID','th.process':'プロセス名','th.user':'ユーザー','th.cpu':'CPU %','th.mem':'メモリ %','th.startTime':'起動時刻',
     'th.port':'ポート','th.protocol':'プロトコル','th.desc':'説明','th.role':'ロール','th.auth':'認証','th.lastLogin':'最終ログイン',
-    'th.mount':'マウント','th.fs':'ファイルシステム','th.capacity':'容量','th.used':'使用済み','th.usage':'使用率','th.usageBar':'使用状況',
+    'th.device':'デバイス','th.mount':'マウント','th.fs':'ファイルシステム','th.capacity':'容量','th.used':'使用済み','th.usage':'使用率','th.usageBar':'使用状況',
     'th.taskName':'タスク名','th.schedule':'実行周期','th.lastRun':'前回実行','th.perm':'権限','th.mtime':'更新日時',
     'th.ruleName':'ルール名','th.metric':'指標','th.condition':'条件','th.duration':'継続時間','th.notify':'通知方法',
     'sec.fwEnableConfirm':'有効化する前に、パネルポートと SSH ポート（22）を自動許可し、ロックアウトを防ぎます。有効化しますか？','set.basic':'基本設定','misc.routes':'ルーティングテーブル','route.destination':'宛先','route.gateway':'ゲートウェイ','route.genmask':'ネットマスク','route.flags':'フラグ','route.iface':'インターフェース','route.metric':'メトリック','set.port':'パネルポート','set.domain':'パネルドメイン',
@@ -3088,7 +3088,7 @@ const I18N = {
     'th.dbName':'DB 이름','th.charset':'문자셋','th.size':'크기','th.container':'컨테이너','th.image':'이미지','th.ports':'포트 매핑',
     'th.pid':'PID','th.process':'프로세스','th.user':'사용자','th.cpu':'CPU %','th.mem':'메모리 %','th.startTime':'시작 시간',
     'th.port':'포트','th.protocol':'프로토콜','th.desc':'설명','th.role':'역할','th.auth':'인증','th.lastLogin':'마지막 로그인',
-    'th.mount':'마운트','th.fs':'파일시스템','th.capacity':'용량','th.used':'사용됨','th.usage':'사용률','th.usageBar':'사용 현황',
+    'th.device':'장치','th.mount':'마운트','th.fs':'파일시스템','th.capacity':'용량','th.used':'사용됨','th.usage':'사용률','th.usageBar':'사용 현황',
     'th.taskName':'작업 이름','th.schedule':'주기','th.lastRun':'마지막 실행','th.perm':'권한','th.mtime':'수정 시간',
     'th.ruleName':'규칙 이름','th.metric':'지표','th.condition':'조건','th.duration':'지속 시간','th.notify':'알림 방식',
     'sec.fwEnableConfirm':'활성화하기 전에 패널 포트와 SSH 포트(22)를 자동 허용하여 잠금을 방지합니다. 활성화할까요?','set.basic':'기본 설정','misc.routes':'라우팅 테이블','route.destination':'대상','route.gateway':'게이트웨이','route.genmask':'넷마스크','route.flags':'플래그','route.iface':'인터페이스','route.metric':'메트릭','set.port':'패널 포트','set.domain':'패널 도메인',
@@ -3133,7 +3133,7 @@ const I18N = {
     'th.dbName':'ชื่อฐานข้อมูล','th.charset':'ชุดอักขระ','th.size':'ขนาด','th.container':'คอนเทนเนอร์','th.image':'อิมเมจ','th.ports':'การแมปพอร์ต',
     'th.pid':'PID','th.process':'กระบวนการ','th.user':'ผู้ใช้','th.cpu':'CPU %','th.mem':'หน่วยความจำ %','th.startTime':'เริ่มเมื่อ',
     'th.port':'พอร์ต','th.protocol':'โปรโตคอล','th.desc':'คำอธิบาย','th.role':'บทบาท','th.auth':'การเข้าสู่ระบบ','th.lastLogin':'เข้าสู่ระบบล่าสุด',
-    'th.mount':'จุดเมานต์','th.fs':'ระบบไฟล์','th.capacity':'ความจุ','th.used':'ใช้ไป','th.usage':'การใช้งาน','th.usageBar':'การใช้งาน',
+    'th.device':'อุปกรณ์','th.mount':'จุดเมานต์','th.fs':'ระบบไฟล์','th.capacity':'ความจุ','th.used':'ใช้ไป','th.usage':'การใช้งาน','th.usageBar':'การใช้งาน',
     'th.taskName':'ชื่องาน','th.schedule':'รอบการทำงาน','th.lastRun':'ทำงานล่าสุด','th.perm':'สิทธิ์','th.mtime':'แก้ไขเมื่อ',
     'th.ruleName':'ชื่อกฎ','th.metric':'ตัวชี้วัด','th.condition':'เงื่อนไข','th.duration':'ระยะเวลา','th.notify':'ช่องทางแจ้งเตือน',
     'sec.fwEnableConfirm':'ก่อนเปิดใช้งาน จะอนุญาตพอร์ตแผงและพอร์ต SSH (22) โดยอัตโนมัติเพื่อป้องกันการถูกล็อก ยืนยันหรือไม่?','set.basic':'ตั้งค่าพื้นฐาน','misc.routes':'ตารางเส้นทาง','route.destination':'ปลายทาง','route.gateway':'เกตเวย์','route.genmask':'เน็ตมาสก์','route.flags':'แฟล็ก','route.iface':'อินเทอร์เฟซ','route.metric':'เมตริก','set.port':'พอร์ตแผง','set.domain':'โดเมนแผง',
@@ -3178,7 +3178,7 @@ const I18N = {
     'th.dbName':'Datenbank','th.charset':'Zeichensatz','th.size':'Größe','th.container':'Container','th.image':'Image','th.ports':'Portzuordnung',
     'th.pid':'PID','th.process':'Prozess','th.user':'Benutzer','th.cpu':'CPU %','th.mem':'Speicher %','th.startTime':'Gestartet',
     'th.port':'Port','th.protocol':'Protokoll','th.desc':'Beschreibung','th.role':'Rolle','th.auth':'Anmeldung','th.lastLogin':'Letzter Login',
-    'th.mount':'Mount','th.fs':'Dateisystem','th.capacity':'Kapazität','th.used':'Belegt','th.usage':'Auslastung','th.usageBar':'Auslastung',
+    'th.device':'Gerät','th.mount':'Mount','th.fs':'Dateisystem','th.capacity':'Kapazität','th.used':'Belegt','th.usage':'Auslastung','th.usageBar':'Auslastung',
     'th.taskName':'Aufgabenname','th.schedule':'Zeitplan','th.lastRun':'Letzte Ausführung','th.perm':'Berechtigung','th.mtime':'Geändert',
     'th.ruleName':'Regelname','th.metric':'Metrik','th.condition':'Bedingung','th.duration':'Dauer','th.notify':'Benachrichtigung',
     'sec.fwEnableConfirm':'Vor dem Aktivieren werden Panel-Port und SSH-Port (22) automatisch freigegeben, um eine Aussperrung zu vermeiden. Fortfahren?','set.basic':'Grundeinstellungen','misc.routes':'Routingtabelle','route.destination':'Ziel','route.gateway':'Gateway','route.genmask':'Netzmaske','route.flags':'Flags','route.iface':'Schnittstelle','route.metric':'Metrik','set.port':'Panel-Port','set.domain':'Panel-Domain',
@@ -4436,7 +4436,7 @@ createApp({
           this.ports = list.map(p=>({ port:String(p.port), proto:(p.protocol||'TCP').toUpperCase(), proc: p.name || p.cmdline || '-', pid:p.pid||0, desc:p.address||'' }));
         }else if(this.systemTab==='disk'){
           const list = await this.api('/system/disks');
-          this.disks = list.map(d=>({ mount:d.mountpoint, fs:d.fstype, total:this.fmtBytes(d.total), used:this.fmtBytes(d.used), pct:Math.round(d.used_percent||0) }));
+          this.disks = list.map(d=>({ device:d.device, mount:d.mountpoint, fs:d.fstype, total:this.fmtBytes(d.total), used:this.fmtBytes(d.used), pct:Math.round(d.used_percent||0) }));
         }else if(this.systemTab==='network'){
           const list = await this.api('/system/network');
           const netType = { physical:'net.physical', virtual:'net.virtual', loopback:'net.loopback' };
