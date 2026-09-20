@@ -2,21 +2,27 @@
 
 各版本变更记录。
 
-## 未发布（开发中）
+## v1.1.0（当前）
 
-v1.0.0 之后的 Agent / Server 多机架构能力，暂未正式发布：
+**多机管理（Agent / Server 架构，去 SaltStack 化）**
 
 - **Agent gRPC 客户端**：Agent 主动连 OpsMini Server（单端口 gRPC 双向流），心跳 + 指数退避重连，接收执行 / 文件任务并回传结果
-- **移除 `/agent/v1` REST API**：改用 gRPC 双向流（原 REST API 及前端「API Token」设置页一并移除）
-- **OpsMini Server 端**：注册 / 心跳 / 连接管理、执行任务下发、结果接收
+- **OpsMini Server 端**：注册 / 心跳 / 连接管理、执行任务下发、结果接收（代码迁至 OpsAnt 项目独立 Go 子项目 `opsmini-server/`，OpsMini 仅保留 Agent）
+- **命令 / 脚本执行**：command 与 shell / python 脚本，结果（stdout / stderr / exit code / 耗时）回传
 - **文件拉取（PullFile）**：Server 从 Agent 拉取文件（分片上传 + size / md5 校验）
-- **文件下发（PushFile）**：Server 向 Agent 下发文件（分片 + 断点续传 + md5 校验）
+- **文件下发（PushFile）**：Server 向 Agent 下发文件（分片 + 断点续传 + md5 校验），支持目标为目录（保留原文件名）
 - **连接状态检测 + 长连接保活**：Agent 在线 / 离线状态、心跳超时判定、gRPC keepalive
-- **代码架构调整**：OpsMini Server 端代码迁至 OpsAnt 项目（独立 Go 子项目 `opsmini-server/`），OpsMini 仅保留 Agent
+- **接入 OpsAnt**：面板「设置」页可视化配置 OpsAnt 地址 / Token（运行时热切换），SSO 免认证跳转
+- **移除 `/agent/v1` REST API**：改用 gRPC 双向流（原 REST API 及前端「API Token」设置页一并移除）
 
-> 说明：以上为 v1.0.0 之后的开发进展，尚未正式发布。正式发布时再确定版本号与 Release。
+**面板功能增强**
 
-## v1.0.0（当前 · 首个正式发布）
+- **文件页目录下载**：目录一键压缩为 zip 下载（弹窗提示 + 目录大小 + 所在分区磁盘使用率）
+- **文件页目录删除**：递归删除目录（危险操作弹窗 + 输入目录名二次确认）
+- **Prometheus 指标增强**：新增 `opsmini_cpu_usage_percent` / `opsmini_mem_usage_percent` 即时使用率、`node_procs_total` 总进程数
+- **统一确认弹窗**：所有删除 / 危险操作改用平台自带确认弹窗（替换浏览器原生 confirm）
+
+## v1.0.0（首个正式发布）
 
 OpsMini 首个正式版本，单二进制交付，核心能力：
 
