@@ -813,8 +813,13 @@ func (s *SystemService) FirewallStatus() *FirewallStatus {
 	}
 	// ufw (Ubuntu/Debian)
 	if out, err := exec.Command("ufw", "status").Output(); err == nil {
-		if strings.Contains(string(out), "Status: active") {
+		s := string(out)
+		if strings.Contains(s, "Status: active") {
 			return &FirewallStatus{Enabled: true, Backend: "ufw", Message: "ufw 正在运行"}
+		}
+		// ufw 已安装但未启用（Status: inactive），仍识别为 ufw 后端，允许面板内启用
+		if strings.Contains(s, "Status: inactive") {
+			return &FirewallStatus{Enabled: false, Backend: "ufw", Message: "ufw 已安装但未启用"}
 		}
 	}
 	// iptables: any rules mean enabled

@@ -1697,8 +1697,8 @@
             <div class="card-head"><div class="card-title">{{ t('sec.fwBackend') }}: {{ secFirewall.backend || 'none' }}</div>
               <div class="row" style="gap:8px">
                 <span class="tag" :class="secFirewall.enabled?'ok':'err'"><span class="tdot"></span>{{ secFirewall.enabled ? t('common.enabled') : t('common.disabled') }}</span>
-                <button v-if="!secFirewall.enabled && secFirewall.backend!=='iptables' && hasPerm('security.firewall')" class="btn sm primary" @click="fwEnable">{{ t('sec.fwEnable') }}</button>
-                <button v-if="secFirewall.enabled && secFirewall.backend!=='iptables' && hasPerm('security.firewall')" class="btn sm danger" @click="fwDisable">{{ t('sec.fwDisable') }}</button>
+                <button v-if="!secFirewall.enabled && (secFirewall.backend==='ufw' || secFirewall.backend==='firewalld') && hasPerm('security.firewall')" class="btn sm primary" @click="fwEnable">{{ t('sec.fwEnable') }}</button>
+                <button v-if="secFirewall.enabled && (secFirewall.backend==='ufw' || secFirewall.backend==='firewalld') && hasPerm('security.firewall')" class="btn sm danger" @click="fwDisable">{{ t('sec.fwDisable') }}</button>
               </div>
             </div>
             <div class="card-body">
@@ -2277,9 +2277,9 @@
             <div class="card">
               <div class="card-head"><div class="card-title">{{ t('profile.password') }}</div></div>
               <div class="card-body">
-                <div class="form-item"><label>{{ t('profile.oldPass') }}</label><input class="input" type="password" v-model="passForm.old"></div>
-                <div class="form-item"><label>{{ t('profile.newPass') }}</label><input class="input" type="password" v-model="passForm.new"></div>
-                <div class="form-item"><label>{{ t('profile.confirmPass') }}</label><input class="input" type="password" v-model="passForm.confirm"></div>
+                <div class="form-item"><label>{{ t('profile.oldPass') }}</label><div class="pass-wrap"><input class="input" :type="passShow.old ? 'text' : 'password'" v-model="passForm.old" style="width:100%;padding-right:40px"><button type="button" class="pass-eye" @click="passShow.old=!passShow.old" :title="passShow.old ? t('login.hidePass') : t('login.showPass')" tabindex="-1"><svg v-if="!passShow.old" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></button></div></div>
+                <div class="form-item"><label>{{ t('profile.newPass') }}</label><div class="pass-wrap"><input class="input" :type="passShow.new ? 'text' : 'password'" v-model="passForm.new" style="width:100%;padding-right:40px"><button type="button" class="pass-eye" @click="passShow.new=!passShow.new" :title="passShow.new ? t('login.hidePass') : t('login.showPass')" tabindex="-1"><svg v-if="!passShow.new" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></button></div></div>
+                <div class="form-item"><label>{{ t('profile.confirmPass') }}</label><div class="pass-wrap"><input class="input" :type="passShow.confirm ? 'text' : 'password'" v-model="passForm.confirm" style="width:100%;padding-right:40px"><button type="button" class="pass-eye" @click="passShow.confirm=!passShow.confirm" :title="passShow.confirm ? t('login.hidePass') : t('login.showPass')" tabindex="-1"><svg v-if="!passShow.confirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></button></div></div>
                 <button class="btn primary" @click="savePassword">{{ t('btn.save') }}</button>
               </div>
             </div>
@@ -3514,6 +3514,7 @@ createApp({
       profile: { username:'', nickname:'', icon:'', email:'' },
       profileTab: 'basic',
       passForm: { old:'', new:'', confirm:'' },
+      passShow: { old:false, new:false, confirm:false },
       notifyCfg: { smtp_host:'', smtp_port:'465', smtp_from:'', smtp_to:'', smtp_user:'', smtp_pass:'', wecom_webhook:'', dingtalk_webhook:'', feishu_webhook:'' },
       killModal: null,             // 结束进程弹窗：{ pid, name }
       killSignal: 'SIGTERM',
