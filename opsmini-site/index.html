@@ -275,6 +275,12 @@ section{padding:84px 0}
 }
 .hl b{display:block;font-size:15.5px;color:var(--text);margin-bottom:2px}
 .hl span{font-size:13.5px;color:var(--text-dim)}
+.install-strip{display:flex;align-items:center;gap:14px;margin-top:22px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px 18px;box-shadow:0 4px 18px rgba(37,99,235,.05)}
+.install-label{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;flex-shrink:0}
+.install-cmd{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;color:var(--text-dim);background:var(--bg-soft);padding:9px 14px;border-radius:8px;overflow-x:auto;white-space:nowrap}
+.copy-btn{flex-shrink:0;font-size:13.5px;font-weight:600;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:9px 18px;cursor:pointer;transition:opacity .2s}
+.copy-btn:hover{opacity:.9}
+.copy-btn:active{opacity:.75}
 
 /* stats band */
 .stats-band{
@@ -451,6 +457,11 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
         <div class="ic" data-page-node-id="a6CeP8MmC2idC7dWUAGCR5">🔌</div>
         <div data-page-node-id="UeOki6fEIMhBw3KT4gPa2u"><b data-i18n="hl3.t" data-page-node-id="CScbT0AcKRFO5B7095SVJ5">支持 MCP 与 Skill</b><span data-i18n="hl3.d" data-page-node-id="Ewy89K90XUzbNxX9zdFdXH">对接 MCP 协议与自定义 Skill，自由扩展 AI 能力</span></div>
       </div>
+    </div>
+    <div class="install-strip" data-page-node-id="newInstallStrip0001">
+      <span class="install-label" data-i18n="install.label" data-page-node-id="newInstallLabel0001">一键安装</span>
+      <code class="install-cmd" data-page-node-id="newInstallCmd0001">curl -fsSL https://opsmini.com/install.sh | sudo bash</code>
+      <button type="button" class="copy-btn" data-page-node-id="newInstallCopy0001" onclick="copyInstallCmd(this)"><span data-i18n="install.copy">复制</span></button>
     </div>
   </div>
 </section>
@@ -658,7 +669,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 const I18N = {
 'zh-CN': {
   'title':'OpsMini — AI 驱动的轻量服务器运维面板','foot.faq':'常见问题',
-  'hl1.t':'内置 AI 运维助手','hl1.d':'自然语言诊断、日志分析、命令执行，让运维经验真正落地','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力',
+  'hl1.t':'内置 AI 运维助手','hl1.d':'自然语言诊断、日志分析、命令执行，让运维经验真正落地','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力','install.label':'一键安装','install.copy':'复制','install.copied':'已复制',
   'nav.features':'功能','nav.ai':'AI 运维','nav.arch':'架构','nav.quickstart':'快速开始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即体验','nav.tagline':'AI 驱动的主机运维面板','nav.docs':'文档',
   'hero.badge':'AI-Powered · 单二进制交付 · 零依赖运行',
   'hero.title':'一个文件，<br>管好一台<span class="grad">服务器</span>',
@@ -708,7 +719,7 @@ const I18N = {
 },
 'en': {
   'title':'OpsMini — AI-Powered Lightweight Server Panel','foot.faq':'FAQ',
-  'hl1.t':'Built-in AI Ops Assistant','hl1.d':'Natural-language diagnosis, log analysis, and command execution — real ops expertise in your panel','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities',
+  'hl1.t':'Built-in AI Ops Assistant','hl1.d':'Natural-language diagnosis, log analysis, and command execution — real ops expertise in your panel','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities','install.label':'One-click install','install.copy':'Copy','install.copied':'Copied',
   'nav.features':'Features','nav.ai':'AI Ops','nav.arch':'Architecture','nav.quickstart':'Quick Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Get Started','nav.tagline':'AI-Powered Server Operations Panel','nav.docs':'Docs',
   'hero.badge':'AI-Powered · Single Binary · Zero Dependencies',
   'hero.title':'One file to run a<br>whole <span class="grad">server</span>',
@@ -758,7 +769,7 @@ const I18N = {
 },
 'zh-TW': {
   'title':'OpsMini — AI 驅動的輕量伺服器維運面板','foot.faq':'常見問題',
-  'hl1.t':'內建 AI 維運助手','hl1.d':'自然語言診斷、日誌分析、命令執行，讓維運經驗真正落地','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力',
+  'hl1.t':'內建 AI 維運助手','hl1.d':'自然語言診斷、日誌分析、命令執行，讓維運經驗真正落地','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力','install.label':'一鍵安裝','install.copy':'複製','install.copied':'已複製',
   'nav.features':'功能','nav.ai':'AI 維運','nav.arch':'架構','nav.quickstart':'快速開始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即體驗','nav.tagline':'AI 驅動的主機維運面板','nav.docs':'文件',
   'hero.badge':'AI-Powered · 單一二進位交付 · 零依賴運行',
   'hero.title':'一個檔案，<br>管好一台<span class="grad">伺服器</span>',
@@ -808,7 +819,7 @@ const I18N = {
 },
 'ja': {
   'title':'OpsMini — AI 駆動の軽量サーバー管理パネル','foot.faq':'よくある質問',
-  'hl1.t':'AI 運用アシスタント内蔵','hl1.d':'自然言語での診断・ログ分析・コマンド実行、運用ノウハウをパネルに','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張',
+  'hl1.t':'AI 運用アシスタント内蔵','hl1.d':'自然言語での診断・ログ分析・コマンド実行、運用ノウハウをパネルに','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張','install.label':'ワンクリックインストール','install.copy':'コピー','install.copied':'コピーしました',
   'nav.features':'機能','nav.ai':'AI 運用','nav.arch':'アーキテクチャ','nav.quickstart':'クイックスタート','nav.api':'API','nav.faq':'FAQ','nav.cta':'はじめる','nav.tagline':'AI駆動のサーバー運用パネル','nav.docs':'ドキュメント',
   'hero.badge':'AI-Powered · 単一バイナリ · 依存ゼロ',
   'hero.title':'1つのファイルで、<br>1台をまるごと<span class="grad">管理</span>',
@@ -858,7 +869,7 @@ const I18N = {
 },
 'ko': {
   'title':'OpsMini — AI 기반 경량 서버 관리 패널','foot.faq':'FAQ',
-  'hl1.t':'내장 AI 운영 어시스턴트','hl1.d':'자연어 진단·로그 분석·명령 실행으로 운영 경험을 패널에 담다','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장',
+  'hl1.t':'내장 AI 운영 어시스턴트','hl1.d':'자연어 진단·로그 분석·명령 실행으로 운영 경험을 패널에 담다','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장','install.label':'원클릭 설치','install.copy':'복사','install.copied':'복사됨',
   'nav.features':'기능','nav.ai':'AI 운영','nav.arch':'아키텍처','nav.quickstart':'빠른 시작','nav.api':'API','nav.faq':'FAQ','nav.cta':'시작하기','nav.tagline':'AI 기반 서버 운영 패널','nav.docs':'문서',
   'hero.badge':'AI 기반 · 단일 바이너리 · 의존성 없음',
   'hero.title':'파일 하나로<br>서버 한 대를<span class="grad">완벽 관리</span>',
@@ -908,7 +919,7 @@ const I18N = {
 },
 'th': {
   'title':'OpsMini — แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.faq':'คำถามที่พบบ่อย',
-  'hl1.t':'ผู้ช่วย AI Ops ในตัว','hl1.d':'วินิจฉัยด้วยภาษาธรรมชาติ วิเคราะห์ล็อก และรันคำสั่ง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI',
+  'hl1.t':'ผู้ช่วย AI Ops ในตัว','hl1.d':'วินิจฉัยด้วยภาษาธรรมชาติ วิเคราะห์ล็อก และรันคำสั่ง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI','install.label':'ติดตั้งคลิกเดียว','install.copy':'คัดลอก','install.copied':'คัดลอกแล้ว',
   'nav.features':'ฟีเจอร์','nav.ai':'AI Ops','nav.arch':'สถาปัตยกรรม','nav.quickstart':'เริ่มต้นใช้งาน','nav.api':'API','nav.faq':'FAQ','nav.cta':'เริ่มใช้งาน','nav.tagline':'แผงจัดการเซิร์ฟเวอร์ขับเคลื่อนด้วย AI','nav.docs':'เอกสาร',
   'hero.badge':'ขับเคลื่อนด้วย AI · ไบนารีเดียว · ไม่มี Dependency',
   'hero.title':'ไฟล์เดียว<br>จัดการทั้ง<span class="grad">เซิร์ฟเวอร์</span>',
@@ -958,7 +969,7 @@ const I18N = {
 },
 'de': {
   'title':'OpsMini — KI-gesteuertes Leichtgewichts-Serverpanel','foot.faq':'FAQ',
-  'hl1.t':'Integrierter AI-Ops-Assistent','hl1.d':'Diagnose in natürlicher Sprache, Log-Analyse und Befehlsausführung','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern',
+  'hl1.t':'Integrierter AI-Ops-Assistent','hl1.d':'Diagnose in natürlicher Sprache, Log-Analyse und Befehlsausführung','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern','install.label':'Ein-Klick-Installation','install.copy':'Kopieren','install.copied':'Kopiert',
   'nav.features':'Funktionen','nav.ai':'KI-Ops','nav.arch':'Architektur','nav.quickstart':'Schnellstart','nav.api':'API','nav.faq':'FAQ','nav.cta':'Loslegen','nav.tagline':'KI-gesteuertes Server-Betriebs-Panel','nav.docs':'Dokumentation',
   'hero.badge':'KI-gesteuert · Einzelne Binary · Null Abhängigkeiten',
   'hero.title':'Eine Datei,<br>der ganze<span class="grad">Server</span>',
@@ -1102,6 +1113,32 @@ if (!saved) {
   saved = langFromTimezone(tz);
 }
 applyLang(saved);
+
+// copy one-click install command
+function copyInstallCmd(btn){
+  const cmd = 'curl -fsSL https://opsmini.com/install.sh | sudo bash';
+  const dict = I18N[document.documentElement.lang] || I18N['zh-CN'];
+  const ok = () => {
+    const span = btn && btn.querySelector('span');
+    const el = span || btn;
+    const label = el.getAttribute('data-i18n');
+    el.textContent = dict['install.copied'] || '已复制';
+    setTimeout(() => { el.textContent = dict[label] || dict['install.copy'] || '复制'; }, 2000);
+  };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = cmd; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+    ok();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cmd).then(ok).catch(fallback);
+  } else {
+    fallback();
+  }
+}
 </script>
 </body>
 </html>
