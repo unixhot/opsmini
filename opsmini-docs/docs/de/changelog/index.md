@@ -2,7 +2,7 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
-## v1.1.0 (aktuell)
+## v1.1.0 (2026-09-21)
 
 **Multi-Host-Verwaltung (Agent / Server-Architektur)**
 
@@ -39,7 +39,7 @@
 - **Passwort-Sichtbarkeit**: Eingabefelder wie das Ändern des Passworts oder der OpsAnt-Anbindungs-Token erhalten ein neues Auge-Symbol für „Anzeigen / Ausblenden“
 - **Layout der Einstellungsseite**: „Zwei-Faktor-Authentifizierung“ und „OpsAnt-Anbindung“ werden nebeneinander dargestellt; der Schalter „Automatische Updates“ wurde entfernt
 
-## v1.0.0 (erste offizielle Veröffentlichung)
+## v1.0.0 (2026-09-13)
 
 Die erste offizielle Version von OpsMini, ausgeliefert als einzelnes Binary, mit diesen Kernfähigkeiten:
 

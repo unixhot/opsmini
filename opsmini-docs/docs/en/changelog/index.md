@@ -2,7 +2,7 @@
 
 Change records for each version.
 
-## v1.1.0 (current)
+## v1.1.0 (2026-09-21)
 
 **Multi-machine management (Agent / Server architecture)**
 
@@ -39,7 +39,7 @@ Change records for each version.
 - **Password visibility**: added a "show / hide" eye icon to input fields such as password change and the OpsAnt integration Token
 - **Settings page layout**: "Two-factor authentication" and "OpsAnt integration" are displayed side by side; the "Auto update" toggle was removed
 
-## v1.0.0 (first official release)
+## v1.0.0 (2026-09-13)
 
 The first official release of OpsMini, delivered as a single binary, with core capabilities:
 
