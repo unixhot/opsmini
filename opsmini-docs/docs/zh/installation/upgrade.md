@@ -1,6 +1,16 @@
 # 升级
 
-## 升级步骤
+## 方式一：一键升级（推荐）
+
+重新执行安装脚本即可，检测到已安装会自动进入升级模式（替换二进制并重启，**不重置密码、不改配置**）：
+
+```bash
+curl -fsSL https://opsmini.com/install.sh | sudo bash
+```
+
+升级过程中会自动备份旧二进制到 `/data/opsmini/opsmini.bak.<时间戳>`，便于回滚。
+
+## 方式二：手动替换二进制
 
 ```bash
 # 1. 停止服务并备份数据
@@ -26,8 +36,6 @@ sudo systemctl start opsmini
 
 ```bash
 sudo systemctl stop opsmini
-sudo cp /data/opsmini/opsmini /data/opsmini/opsmini.new.bad
-sudo cp /data/opsmini/opsmini.old /data/opsmini/opsmini   # 用旧二进制
-sudo cp /data/opsmini/opsmini.db.bak.<ts> /data/opsmini/opsmini.db
+sudo cp /data/opsmini/opsmini.bak.<时间戳> /data/opsmini/opsmini   # 用旧二进制（install.sh 升级时自动备份）
 sudo systemctl start opsmini
 ```
