@@ -322,6 +322,9 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 .foot-cols a{display:block;padding:3px 0;transition:color .2s}
 .foot-cols a:hover{color:var(--accent)}
 .foot-bottom{margin-top:34px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.foot-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.foot-bottom a.beian{color:var(--text-faint);transition:color .2s}
+.foot-bottom a.beian:hover{color:var(--accent)}
 
 @media (max-width:960px){
   .hero-grid,.ai-band,.qs-grid,.api-wrap{grid-template-columns:1fr}
@@ -660,7 +663,10 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
       </div>
     </div>
     <div class="foot-bottom" data-page-node-id="EEPzipA9VXvNnmDMvjQtZx">
-      <span data-i18n="foot.bottom" data-page-node-id="BKiutWTs45tbNgk6fzx36G">OpsMini © 2026 北京速云科技有限公司（opsmini.com）</span>
+      <div class="foot-left">
+        <span data-i18n="foot.bottom" data-page-node-id="BKiutWTs45tbNgk6fzx36G">OpsMini © 2026 北京速云科技有限公司（opsmini.com）</span>
+        <a class="beian" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" data-page-node-id="newBeian0001">京ICP备2022007302号-3</a>
+      </div>
       <span data-page-node-id="cCxAtY1XG2RVU0AY8tqJpg">Go · Gin · GORM · SQLite · Vue 3 · ECharts</span>
     </div>
   </div>
