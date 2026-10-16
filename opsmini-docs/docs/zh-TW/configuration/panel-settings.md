@@ -21,7 +21,7 @@
 
 詳見 [使用者與許可權../features/users-rbac.md#双因素验证-2fa。
 
-## AI 大模型接入
+## AI 大模型接入 {: #ai-config }
 
 統一在此配置內建 AI 助手的模型接入，替代原先的 `config.yaml` `ai` 段：
 

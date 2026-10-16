@@ -1,4 +1,14 @@
+<div align="center">
+
 # OpsMini AI 智能体设计（AI Agent）
+
+**AI Agent Design**
+
+[English](ai-agent.md) · [简体中文](ai-agent.zh-CN.md) · [繁體中文](ai-agent.zh-TW.md) · [日本語](ai-agent.ja.md) · [한국어](ai-agent.ko.md) · [ไทย](ai-agent.th.md) · [Deutsch](ai-agent.de.md)
+
+</div>
+
+---
 
 > 版本：M8 ｜ 对应代码：`internal/aiagent/`
 

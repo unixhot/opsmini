@@ -1,6 +1,18 @@
+<div align="center">
+
 # OpsMini AI Agent Design
 
-> Milestone M8 ｜ Code: `internal/aiagent/`
+**AI Agent Design**
+
+[English](ai-agent.md) · [简体中文](ai-agent.zh-CN.md) · [繁體中文](ai-agent.zh-TW.md) · [日本語](ai-agent.ja.md) · [한국어](ai-agent.ko.md) · [ไทย](ai-agent.th.md) · [Deutsch](ai-agent.de.md)
+
+</div>
+
+---
+
+> Milestones M8–M10 ｜ Code: `internal/aiagent/`
+>
+> How to use: AI Assistant → configure a model → just ask in natural language
 
 In M8 the OpsMini AI assistant grew from "an ops advisor that can read a live
 system snapshot" into **an agent that can actually operate the host**: the model
@@ -208,7 +220,7 @@ all reused, and "run something every morning" lives where users already look.
 ```
 cron fires -> agent runs unattended (ReAct with read-only / low-risk tools)
            -> transcript stored (the report IS an AI session, thinking chain included)
-           -> Markdown archived under <data_dir>/reports/<task name>/
+           -> HTML + Markdown archived under <data_dir>/reports/<task name>/
            -> summary pushed to the task's notification channels
 ```
 
