@@ -149,7 +149,7 @@ func (a *Agent) Send(ctx context.Context, opt RunOptions, userMessage string) (*
 	if err != nil {
 		return nil, err
 	}
-	return a.loop(ctx, opt, sess, history)
+	return a.loop(ctx, opt, sess, history, 0)
 }
 
 // Resume continues a suspended run after the human made a decision.
@@ -207,17 +207,24 @@ func (a *Agent) Resume(ctx context.Context, opt RunOptions, approvalID string, a
 	if err != nil {
 		return nil, err
 	}
-	return a.loop(ctx, opt, sess, history)
+	// The approved call counts as one tool invocation; a rejected one does not.
+	alreadyRan := 0
+	if approved {
+		alreadyRan = 1
+	}
+	return a.loop(ctx, opt, sess, history, alreadyRan)
 }
 
 // loop runs the reason → act → observe cycle until the model answers without
 // requesting more tools, a confirmation is required, or the step budget is spent.
-func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession, history []Message) (*SendResult, error) {
+// toolsDone seeds the tool counter with calls that were already executed before
+// the loop started (the approved call when resuming a suspended run).
+func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession, history []Message, toolsDone int) (*SendResult, error) {
 	emit := opt.Emitter
 	if emit == nil {
 		emit = nopEmitter()
 	}
-	res := &SendResult{SessionID: sess.ID}
+	res := &SendResult{SessionID: sess.ID, Tools: toolsDone}
 	tools := a.availableTools(opt.RoleName)
 	msgs := make([]Message, 0, len(history)+2)
 	msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: a.systemPrompt(opt)})
