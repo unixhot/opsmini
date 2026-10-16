@@ -22,11 +22,11 @@ type AlertEvent struct {
 	ID         uint       `gorm:"primaryKey" json:"id"`
 	RuleID     uint       `json:"rule_id"`
 	RuleName   string     `gorm:"size:128" json:"rule_name"`
-	Metric     string     `gorm:"size:64" json:"metric"`  // CPU usage / memory usage / disk usage
+	Metric     string     `gorm:"size:64" json:"metric"` // CPU usage / memory usage / disk usage
 	Level      string     `gorm:"size:16;default:warning" json:"level"`
 	Message    string     `gorm:"size:256" json:"message"`
-	Kind       string     `gorm:"size:16;default:alert" json:"kind"` // alert / recovery
-	RelatedID  uint       `json:"related_id"`                        // for recovery event: the alert event it resolves
+	Kind       string     `gorm:"size:16;default:alert" json:"kind"`    // alert / recovery
+	RelatedID  uint       `json:"related_id"`                           // for recovery event: the alert event it resolves
 	Status     string     `gorm:"size:16;default:active" json:"status"` // active / resolved
 	CreatedAt  time.Time  `json:"created_at"`
 	ResolvedAt *time.Time `json:"resolved_at,omitempty"`

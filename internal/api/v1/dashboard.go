@@ -11,8 +11,8 @@ import (
 
 // DashboardHandler dashboard and monitoring handler.
 type DashboardHandler struct {
-	sys      *service.SystemService
-	metrics  *service.MetricCollector
+	sys     *service.SystemService
+	metrics *service.MetricCollector
 }
 
 // NewDashboardHandler constructor.

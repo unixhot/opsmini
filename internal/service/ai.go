@@ -32,7 +32,7 @@ type AIService struct {
 
 // ChatMessage is a conversation message.
 type ChatMessage struct {
-	Role       string     `json:"role"`                   // system / user / assistant / tool
+	Role       string     `json:"role"` // system / user / assistant / tool
 	Content    string     `json:"content,omitempty"`
 	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`   // tool calls in an assistant message
 	ToolCallID string     `json:"tool_call_id,omitempty"` // call ID of a tool message

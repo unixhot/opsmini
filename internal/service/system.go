@@ -89,8 +89,8 @@ type Overview struct {
 	PlatformVer  string   `json:"platform_version"` // distro version (e.g. 22.04)
 	KernelVer    string   `json:"kernel_version"`   // kernel version (e.g. 6.5.0-27)
 	KernelArch   string   `json:"kernel_arch"`
-	IPs          []string `json:"ips"`              // host IPv4 address list
-	BootTime     int64    `json:"boot_time"`        // boot time (unix seconds)
+	IPs          []string `json:"ips"`       // host IPv4 address list
+	BootTime     int64    `json:"boot_time"` // boot time (unix seconds)
 	CPUPercent   float64  `json:"cpu_percent"`
 	CPUCores     int      `json:"cpu_cores"`
 	MemPercent   float64  `json:"mem_percent"`
@@ -100,11 +100,11 @@ type Overview struct {
 	Load5        float64  `json:"load5"`
 	Load15       float64  `json:"load15"`
 	Uptime       uint64   `json:"uptime"`
-	DiskPercent  float64  `json:"disk_percent"`  // root partition
-	DiskTotal    uint64   `json:"disk_total"`    // root partition total capacity (bytes)
-	DiskUsed     uint64   `json:"disk_used"`     // root partition used (bytes)
-	NetRecvRate  uint64   `json:"net_recv_rate"` // bytes/s
-	NetSentRate  uint64   `json:"net_sent_rate"` // bytes/s
+	DiskPercent  float64  `json:"disk_percent"`   // root partition
+	DiskTotal    uint64   `json:"disk_total"`     // root partition total capacity (bytes)
+	DiskUsed     uint64   `json:"disk_used"`      // root partition used (bytes)
+	NetRecvRate  uint64   `json:"net_recv_rate"`  // bytes/s
+	NetSentRate  uint64   `json:"net_sent_rate"`  // bytes/s
 	NetRecvTotal uint64   `json:"net_recv_total"` // today's cumulative received (bytes)
 	NetSentTotal uint64   `json:"net_sent_total"` // today's cumulative sent (bytes)
 }

@@ -22,24 +22,24 @@ const skillHubBase = "https://api.skillhub.cn"
 
 // SkillInfo is skill information.
 type SkillInfo struct {
-	Name          string `json:"name"`
-	Slug          string `json:"slug"`
-	Description   string `json:"description"`
-	Category      string `json:"category"`
-	Installed     bool   `json:"installed"`
-	Enabled       bool   `json:"enabled"`
-	Downloads     int64  `json:"downloads"`
-	Installs      int64  `json:"installs"`
-	Stars         int64  `json:"stars"`
-	Version       string `json:"version"`
-	IconURL       string `json:"icon_url"`
-	Verified      bool   `json:"verified"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	Installed   bool   `json:"installed"`
+	Enabled     bool   `json:"enabled"`
+	Downloads   int64  `json:"downloads"`
+	Installs    int64  `json:"installs"`
+	Stars       int64  `json:"stars"`
+	Version     string `json:"version"`
+	IconURL     string `json:"icon_url"`
+	Verified    bool   `json:"verified"`
 }
 
 // SkillService handles skill management: skills are stored as directories (one directory per skill, containing SKILL.md).
 // It integrates with the SkillHub REST API (search/download skills).
 type SkillService struct {
-	dataDir func() string    // data directory provider (read from settings, configurable)
+	dataDir func() string // data directory provider (read from settings, configurable)
 	client  *http.Client
 }
 

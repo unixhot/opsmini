@@ -154,12 +154,12 @@ func (m *MetricCollector) sample() {
 	// persist to SQLite (one row per 10s, negligible write pressure; failure only logs and does not affect collection)
 	if m.db != nil {
 		if err := m.db.Create(&model.MetricPoint{
-			Time:     p.Time,
-			CPU:      p.CPU,
-			Mem:      p.Mem,
-			Load1:    p.Load1,
-			NetRecv:  p.NetRecv,
-			NetSent:  p.NetSent,
+			Time:    p.Time,
+			CPU:     p.CPU,
+			Mem:     p.Mem,
+			Load1:   p.Load1,
+			NetRecv: p.NetRecv,
+			NetSent: p.NetSent,
 		}).Error; err != nil {
 			log.Printf("metric persist: %v", err)
 		}

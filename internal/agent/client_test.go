@@ -43,7 +43,7 @@ func TestExecuteScript(t *testing.T) {
 	c := New(Config{}, "testhost", "test")
 	task := &agentpb.ExecuteTask{
 		JobId: "job-script",
-		Kind:  &agentpb.ExecuteTask_Script{Script: &agentpb.ScriptSpec{
+		Kind: &agentpb.ExecuteTask_Script{Script: &agentpb.ScriptSpec{
 			Script:   "echo from-script",
 			Language: "shell",
 		}},

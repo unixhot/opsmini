@@ -16,7 +16,7 @@ var ErrNeedRoot = errors.New("需要 root 权限执行防火墙操作")
 
 // FirewallRule is a unified structured firewall rule.
 type FirewallRule struct {
-	Ref    string `json:"ref"`    // rule number (used for deletion)
+	Ref    string `json:"ref"` // rule number (used for deletion)
 	Proto  string `json:"proto"`
 	Port   string `json:"port"`
 	Action string `json:"action"` // allow/deny
