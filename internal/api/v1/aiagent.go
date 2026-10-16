@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -37,6 +39,8 @@ type AgentDeps struct {
 	// MCPServerToken returns the token that protects the inbound MCP endpoint (M8-F).
 	MCPServerToken func() string
 	Settings       Settings
+	// DataDir returns the panel data directory (holds the archived reports).
+	DataDir func() string
 }
 
 // AgentHandler serves the AI Agent endpoints: streaming ReAct chat, the
@@ -435,4 +439,142 @@ func newSecretToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+// SessionReport GET /ai/agent/sessions/:id/report - download the Markdown report
+// of a session (works for scheduled task reports and for ad-hoc conversations).
+func (h *AgentHandler) SessionReport(c *gin.Context) {
+	uid, _, _ := h.contextOf(c)
+	id := c.Param("id")
+	sess, err := h.deps.Store.GetSession(id, uid)
+	if err != nil {
+		response.Error(c, 404, response.CodeNotFound, err.Error())
+		return
+	}
+	msgs, err := h.deps.Store.History(id, 0)
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	steps, tools := 0, 0
+	for _, m := range msgs {
+		if m.Role != "assistant" {
+			continue
+		}
+		steps++
+		tools += len(m.ToolCalls)
+	}
+	md, err := h.deps.Store.BuildReport(id, aiagent.ReportMeta{
+		Prompt: firstUserMessage(msgs),
+		Steps:  steps,
+		Tools:  tools,
+		Status: "success",
+	})
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	// Scheduled tasks already embed the date in the title ("每日巡检 · 2026-10-16"),
+	// so the title alone makes a unique filename; only ad-hoc sessions fall back
+	// to the download date.
+	filename := sanitizeReportName(sess.Title)
+	if hasDateSuffix(sess.Title) {
+		filename += ".md"
+	} else {
+		filename += "-" + time.Now().Format("20060102") + ".md"
+	}
+	writeMarkdownDownload(c, filename, md)
+}
+
+// Reports GET /ai/agent/reports - list the archived AI task reports.
+func (h *AgentHandler) Reports(c *gin.Context) {
+	files, err := aiagent.ListReports(h.dataDir())
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"reports": files})
+}
+
+// DownloadReport GET /ai/agent/reports/download?name=... - download an archived report.
+func (h *AgentHandler) DownloadReport(c *gin.Context) {
+	name := c.Query("name")
+	if name == "" {
+		response.Error(c, 400, response.CodeInvalidParam, "缺少 name 参数")
+		return
+	}
+	data, base, err := aiagent.ReadReport(h.dataDir(), name)
+	if err != nil {
+		response.Error(c, 404, response.CodeNotFound, err.Error())
+		return
+	}
+	writeMarkdownDownload(c, base, string(data))
+}
+
+// dataDir resolves the panel data directory.
+func (h *AgentHandler) dataDir() string {
+	if h.deps.DataDir == nil {
+		return ""
+	}
+	return h.deps.DataDir()
+}
+
+// firstUserMessage returns the first user message of a transcript.
+func firstUserMessage(msgs []aiagent.Message) string {
+	for _, m := range msgs {
+		if m.Role == "user" {
+			return m.Content
+		}
+	}
+	return ""
+}
+
+// hasDateSuffix reports whether the title already ends with a YYYY-MM-DD date,
+// which scheduled task titles do ("每日主机巡检 · 2026-10-16").
+func hasDateSuffix(s string) bool {
+	s = strings.TrimSpace(s)
+	if len(s) < 10 {
+		return false
+	}
+	tail := s[len(s)-10:]
+	// Expect 2026-10-16.
+	if tail[4] != '-' || tail[7] != '-' {
+		return false
+	}
+	for i, ch := range tail {
+		if i == 4 || i == 7 {
+			continue
+		}
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// sanitizeReportName keeps a report filename free of path separators and control
+// characters (task names are usually Chinese, which is fine).
+func sanitizeReportName(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.NewReplacer("/", "-", "\\", "-", ":", "-", "*", "-", "?", "-", "\"", "-",
+		"<", "-", ">", "-", "|", "-", "\n", " ", "\r", " ", "\t", " ").Replace(s)
+	if s == "" {
+		s = "report"
+	}
+	if len([]rune(s)) > 60 {
+		s = string([]rune(s)[:60])
+	}
+	return s
+}
+
+// writeMarkdownDownload sends a Markdown file as an attachment. The filename is
+// RFC 5987 encoded so non-ASCII task names survive.
+func writeMarkdownDownload(c *gin.Context, filename, content string) {
+	if filename == "" {
+		filename = "report.md"
+	}
+	c.Header("Content-Type", "text/markdown; charset=utf-8")
+	c.Header("Content-Disposition", "attachment; filename*=UTF-8''"+url.PathEscape(filename))
+	c.Header("Cache-Control", "no-store")
+	c.String(http.StatusOK, content)
 }

@@ -53,6 +53,16 @@ type RunOptions struct {
 	Context   string // current page context reported by the frontend
 	DeepThink bool
 	Emitter   Emitter
+
+	// Unattended marks a scheduled task running with nobody watching. Tools that
+	// would need a human approval are then REFUSED instead of suspending the run,
+	// because there is no one to click the confirmation dialog.
+	Unattended bool
+	// Title overrides the auto-derived session title (used by scheduled tasks so
+	// the report shows up as "每日巡检 · 2026-10-16").
+	Title string
+	// MaxSteps overrides the configured per-turn step budget (0 = engine default).
+	MaxSteps int
 }
 
 // Agent is the ReAct kernel: it reasons with the model, invokes tools, feeds the
@@ -119,6 +129,9 @@ type SendResult struct {
 	Tools     int
 	Suspended bool
 	Content   string
+	// Skipped lists the tools refused because they need human approval while the
+	// run is unattended.
+	Skipped []string
 }
 
 // Send appends a user message and runs the ReAct loop for it.
@@ -130,7 +143,11 @@ func (a *Agent) Send(ctx context.Context, opt RunOptions, userMessage string) (*
 	if err := a.llm.Validate(); err != nil {
 		return nil, err
 	}
-	sess, err := a.store.EnsureSession(opt.SessionID, opt.UserID, userMessage)
+	title := userMessage
+	if opt.Title != "" {
+		title = opt.Title
+	}
+	sess, err := a.store.EnsureSession(opt.SessionID, opt.UserID, title)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +247,11 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 	msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: a.systemPrompt(opt)})
 	msgs = append(msgs, history...)
 
-	for step := 1; step <= a.cfg.MaxSteps; step++ {
+	maxSteps := a.cfg.MaxSteps
+	if opt.MaxSteps > 0 {
+		maxSteps = opt.MaxSteps
+	}
+	for step := 1; step <= maxSteps; step++ {
 		if ctx.Err() != nil {
 			return res, ctx.Err()
 		}
@@ -309,6 +330,23 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 				emit.Emit(Event{Type: EventToolResult, SessionID: sess.ID, ID: call.ID, Name: tool.Name, OK: boolPtr(false), Summary: reason})
 				continue
 			case PolicyConfirm:
+				// Unattended run (scheduled task): nobody can approve, so refuse
+				// the call, tell the model why, and keep going with the rest.
+				if opt.Unattended {
+					reason := fmt.Sprintf("无人值守的定时任务：工具 %s 属于「需人工确认」的操作，已被安全策略拒绝执行。请改用只读工具获取信息，并在结论中说明该操作需要人工介入。", tool.Name)
+					emit.Emit(Event{Type: EventToolCall, SessionID: sess.ID, ID: call.ID, Name: tool.Name,
+						Title: tool.Title, Args: args, Risk: tool.Risk.String(), RiskCode: int(tool.Risk), Preview: preview})
+					emit.Emit(Event{Type: EventToolResult, SessionID: sess.ID, ID: call.ID, Name: tool.Name,
+						OK: boolPtr(false), Summary: reason})
+					out := toolMessage(call.ID, tool.Name, reason)
+					msgs = append(msgs, out)
+					_ = a.store.Append(sess.ID, out)
+					if !containsString(res.Skipped, tool.Name) {
+						res.Skipped = append(res.Skipped, tool.Name)
+					}
+					a.auditTool(opt, tool.Name, "unattended-deny", preview)
+					continue
+				}
 				emit.Emit(Event{Type: EventToolCall, SessionID: sess.ID, ID: call.ID, Name: tool.Name,
 					Title: tool.Title, Args: args, Risk: tool.Risk.String(), RiskCode: int(tool.Risk), Preview: preview})
 				rec, aerr := a.approver.Create(sess.ID, opt.UserID, tool, call, args, preview)
@@ -338,7 +376,7 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 	}
 
 	// Step budget exhausted: report what is known and stop touching the host.
-	final := fmt.Sprintf("已达到最大执行步数（%d），为避免误操作已停止继续调用工具。以上是目前掌握的情况，如需继续请再次提问。", a.cfg.MaxSteps)
+	final := fmt.Sprintf("已达到最大执行步数（%d），为避免误操作已停止继续调用工具。以上是目前掌握的情况，如需继续请再次提问。", maxSteps)
 	emit.Emit(Event{Type: EventFinal, SessionID: sess.ID, Content: final})
 	res.Content = final
 	a.finish(sess, res)
@@ -519,6 +557,16 @@ func findSuspended(history []Message, toolCallID string) (callIdx int, calls []T
 		}
 	}
 	return 0, nil, false
+}
+
+// containsString reports whether the slice already holds the value.
+func containsString(list []string, v string) bool {
+	for _, item := range list {
+		if item == v {
+			return true
+		}
+	}
+	return false
 }
 
 // boolPtr returns a pointer to v (used for tri-state JSON fields).

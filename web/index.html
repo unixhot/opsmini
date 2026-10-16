@@ -1529,8 +1529,9 @@
           <button class="btn primary" @click="openModal('cron')" v-if="hasPerm('cron.create')">{{ t('btn.addTask') }}</button>
         </div>
 
-        <div class="grid grid-3" style="margin-bottom:16px">
+        <div class="grid grid-4" style="margin-bottom:16px">
           <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.panelTask') }}</span></div><div class="stat-value" style="color:var(--info)">{{ crons.filter(c=>c.kind==='panel').length }}</div></div>
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.agentTask') }}</span></div><div class="stat-value" style="color:var(--primary)">{{ crons.filter(c=>c.kind==='agent').length }}</div></div>
           <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.systemTask') }}</span></div><div class="stat-value" style="color:var(--warning)">{{ crons.filter(c=>c.kind==='system').length }}</div></div>
           <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.userTask') }}</span></div><div class="stat-value" style="color:var(--success)">{{ crons.filter(c=>c.kind==='user').length }}</div></div>
         </div>
@@ -1539,6 +1540,7 @@
           <div class="page-tabs">
             <span :class="{active: cronSource==='all'}" @click="cronSource='all'">{{ t('cron.all') }}</span>
             <span :class="{active: cronSource==='panel'}" @click="cronSource='panel'">{{ t('cron.panelTask') }}</span>
+            <span :class="{active: cronSource==='agent'}" @click="cronSource='agent'">{{ t('cron.agentTask') }}</span>
             <span :class="{active: cronSource==='system'}" @click="cronSource='system'">{{ t('cron.systemTask') }}</span>
             <span :class="{active: cronSource==='user'}" @click="cronSource='user'">{{ t('cron.userTask') }}</span>
           </div>
@@ -1554,24 +1556,36 @@
         <div class="card">
           <div class="card-body p0 table-wrap">
             <table>
-              <thead><tr><th>{{ t('th.taskName') }}</th><th>{{ t('th.user') }}</th><th>{{ t('cron.source') }}</th><th>{{ t('th.schedule') }}</th><th>{{ t('cron.command') }}</th><th>{{ t('th.lastRun') }}</th><th>{{ t('common.state') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
+              <thead><tr><th>{{ t('th.taskName') }}</th><th>{{ t('th.user') }}</th><th>{{ t('cron.source') }}</th><th>{{ t('th.schedule') }}</th><th>{{ t('cron.commandOrPrompt') }}</th><th>{{ t('th.lastRun') }}</th><th>{{ t('common.state') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
               <tbody>
-                <tr v-for="c in filteredCrons" :key="c.name + c.srcPath">
-                  <td>{{ c.kind==='panel' ? c.name : '-' }}</td>
-                  <td class="mono">{{ c.user }}</td>
+                <tr v-for="c in filteredCrons" :key="c.name + c.srcPath + (c.id||'')">
+                  <td>{{ (c.kind==='panel'||c.kind==='agent') ? c.name : '-' }}</td>
+                  <td class="mono">{{ c.user || '-' }}</td>
                   <td>
-                    <span class="tag" :class="c.kind==='panel'?'info':c.kind==='system'?'warn':'mute'">{{ c.kind==='panel' ? t('cron.panelTask') : c.kind==='system' ? t('cron.systemTask') : t('cron.userTask') }}</span>
+                    <span class="tag" :class="c.kind==='panel'?'info':(c.kind==='agent'?'ok':(c.kind==='system'?'warn':'mute'))">
+                      <span class="tdot"></span>{{ cronKindLabel(c.kind) }}
+                    </span>
                     <div class="mono" style="font-size:11px;color:var(--t3);margin-top:4px">{{ c.srcPath }}</div>
                   </td>
                   <td class="mono">{{ c.schedule }}</td>
-                  <td class="mono" style="max-width:240px;overflow:hidden;text-overflow:ellipsis">{{ c.command }}</td>
-                  <td class="mono">{{ c.last }}</td>
+                  <td :class="c.kind==='agent'?'':'mono'" style="max-width:260px">
+                    <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="c.kind==='agent' ? c.prompt : c.command">{{ c.kind==='agent' ? c.prompt : c.command }}</div>
+                  </td>
+                  <td class="mono">
+                    <div>{{ c.last }}</div>
+                    <div v-if="c.kind==='agent' && c.lastStatus" style="margin-top:4px">
+                      <span class="tag" :class="c.lastStatus==='success'?'ok':'err'" style="font-size:10.5px">
+                        <span class="tdot"></span>{{ c.lastStatus==='success' ? t('cron.lastOk') : t('cron.lastFail') }}
+                      </span>
+                    </div>
+                  </td>
                   <td><span class="tag" :class="c.on?'ok':'mute'"><span class="tdot"></span>{{ c.on?t('common.enabled'):t('common.disabled') }}</span></td>
-                  <td>
-                    <button v-if="c.kind==='panel'" class="btn sm ghost" @click="runCron(c)">{{ t('common.run') }}</button>
-                    <button v-if="c.kind==='panel'" class="btn sm ghost" @click="editCron(c)">{{ t('common.edit') }}</button>
+                  <td style="white-space:nowrap">
+                    <button v-if="c.kind==='panel'||c.kind==='agent'" class="btn sm ghost" :disabled="c.running" @click="runCron(c)">{{ c.running ? t('cron.running') : t('common.run') }}</button>
+                    <button v-if="c.kind==='panel'||c.kind==='agent'" class="btn sm ghost" @click="editCron(c)">{{ t('common.edit') }}</button>
+                    <button v-if="c.kind==='agent' && c.lastSession" class="btn sm ghost" @click="downloadReport(c.lastSession, c.name)">{{ t('cron.report') }}</button>
                     <button v-if="c.id" class="btn sm danger" @click="deleteCron(c.id)">{{ t('common.delete') }}</button>
-                    <span v-if="c.kind!=='panel'" class="tag mute" style="font-size:11px">{{ t('cron.readonly') }}</span>
+                    <span v-if="c.kind!=='panel' && c.kind!=='agent'" class="tag mute" style="font-size:11px">{{ t('cron.readonly') }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -2641,19 +2655,60 @@
         <!-- 计划任务 -->
         <template v-else-if="modal==='cron'">
           <div class="form-item"><label>{{ t('cron.taskKind') }}</label>
-            <select class="input" v-model="form.taskKind">
+            <select class="input" v-model="form.taskKind" @change="onCronKindChange">
               <option value="panel">{{ t('cron.panelTask') }}</option>
+              <option value="agent">{{ t('cron.agentTask') }}</option>
               <option value="system" disabled>{{ t('cron.systemTask') }}（{{ t('cron.readonly') }}）</option>
               <option value="user" disabled>{{ t('cron.userTask') }}（{{ t('cron.readonly') }}）</option>
             </select>
-            <div class="form-hint">{{ t('cron.taskKindHint') }}</div>
+            <div class="form-hint">{{ form.taskKind==='agent' ? t('cron.agentKindHint') : t('cron.taskKindHint') }}</div>
           </div>
-          <div class="form-item"><label>{{ t('th.taskName') }}</label><input class="input" v-model="form.taskName" placeholder="我的任务"></div>
-          <div class="form-grid">
-            <div class="form-item"><label>{{ t('common.type') }}</label><select class="input" v-model="form.taskType"><option>备份</option><option>脚本</option><option>清理</option></select></div>
-            <div class="form-item"><label>{{ t('th.schedule') }}</label><input class="input" v-model="form.schedule" placeholder="0 3 * * *"></div>
-          </div>
-          <div class="form-item"><label>{{ t('cron.command') }}</label><input class="input" v-model="form.command" placeholder="/usr/local/bin/backup.sh"></div>
+          <div class="form-item"><label>{{ t('th.taskName') }}</label><input class="input" v-model="form.taskName" :placeholder="t('cron.taskNamePh')"></div>
+
+          <!-- Agent 任务：提示词 + 频率预设 + 通知 + 步数 -->
+          <template v-if="form.taskKind==='agent'">
+            <div class="form-item">
+              <label>{{ t('cron.prompt') }}</label>
+              <textarea v-model="form.prompt" rows="6" :placeholder="t('cron.promptPh')" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;background:var(--card);color:var(--t1);outline:none;resize:vertical;font-family:inherit"></textarea>
+              <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">
+                <span v-for="p in cronPromptPresets" :key="p.name" class="ai-chip" @click="form.prompt = p.prompt">{{ p.name }}</span>
+              </div>
+              <div class="form-hint">{{ t('cron.promptHint') }}</div>
+            </div>
+            <div class="form-grid">
+              <div class="form-item">
+                <label>{{ t('th.schedule') }}</label>
+                <input class="input" v-model="form.schedule" placeholder="0 8 * * *">
+                <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">
+                  <span v-for="sp in cronSchedulePresets" :key="sp.cron" class="ai-chip" @click="form.schedule = sp.cron">{{ sp.name }}</span>
+                </div>
+              </div>
+              <div class="form-item">
+                <label>{{ t('cron.maxSteps') }}</label>
+                <input class="input" type="number" min="1" max="30" v-model.number="form.maxSteps">
+                <div class="form-hint">{{ t('cron.maxStepsHint') }}</div>
+              </div>
+            </div>
+            <div class="form-item">
+              <label>{{ t('cron.notify') }}</label>
+              <div class="row" style="gap:14px;flex-wrap:wrap">
+                <label v-for="ch in cronNotifyChoices" :key="ch" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);cursor:pointer">
+                  <input type="checkbox" :value="ch" v-model="form.notifyList" style="accent-color:var(--primary)">{{ ch }}
+                </label>
+              </div>
+              <div class="form-hint">{{ t('cron.notifyHint') }}</div>
+            </div>
+            <div class="form-hint" style="color:var(--warning)">⚠ {{ t('cron.agentSafeHint') }}</div>
+          </template>
+
+          <!-- 面板任务：命令 -->
+          <template v-else>
+            <div class="form-grid">
+              <div class="form-item"><label>{{ t('common.type') }}</label><select class="input" v-model="form.taskType"><option>备份</option><option>脚本</option><option>清理</option></select></div>
+              <div class="form-item"><label>{{ t('th.schedule') }}</label><input class="input" v-model="form.schedule" placeholder="0 3 * * *"></div>
+            </div>
+            <div class="form-item"><label>{{ t('cron.command') }}</label><input class="input" v-model="form.command" placeholder="/usr/local/bin/backup.sh"></div>
+          </template>
         </template>
 
         <!-- 用户 -->
@@ -3514,57 +3569,57 @@ const I18N4 = {
 };
 
 const I18N5 = {
-  'zh-CN': { 'cron.all':'全部','cron.panelTask':'面板任务','cron.systemTask':'系统任务','cron.userTask':'用户任务',
+  'zh-CN': { 'cron.all':'全部','cron.panelTask':'面板任务','cron.systemTask':'系统任务','cron.userTask':'用户任务','cron.agentTask':'Agent 任务','cron.commandOrPrompt':'命令 / 提示词','cron.lastOk':'成功','cron.lastFail':'失败','cron.running':'执行中','cron.report':'报告','cron.agentKindHint':'Agent 任务把提示词交给 AI 智能体执行：它会自主调用工具查证，最后产出报告并归档。适合巡检、诊断、汇总类工作。','cron.taskNamePh':'例如：每日主机巡检','cron.prompt':'任务提示词','cron.promptPh':'描述你希望 AI 做什么，例如：对当前主机做一次巡检，检查 CPU、内存、磁盘、负载与失败登录，输出中文报告并指出风险。','cron.promptHint':'点击下方预设可快速填入；提示词越具体，报告越有用。','cron.maxSteps':'最大执行步数','cron.maxStepsHint':'限制 AI 调用工具的次数，防止长时间占用资源与消耗额度。建议 8～15。','cron.notify':'通知渠道','cron.notifyHint':'任务完成后推送报告摘要；不选则仅站内通知。','cron.agentSafeHint':'无人值守任务不会执行「需人工确认」的操作（如执行命令、写文件、改防火墙）。这类操作会被拒绝并记录在报告中，只读与低危工具可用。','cron.needName':'请填写任务名称','cron.needPrompt':'请填写任务提示词','cron.needCommand':'请填写执行命令','cron.started':'任务已开始执行，稍后查看结果','cron.doneOk':'AI 任务执行完成','cron.doneFail':'AI 任务执行失败','cron.skippedWarn':'部分操作因无人值守被拒绝','cron.runFail':'触发执行失败','cron.noReport':'该任务还没有生成报告','cron.reportSaved':'报告已下载','cron.reportFail':'报告下载失败',
     'cron.source':'来源','cron.command':'命令','cron.filterUser':'用户筛选','cron.allUsers':'全部用户' },
-  'zh-TW': { 'cron.all':'全部','cron.panelTask':'面板任務','cron.systemTask':'系統任務','cron.userTask':'使用者任務',
+  'zh-TW': { 'cron.all':'全部','cron.panelTask':'面板任務','cron.systemTask':'系統任務','cron.userTask':'使用者任務','cron.agentTask':'Agent 任務','cron.commandOrPrompt':'指令 / 提示詞','cron.lastOk':'成功','cron.lastFail':'失敗','cron.running':'執行中','cron.report':'報告','cron.agentKindHint':'Agent 任務把提示詞交給 AI 智慧體執行：它會自主呼叫工具查證，最後產出報告並歸檔。適合巡檢、診斷、彙總類工作。','cron.taskNamePh':'例如：每日主機巡檢','cron.prompt':'任務提示詞','cron.promptPh':'描述你希望 AI 做什麼，例如：對目前主機做一次巡檢，檢查 CPU、記憶體、磁碟、負載與失敗登入，輸出中文報告並指出風險。','cron.promptHint':'點擊下方預設可快速填入；提示詞越具體，報告越有用。','cron.maxSteps':'最大執行步數','cron.maxStepsHint':'限制 AI 呼叫工具的次數，避免長時間佔用資源與消耗額度。建議 8～15。','cron.notify':'通知管道','cron.notifyHint':'任務完成後推送報告摘要；不選則僅站內通知。','cron.agentSafeHint':'無人值守任務不會執行「需人工確認」的操作（如執行指令、寫入檔案、改防火牆）。這類操作會被拒絕並記錄在報告中，唯讀與低風險工具可用。','cron.needName':'請填寫任務名稱','cron.needPrompt':'請填寫任務提示詞','cron.needCommand':'請填寫執行指令','cron.started':'任務已開始執行，請稍後查看結果','cron.doneOk':'AI 任務執行完成','cron.doneFail':'AI 任務執行失敗','cron.skippedWarn':'部分操作因無人值守被拒絕','cron.runFail':'觸發執行失敗','cron.noReport':'該任務尚未產生報告','cron.reportSaved':'報告已下載','cron.reportFail':'報告下載失敗',
     'cron.source':'來源','cron.command':'指令','cron.filterUser':'使用者篩選','cron.allUsers':'全部使用者' },
-  'en': { 'cron.all':'All','cron.panelTask':'Panel Tasks','cron.systemTask':'System Tasks','cron.userTask':'User Tasks',
+  'en': { 'cron.all':'All','cron.panelTask':'Panel Tasks','cron.systemTask':'System Tasks','cron.userTask':'User Tasks','cron.agentTask':'Agent Task','cron.commandOrPrompt':'Command / Prompt','cron.lastOk':'OK','cron.lastFail':'Failed','cron.running':'Running','cron.report':'Report','cron.agentKindHint':'An Agent task hands the prompt to the AI agent: it calls tools on its own, then produces and archives a report. Best for inspections, diagnostics and summaries.','cron.taskNamePh':'e.g. Daily host inspection','cron.prompt':'Task prompt','cron.promptPh':'Describe what the AI should do, e.g. Inspect this host: CPU, memory, disk, load and failed logins. Output a report and highlight risks.','cron.promptHint':'Click a preset below to fill it in. The more specific the prompt, the more useful the report.','cron.maxSteps':'Max steps','cron.maxStepsHint':'Caps how many tool calls the AI may make, limiting runtime and token cost. 8-15 is a good range.','cron.notify':'Notify channels','cron.notifyHint':'Push the report summary when the task finishes. With nothing selected only the in-panel bell is used.','cron.agentSafeHint':'Unattended tasks never run operations that need human approval (running commands, writing files, changing the firewall). Those are refused and recorded in the report; only read-only and low-risk tools are available.','cron.needName':'Please enter a task name','cron.needPrompt':'Please enter a task prompt','cron.needCommand':'Please enter the command','cron.started':'Task started; check the result shortly','cron.doneOk':'Agent task finished','cron.doneFail':'Agent task failed','cron.skippedWarn':'Some operations were refused (unattended)','cron.runFail':'Failed to trigger the task','cron.noReport':'No report has been generated yet','cron.reportSaved':'Report downloaded','cron.reportFail':'Failed to download the report',
     'cron.source':'Source','cron.command':'Command','cron.filterUser':'Filter by user','cron.allUsers':'All users' },
-  'ja': { 'cron.all':'すべて','cron.panelTask':'パネルタスク','cron.systemTask':'システムタスク','cron.userTask':'ユーザータスク',
+  'ja': { 'cron.all':'すべて','cron.panelTask':'パネルタスク','cron.systemTask':'システムタスク','cron.userTask':'ユーザータスク','cron.agentTask':'エージェントタスク','cron.commandOrPrompt':'コマンド / プロンプト','cron.lastOk':'成功','cron.lastFail':'失敗','cron.running':'実行中','cron.report':'レポート','cron.agentKindHint':'エージェントタスクはプロンプトを AI エージェントに渡します。AI が自律的にツールを呼び出して調査し、最後にレポートを生成・保存します。点検・診断・集計に適しています。','cron.taskNamePh':'例：毎日のホスト点検','cron.prompt':'タスクのプロンプト','cron.promptPh':'AI に何をさせるか記述します。例：このホストを点検し、CPU・メモリ・ディスク・負荷・ログイン失敗を確認して、レポートとリスクを出力してください。','cron.promptHint':'下のプリセットをクリックすると入力できます。具体的なほど有用なレポートになります。','cron.maxSteps':'最大実行ステップ数','cron.maxStepsHint':'AI がツールを呼び出せる回数の上限です。実行時間とトークン消費を抑えます。8～15 を推奨。','cron.notify':'通知チャネル','cron.notifyHint':'タスク完了時にレポート要約を送信します。未選択の場合はパネル内通知のみです。','cron.agentSafeHint':'無人実行のタスクは「要確認」の操作（コマンド実行・ファイル書き込み・ファイアウォール変更など）を実行しません。これらは拒否されレポートに記録されます。利用できるのは読み取り専用と低リスクのツールのみです。','cron.needName':'タスク名を入力してください','cron.needPrompt':'プロンプトを入力してください','cron.needCommand':'コマンドを入力してください','cron.started':'タスクを開始しました。しばらくして結果をご確認ください','cron.doneOk':'エージェントタスクが完了しました','cron.doneFail':'エージェントタスクが失敗しました','cron.skippedWarn':'一部の操作は無人実行のため拒否されました','cron.runFail':'実行の開始に失敗しました','cron.noReport':'まだレポートがありません','cron.reportSaved':'レポートをダウンロードしました','cron.reportFail':'レポートのダウンロードに失敗しました',
     'cron.source':'ソース','cron.command':'コマンド','cron.filterUser':'ユーザーで絞り込み','cron.allUsers':'すべてのユーザー' },
-  'ko': { 'cron.all':'전체','cron.panelTask':'패널 작업','cron.systemTask':'시스템 작업','cron.userTask':'사용자 작업',
+  'ko': { 'cron.all':'전체','cron.panelTask':'패널 작업','cron.systemTask':'시스템 작업','cron.userTask':'사용자 작업','cron.agentTask':'에이전트 작업','cron.commandOrPrompt':'명령 / 프롬프트','cron.lastOk':'성공','cron.lastFail':'실패','cron.running':'실행 중','cron.report':'보고서','cron.agentKindHint':'에이전트 작업은 프롬프트를 AI 에이전트에 전달합니다. AI가 스스로 도구를 호출해 조사한 뒤 보고서를 생성하고 보관합니다. 점검·진단·요약에 적합합니다.','cron.taskNamePh':'예: 매일 호스트 점검','cron.prompt':'작업 프롬프트','cron.promptPh':'AI가 무엇을 하면 좋을지 설명하세요. 예: 이 호스트를 점검하고 CPU·메모리·디스크·부하·로그인 실패를 확인해 보고서와 위험 요소를 출력하세요.','cron.promptHint':'아래 프리셋을 클릭해 채울 수 있습니다. 구체적일수록 유용한 보고서가 됩니다.','cron.maxSteps':'최대 실행 단계','cron.maxStepsHint':'AI가 도구를 호출할 수 있는 최대 횟수입니다. 실행 시간과 토큰 소모를 제한합니다. 8~15를 권장합니다.','cron.notify':'알림 채널','cron.notifyHint':'작업 완료 시 보고서 요약을 전송합니다. 선택하지 않으면 패널 알림만 사용합니다.','cron.agentSafeHint':'무인 실행 작업은 "승인 필요" 작업(명령 실행, 파일 쓰기, 방화벽 변경 등)을 실행하지 않습니다. 이런 작업은 거부되고 보고서에 기록되며, 읽기 전용 및 저위험 도구만 사용할 수 있습니다.','cron.needName':'작업 이름을 입력하세요','cron.needPrompt':'프롬프트를 입력하세요','cron.needCommand':'명령을 입력하세요','cron.started':'작업을 시작했습니다. 잠시 후 결과를 확인하세요','cron.doneOk':'에이전트 작업 완료','cron.doneFail':'에이전트 작업 실패','cron.skippedWarn':'일부 작업이 무인 실행으로 거부되었습니다','cron.runFail':'실행 시작 실패','cron.noReport':'아직 보고서가 없습니다','cron.reportSaved':'보고서를 다운로드했습니다','cron.reportFail':'보고서 다운로드 실패',
     'cron.source':'출처','cron.command':'명령','cron.filterUser':'사용자 필터','cron.allUsers':'모든 사용자' },
-  'th': { 'cron.all':'ทั้งหมด','cron.panelTask':'งานของแผง','cron.systemTask':'งานระบบ','cron.userTask':'งานของผู้ใช้',
+  'th': { 'cron.all':'ทั้งหมด','cron.panelTask':'งานของแผง','cron.systemTask':'งานระบบ','cron.userTask':'งานของผู้ใช้','cron.agentTask':'งานเอเจนต์','cron.commandOrPrompt':'คำสั่ง / พรอมป์ต์','cron.lastOk':'สำเร็จ','cron.lastFail':'ล้มเหลว','cron.running':'กำลังทำงาน','cron.report':'รายงาน','cron.agentKindHint':'งานเอเจนต์จะส่งพรอมป์ต์ให้ AI เอเจนต์ ซึ่งจะเรียกใช้เครื่องมือด้วยตนเอง แล้วสร้างและเก็บรายงาน เหมาะกับงานตรวจสอบ วินิจฉัย และสรุป','cron.taskNamePh':'เช่น ตรวจสอบโฮสต์ประจำวัน','cron.prompt':'พรอมป์ต์ของงาน','cron.promptPh':'อธิบายสิ่งที่ต้องการให้ AI ทำ เช่น ตรวจสอบโฮสต์นี้: CPU หน่วยความจำ ดิสก์ โหลด และการเข้าสู่ระบบที่ล้มเหลว แล้วสรุปรายงานพร้อมความเสี่ยง','cron.promptHint':'คลิกพรีเซ็ตด้านล่างเพื่อกรอก ยิ่งระบุชัดเจน รายงานยิ่งมีประโยชน์','cron.maxSteps':'จำนวนขั้นสูงสุด','cron.maxStepsHint':'จำกัดจำนวนครั้งที่ AI เรียกใช้เครื่องมือ เพื่อลดเวลาและโทเคน แนะนำ 8～15','cron.notify':'ช่องทางแจ้งเตือน','cron.notifyHint':'ส่งสรุปรายงานเมื่องานเสร็จ หากไม่เลือกจะแจ้งเตือนในแผงควบคุมเท่านั้น','cron.agentSafeHint':'งานที่ทำงานแบบไม่มีผู้ดูแลจะไม่เรียกใช้การดำเนินการที่ต้องยืนยันจากมนุษย์ (รันคำสั่ง เขียนไฟล์ เปลี่ยนไฟร์วอลล์) การดำเนินการเหล่านี้จะถูกปฏิเสธและบันทึกในรายงาน ใช้ได้เฉพาะเครื่องมืออ่านอย่างเดียวและความเสี่ยงต่ำ','cron.needName':'กรุณากรอกชื่องาน','cron.needPrompt':'กรุณากรอกพรอมป์ต์','cron.needCommand':'กรุณากรอกคำสั่ง','cron.started':'เริ่มงานแล้ว โปรดตรวจสอบผลในภายหลัง','cron.doneOk':'งานเอเจนต์เสร็จสิ้น','cron.doneFail':'งานเอเจนต์ล้มเหลว','cron.skippedWarn':'บางการดำเนินการถูกปฏิเสธ (ไม่มีผู้ดูแล)','cron.runFail':'เรียกใช้งานไม่สำเร็จ','cron.noReport':'ยังไม่มีรายงาน','cron.reportSaved':'ดาวน์โหลดรายงานแล้ว','cron.reportFail':'ดาวน์โหลดรายงานไม่สำเร็จ',
     'cron.source':'แหล่งที่มา','cron.command':'คำสั่ง','cron.filterUser':'กรองตามผู้ใช้','cron.allUsers':'ผู้ใช้ทั้งหมด' },
-  'de': { 'cron.all':'Alle','cron.panelTask':'Panel-Aufgaben','cron.systemTask':'Systemaufgaben','cron.userTask':'Benutzeraufgaben',
+  'de': { 'cron.all':'Alle','cron.panelTask':'Panel-Aufgaben','cron.systemTask':'Systemaufgaben','cron.userTask':'Benutzeraufgaben','cron.agentTask':'Agent-Aufgabe','cron.commandOrPrompt':'Befehl / Prompt','cron.lastOk':'OK','cron.lastFail':'Fehlgeschlagen','cron.running':'Läuft','cron.report':'Bericht','cron.agentKindHint':'Eine Agent-Aufgabe übergibt den Prompt an den KI-Agenten: Er ruft selbstständig Werkzeuge auf und erstellt anschließend einen Bericht. Ideal für Inspektionen, Diagnosen und Zusammenfassungen.','cron.taskNamePh':'z. B. Tägliche Host-Prüfung','cron.prompt':'Aufgaben-Prompt','cron.promptPh':'Beschreiben Sie, was die KI tun soll, z. B.: Diesen Host prüfen: CPU, Speicher, Festplatte, Last und fehlgeschlagene Anmeldungen; Bericht mit Risiken ausgeben.','cron.promptHint':'Klicken Sie unten auf eine Vorlage. Je konkreter der Prompt, desto nützlicher der Bericht.','cron.maxSteps':'Maximale Schritte','cron.maxStepsHint':'Begrenzt die Zahl der Werkzeugaufrufe und damit Laufzeit und Tokenkosten. 8-15 ist ein guter Wert.','cron.notify':'Benachrichtigungskanäle','cron.notifyHint':'Sendet die Berichtszusammenfassung nach Abschluss. Ohne Auswahl nur die Meldung im Panel.','cron.agentSafeHint':'Unbeaufsichtigte Aufgaben führen keine Vorgänge aus, die eine menschliche Bestätigung erfordern (Befehle ausführen, Dateien schreiben, Firewall ändern). Diese werden abgelehnt und im Bericht vermerkt; verfügbar sind nur Lesewerkzeuge und risikoarme Werkzeuge.','cron.needName':'Bitte einen Aufgabennamen eingeben','cron.needPrompt':'Bitte einen Prompt eingeben','cron.needCommand':'Bitte den Befehl eingeben','cron.started':'Aufgabe gestartet; Ergebnis in Kürze prüfen','cron.doneOk':'Agent-Aufgabe abgeschlossen','cron.doneFail':'Agent-Aufgabe fehlgeschlagen','cron.skippedWarn':'Einige Vorgänge wurden abgelehnt (unbeaufsichtigt)','cron.runFail':'Auslösen fehlgeschlagen','cron.noReport':'Noch kein Bericht vorhanden','cron.reportSaved':'Bericht heruntergeladen','cron.reportFail':'Bericht-Download fehlgeschlagen',
     'cron.source':'Quelle','cron.command':'Befehl','cron.filterUser':'Nach Benutzer filtern','cron.allUsers':'Alle Benutzer' },
 };
 
 const I18N6 = {
-  'zh-CN': { 'common.cancel':'取消','common.confirm':'确定','common.created':'创建成功 ✓',
+  'zh-CN': { 'common.cancel':'取消','common.confirm':'确定','common.created':'创建成功 ✓','common.deleted':'已删除','common.failed':'操作失败',
     'modal.website':'添加网站','modal.database':'创建数据库','modal.container':'新建容器','modal.pullImage':'拉取镜像',
     'modal.volume':'创建卷','modal.network':'创建网络','modal.alert':'新建告警规则','modal.alertEdit':'编辑告警规则','alert.deleteConfirm':'确认删除该告警规则','modal.folder':'新建文件夹','modal.rename':'重命名',
-    'modal.upload':'上传文件','modal.cron':'新建任务','modal.user':'新建用户',
+    'modal.upload':'上传文件','modal.cron':'新建任务','modal.cronEdit':'编辑任务','modal.user':'新建用户',
     'form.folderName':'文件夹名','form.newName':'新文件名','form.restart':'重启策略','form.imageTag':'镜像名:标签','form.selectFile':'选择文件','form.static':'纯静态','th.networkName':'网络名' },
-  'zh-TW': { 'common.cancel':'取消','common.confirm':'確定','common.created':'建立成功 ✓',
+  'zh-TW': { 'common.cancel':'取消','common.confirm':'確定','common.created':'建立成功 ✓','common.deleted':'已刪除','common.failed':'操作失敗',
     'modal.website':'新增網站','modal.database':'建立資料庫','modal.container':'新增容器','modal.pullImage':'拉取映像',
     'modal.volume':'建立磁碟區','modal.network':'建立網路','modal.alert':'新增告警規則','modal.alertEdit':'編輯告警規則','alert.deleteConfirm':'確認刪除該告警規則','modal.folder':'新增資料夾','modal.rename':'重新命名',
-    'modal.upload':'上傳檔案','modal.cron':'新增任務','modal.user':'新增使用者',
+    'modal.upload':'上傳檔案','modal.cron':'新增任務','modal.cronEdit':'編輯任務','modal.user':'新增使用者',
     'form.folderName':'資料夾名稱','form.newName':'新檔案名稱','form.restart':'重啟策略','form.imageTag':'映像名稱:標籤','form.selectFile':'選擇檔案','form.static':'純靜態','th.networkName':'網路名稱' },
-  'en': { 'common.cancel':'Cancel','common.confirm':'Confirm','common.created':'Created ✓',
+  'en': { 'common.cancel':'Cancel','common.confirm':'Confirm','common.created':'Created ✓','common.deleted':'Deleted','common.failed':'Operation failed',
     'modal.website':'Add Website','modal.database':'Create Database','modal.container':'New Container','modal.pullImage':'Pull Image',
     'modal.volume':'Create Volume','modal.network':'Create Network','modal.alert':'New Alert Rule','modal.alertEdit':'Edit Alert Rule','alert.deleteConfirm':'Confirm deleting this alert rule','modal.folder':'New Folder','modal.rename':'Rename',
-    'modal.upload':'Upload File','modal.cron':'New Task','modal.user':'New User',
+    'modal.upload':'Upload File','modal.cron':'New Task','modal.cronEdit':'Edit Task','modal.user':'New User',
     'form.folderName':'Folder name','form.newName':'New name','form.restart':'Restart policy','form.imageTag':'Image:tag','form.selectFile':'Choose file','form.static':'Static','th.networkName':'Network' },
-  'ja': { 'common.cancel':'キャンセル','common.confirm':'確定','common.created':'作成しました ✓',
+  'ja': { 'common.cancel':'キャンセル','common.confirm':'確定','common.created':'作成しました ✓','common.deleted':'削除しました','common.failed':'操作に失敗しました',
     'modal.website':'サイト追加','modal.database':'DB 作成','modal.container':'コンテナ作成','modal.pullImage':'イメージ取得',
     'modal.volume':'ボリューム作成','modal.network':'ネットワーク作成','modal.alert':'アラート追加','modal.alertEdit':'アラート編集','alert.deleteConfirm':'このアラートルールを削除しますか','modal.folder':'フォルダー作成','modal.rename':'名前変更',
-    'modal.upload':'ファイルアップロード','modal.cron':'タスク追加','modal.user':'ユーザー追加',
+    'modal.upload':'ファイルアップロード','modal.cron':'タスク追加','modal.cronEdit':'タスク編集','modal.user':'ユーザー追加',
     'form.folderName':'フォルダー名','form.newName':'新しい名前','form.restart':'再起動ポリシー','form.imageTag':'イメージ:タグ','form.selectFile':'ファイルを選択','form.static':'静的','th.networkName':'ネットワーク名' },
-  'ko': { 'common.cancel':'취소','common.confirm':'확인','common.created':'생성됨 ✓',
+  'ko': { 'common.cancel':'취소','common.confirm':'확인','common.created':'생성됨 ✓','common.deleted':'삭제되었습니다','common.failed':'작업 실패',
     'modal.website':'사이트 추가','modal.database':'DB 생성','modal.container':'컨테이너 생성','modal.pullImage':'이미지 가져오기',
     'modal.volume':'볼륨 생성','modal.network':'네트워크 생성','modal.alert':'알림 규칙 추가','modal.alertEdit':'알림 규칙 편집','alert.deleteConfirm':'이 알림 규칙을 삭제하시겠습니까','modal.folder':'폴더 생성','modal.rename':'이름 바꾸기',
-    'modal.upload':'파일 업로드','modal.cron':'작업 추가','modal.user':'사용자 추가',
+    'modal.upload':'파일 업로드','modal.cron':'작업 추가','modal.cronEdit':'작업 편집','modal.user':'사용자 추가',
     'form.folderName':'폴더 이름','form.newName':'새 이름','form.restart':'재시작 정책','form.imageTag':'이미지:태그','form.selectFile':'파일 선택','form.static':'정적','th.networkName':'네트워크 이름' },
-  'th': { 'common.cancel':'ยกเลิก','common.confirm':'ยืนยัน','common.created':'สร้างสำเร็จ ✓',
+  'th': { 'common.cancel':'ยกเลิก','common.confirm':'ยืนยัน','common.created':'สร้างสำเร็จ ✓','common.deleted':'ลบแล้ว','common.failed':'ดำเนินการไม่สำเร็จ',
     'modal.website':'เพิ่มเว็บไซต์','modal.database':'สร้างฐานข้อมูล','modal.container':'คอนเทนเนอร์ใหม่','modal.pullImage':'ดึงอิมเมจ',
     'modal.volume':'สร้างวอลุ่ม','modal.network':'สร้างเครือข่าย','modal.alert':'กฎการแจ้งเตือนใหม่','modal.alertEdit':'แก้ไขกฎการแจ้งเตือน','alert.deleteConfirm':'ยืนยันการลบกฎการแจ้งเตือนนี้','modal.folder':'โฟลเดอร์ใหม่','modal.rename':'เปลี่ยนชื่อ',
-    'modal.upload':'อัปโหลดไฟล์','modal.cron':'งานใหม่','modal.user':'ผู้ใช้ใหม่',
+    'modal.upload':'อัปโหลดไฟล์','modal.cron':'งานใหม่','modal.cronEdit':'แก้ไขงาน','modal.user':'ผู้ใช้ใหม่',
     'form.folderName':'ชื่อโฟลเดอร์','form.newName':'ชื่อใหม่','form.restart':'นโยบายเริ่มใหม่','form.imageTag':'อิมเมจ:แท็ก','form.selectFile':'เลือกไฟล์','form.static':'คงที่','th.networkName':'ชื่อเครือข่าย' },
-  'de': { 'common.cancel':'Abbrechen','common.confirm':'Bestätigen','common.created':'Erstellt ✓',
+  'de': { 'common.cancel':'Abbrechen','common.confirm':'Bestätigen','common.created':'Erstellt ✓','common.deleted':'Gelöscht','common.failed':'Vorgang fehlgeschlagen',
     'modal.website':'Website hinzufügen','modal.database':'Datenbank erstellen','modal.container':'Neuer Container','modal.pullImage':'Image laden',
     'modal.volume':'Volume erstellen','modal.network':'Netzwerk erstellen','modal.alert':'Neue Alarmregel','modal.alertEdit':'Alarmregel bearbeiten','alert.deleteConfirm':'Diese Alarmregel wirklich löschen','modal.folder':'Neuer Ordner','modal.rename':'Umbenennen',
-    'modal.upload':'Datei hochladen','modal.cron':'Neue Aufgabe','modal.user':'Neuer Benutzer',
+    'modal.upload':'Datei hochladen','modal.cron':'Neue Aufgabe','modal.cronEdit':'Aufgabe bearbeiten','modal.user':'Neuer Benutzer',
     'form.folderName':'Ordnername','form.newName':'Neuer Name','form.restart':'Neustartrichtlinie','form.imageTag':'Image:Tag','form.selectFile':'Datei auswählen','form.static':'Statisch','th.networkName':'Netzwerk' },
 };
 
@@ -3809,6 +3864,21 @@ createApp({
       currentSessionId: null,
       aiBackend: false,
       agentTools: [],
+      cronEditId: null,
+      cronPromptPresets: [
+        { name:'主机巡检', prompt:'对当前主机做一次日常巡检：检查 CPU、内存、磁盘使用率，系统负载，进程总数与僵尸进程，监听端口，各磁盘分区的使用率，以及最近的失败登录情况。用工具查询真实数据，然后输出一份结构清晰的中文巡检报告：先给总体结论，再逐项列出实测数值与判断，最后指出需要关注的风险。' },
+        { name:'安全巡检', prompt:'对当前主机做一次安全巡检：读取安全概览与评分，检查基线检查未通过项、文件完整性变更、威胁检测发现的异常、防火墙是否启用及规则是否合理、SSH 配置是否存在高风险项。用工具查询真实数据，输出中文安全巡检报告，按风险从高到低列出问题并给出修复建议。' },
+        { name:'磁盘空间巡检', prompt:'排查当前主机的磁盘空间：先看各分区使用率，再对占用最高的目录做逐层下钻（dir_usage），找出占用空间最大的目录和文件，并判断哪些是可清理的（日志、临时文件、缓存、旧备份）。输出中文报告，给出可执行的清理建议与预计释放空间。' },
+        { name:'服务状态巡检', prompt:'检查当前主机的服务运行状态：列出 systemd 服务，找出处于 failed 状态的服务；查看监听端口与对应进程是否正常；如果安装了 Docker，列出未运行或反复重启的容器。输出中文报告，说明每个异常项的影响与建议处理方式。' },
+        { name:'日志异常巡检', prompt:'检查当前主机的系统日志（syslog/auth.log 等），检索最近的错误、失败、超时、OOM、磁盘写满、服务崩溃等关键字，归纳出异常模式。输出中文报告：按严重程度列出发现的问题、出现频次、时间范围，并给出下一步排查建议。' },
+      ],
+      cronSchedulePresets: [
+        { name:'每天 08:00', cron:'0 8 * * *' },
+        { name:'每天 00:00', cron:'0 0 * * *' },
+        { name:'每周一 09:00', cron:'0 9 * * 1' },
+        { name:'每小时', cron:'0 * * * *' },
+      ],
+      cronNotifyChoices: ['面板','邮件','企业微信','钉钉','飞书'],
       mcpServer: { enabled:true, allow_high_risk:false, token:'', endpoint:'/mcp', high_risk_tool_count:0 },
       showMcpToken: false,
       mcpServers: [],
@@ -4038,7 +4108,7 @@ createApp({
     nologinUsers(){ return (this.sysUsers||[]).filter(u => !u.loginable); },
     filteredUsers(){ return this.userFilter==='loginable' ? this.loginableUsers : this.userFilter==='nologin' ? this.nologinUsers : this.sysUsers; },
     cronUserList(){ return [...new Set(this.crons.map(c => c.user))].sort(); },
-    modalTitle(){ const m = { website:'modal.website', database:'modal.database', container:'modal.container', pullImage:'modal.pullImage', volume:'modal.volume', network:'modal.network', alert:'modal.alert', alertEdit:'modal.alertEdit', folder:'modal.folder', rename:'modal.rename', upload:'modal.upload', cron:'modal.cron', user:'modal.user', userEdit:'modal.userEdit', storeConfig:'modal.storeConfig', appEdit:'modal.appEdit', mcp:'modal.mcp', mcpEdit:'modal.mcpEdit' }; return this.modal ? this.t(m[this.modal] || '') : ''; },
+    modalTitle(){ const m = { website:'modal.website', database:'modal.database', container:'modal.container', pullImage:'modal.pullImage', volume:'modal.volume', network:'modal.network', alert:'modal.alert', alertEdit:'modal.alertEdit', folder:'modal.folder', rename:'modal.rename', upload:'modal.upload', cron: this.cronEditId ? 'modal.cronEdit' : 'modal.cron', user:'modal.user', userEdit:'modal.userEdit', storeConfig:'modal.storeConfig', appEdit:'modal.appEdit', mcp:'modal.mcp', mcpEdit:'modal.mcpEdit' }; return this.modal ? this.t(m[this.modal] || '') : ''; },
     pathParts(){
       const p = (this.filePath || '/root').replace(/\/+$/,'');
       if(!p || p === '/') return [];
@@ -4837,8 +4907,17 @@ createApp({
         try{ users = await this.api('/cron-jobs/user'); }catch(e){}
         const toSystem = (s) => ({ kind:'system', user: s.user, srcPath: s.source, type:'系统', schedule: s.schedule, command: s.command, on:true });
         const toUser = (s) => ({ kind:'user', user: s.user, srcPath: s.source, type:'用户', schedule: s.schedule, command: s.command, on:true });
+        const mapPanel = (c) => ({
+          id:c.id, name:c.name, kind:c.kind === 'agent' ? 'agent' : 'panel', user:c.user,
+          srcPath:'sqlite · opsmini.db', type: c.kind === 'agent' ? 'Agent' : '脚本',
+          schedule:c.schedule, command:c.command, prompt:c.prompt,
+          max_steps: c.max_steps || 0, notify: c.notify || '',
+          last: c.last_run ? c.last_run.replace('T',' ').slice(0,16) : '-',
+          lastStatus: c.last_status || '', lastSession: c.last_session || '', lastError: c.last_error || '',
+          skipped: c.skipped_tools || '', running:false, on:c.enabled,
+        });
         const mapped = [
-          ...panel.map(c => ({ id:c.id, name:c.name, kind:'panel', user:c.user, srcPath:'sqlite · opsmini.db', type:'脚本', schedule:c.schedule, command:c.command, last: c.last_run ? c.last_run.replace('T',' ').slice(0,16) : '-', on:c.enabled })),
+          ...panel.map(mapPanel),
           ...system.map(toSystem),
           ...users.map(toUser),
         ];
@@ -4916,11 +4995,115 @@ createApp({
     },
     async createCron(){
       const f = this.form;
+      const kind = f.taskKind || 'panel';
+      if(!f.taskName || !f.taskName.trim()){ this.toast(this.t('cron.needName')); return; }
+      if(kind === 'agent' && !(f.prompt || '').trim()){ this.toast(this.t('cron.needPrompt')); return; }
+      if(kind === 'panel' && !(f.command || '').trim()){ this.toast(this.t('cron.needCommand')); return; }
+      const body = { name: f.taskName, kind, user: f.user || 'root', schedule: f.schedule, command: f.command, enabled: true };
+      if(kind === 'agent'){
+        body.prompt = f.prompt;
+        body.notify = (f.notifyList || []).join(',');
+        body.max_steps = Number(f.maxSteps) || 0;
+        body.timeout_seconds = 600;
+      }
+      const editing = !!this.cronEditId;
       try{
-        await this.api('/cron-jobs', { method:'POST', body: JSON.stringify({ name: f.taskName, kind: f.taskKind || 'panel', user:'root', schedule: f.schedule, command: f.command, enabled:true }) });
+        if(editing){ await this.api('/cron-jobs/' + this.cronEditId, { method:'PUT', body: JSON.stringify(body) }); }
+        else { await this.api('/cron-jobs', { method:'POST', body: JSON.stringify(body) }); }
+        this.cronEditId = null;
         await this.loadCrons();
-        this.toast(this.t('common.created'));
-      }catch(e){ this.toast('创建失败：' + e.message); }
+        this.toast(editing ? this.t('set.saved') : this.t('common.created'));
+      }catch(e){ this.toast(this.t('set.saveFail') + '：' + e.message); }
+    },
+    // onCronKindChange 切换任务类型时补一个合理的默认值（面板任务默认凌晨 3 点，
+    // Agent 巡检默认早上 8 点），仅在用户还没改过周期时生效。
+    onCronKindChange(){
+      const f = this.form;
+      if(f.taskKind === 'agent'){
+        if(!f.schedule || f.schedule === '0 3 * * *') f.schedule = '0 8 * * *';
+        if(!f.maxSteps) f.maxSteps = 12;
+        if(!f.notifyList || !f.notifyList.length) f.notifyList = ['面板'];
+      }else if(!f.schedule || f.schedule === '0 8 * * *'){
+        f.schedule = '0 3 * * *';
+      }
+    },
+    // cronKindLabel 任务类型的中文标签。
+    cronKindLabel(kind){
+      if(kind === 'agent') return this.t('cron.agentTask');
+      if(kind === 'panel') return this.t('cron.panelTask');
+      if(kind === 'system') return this.t('cron.systemTask');
+      return this.t('cron.userTask');
+    },
+    // editCron 打开编辑弹窗并回填（仅面板任务与 Agent 任务可编辑）。
+    editCron(c){
+      if(c.kind !== 'panel' && c.kind !== 'agent') return;
+      this.cronEditId = c.id;
+      this.form.taskKind = c.kind;
+      this.form.taskName = c.name;
+      this.form.schedule = c.schedule;
+      this.form.command = c.command || '';
+      this.form.prompt = c.prompt || '';
+      this.form.maxSteps = c.max_steps || 12;
+      this.form.notifyList = (c.notify || '面板').split(',').filter(Boolean);
+      this.modal = 'cron';
+    },
+    // runCron 立即执行一次：Agent 任务耗时较长，触发后轮询任务状态直到有结果。
+    async runCron(c){
+      if(!c.id) return;
+      c.running = true;
+      try{
+        await this.api('/cron-jobs/' + c.id + '/run', { method:'POST' });
+        this.toast(this.t('cron.started'));
+        if(c.kind !== 'agent'){
+          setTimeout(() => { c.running = false; this.loadCrons(); }, 3000);
+          return;
+        }
+        // Agent 任务：最多等 5 分钟，看到 last_status 变化即刷新列表。
+        const before = c.last || '';
+        let waited = 0;
+        const timer = setInterval(async () => {
+          waited += 6000;
+          await this.loadCrons();
+          const now = (this.crons.find(x => x.id === c.id) || {}).last || '';
+          if(now !== before || waited >= 300000){
+            clearInterval(timer);
+            const job = this.crons.find(x => x.id === c.id);
+            if(job) job.running = false;
+            const done = this.crons.find(x => x.id === c.id);
+            if(done && done.lastStatus === 'success') this.toast(this.t('cron.doneOk'));
+            else if(done && done.lastStatus === 'failed') this.toast(this.t('cron.doneFail') + (done.lastError ? '：' + done.lastError : ''));
+            if(done && done.skipped) this.toast(this.t('cron.skippedWarn') + '：' + done.skipped);
+          }
+        }, 6000);
+      }catch(e){
+        c.running = false;
+        this.toast(this.t('cron.runFail') + '：' + e.message);
+      }
+    },
+    // downloadReport 下载某次执行的 Markdown 报告（带鉴权，故用 fetch + blob）。
+    async downloadReport(sessionId, name){
+      if(!sessionId){ this.toast(this.t('cron.noReport')); return; }
+      try{
+        const url = '/api/v1/ai/agent/sessions/' + sessionId + '/report';
+        const doFetch = () => fetch(url, { headers:{ 'Authorization':'Bearer ' + this.token } });
+        let res = await doFetch();
+        if(res.status === 401 && await this.tryRefreshToken()) res = await doFetch();
+        if(!res.ok){
+          const eb = await res.json().catch(()=>null);
+          throw new Error((eb && eb.message) || ('HTTP ' + res.status));
+        }
+        let filename = (name || 'report') + '.md';
+        const cd = res.headers.get('Content-Disposition') || '';
+        const m = cd.match(/filename\*=UTF-8''([^;]+)/);
+        if(m){ try{ filename = decodeURIComponent(m[1]); }catch(e){} }
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+        this.toast(this.t('cron.reportSaved'));
+      }catch(e){ this.toast(this.t('cron.reportFail') + '：' + e.message); }
     },
     deleteCron(id){
       if(!id){ this.toast('系统/用户任务只读，不可删除'); return; }
@@ -5389,8 +5572,8 @@ createApp({
     persistMenu(){ try{ localStorage.setItem('opsmini-menu', JSON.stringify(this.menuVisibility)); }catch(e){} },
     loadMenu(){ try{ const s=localStorage.getItem('opsmini-menu'); if(s){ const o=JSON.parse(s); if(o && typeof o==='object') this.menuVisibility=o; } }catch(e){} },
     // ===== 新建弹窗 =====
-    defaultForm(){ return { domain:'', path:'', env:'Nginx', runtime:'PHP 8.2', ssl:false, dbType:'MySQL', dbName:'', charset:'utf8mb4', containerName:'', image:'', ports:'', restart:'always', imageTag:'', volumeName:'', volumeDriver:'local', networkName:'', netDriver:'bridge', subnet:'', gateway:'', ruleName:'', metric:'CPU 使用率', operator:'>=', conditionValue:'90', duration:'5 分钟', notifyList:['面板'], folderName:'', fileName:'', renamePath:'', renameNewName:'', taskName:'', taskType:'备份', taskKind:'panel', schedule:'0 3 * * *', command:'', userName:'', userRole:'operator', userPass:'' }; },
-    openModal(type){ this.form = this.defaultForm(); this.modal = type; },
+    defaultForm(){ return { domain:'', path:'', env:'Nginx', runtime:'PHP 8.2', ssl:false, dbType:'MySQL', dbName:'', charset:'utf8mb4', containerName:'', image:'', ports:'', restart:'always', imageTag:'', volumeName:'', volumeDriver:'local', networkName:'', netDriver:'bridge', subnet:'', gateway:'', ruleName:'', metric:'CPU 使用率', operator:'>=', conditionValue:'90', duration:'5 分钟', notifyList:['面板'], folderName:'', fileName:'', renamePath:'', renameNewName:'', taskName:'', taskType:'备份', taskKind:'panel', schedule:'0 3 * * *', command:'', prompt:'', maxSteps:12, userName:'', userRole:'operator', userPass:'' }; },
+    openModal(type){ this.form = this.defaultForm(); this.modal = type; if(type === 'cron') this.cronEditId = null; },
     closeModal(){ this.modal = null; },
     confirmDialog(msg, cb){ this.confirmMsg = msg; this.confirmCb = cb; },
     closeConfirm(){ this.confirmMsg = null; this.confirmCb = null; },

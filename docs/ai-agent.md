@@ -177,6 +177,9 @@ clients):
 | GET | `/api/v1/ai/agent/sessions/:id/messages` | Transcript (including pending approvals) |
 | DELETE | `/api/v1/ai/agent/sessions/:id` | Delete a session |
 | GET | `/api/v1/ai/agent/config` | Runtime configuration and model health |
+| GET | `/api/v1/ai/agent/sessions/:id/report` | Download a session's Markdown report |
+| GET | `/api/v1/ai/agent/reports` | List archived report files |
+| GET | `/api/v1/ai/agent/reports/download?name=` | Download an archived report |
 | GET/PUT | `/api/v1/ai/agent/mcp-server` | Inbound MCP endpoint config (enabled / token / high-risk) |
 | ANY | `/mcp` | Inbound MCP endpoint (bearer token) |
 
@@ -191,3 +194,66 @@ OpsAnt host), four multi-host tools are registered automatically. They drive the
 Server's control-plane HTTP API (port 4508 on the same host by default) to run
 commands or scripts and move files on other enrolled hosts — no SSH anywhere.
 `ai_remote_server_url` / `ai_remote_server_token` override the derived address.
+
+## 11. Scheduled AI tasks (host inspection and friends)
+
+An "AI task" is not a new entry point: it is the **fourth kind of scheduled task**
+(`kind = agent`), sitting next to "panel tasks / system crontab / user crontab".
+Scheduling, enable/disable, last-run bookkeeping and failure alerts are therefore
+all reused, and "run something every morning" lives where users already look.
+
+### Pipeline
+
+```
+cron fires -> agent runs unattended (ReAct with read-only / low-risk tools)
+           -> transcript stored (the report IS an AI session, thinking chain included)
+           -> Markdown archived under <data_dir>/reports/<task name>/
+           -> summary pushed to the task's notification channels
+```
+
+### Confirmation policy degrades when unattended
+
+Nobody is around to click "Approve", so with `RunOptions.Unattended = true`:
+
+- a tool mapping to `PolicyConfirm` (L2) is **refused outright**; the model is told
+  why ("use a read-only tool instead and state in your conclusion that this step
+  needs a human") and the refusal is recorded in the session's `Skipped` list;
+- the model switches to read-only tools and the task still finishes, with the
+  report naming the operation that needs a human and the exact command to run;
+- L0 read-only and L1 low-risk tools are unaffected. A daily inspection is thus
+  read-only by construction; widening it requires an explicit policy change.
+
+Refusals land in `cron_jobs.skipped_tools` and show up in both the notification and
+the report appendix.
+
+### Reliability and cost control
+
+| Mechanism | Notes |
+|-----------|-------|
+| Step budget | per-task `max_steps` (default 12, editable in the form) |
+| Wall-clock cap | per-task `timeout_seconds` (default 600s); a timeout counts as a failure |
+| Auto-disable | 3 consecutive failures disable the task, so a broken job cannot alert forever |
+| Manual reset | saving the task in the panel clears `fail_count` |
+
+### Reports
+
+A report exists in two equivalent forms:
+
+1. **An AI session** — titled `Daily host inspection · 2026-10-16`, open it to see the
+   full thinking chain (each tool, its arguments, its raw output) and to ask follow-ups;
+2. **A Markdown file** — archived under `<data_dir>/reports/<task name>/` and
+   downloadable from the task row's "Report" button.
+
+The Markdown contains: an execution summary (status / steps / tool calls), the task
+instruction, the conclusion, and an **Appendix: execution log** with one row per tool
+call — arguments and observation side by side, status being one of
+"done / refused / hard-blocked / failed".
+
+Sessions created by the scheduler carry `user_id = 0` (panel-owned, not personal), so
+every logged-in user can read those reports.
+
+### Shared notification path
+
+AI tasks and alerts share one `Notifier` (`internal/service/notify.go`) covering the
+in-panel bell, email and WeCom / DingTalk / Feishu group robots. An empty channel list
+defaults to the in-panel bell.

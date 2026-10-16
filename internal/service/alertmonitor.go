@@ -1,13 +1,7 @@
 package service
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"log"
-	"net"
-	"net/http"
-	"net/smtp"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,8 +18,9 @@ type AlertMonitor struct {
 	ruleRepo  *repository.AlertRuleRepo
 	eventRepo *repository.AlertEventRepo
 	notifRepo *repository.NotificationRepo
+	notifier  *Notifier
 	sys       *SystemService
-	retention func() int            // returns alert event retention days (read from settings)
+	retention func() int               // returns alert event retention days (read from settings)
 	settings  func() map[string]string // returns all settings (for SMTP config)
 
 	stopCh chan struct{}
@@ -37,6 +32,7 @@ func NewAlertMonitor(ruleRepo *repository.AlertRuleRepo, eventRepo *repository.A
 		ruleRepo:  ruleRepo,
 		eventRepo: eventRepo,
 		notifRepo: notifRepo,
+		notifier:  NewNotifier(notifRepo, settings),
 		sys:       sys,
 		retention: retention,
 		settings:  settings,
@@ -127,28 +123,17 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 		return
 	}
 	// Route notifications by the rule's notify channels (comma-separated labels).
-	notify := rule.Notify
-	has := func(kw string) bool { return strings.Contains(notify, kw) }
-	// in-panel notification (bell)
-	if has("面板") || has("站内") {
-		if m.notifRepo != nil {
-			notifLevel := model.NotifLevelWarn
-			if level == "critical" {
-				notifLevel = model.NotifLevelError
-			}
-			_ = m.notifRepo.Create(&model.Notification{
-				Level:   notifLevel,
-				Title:   "告警触发：" + rule.Name,
-				Content: msg,
-			})
-		}
-	}
-	// email
-	if has("邮件") || strings.Contains(strings.ToLower(notify), "email") {
-		m.sendEmailAlert(rule.Name, level, msg)
-	}
-	// group-robot webhooks (WeCom / DingTalk / Feishu), per channel.
-	m.sendWebhooks(notify, rule.Name, level, msg)
+	// Delivery is delegated to the shared Notifier so alerts and AI tasks behave
+	// identically on every channel.
+	m.notifier.Send(NotifyMessage{
+		Channels:    rule.Notify,
+		Level:       level,
+		PanelTitle:  "告警触发：" + rule.Name,
+		PanelBody:   msg,
+		MailSubject: "[OpsMini] Alert: " + rule.Name + " (" + level + ")",
+		MailBody:    msg,
+		WebhookText: rule.Name + ": " + msg,
+	})
 	log.Printf("ALERT fired: %s (rule=%s, id=%d)", msg, rule.Name, e.ID)
 }
 
@@ -270,89 +255,5 @@ func formatMetricValue(metric string, v float64) string {
 		return strconv.FormatFloat(v, 'f', 1, 64) + " MB/s"
 	default:
 		return strconv.FormatFloat(v, 'f', 1, 64) + "%"
-	}
-}
-
-// sendWebhooks sends the alert to the group-robot webhooks selected in the rule's notify field.
-func (m *AlertMonitor) sendWebhooks(notify, ruleName, level, msg string) {
-	if m.settings == nil {
-		return
-	}
-	kv := m.settings()
-	content := ruleName + ": " + msg
-	targets := []struct{ key, kw, name string }{
-		{"wecom_webhook", "企业微信", "WeCom"},
-		{"dingtalk_webhook", "钉钉", "DingTalk"},
-		{"feishu_webhook", "飞书", "Feishu"},
-	}
-	for _, t := range targets {
-		if !strings.Contains(notify, t.kw) {
-			continue
-		}
-		url := kv[t.key]
-		if url == "" {
-			continue
-		}
-		if err := sendWebhook(url, t.name, content); err != nil {
-			log.Printf("%s webhook send failed: %v", t.name, err)
-		}
-	}
-}
-
-// sendWebhook posts a text message to a group-robot webhook, adapting the payload per platform.
-func sendWebhook(url, platform, content string) error {
-	var body map[string]interface{}
-	if platform == "Feishu" {
-		body = map[string]interface{}{"msg_type": "text", "content": map[string]string{"text": content}}
-	} else {
-		// WeCom and DingTalk share the same text format.
-		body = map[string]interface{}{"msgtype": "text", "text": map[string]string{"content": content}}
-	}
-	b, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	resp, err := http.Post(url, "application/json", bytes.NewReader(b))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("status %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// sendEmailAlert sends an email notification via SMTP if configured.
-func (m *AlertMonitor) sendEmailAlert(ruleName, level, msg string) {
-	if m.settings == nil {
-		return
-	}
-	kv := m.settings()
-	host := kv["smtp_host"]
-	port := kv["smtp_port"]
-	to := kv["smtp_to"]
-	if host == "" || port == "" || to == "" {
-		return
-	}
-	user := kv["smtp_user"]
-	pass := kv["smtp_pass"]
-	from := kv["smtp_from"]
-	if from == "" {
-		from = user
-	}
-	subject := "[OpsMini] Alert: " + ruleName + " (" + level + ")"
-	body := "From: " + from + "\r\n" +
-		"To: " + to + "\r\n" +
-		"Subject: " + subject + "\r\n" +
-		"Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
-		msg + "\r\n"
-	addr := net.JoinHostPort(host, port)
-	var auth smtp.Auth
-	if user != "" {
-		auth = smtp.PlainAuth("", user, pass, host)
-	}
-	if err := smtp.SendMail(addr, auth, from, []string{to}, []byte(body)); err != nil {
-		log.Printf("alert email send failed: %v", err)
 	}
 }

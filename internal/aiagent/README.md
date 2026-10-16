@@ -29,6 +29,7 @@ registry be published as an MCP server.
 | `memory.go` | Conversation persistence and context compression |
 | `mcpclient.go` | Outbound MCP client (official Go SDK, stdio + Streamable HTTP) |
 | `mcpserver.go` | Inbound MCP server: publishes the tool set to external MCP clients |
+| `report.go` | Markdown report builder + archived-report files on disk |
 | `events.go` | SSE event model and the `Emitter` interface |
 | `tools/` | The built-in tool set (see `tools/README.md`) |
 
@@ -94,3 +95,18 @@ without a restart:
 | `mcp_server_enabled` | Whether the inbound MCP endpoint is served (default on) |
 | `mcp_server_token` | Bearer token protecting the inbound MCP endpoint |
 | `mcp_server_allow_high_risk` | Whether L2 tools are published over MCP (default off) |
+
+## Unattended runs (scheduled AI tasks)
+
+`RunOptions.Unattended = true` marks a run triggered by the scheduler, where nobody
+can answer a confirmation dialog. In that mode any tool mapping to `PolicyConfirm`
+is **refused instead of suspended**: the refusal reason is fed back to the model
+("use a read-only tool and say in your conclusion that this step needs a human"),
+recorded in `SendResult.Skipped`, and surfaced in the report appendix. L0 and L1
+tools are unaffected, so a daily inspection is read-only by construction.
+
+`Store.BuildReport` renders the transcript into Markdown (summary → instruction →
+conclusion → per-call appendix) and `SaveReport` archives it under
+`<data_dir>/reports/<task name>/`; `ListReports` / `ReadReport` back the download
+endpoints. Sessions created this way use `SystemUserID` (0) so every logged-in user
+can read them.

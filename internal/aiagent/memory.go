@@ -58,13 +58,18 @@ func (s *Store) EnsureSession(id string, userID uint, title string) (*model.AISe
 	return sess, nil
 }
 
-// GetSession loads a session owned by userID.
+// SystemUserID marks sessions created by the scheduler. They belong to the panel
+// rather than to a person, so every logged-in user can read the reports.
+const SystemUserID uint = 0
+
+// GetSession loads a session owned by userID. Sessions created by the scheduler
+// (SystemUserID) are readable by everyone.
 func (s *Store) GetSession(id string, userID uint) (*model.AISession, error) {
 	sess, err := s.repo.GetSession(id)
 	if err != nil {
 		return nil, ErrSessionNotFound
 	}
-	if sess.UserID != userID {
+	if sess.UserID != userID && sess.UserID != SystemUserID {
 		return nil, ErrSessionNotFound
 	}
 	return sess, nil

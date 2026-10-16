@@ -354,6 +354,9 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/ai/agent/sessions/:id/messages", permMw("ai.agent"), agentBundle.handler.SessionMessages)
 			authed.DELETE("/ai/agent/sessions/:id", permMw("ai.agent"), agentBundle.handler.DeleteSession)
 			authed.GET("/ai/agent/config", permMw("ai.agent"), agentBundle.handler.ConfigInfo)
+			authed.GET("/ai/agent/sessions/:id/report", permMw("ai.agent"), agentBundle.handler.SessionReport)
+			authed.GET("/ai/agent/reports", permMw("ai.agent"), agentBundle.handler.Reports)
+			authed.GET("/ai/agent/reports/download", permMw("ai.agent"), agentBundle.handler.DownloadReport)
 			authed.GET("/ai/agent/mcp-server", permMw("ai.agent"), agentBundle.handler.MCPServerInfo)
 			authed.PUT("/ai/agent/mcp-server", permMw("settings.edit"), agentBundle.handler.UpdateMCPServer)
 
@@ -430,6 +433,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.POST("/cron-jobs", permMw("cron.create"), cronHandler.Create)
 			authed.PUT("/cron-jobs/:id", permMw("cron.edit"), cronHandler.Update)
 			authed.DELETE("/cron-jobs/:id", permMw("cron.delete"), cronHandler.Delete)
+			authed.POST("/cron-jobs/:id/run", permMw("cron.edit"), cronHandler.RunNow)
 			authed.GET("/cron-jobs/system", crontabHandler.SystemJobs)
 			authed.GET("/cron-jobs/user", crontabHandler.UserJobs)
 

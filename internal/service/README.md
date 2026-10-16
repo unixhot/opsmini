@@ -16,7 +16,9 @@ SDK, crontab, pty), defining transaction boundaries. One file per module.
 | `audit.go` | Audit log recording |
 | `auth.go` | Login, JWT token pair issuance, and MFA enforcement |
 | `baseline.go` | Security baseline check execution and result aggregation |
-| `cron.go` | Cron job CRUD and scheduling |
+| `cron.go` | Cron job CRUD and scheduling (panel shell jobs **and** unattended AI tasks) |
+| `agenttask.go` | `AgentRunner` contract between the cron service and the AI agent |
+| `notify.go` | Shared notification dispatcher (panel / email / WeCom / DingTalk / Feishu), used by alerts and AI tasks |
 | `crontab.go` | System crontab parsing (system cron jobs) |
 | `database.go` | Database instance management |
 | `docker.go` | Docker container/image/volume/network operations |

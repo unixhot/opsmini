@@ -77,3 +77,18 @@ func (h *CronHandler) Delete(c *gin.Context) {
 	}
 	response.OK(c, nil)
 }
+
+// RunNow POST /cron-jobs/:id/run - trigger a task immediately, outside its schedule.
+func (h *CronHandler) RunNow(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, "invalid id")
+		return
+	}
+	j, err := h.svc.RunNow(uint(id))
+	if err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"started": true, "job": j})
+}

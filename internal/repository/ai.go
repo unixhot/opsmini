@@ -39,13 +39,15 @@ func (r *AIRepo) GetSession(id string) (*model.AISession, error) {
 	return &s, nil
 }
 
-// ListSessions returns the sessions of a user, most recently updated first.
+// ListSessions returns the sessions of a user plus the scheduler-owned ones
+// (user_id = 0, i.e. scheduled AI task reports), most recently updated first.
 func (r *AIRepo) ListSessions(userID uint, limit int) ([]model.AISession, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var list []model.AISession
-	err := r.db.Where("user_id = ?", userID).Order("updated_at desc").Limit(limit).Find(&list).Error
+	err := r.db.Where("user_id = ? OR user_id = 0", userID).
+		Order("updated_at desc").Limit(limit).Find(&list).Error
 	return list, err
 }
 

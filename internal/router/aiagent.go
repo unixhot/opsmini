@@ -16,6 +16,7 @@ import (
 	"github.com/opsmini/opsmini/internal/aiagent/tools"
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/config"
+	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/repository"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -226,6 +227,24 @@ func buildAIAgent(
 		}
 	})
 
+	// ----- Scheduled AI tasks (M9): cron → agent → report → notify -----
+	// The cron service gets an agent runner and the shared notifier, so an "AI
+	// task" behaves exactly like any other scheduled task from the user's point
+	// of view, while the delivery logic is shared with alerts.
+	notifier := service.NewNotifier(repository.NewNotificationRepo(db), func() map[string]string {
+		kv, _ := settingSvc.List()
+		return kv
+	})
+	if d.cron != nil {
+		d.cron.SetNotifier(notifier)
+		d.cron.SetAgentRunner(&scheduledRunner{
+			agent:    a,
+			store:    store,
+			notifier: notifier,
+			dataDir:  dataDir,
+		})
+	}
+
 	// Expire stale approvals in the background.
 	go func() {
 		ticker := time.NewTicker(5 * time.Minute)
@@ -303,6 +322,7 @@ func buildAIAgent(
 			return mcpMgr.Statuses(list)
 		},
 		MCPServerToken: mcpServer.Token,
+		DataDir:        dataDir,
 		Settings: v1.Settings{
 			Get:    getSetting,
 			Set:    settingSvc.Set,
@@ -335,4 +355,75 @@ func agentSnapshot(sys *service.SystemService) string {
 		sum.ProcessCount, sum.ZombieCount, sum.PortCount, sum.UserCount)
 	b.WriteString("需要更详细的数据时请调用相应工具获取，不要依赖快照做结论。")
 	return b.String()
+}
+
+// scheduledRunner adapts the AI Agent to the scheduled-task runner interface
+// consumed by the cron service.
+//
+// Scheduled runs are unattended, so the agent refuses every tool that would need
+// a human approval; the refusals are reported back and listed in the report.
+type scheduledRunner struct {
+	agent    *aiagent.Agent
+	store    *aiagent.Store
+	notifier *service.Notifier
+	dataDir  func() string
+}
+
+// RunUnattended executes one AI task and archives its Markdown report.
+func (r *scheduledRunner) RunUnattended(ctx context.Context, task service.AgentTask) (service.AgentTaskResult, error) {
+	title := fmt.Sprintf("%s · %s", task.Name, time.Now().Format("2006-01-02"))
+	start := time.Now()
+	res, err := r.agent.Send(ctx, aiagent.RunOptions{
+		// Scheduled reports belong to the panel, not to a person (user 0), so every
+		// logged-in user can read them in the AI assistant.
+		UserID:   aiagent.SystemUserID,
+		Username: "scheduler",
+		// Tools are still filtered by RBAC; "admin" gives the task the full tool
+		// set, while the L1/L2 confirmation rules keep it read-only by default.
+		RoleName:   model.RoleAdmin,
+		Unattended: true,
+		Title:      title,
+		MaxSteps:   task.MaxSteps,
+	}, task.Prompt)
+
+	out := service.AgentTaskResult{SessionID: "", Title: title, Duration: time.Since(start)}
+	if res != nil {
+		out.SessionID = res.SessionID
+		out.Content = res.Content
+		out.Steps = res.Steps
+		out.Tools = res.Tools
+		out.Skipped = res.Skipped
+	}
+
+	// Archive the report even when the run failed, so a broken task still leaves
+	// evidence of what happened.
+	if out.SessionID != "" {
+		meta := aiagent.ReportMeta{
+			TaskName:   task.Name,
+			Prompt:     task.Prompt,
+			Steps:      out.Steps,
+			Tools:      out.Tools,
+			Skipped:    out.Skipped,
+			Duration:   out.Duration,
+			Unattended: true,
+			Status:     "success",
+		}
+		if err != nil {
+			meta.Status = "failed"
+		}
+		if md, berr := r.store.BuildReport(out.SessionID, meta); berr == nil {
+			if path, serr := aiagent.SaveReport(r.dataDir(), task.Name, md); serr == nil {
+				out.ReportPath = path
+			} else {
+				log.Printf("ai agent: archive report for task %q: %v", task.Name, serr)
+			}
+		} else {
+			log.Printf("ai agent: build report for task %q: %v", task.Name, berr)
+		}
+	}
+
+	if err != nil {
+		return out, fmt.Errorf("AI 任务执行失败：%w", err)
+	}
+	return out, nil
 }
