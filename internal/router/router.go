@@ -356,7 +356,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/ai/agent/config", permMw("ai.agent"), agentBundle.handler.ConfigInfo)
 			authed.GET("/ai/agent/sessions/:id/report", permMw("ai.agent"), agentBundle.handler.SessionReport)
 			authed.GET("/ai/agent/reports", permMw("ai.agent"), agentBundle.handler.Reports)
-			authed.GET("/ai/agent/reports/download", permMw("ai.agent"), agentBundle.handler.DownloadReport)
 			authed.GET("/ai/agent/mcp-server", permMw("ai.agent"), agentBundle.handler.MCPServerInfo)
 			authed.PUT("/ai/agent/mcp-server", permMw("settings.edit"), agentBundle.handler.UpdateMCPServer)
 
@@ -471,6 +470,14 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 				authed.DELETE("/networks/:id", permMw("container.delete"), dockerHandler.RemoveNetwork)
 			}
 		}
+
+		// Report access (M10): viewing an archived report must work from a plain
+		// link or a new browser tab, where no Authorization header can be sent, so
+		// these two routes also accept ?token=. Everything else keeps header-only
+		// auth. Content-Disposition decides inline (view) vs attachment (download).
+		reports := api.Group("/ai/agent/reports", middleware.AuthQuery(jwtMgr, "token"), permMw("ai.agent"))
+		reports.GET("/view", agentBundle.handler.ReportView)
+		reports.GET("/download", agentBundle.handler.DownloadReport)
 
 		// Web terminal (WebSocket, query token authentication, bypassing the HTTP header auth middleware)
 		api.GET("/terminal", terminalHandler.Serve)

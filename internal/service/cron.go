@@ -264,7 +264,7 @@ func (s *CronService) RunNow(id uint) (*model.CronJob, error) {
 func (s *CronService) executeAgent(j model.CronJob) {
 	if s.agent == nil {
 		log.Printf("cron %q (id=%d) is an AI task but no agent runner is configured", j.Name, j.ID)
-		s.recordAgentRun(j, model.CronStatusFailed, "AI 智能体未启用（请在面板中配置模型）", "", nil)
+		s.recordAgentRun(j, model.CronStatusFailed, "AI 智能体未启用（请在面板中配置模型）", "", "", nil)
 		return
 	}
 	timeout := agentDefaultTimeout
@@ -296,7 +296,7 @@ func (s *CronService) executeAgent(j model.CronJob) {
 	log.Printf("cron %q (id=%d) AI task %s in %s (steps=%d tools=%d skipped=%d)",
 		j.Name, j.ID, status, elapsed.Round(time.Second), res.Steps, res.Tools, len(res.Skipped))
 
-	s.recordAgentRun(j, status, errMsg, res.SessionID, res.Skipped)
+	s.recordAgentRun(j, status, errMsg, res.SessionID, res.ReportRel, res.Skipped)
 	s.notifyAgentReport(j, status, res, elapsed)
 }
 
@@ -304,7 +304,7 @@ func (s *CronService) executeAgent(j model.CronJob) {
 const agentDefaultTimeout = 10 * time.Minute
 
 // recordAgentRun persists the outcome and auto-disables a repeatedly failing task.
-func (s *CronService) recordAgentRun(j model.CronJob, status, errMsg, sessionID string, skipped []string) {
+func (s *CronService) recordAgentRun(j model.CronJob, status, errMsg, sessionID, reportRel string, skipped []string) {
 	cur, err := s.repo.FindByID(j.ID)
 	if err != nil {
 		return
@@ -316,6 +316,9 @@ func (s *CronService) recordAgentRun(j model.CronJob, status, errMsg, sessionID 
 	cur.SkippedTools = truncate(strings.Join(skipped, ", "), 500)
 	if sessionID != "" {
 		cur.LastSession = sessionID
+	}
+	if reportRel != "" {
+		cur.LastReport = reportRel
 	}
 	if status == model.CronStatusSuccess {
 		cur.FailCount = 0

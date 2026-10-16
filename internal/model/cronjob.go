@@ -49,6 +49,10 @@ type CronJob struct {
 	SkippedTools string `gorm:"size:512" json:"skipped_tools"`
 	// LastSession is the AI session holding the report of the last run.
 	LastSession string `gorm:"size:40" json:"last_session"`
+	// LastReport is the archived HTML report of the last run, relative to the
+	// reports directory (e.g. "每日主机巡检/每日主机巡检-20261016-140000.html").
+	// It is what the task list links to for "open" and "download".
+	LastReport string `gorm:"size:255" json:"last_report"`
 	// LastStatus / LastError summarise the last run for the task list.
 	LastStatus string `gorm:"size:16" json:"last_status"`
 	LastError  string `gorm:"size:512" json:"last_error"`

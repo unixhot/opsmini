@@ -133,8 +133,9 @@ L3 覆盖的危险模式包括：`rm -rf /`（含系统关键目录）、`mkfs`�
 | DELETE | `/api/v1/ai/agent/sessions/:id` | 删除会话 |
 | GET | `/api/v1/ai/agent/config` | 运行参数与模型可用性 |
 | GET | `/api/v1/ai/agent/sessions/:id/report` | 下载该会话的 Markdown 报告 |
-| GET | `/api/v1/ai/agent/reports` | 列出已归档的报告文件 |
-| GET | `/api/v1/ai/agent/reports/download?name=` | 下载归档报告 |
+| GET | `/api/v1/ai/agent/reports` | 列出已归档的报告文件（含 format 与归档目录） |
+| GET | `/api/v1/ai/agent/reports/view?name=` | **直接打开**归档报告（inline，也接受 `?token=`） |
+| GET | `/api/v1/ai/agent/reports/download?name=` | 下载归档报告（attachment，也接受 `?token=`） |
 | GET/PUT | `/api/v1/ai/agent/mcp-server` | 对外 MCP 端点配置（开关 / 令牌 / 高危开关） |
 | ANY | `/mcp` | 对外 MCP 服务端点（Bearer Token 鉴权） |
 
@@ -176,16 +177,40 @@ cron 触发 → Agent 无人值守执行（ReAct + 只读/低危工具）
 | 连续失败自动停用 | 连续失败 3 次自动禁用任务，避免「每天失败每天告警」 |
 | 手动保存复位 | 在面板上保存任务会把 `fail_count` 清零 |
 
-### 报告
+### 报告：单文件 HTML
 
-报告有两份等价形态：
+每次执行产出**一个自包含的 HTML 文件**——这是要交付的形态，可以在浏览器里直接打开，也可以下载归档：
 
-1. **AI 会话**——列表里能看到标题形如 `每日主机巡检 · 2026-10-16`，点开即完整思考链（每步工具、参数、原始输出），可继续追问；
-2. **Markdown 文件**——归档在 `<data_dir>/reports/<任务名>/`，任务列表的「报告」按钮直接下载。
+```
+<数据目录>/reports/<任务名>/<任务名>-<时间戳>.html     ← 单文件报告（自包含）
+<数据目录>/reports/<任务名>/<任务名>-<时间戳>.md       ← 同一份内容的 Markdown（便于脚本处理与再渲染）
+```
+
+`<数据目录>` 就是面板设置里的数据目录（`appstore_data_dir`，默认 `/var/lib/opsmini/data`），
+**所有生成物都落在它下面，按功能分子目录**——报告在 `reports/`，将来其它生成型功能也照此新增子目录即可。
+
+「自包含」的含义：样式内联、无脚本、无外部样式表、无网络字体、无图片。因此报告拷到 U 盘、作为
+邮件附件、放到任意静态服务器上都能正常显示。**面板不内置中文字体**（否则单二进制要涨 10 MB 以上），
+所以报告使用阅读者的系统字体——桌面和移动端浏览器都自带。
 
 报告结构：执行摘要（状态 / 步数 / 工具调用）→ 任务指令 → 结论 → **附：执行过程**（每次工具调用一行，参数与观察结果并列，状态含"完成 / 被拒绝 / 硬禁止 / 失败"）。
 
-定时任务产生的会话 `user_id = 0`（面板归属而非个人），所有登录用户都能查看这些报告。
+任务列表每行提供两个入口：
+
+- **打开**——`GET /ai/agent/reports/view`，`Content-Disposition: inline`，在新标签页直接渲染；
+- **下载**——`GET /ai/agent/reports/download`，`Content-Disposition: attachment`。
+
+正文是模型生成的 Markdown，其中混有主机数据（日志片段、进程命令行、配置值）。渲染器采用
+**先整体转义、再套用行内规则**的顺序，并且不链接 `javascript:` 之类的地址，因此日志里出现
+`<script>` 只会显示为文本。响应另附严格 CSP，作为第二道防线。
+
+需要 PDF 时，在报告页面用浏览器「打印 → 另存为 PDF」即可——样式表里带了打印规则，输出效果与屏幕一致。
+
+### 临时会话也能导出
+
+AI 助手里的任意会话都可以导出为同一套 HTML 报告：
+`GET /ai/agent/sessions/:id/report`（默认 HTML，`?format=md` 取 Markdown，`?download=1` 强制下载）。
+未归档到磁盘的会话因此也能拿到一份可读的报告。
 
 ### 通知复用
 

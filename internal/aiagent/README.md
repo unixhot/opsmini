@@ -29,7 +29,9 @@ registry be published as an MCP server.
 | `memory.go` | Conversation persistence and context compression |
 | `mcpclient.go` | Outbound MCP client (official Go SDK, stdio + Streamable HTTP) |
 | `mcpserver.go` | Inbound MCP server: publishes the tool set to external MCP clients |
-| `report.go` | Markdown report builder + archived-report files on disk |
+| `markdown.go` | Markdown → HTML for the report subset; escapes first, so host-supplied text stays text |
+| `report.go` | Report builder (Markdown) + on-disk archive (`ArchiveReport`, list/read) |
+| `reporthtml.go` | Single-file HTML rendering: inline stylesheet, no script, print rules |
 | `events.go` | SSE event model and the `Emitter` interface |
 | `tools/` | The built-in tool set (see `tools/README.md`) |
 
@@ -106,7 +108,14 @@ recorded in `SendResult.Skipped`, and surfaced in the report appendix. L0 and L1
 tools are unaffected, so a daily inspection is read-only by construction.
 
 `Store.BuildReport` renders the transcript into Markdown (summary → instruction →
-conclusion → per-call appendix) and `SaveReport` archives it under
-`<data_dir>/reports/<task name>/`; `ListReports` / `ReadReport` back the download
-endpoints. Sessions created this way use `SystemUserID` (0) so every logged-in user
-can read them.
+conclusion → per-call appendix). `ArchiveReport` then writes **two** files under
+`<data_dir>/reports/<task name>/`: the Markdown, and a self-contained `.html` report
+produced by `RenderReportHTML` — the artifact users open or download. `ListReports` /
+`ReadReport` / `ContentType` back the list, view and download endpoints.
+
+Because the report body mixes model prose with host data (log excerpts, command
+lines), `renderMarkdown` escapes the whole document **before** applying inline rules
+and refuses non-http(s) link targets. Reports are never a place where a crafted log
+line can become markup.
+
+Sessions created this way use `SystemUserID` (0) so every logged-in user can read them.

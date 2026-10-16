@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -464,26 +465,42 @@ func (h *AgentHandler) SessionReport(c *gin.Context) {
 		steps++
 		tools += len(m.ToolCalls)
 	}
-	md, err := h.deps.Store.BuildReport(id, aiagent.ReportMeta{
+	meta := aiagent.ReportMeta{
 		Prompt: firstUserMessage(msgs),
 		Steps:  steps,
 		Tools:  tools,
 		Status: "success",
-	})
+	}
+
+	// One report, two renderings: HTML is the default because it opens straight
+	// in a browser and carries its own styling; Markdown stays available for
+	// scripts and diffs.
+	if strings.EqualFold(c.Query("format"), "md") {
+		md, err := h.deps.Store.BuildReport(id, meta)
+		if err != nil {
+			response.Error(c, 500, response.CodeInternal, err.Error())
+			return
+		}
+		writeReport(c, reportFilename(sess.Title, "md"), "md", []byte(md), false)
+		return
+	}
+	html, err := h.deps.Store.BuildReportHTML(id, meta)
 	if err != nil {
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
 	}
-	// Scheduled tasks already embed the date in the title ("每日巡检 · 2026-10-16"),
-	// so the title alone makes a unique filename; only ad-hoc sessions fall back
-	// to the download date.
-	filename := sanitizeReportName(sess.Title)
-	if hasDateSuffix(sess.Title) {
-		filename += ".md"
-	} else {
-		filename += "-" + time.Now().Format("20060102") + ".md"
+	writeReport(c, reportFilename(sess.Title, "html"), "html", []byte(html), c.Query("download") != "")
+}
+
+// reportFilename builds a unique, human-readable report file name. Scheduled
+// tasks already embed the date in the title ("每日巡检 · 2026-10-16"), so only
+// ad-hoc sessions fall back to appending the download date.
+func reportFilename(title, ext string) string {
+	name := sanitizeReportName(title)
+	if !hasDateSuffix(title) {
+		name += "-" + time.Now().Format("20060102")
 	}
-	writeMarkdownDownload(c, filename, md)
+	return name + "." + ext
 }
 
 // Reports GET /ai/agent/reports - list the archived AI task reports.
@@ -493,22 +510,70 @@ func (h *AgentHandler) Reports(c *gin.Context) {
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
 	}
-	response.OK(c, gin.H{"reports": files})
+	response.OK(c, gin.H{"reports": files, "dir": aiagent.ReportsDir(h.dataDir())})
 }
 
-// DownloadReport GET /ai/agent/reports/download?name=... - download an archived report.
+// ReportView GET /ai/agent/reports/view?name=... - open an archived report inline.
+//
+// This endpoint is deliberately reachable with the token in the query string
+// (see middleware.AuthQuery) so the browser can open it in a new tab, where no
+// Authorization header can be attached. Anything else keeps using the header.
+func (h *AgentHandler) ReportView(c *gin.Context) {
+	data, base, format, err := h.readArchive(c)
+	if err != nil {
+		return
+	}
+	writeReport(c, base, format, data, c.Query("download") != "")
+}
+
+// DownloadReport GET /ai/agent/reports/download?name=... - force a download of an
+// archived report (same auth rules as ReportView).
 func (h *AgentHandler) DownloadReport(c *gin.Context) {
+	data, base, format, err := h.readArchive(c)
+	if err != nil {
+		return
+	}
+	writeReport(c, base, format, data, true)
+}
+
+// readArchive resolves the ?name= parameter and reads the file, writing the error
+// response itself when something is wrong.
+func (h *AgentHandler) readArchive(c *gin.Context) ([]byte, string, string, error) {
 	name := c.Query("name")
 	if name == "" {
 		response.Error(c, 400, response.CodeInvalidParam, "缺少 name 参数")
-		return
+		return nil, "", "", errParam
 	}
-	data, base, err := aiagent.ReadReport(h.dataDir(), name)
+	data, base, format, err := aiagent.ReadReport(h.dataDir(), name)
 	if err != nil {
 		response.Error(c, 404, response.CodeNotFound, err.Error())
-		return
+		return nil, "", "", err
 	}
-	writeMarkdownDownload(c, base, string(data))
+	return data, base, format, nil
+}
+
+// errParam marks parameter errors already reported to the client.
+var errParam = errors.New("invalid param")
+
+// writeReport serves a report file, either inline (opens in the browser) or as an
+// attachment. The file name is RFC 5987 encoded so Chinese titles survive.
+func writeReport(c *gin.Context, filename, format string, data []byte, download bool) {
+	if filename == "" {
+		filename = "report." + format
+	}
+	disposition := "inline"
+	if download {
+		disposition = "attachment"
+	}
+	c.Header("Content-Type", aiagent.ContentType(format))
+	c.Header("Content-Disposition", disposition+"; filename*=UTF-8''"+url.PathEscape(filename))
+	// Reports can contain host internals; keep them out of shared caches.
+	c.Header("Cache-Control", "no-store")
+	c.Header("X-Content-Type-Options", "nosniff")
+	// The HTML is generated from host-derived text; a strict CSP is a second line
+	// of defence behind the escaping done by the renderer.
+	c.Header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+	c.Data(http.StatusOK, aiagent.ContentType(format), data)
 }
 
 // dataDir resolves the panel data directory.
@@ -565,16 +630,4 @@ func sanitizeReportName(s string) string {
 		s = string([]rune(s)[:60])
 	}
 	return s
-}
-
-// writeMarkdownDownload sends a Markdown file as an attachment. The filename is
-// RFC 5987 encoded so non-ASCII task names survive.
-func writeMarkdownDownload(c *gin.Context, filename, content string) {
-	if filename == "" {
-		filename = "report.md"
-	}
-	c.Header("Content-Type", "text/markdown; charset=utf-8")
-	c.Header("Content-Disposition", "attachment; filename*=UTF-8''"+url.PathEscape(filename))
-	c.Header("Cache-Control", "no-store")
-	c.String(http.StatusOK, content)
 }

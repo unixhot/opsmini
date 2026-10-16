@@ -178,8 +178,9 @@ clients):
 | DELETE | `/api/v1/ai/agent/sessions/:id` | Delete a session |
 | GET | `/api/v1/ai/agent/config` | Runtime configuration and model health |
 | GET | `/api/v1/ai/agent/sessions/:id/report` | Download a session's Markdown report |
-| GET | `/api/v1/ai/agent/reports` | List archived report files |
-| GET | `/api/v1/ai/agent/reports/download?name=` | Download an archived report |
+| GET | `/api/v1/ai/agent/reports` | List archived report files (with format + archive dir) |
+| GET | `/api/v1/ai/agent/reports/view?name=` | **Open** an archived report inline (also accepts `?token=`) |
+| GET | `/api/v1/ai/agent/reports/download?name=` | Download an archived report (also accepts `?token=`) |
 | GET/PUT | `/api/v1/ai/agent/mcp-server` | Inbound MCP endpoint config (enabled / token / high-risk) |
 | ANY | `/mcp` | Inbound MCP endpoint (bearer token) |
 
@@ -235,22 +236,49 @@ the report appendix.
 | Auto-disable | 3 consecutive failures disable the task, so a broken job cannot alert forever |
 | Manual reset | saving the task in the panel clears `fail_count` |
 
-### Reports
+### Reports: a single HTML file
 
-A report exists in two equivalent forms:
+Each run produces **one self-contained HTML file** — the artifact you open or download:
 
-1. **An AI session** — titled `Daily host inspection · 2026-10-16`, open it to see the
-   full thinking chain (each tool, its arguments, its raw output) and to ask follow-ups;
-2. **A Markdown file** — archived under `<data_dir>/reports/<task name>/` and
-   downloadable from the task row's "Report" button.
+```
+<data dir>/reports/<task name>/<task name>-<timestamp>.html   <- the report (self-contained)
+<data dir>/reports/<task name>/<task name>-<timestamp>.md     <- same content as Markdown
+```
 
-The Markdown contains: an execution summary (status / steps / tool calls), the task
-instruction, the conclusion, and an **Appendix: execution log** with one row per tool
-call — arguments and observation side by side, status being one of
-"done / refused / hard-blocked / failed".
+`<data dir>` is the panel's data directory (`appstore_data_dir`, default
+`/var/lib/opsmini/data`). **Every generated artifact lives under it, one subdirectory
+per feature** — reports in `reports/`; add sibling directories for future generators.
 
-Sessions created by the scheduler carry `user_id = 0` (panel-owned, not personal), so
-every logged-in user can read those reports.
+"Self-contained" means: inline styles, no script, no external stylesheet, no web font,
+no images. A report therefore renders from a USB stick, as a mail attachment, or from
+any static host. The panel deliberately bundles **no CJK font** (it would add 10 MB to
+the single binary), so reports use the reader's own system fonts, which every desktop
+and mobile browser has.
+
+Contents: an execution summary (status / steps / tool calls), the task instruction, the
+conclusion, and an **Appendix: execution log** with one row per tool call — arguments and
+observation side by side, status being one of "done / refused / hard-blocked / failed".
+
+Each task row offers two entry points:
+
+- **Open** — `GET /ai/agent/reports/view`, `Content-Disposition: inline`, rendered in a
+  new browser tab;
+- **Download** — `GET /ai/agent/reports/download`, `Content-Disposition: attachment`.
+
+The body is model-written Markdown mixed with host data (log excerpts, process command
+lines, config values). The renderer escapes the whole document **before** applying any
+inline rule and refuses `javascript:`-style targets, so a `<script>` in a log line is
+displayed as text. A strict CSP is sent alongside as a second line of defence.
+
+For PDF, print the open report from the browser ("Print → Save as PDF"); the stylesheet
+carries print rules so the output matches the screen.
+
+### Exporting ad-hoc conversations
+
+Any AI assistant conversation can be exported as the same HTML report:
+`GET /ai/agent/sessions/:id/report` (HTML by default, `?format=md` for Markdown,
+`?download=1` to force a download), so sessions that were never archived still yield a
+readable report.
 
 ### Shared notification path
 

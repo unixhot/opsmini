@@ -28,6 +28,9 @@ type ReportMeta struct {
 	Duration time.Duration
 	// Unattended marks a scheduled run (documented in the header).
 	Unattended bool
+	// GeneratedAt is the human-readable generation time shown in the HTML header
+	// (the Markdown body carries its own timestamp line).
+	GeneratedAt string
 }
 
 // BuildReport renders a session transcript as a Markdown report: a header with
@@ -48,8 +51,12 @@ func (s *Store) BuildReport(sessionID string, meta ReportMeta) (string, error) {
 	if title == "" {
 		title = sess.Title
 	}
+	generatedAt := time.Now().Format("2006-01-02 15:04:05")
+	if meta.GeneratedAt == "" {
+		meta.GeneratedAt = generatedAt
+	}
 	fmt.Fprintf(&b, "# %s\n\n", title)
-	fmt.Fprintf(&b, "> 生成时间：%s ｜ 会话：`%s`\n", time.Now().Format("2006-01-02 15:04:05"), sess.ID)
+	fmt.Fprintf(&b, "> 生成时间：%s ｜ 会话：`%s`\n", generatedAt, sess.ID)
 	if meta.Unattended {
 		b.WriteString("> 执行方式：**无人值守的定时任务**（需人工确认的操作会被自动拒绝）\n")
 	}
@@ -93,7 +100,7 @@ func (s *Store) BuildReport(sessionID string, meta ReportMeta) (string, error) {
 	}
 	b.WriteString("## 结论\n\n")
 	if strings.TrimSpace(conclusion) == "" {
-		b.WriteString("_本次执行没有产生结论内容。_\n\n")
+		b.WriteString("*本次执行没有产生结论内容。*\n\n")
 	} else {
 		b.WriteString(strings.TrimSpace(conclusion))
 		b.WriteString("\n\n")
@@ -185,8 +192,9 @@ func escapeCell(s string) string {
 
 // ReportFile is one archived report on disk.
 type ReportFile struct {
-	Name    string `json:"name"` // path relative to the reports root
-	Dir     string `json:"dir"`  // task folder (reports/<slug>)
+	Name    string `json:"name"`   // path relative to the reports root
+	Dir     string `json:"dir"`    // task folder (reports/<slug>)
+	Format  string `json:"format"` // "html" or "md"
 	Size    int64  `json:"size"`
 	ModTime int64  `json:"mod_time"` // unix seconds
 }
@@ -198,6 +206,10 @@ func reportsRoot(dataDir string) string {
 	}
 	return filepath.Join(dataDir, "reports")
 }
+
+// ReportsDir exposes the absolute directory holding generated reports, so the
+// panel can show users where the files actually land.
+func ReportsDir(dataDir string) string { return reportsRoot(dataDir) }
 
 // slugRe matches characters that are unsafe in a directory or file name.
 var slugRe = regexp.MustCompile(`[^\p{L}\p{N}._-]+`)
@@ -212,20 +224,54 @@ func slugify(s string) string {
 	return truncateText(out, 60)
 }
 
-// SaveReport archives a report as Markdown under
-// <dataDir>/reports/<task-slug>/<task-slug>-<timestamp>.md and returns the path.
-func SaveReport(dataDir, taskName, content string) (string, error) {
+// ReportArtifact describes where a generated report was archived.
+//
+// Files always live under <dataDir>/reports/<task-slug>/, i.e. inside the panel
+// data directory, so every kind of generated data has one predictable home.
+type ReportArtifact struct {
+	Dir      string `json:"dir"`      // absolute directory holding the files
+	Markdown string `json:"markdown"` // absolute path of the .md file
+	HTML     string `json:"html"`     // absolute path of the .html file
+	RelHTML  string `json:"rel_html"` // .html path relative to the reports root (for URLs)
+	RelMD    string `json:"rel_md"`   // .md path relative to the reports root
+	Bytes    int64  `json:"bytes"`    // size of the HTML file
+}
+
+// ArchiveReport writes a report to <dataDir>/reports/<task-slug>/ in two forms:
+// a self-contained .html file (the artifact users open or download) and a .md
+// file (machine readable, and the input for re-rendering if the template changes).
+//
+// markdown is the report body as produced by BuildReport.
+func ArchiveReport(dataDir, taskName, sessionID, markdown string, meta ReportMeta) (ReportArtifact, error) {
 	slug := slugify(taskName)
-	dir := filepath.Join(reportsRoot(dataDir), slug)
+	root := reportsRoot(dataDir)
+	dir := filepath.Join(root, slug)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
+		return ReportArtifact{}, err
 	}
-	name := fmt.Sprintf("%s-%s.md", slug, time.Now().Format("20060102-150405"))
-	path := filepath.Join(dir, name)
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		return "", err
+	stamp := time.Now().Format("20060102-150405")
+	mdName := fmt.Sprintf("%s-%s.md", slug, stamp)
+	htmlName := fmt.Sprintf("%s-%s.html", slug, stamp)
+
+	html := RenderReportHTML(reportTitle(sessionID, meta, markdown), sessionID, markdown, reportMetaChips(meta))
+
+	artifact := ReportArtifact{
+		Dir:      dir,
+		Markdown: filepath.Join(dir, mdName),
+		HTML:     filepath.Join(dir, htmlName),
+		RelMD:    filepath.Join(slug, mdName),
+		RelHTML:  filepath.Join(slug, htmlName),
 	}
-	return path, nil
+	if err := os.WriteFile(artifact.Markdown, []byte(markdown), 0o644); err != nil {
+		return ReportArtifact{}, err
+	}
+	if err := os.WriteFile(artifact.HTML, []byte(html), 0o644); err != nil {
+		return ReportArtifact{}, err
+	}
+	if fi, err := os.Stat(artifact.HTML); err == nil {
+		artifact.Bytes = fi.Size()
+	}
+	return artifact, nil
 }
 
 // ListReports returns the archived reports, newest first.
@@ -236,7 +282,8 @@ func ListReports(dataDir string) ([]ReportFile, error) {
 		if err != nil || d.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(strings.ToLower(d.Name()), ".md") {
+		format, ok := reportFormat(d.Name())
+		if !ok {
 			return nil
 		}
 		info, ierr := d.Info()
@@ -250,6 +297,7 @@ func ListReports(dataDir string) ([]ReportFile, error) {
 		out = append(out, ReportFile{
 			Name:    rel,
 			Dir:     slugify(filepath.Dir(rel)),
+			Format:  format,
 			Size:    info.Size(),
 			ModTime: info.ModTime().Unix(),
 		})
@@ -262,25 +310,49 @@ func ListReports(dataDir string) ([]ReportFile, error) {
 	return out, nil
 }
 
-// ReadReport reads an archived report by its relative name. The path is validated
-// so a crafted name cannot escape the reports directory.
-func ReadReport(dataDir, name string) ([]byte, string, error) {
+// reportFormat classifies an archived report by extension.
+func reportFormat(name string) (string, bool) {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".html", ".htm":
+		return "html", true
+	case ".md", ".markdown":
+		return "md", true
+	default:
+		return "", false
+	}
+}
+
+// ContentType returns the MIME type to serve an archived report with.
+func ContentType(format string) string {
+	if format == "html" {
+		return "text/html; charset=utf-8"
+	}
+	return "text/markdown; charset=utf-8"
+}
+
+// ReadReport reads an archived report by its relative name, returning the bytes,
+// the base file name and the format ("html" or "md").
+//
+// The path is resolved and re-validated against the reports root so a crafted
+// name cannot escape it (path traversal).
+func ReadReport(dataDir, name string) ([]byte, string, string, error) {
 	root := reportsRoot(dataDir)
 	clean := filepath.Clean(strings.TrimPrefix(name, "/"))
 	if clean == "." || strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
-		return nil, "", fmt.Errorf("报告路径非法：%s", name)
+		return nil, "", "", fmt.Errorf("报告路径非法：%s", name)
 	}
 	full := filepath.Join(root, clean)
 	rel, err := filepath.Rel(root, full)
 	if err != nil || strings.HasPrefix(rel, "..") {
-		return nil, "", fmt.Errorf("报告路径非法：%s", name)
+		return nil, "", "", fmt.Errorf("报告路径非法：%s", name)
 	}
-	if !strings.HasSuffix(strings.ToLower(rel), ".md") {
-		return nil, "", fmt.Errorf("只允许下载 Markdown 报告")
+	format, ok := reportFormat(rel)
+	if !ok {
+		return nil, "", "", fmt.Errorf("不支持的报告格式：%s", name)
 	}
 	data, rerr := os.ReadFile(full)
 	if rerr != nil {
-		return nil, "", rerr
+		return nil, "", "", rerr
 	}
-	return data, filepath.Base(rel), nil
+	return data, filepath.Base(rel), format, nil
 }

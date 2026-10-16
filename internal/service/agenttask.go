@@ -37,6 +37,9 @@ type AgentTaskResult struct {
 	Skipped []string
 	// ReportPath is the archived Markdown report on disk (may be empty).
 	ReportPath string
+	// ReportRel is the archived HTML report relative to the reports directory,
+	// suitable for building a URL (may be empty).
+	ReportRel string
 	// Duration is the wall-clock time of the run.
 	Duration time.Duration
 }

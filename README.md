@@ -16,7 +16,7 @@ OpsMini 是一款 AI 驱动的主机运维面板（对标宝塔 / 1Panel），�
 
 - **AI 智能体（Agent）** — 自研轻量 ReAct 内核，29+ 内置工具，模型自主查证、逐步定位问题
 - **分级授权 + 高危确认** — L0 只读自主执行、L1 可配置、L2 必须人工批准、L3 危险命令硬禁止
-- **定时 AI 任务** — 在计划任务里加一条「Agent 任务」，如每天早上自动巡检并生成报告（无人值守时自动拒绝高危操作）
+- **定时 AI 任务** — 在计划任务里加一条「Agent 任务」，如每天早上自动巡检并生成**单文件 HTML 报告**（可打开可下载；无人值守时自动拒绝高危操作）
 - **双向 MCP** — 既可作为 MCP 客户端接入外部工具，也可把自身工具集发布为 MCP Server
 - **多机统一管理** — 通过 OpsMini Agent（gRPC，免 SSH）纳管其它主机并远程执行、收发文
 - **标准 REST API** — `/api/v1`（浏览器 UI）与 `/mcp`（机器对机器，Model Context Protocol）
@@ -44,6 +44,7 @@ make build-all      # 交叉编译 Linux amd64/arm64
 - [开发者手册](docs/developer-guide.zh-CN.md)
 - [后端架构设计](docs/backend-architecture.md)
 - [AI 智能体设计](docs/ai-agent.zh-CN.md)
+- [AI Agent design (EN)](docs/ai-agent.md)
 - [构建与部署手册](docs/build-and-deploy.md)
 - [主机安全设计](docs/security-audit.md)
 

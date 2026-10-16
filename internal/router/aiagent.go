@@ -412,8 +412,11 @@ func (r *scheduledRunner) RunUnattended(ctx context.Context, task service.AgentT
 			meta.Status = "failed"
 		}
 		if md, berr := r.store.BuildReport(out.SessionID, meta); berr == nil {
-			if path, serr := aiagent.SaveReport(r.dataDir(), task.Name, md); serr == nil {
-				out.ReportPath = path
+			// Archive as .md (machine readable) plus a self-contained .html file,
+			// which is what the task list opens and downloads.
+			if art, serr := aiagent.ArchiveReport(r.dataDir(), task.Name, out.SessionID, md, meta); serr == nil {
+				out.ReportPath = art.Markdown
+				out.ReportRel = art.RelHTML
 			} else {
 				log.Printf("ai agent: archive report for task %q: %v", task.Name, serr)
 			}

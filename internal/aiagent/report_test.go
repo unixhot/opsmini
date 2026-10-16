@@ -119,45 +119,113 @@ func TestBuildReportFailureStatus(t *testing.T) {
 	}
 }
 
-// TestSaveListReadReport covers the on-disk archive lifecycle.
-func TestSaveListReadReport(t *testing.T) {
+// TestArchiveReport covers the on-disk archive lifecycle: the report is written
+// as a self-contained .html file plus a .md companion, inside
+// <dataDir>/reports/<task-slug>/ so all generated data lives under the data dir.
+func TestArchiveReport(t *testing.T) {
 	dir := t.TempDir()
-	path, err := SaveReport(dir, "每日巡检", "# 报告正文")
+	art, err := ArchiveReport(dir, "每日巡检", "sess1", "# 报告正文\n\n磁盘 95%。", ReportMeta{TaskName: "每日巡检"})
 	if err != nil {
-		t.Fatalf("save report: %v", err)
+		t.Fatalf("archive report: %v", err)
 	}
-	if !strings.HasSuffix(path, ".md") {
-		t.Fatalf("unexpected path: %s", path)
+
+	// Both forms land in the same folder, derived from the task name.
+	wantDir := filepath.Join(dir, "reports", "每日巡检")
+	if art.Dir != wantDir {
+		t.Errorf("dir = %s, want %s", art.Dir, wantDir)
 	}
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("report file missing: %v", err)
+	if filepath.Dir(art.HTML) != wantDir || filepath.Dir(art.Markdown) != wantDir {
+		t.Errorf("files not under the task folder: %s / %s", art.HTML, art.Markdown)
 	}
-	// The folder is derived from the task name.
-	if filepath.Base(filepath.Dir(path)) != "每日巡检" {
-		t.Errorf("unexpected report folder: %s", filepath.Dir(path))
+	if !strings.HasSuffix(art.HTML, ".html") || !strings.HasSuffix(art.Markdown, ".md") {
+		t.Fatalf("unexpected extensions: %s / %s", art.HTML, art.Markdown)
+	}
+	// RelHTML is what the panel links to, so it must be rooted at the task folder.
+	if art.RelHTML != filepath.Join("每日巡检", filepath.Base(art.HTML)) {
+		t.Errorf("unexpected RelHTML: %s", art.RelHTML)
+	}
+	for _, p := range []string{art.HTML, art.Markdown} {
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("archive file missing: %v", err)
+		}
+	}
+
+	html := readFile(t, art.HTML)
+	md := readFile(t, art.Markdown)
+	if !strings.HasPrefix(md, "# 报告正文") {
+		t.Errorf("markdown companion was altered: %q", firstLine(md))
+	}
+	// The HTML is the delivered artifact: it must be complete and standalone.
+	for _, want := range []string{"<!DOCTYPE html>", "<style>", "磁盘 95%。", "OpsMini 报告", "<html lang=\"zh-CN\">"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("HTML report is missing %q", want)
+		}
+	}
+	assertSelfContained(t, html)
+	if art.Bytes <= 0 {
+		t.Error("artifact size was not recorded")
 	}
 
 	files, err := ListReports(dir)
 	if err != nil {
 		t.Fatalf("list reports: %v", err)
 	}
-	if len(files) != 1 {
-		t.Fatalf("want 1 report, got %d", len(files))
+	if len(files) != 2 {
+		t.Fatalf("want 2 archived files (html + md), got %d", len(files))
 	}
-	if files[0].Dir != "每日巡检" {
-		t.Errorf("unexpected dir field: %s", files[0].Dir)
+	formats := map[string]int{}
+	for _, f := range files {
+		formats[f.Format]++
+		if f.Dir != "每日巡检" {
+			t.Errorf("unexpected dir field: %s", f.Dir)
+		}
+	}
+	if formats["html"] != 1 || formats["md"] != 1 {
+		t.Errorf("unexpected format breakdown: %v", formats)
 	}
 
-	data, base, err := ReadReport(dir, files[0].Name)
+	data, base, format, err := ReadReport(dir, art.RelHTML)
 	if err != nil {
 		t.Fatalf("read report: %v", err)
 	}
-	if string(data) != "# 报告正文" {
-		t.Errorf("unexpected content: %q", string(data))
+	if format != "html" || !strings.HasSuffix(base, ".html") {
+		t.Errorf("unexpected format/base: %s / %s", format, base)
 	}
-	if !strings.HasSuffix(base, ".md") {
-		t.Errorf("unexpected base name: %s", base)
+	if !strings.Contains(string(data), "<!DOCTYPE html>") {
+		t.Error("read back a different file than archived")
 	}
+	if ContentType("html") == ContentType("md") {
+		t.Error("the two formats must map to different content types")
+	}
+}
+
+// assertSelfContained rejects external references: a report must render from the
+// data directory alone, with no network access and no bundled JS.
+func assertSelfContained(t *testing.T, html string) {
+	t.Helper()
+	for _, forbidden := range []string{"<script", "<link", "<iframe", "src=\"http", "src=\"//", "@import", "url(http"} {
+		if strings.Contains(html, forbidden) {
+			t.Errorf("report is not self-contained, found %q", forbidden)
+		}
+	}
+}
+
+// readFile is a small helper that fails the test when a file is unreadable.
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return string(b)
+}
+
+// firstLine returns the first line of s, for terse failure messages.
+func firstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
 }
 
 // TestReadReportRejectsPaths verifies that a crafted name cannot escape the
@@ -170,7 +238,7 @@ func TestReadReportRejectsPaths(t *testing.T) {
 		"/etc/passwd",
 		"sub/../../secret.md",
 	} {
-		if _, _, err := ReadReport(dir, name); err == nil {
+		if _, _, _, err := ReadReport(dir, name); err == nil {
 			t.Errorf("expected %q to be rejected", name)
 		}
 	}
@@ -179,8 +247,8 @@ func TestReadReportRejectsPaths(t *testing.T) {
 	if err := os.WriteFile(outside, []byte("secret"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := ReadReport(dir, "notes.txt"); err == nil {
-		t.Error("only Markdown reports may be downloaded")
+	if _, _, _, err := ReadReport(dir, "notes.txt"); err == nil {
+		t.Error("only html/markdown reports may be served")
 	}
 }
 
