@@ -5,6 +5,8 @@ package convention and are not importable by external modules.
 
 | Directory | Responsibility |
 |-----------|----------------|
+| [`agent/`](agent/README.md) | gRPC client: connects this panel to an OpsAnt "OpsMini Server" |
+| [`aiagent/`](aiagent/README.md) | AI Agent: ReAct kernel, tool registry, guard rails, MCP client & server |
 | [`api/`](api/README.md) | HTTP handlers (controllers), versioned |
 | [`config/`](config/README.md) | Configuration loading |
 | [`middleware/`](middleware/README.md) | Gin middleware (auth, audit, rate-limit, CORS) |

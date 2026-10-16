@@ -34,7 +34,7 @@ func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}, &model.AISession{}, &model.AIMessage{}, &model.AIPendingApproval{}); err != nil {
 		return nil, err
 	}
 	if err := seedAdmin(db); err != nil {

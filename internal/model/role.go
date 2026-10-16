@@ -77,6 +77,8 @@ func PermGroups() []PermissionGroup {
 		}},
 		{Key: "ai", Label: "AI 助手", Perms: []Permission{
 			perm("ai.use", "使用 AI 助手"),
+			perm("ai.agent", "使用 AI 智能体（工具调用）"),
+			perm("ai.agent.write", "授权 AI 执行高风险操作"),
 		}},
 		{Key: "terminal", Label: "终端", Perms: []Permission{
 			perm("terminal.use", "使用 Web 终端"),

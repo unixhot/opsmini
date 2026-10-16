@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/agent"
+	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/middleware"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
@@ -99,7 +99,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	databaseHandler := v1.NewDatabaseHandler(databaseSvc)
 	cronSvc := service.NewCronService(repository.NewCronJobRepo(db))
 	cronHandler := v1.NewCronHandler(cronSvc)
-	crontabHandler := v1.NewCrontabHandler(service.NewCrontabService())
+	crontabSvc := service.NewCrontabService()
+	crontabHandler := v1.NewCrontabHandler(crontabSvc)
 	fileSvc := service.NewFileService("/")
 	fileHandler := v1.NewFileHandler(fileSvc)
 	logSvc := service.NewLogService()
@@ -216,6 +217,14 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	appStoreHandler := v1.NewAppStoreHandler(appStoreSvc)
 	appCategorySvc := service.NewAppCategoryService(repository.NewAppCategoryRepo(db))
 	appCategoryHandler := v1.NewAppCategoryHandler(appCategorySvc)
+
+	// ----- AI Agent (M8): self-built lightweight ReAct kernel + tool set -----
+	agentBundle := buildAIAgent(cfg, db, settingSvc, auditSvc, roleSvc, userSvc, agentMgr, version, toolDeps{
+		sys: sysSvc, firewall: firewallSvc, file: fileSvc, log: logSvc,
+		cron: cronSvc, crontab: crontabSvc, website: websiteSvc, database: databaseSvc,
+		appStore: appStoreSvc, docker: dockerSvc, security: securitySvc,
+		skill: skillSvc, mcp: mcpSvc, metrics: metrics, agentConfig: agentConfigSvc,
+	})
 
 	authMw := middleware.Auth(jwtMgr)
 	// permMw performs fine-grained checks based on permission points.
@@ -335,6 +344,19 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			// AI assistant + MCP
 			authed.POST("/ai/chat", permMw("ai.use"), aiHandler.Chat)
 			authed.POST("/ai/chat/stream", permMw("ai.use"), aiHandler.ChatStream)
+
+			// AI Agent (tool calling, guardrails, human-in-the-loop)
+			authed.POST("/ai/agent/chat", permMw("ai.agent"), agentBundle.handler.Chat)
+			authed.POST("/ai/agent/approve", permMw("ai.agent"), agentBundle.handler.Approve)
+			authed.GET("/ai/agent/tools", permMw("ai.agent"), agentBundle.handler.Tools)
+			authed.PUT("/ai/agent/tools/policy", permMw("ai.agent"), agentBundle.handler.SetToolPolicy)
+			authed.GET("/ai/agent/sessions", permMw("ai.agent"), agentBundle.handler.Sessions)
+			authed.GET("/ai/agent/sessions/:id/messages", permMw("ai.agent"), agentBundle.handler.SessionMessages)
+			authed.DELETE("/ai/agent/sessions/:id", permMw("ai.agent"), agentBundle.handler.DeleteSession)
+			authed.GET("/ai/agent/config", permMw("ai.agent"), agentBundle.handler.ConfigInfo)
+			authed.GET("/ai/agent/mcp-server", permMw("ai.agent"), agentBundle.handler.MCPServerInfo)
+			authed.PUT("/ai/agent/mcp-server", permMw("settings.edit"), agentBundle.handler.UpdateMCPServer)
+
 			authed.GET("/mcp", mcpHandler.List)
 			authed.POST("/mcp", permMw("mcp.manage"), mcpHandler.Create)
 			authed.PUT("/mcp/:id", permMw("mcp.manage"), mcpHandler.Update)
@@ -454,6 +476,11 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			api.GET("/containers/:id/exec", dockerHandler.ContainerExec)
 		}
 	}
+
+	// Inbound MCP server (M8-F): external MCP clients (Claude Desktop, Cursor,
+	// OpsAnt, another OpsMini) connect to this endpoint. It is authenticated by a
+	// bearer token instead of the panel JWT, because MCP clients cannot log in.
+	root.Any("/mcp", gin.WrapH(agentBundle.mcpServer.Handler()))
 
 	// Frontend static assets (embedded in the single binary). Static library content is stable, so add a one-year strong cache to avoid re-downloading large libraries on every login.
 	staticFS, err := fs.Sub(web.FS, "static")

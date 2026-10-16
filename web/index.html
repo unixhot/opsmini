@@ -308,6 +308,33 @@
   .typing{display:inline-flex;gap:4px;padding:6px 0}
   .typing span{width:7px;height:7px;border-radius:50%;background:var(--t3);animation:blink 1.2s infinite}
   .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  /* ===== AI Agent 思考链 / 工具调用 / 审批确认 ===== */
+  .ai-steps{margin-bottom:8px;display:flex;flex-direction:column;gap:6px;min-width:260px}
+  .ai-step{border:1px solid var(--border);border-radius:8px;background:var(--card);overflow:hidden}
+  .ai-step-head{display:flex;align-items:center;gap:7px;padding:6px 9px;font-size:12px;color:var(--t2);cursor:pointer;user-select:none}
+  .ai-step-head:hover{background:var(--bg)}
+  .ai-step-idx{flex:none;width:16px;height:16px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .ai-step-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ai-step-think{padding:6px 9px;font-size:12px;color:var(--t3);white-space:pre-wrap;word-break:break-word;border-top:1px solid var(--border);max-height:150px;overflow:auto}
+  .ai-tool{display:flex;align-items:flex-start;gap:7px;padding:5px 9px;font-size:12px;border-top:1px solid var(--border)}
+  .ai-tool-name{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--primary);flex:none}
+  .ai-tool-arg{color:var(--t3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .ai-tool-arg.open{white-space:normal;word-break:break-all}
+  .ai-tool-status{flex:none;font-size:11px}
+  .ai-tool-status.ok{color:#16b879}.ai-tool-status.fail{color:#f05050}
+  .ai-tool-status.running{color:var(--t3)}.ai-tool-status.pending{color:#f59e0b}
+  .ai-tool-detail{margin:0 9px 7px;padding:7px 9px;background:var(--bg);border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;color:var(--t2)}
+  .ai-risk{flex:none;font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid currentColor;line-height:1.5}
+  .ai-risk.readonly{color:#16b879}.ai-risk.low_write{color:#3b9cf0}.ai-risk.high_write{color:#f05050}
+  .ai-confirm{margin-top:8px;border:1px solid #f59e0b;background:rgba(245,158,11,.08);border-radius:8px;padding:9px 11px}
+  .ai-confirm-title{font-size:12px;font-weight:600;color:#f59e0b;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+  .ai-confirm-cmd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:var(--bg);border-radius:6px;padding:7px 9px;word-break:break-all;white-space:pre-wrap;margin-bottom:8px;max-height:180px;overflow:auto}
+  .ai-confirm-actions{display:flex;gap:8px;align-items:center}
+  .ai-btn{font-size:12px;padding:5px 13px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--t1);cursor:pointer}
+  .ai-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .ai-btn.danger{background:#f05050;border-color:#f05050;color:#fff}
+  .ai-btn:disabled{opacity:.5;cursor:not-allowed}
+  .ai-confirm-done{font-size:12px;color:var(--t3);margin-top:6px;display:flex;align-items:center;gap:5px}
   @keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
   .ai-input{padding:14px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end}
   .ai-input textarea{flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;resize:none;outline:none;font-size:13.5px;font-family:inherit;min-height:42px;max-height:120px;line-height:1.5}
@@ -1111,6 +1138,7 @@
             <span :class="{active: aiTab==='chat'}" @click="aiTab='chat'">{{ t('ai.chatTab') }}</span>
             <span :class="{active: aiTab==='mcp'}" @click="setAiTab('mcp')">{{ t('ai.mcpTab') }}</span>
             <span :class="{active: aiTab==='skill'}" @click="setAiTab('skill')">{{ t('ai.skillTab') }}</span>
+            <span :class="{active: aiTab==='tools'}" @click="setAiTab('tools')">{{ t('ai.toolsTab') }}</span>
           </div>
         </div>
 
@@ -1142,13 +1170,55 @@
               <div class="ai-sugg" v-if="aiMessages.length===0">
                 <div class="ai-chip" v-for="s in aiCtx.suggestions" :key="s" @click="send(s)">{{ s }}</div>
               </div>
-              <div class="msg" :class="m.role" v-for="(m,i) in aiMessages" :key="i">
-                <div class="ava">
-                  <svg v-if="m.role==='ai'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
-                  <span v-else>{{ t('misc.me') }}</span>
+                <div class="msg" :class="m.role" v-for="(m,i) in aiMessages" :key="i">
+                  <div class="ava">
+                    <svg v-if="m.role==='ai'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+                    <span v-else>{{ t('misc.me') }}</span>
+                  </div>
+                  <div class="bubble">
+                    <span v-if="m.typing && !(m.steps&&m.steps.length) && !m.text" class="typing"><span></span><span></span><span></span></span>
+                    <!-- 思考链：每一步的工具调用与观察结果 -->
+                    <div class="ai-steps" v-if="m.steps && m.steps.length">
+                      <div class="ai-step" v-for="(st,si) in m.steps" :key="si">
+                        <div class="ai-step-head" @click="st.open=!st.open">
+                          <span class="ai-step-idx">{{ st.step }}</span>
+                          <span class="ai-step-title">{{ stepTitle(st) }}</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :style="{transform: st.open?'rotate(180deg)':'none',transition:'.15s'}"><path d="M6 9l6 6 6-6"/></svg>
+                        </div>
+                        <div v-if="st.open">
+                          <div class="ai-step-think" v-if="st.thinking && st.thinking!==m.text">{{ st.thinking }}</div>
+                          <template v-for="tl in st.tools" :key="tl.id">
+                            <div class="ai-tool">
+                              <span class="ai-risk" :class="tl.risk">{{ riskLabel(tl.risk) }}</span>
+                              <span class="ai-tool-name">{{ tl.name }}</span>
+                              <span class="ai-tool-arg" :class="{open: tl.open}" :title="tl.preview" @click="tl.open=!tl.open">{{ tl.preview || tl.name }}</span>
+                              <span class="ai-tool-status" :class="tl.status">{{ toolStatusLabel(tl.status) }}</span>
+                            </div>
+                            <div class="ai-tool-detail" v-if="tl.open && (tl.detail || tl.summary)">{{ tl.detail || tl.summary }}</div>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                    <span v-if="m.text" class="bubble-text">{{ m.text }}</span>
+                    <!-- 高危操作确认卡片 -->
+                    <div class="ai-confirm" v-if="m.confirm">
+                      <div class="ai-confirm-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                        {{ t('ai.confirmTitle') }} · {{ m.confirm.name }}
+                      </div>
+                      <div class="ai-confirm-cmd">{{ m.confirm.preview }}</div>
+                      <div class="ai-confirm-actions" v-if="m.confirm.status==='pending'">
+                        <button class="ai-btn danger" :disabled="aiLoading" @click="decideApproval(m,true)">{{ t('ai.approve') }}</button>
+                        <button class="ai-btn" :disabled="aiLoading" @click="decideApproval(m,false)">{{ t('ai.reject') }}</button>
+                        <span style="font-size:11px;color:var(--t3)">{{ t('ai.confirmHint') }}</span>
+                      </div>
+                      <div class="ai-confirm-done" v-else-if="m.confirm.status==='approved'">✓ {{ t('ai.approved') }}</div>
+                      <div class="ai-confirm-done" v-else-if="m.confirm.status==='rejected'">✕ {{ t('ai.rejected') }}</div>
+                      <div class="ai-confirm-done" v-else>{{ t('ai.processing') }}</div>
+                    </div>
+                    <div v-if="m.error" style="color:#f05050;font-size:12px;margin-top:6px">⚠ {{ m.error }}</div>
+                  </div>
                 </div>
-                <div class="bubble"><span v-if="m.typing"><span class="typing"><span></span><span></span><span></span></span></span><span v-else class="bubble-text">{{ m.text }}</span></div>
-              </div>
             </div>
             <div style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);align-items:center">
               <button type="button" class="dt-btn" :class="{on: aiDeepThink}" :data-tip="t('ai.deepThinkTip')" @click="aiDeepThink=!aiDeepThink">
@@ -1261,6 +1331,95 @@
             </div>
           </div>
           <input type="file" ref="skillFile" accept=".zip" style="display:none" @change="uploadSkill">
+        </div>
+
+        <!-- AI 工具权限 -->
+        <div v-if="aiTab==='tools'">
+          <!-- 把 OpsMini 暴露为 MCP Server -->
+          <div class="card mt16">
+            <div class="card-head">
+              <div class="card-title">{{ t('ai.mcpServer') }}</div>
+              <span class="tag info">Model Context Protocol</span>
+            </div>
+            <div class="card-body">
+              <div class="row" style="gap:16px;flex-wrap:wrap;align-items:flex-end">
+                <div style="flex:1;min-width:260px">
+                  <div style="font-size:12px;color:var(--t3);margin-bottom:5px">{{ t('ai.mcpEndpoint') }}</div>
+                  <div class="mono" style="font-size:12px;background:var(--bg);border-radius:6px;padding:7px 10px;word-break:break-all">{{ mcpServerURL() }}</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--t2)">
+                  <span class="switch" :class="{on:mcpServer.enabled}" @click="saveMcpServer({enabled: !mcpServer.enabled})"></span>
+                  {{ t('ai.mcpEnabled') }}
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--t2)">
+                  <span class="switch" :class="{on:mcpServer.allow_high_risk}" @click="saveMcpServer({allow_high_risk: !mcpServer.allow_high_risk})"></span>
+                  {{ t('ai.mcpAllowHigh') }}
+                </label>
+              </div>
+              <div style="margin-top:14px">
+                <div style="font-size:12px;color:var(--t3);margin-bottom:5px">{{ t('ai.mcpToken') }}</div>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+                  <div class="mono" style="font-size:12px;background:var(--bg);border-radius:6px;padding:7px 10px;flex:1;min-width:240px;word-break:break-all">
+                    {{ showMcpToken ? mcpServer.token : '••••••••••••••••••••••••••••••••••••••••••••' }}
+                  </div>
+                  <button class="btn sm ghost" @click="showMcpToken=!showMcpToken">{{ showMcpToken ? t('ai.hideToken') : t('ai.showToken') }}</button>
+                  <button class="btn sm ghost" @click="copyMcpToken">{{ t('common.copy') }}</button>
+                  <button class="btn sm danger" @click="rotateMcpToken">{{ t('ai.mcpRotate') }}</button>
+                </div>
+              </div>
+              <div style="margin-top:14px;font-size:12.5px;color:var(--t2);line-height:1.9">
+                <div>{{ t('ai.mcpHint') }}</div>
+                <pre style="background:#0d1117;color:#c9d1d9;padding:10px;border-radius:8px;margin-top:8px;font-size:11.5px;overflow-x:auto">{{ mcpClientExample() }}</pre>
+              </div>
+              <div v-if="mcpServer.allow_high_risk" style="margin-top:10px;font-size:12px;color:#f05050">
+                ⚠ {{ t('ai.mcpHighWarn') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt16">
+            <div class="card-head">
+              <div class="card-title">{{ t('ai.toolsTab') }}</div>
+              <span class="tag info">{{ agentTools.length }} {{ t('misc.items') }}</span>
+            </div>
+            <div class="card-body p0 table-wrap">
+              <table>
+                <thead><tr>
+                  <th>{{ t('ai.toolName') }}</th><th>{{ t('ai.toolRisk') }}</th>
+                  <th>{{ t('ai.toolPerm') }}</th>                  <th>{{ t('ai.toolDesc') }}</th>
+                  <th style="width:212px;min-width:212px">{{ t('ai.toolPolicy') }}</th>
+                </tr></thead>
+                <tbody>
+                  <tr v-for="tl in agentTools" :key="tl.name">
+                    <td class="mono" style="white-space:nowrap">{{ tl.name }}</td>
+                    <td>
+                      <span class="ai-risk" :class="tl.risk">{{ riskLabel(tl.risk) }}</span>
+                    </td>
+                    <td class="mono" style="font-size:11.5px;color:var(--t3)">{{ tl.perm || '-' }}</td>
+                    <td style="max-width:0;width:100%;color:var(--t2);font-size:12px">
+                      <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="tl.description">{{ tl.description }}</div>
+                    </td>
+                    <td style="white-space:nowrap">
+                      <div class="row" style="gap:5px;flex-wrap:nowrap" v-if="tl.risk!=='high_write'">
+                        <span class="tag" style="white-space:nowrap" :class="tl.policy==='auto' ? 'ok' : 'mute'" @click="setToolPolicy(tl,'auto')">{{ t('ai.policyAuto') }}</span>
+                        <span class="tag" style="white-space:nowrap" :class="tl.policy==='confirm' ? 'warn' : 'mute'" @click="setToolPolicy(tl,'confirm')">{{ t('ai.policyConfirm') }}</span>
+                        <span class="tag" style="white-space:nowrap" :class="tl.policy==='deny' ? 'err' : 'mute'" @click="setToolPolicy(tl,'deny')">{{ t('ai.policyDeny') }}</span>
+                      </div>
+                      <span class="tag warn" v-else>{{ t('ai.policyConfirm') }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card mt16">
+            <div class="card-body" style="font-size:12.5px;color:var(--t2);line-height:1.9">
+              <div><b>{{ t('ai.riskReadonly') }}（L0）</b>：{{ t('ai.riskReadonlyDesc') }}</div>
+              <div><b>{{ t('ai.riskLow') }}（L1）</b>：{{ t('ai.riskLowDesc') }}</div>
+              <div><b>{{ t('ai.riskHigh') }}（L2）</b>：{{ t('ai.riskHighDesc') }}</div>
+              <div><b>{{ t('ai.riskForbidden') }}（L3）</b>：{{ t('ai.riskForbiddenDesc') }}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2739,7 +2898,47 @@
             <svg v-if="m.role==='ai'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
             <span v-else>{{ t('misc.me') }}</span>
           </div>
-          <div class="bubble"><span v-if="m.typing"><span class="typing"><span></span><span></span><span></span></span></span><span v-else class="bubble-text">{{ m.text }}</span></div>
+          <div class="bubble">
+            <span v-if="m.typing && !(m.steps&&m.steps.length) && !m.text" class="typing"><span></span><span></span><span></span></span>
+            <div class="ai-steps" v-if="m.steps && m.steps.length">
+              <div class="ai-step" v-for="(st,si) in m.steps" :key="si">
+                <div class="ai-step-head" @click="st.open=!st.open">
+                  <span class="ai-step-idx">{{ st.step }}</span>
+                  <span class="ai-step-title">{{ stepTitle(st) }}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :style="{transform: st.open?'rotate(180deg)':'none',transition:'.15s'}"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div v-if="st.open">
+                  <div class="ai-step-think" v-if="st.thinking && st.thinking!==m.text">{{ st.thinking }}</div>
+                  <template v-for="tl in st.tools" :key="tl.id">
+                    <div class="ai-tool">
+                      <span class="ai-risk" :class="tl.risk">{{ riskLabel(tl.risk) }}</span>
+                      <span class="ai-tool-name">{{ tl.name }}</span>
+                      <span class="ai-tool-arg" :class="{open: tl.open}" :title="tl.preview" @click="tl.open=!tl.open">{{ tl.preview || tl.name }}</span>
+                      <span class="ai-tool-status" :class="tl.status">{{ toolStatusLabel(tl.status) }}</span>
+                    </div>
+                    <div class="ai-tool-detail" v-if="tl.open && (tl.detail || tl.summary)">{{ tl.detail || tl.summary }}</div>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <span v-if="m.text" class="bubble-text">{{ m.text }}</span>
+            <div class="ai-confirm" v-if="m.confirm">
+              <div class="ai-confirm-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                {{ t('ai.confirmTitle') }} · {{ m.confirm.name }}
+              </div>
+              <div class="ai-confirm-cmd">{{ m.confirm.preview }}</div>
+              <div class="ai-confirm-actions" v-if="m.confirm.status==='pending'">
+                <button class="ai-btn danger" :disabled="aiLoading" @click="decideApproval(m,true)">{{ t('ai.approve') }}</button>
+                <button class="ai-btn" :disabled="aiLoading" @click="decideApproval(m,false)">{{ t('ai.reject') }}</button>
+                <span style="font-size:11px;color:var(--t3)">{{ t('ai.confirmHint') }}</span>
+              </div>
+              <div class="ai-confirm-done" v-else-if="m.confirm.status==='approved'">✓ {{ t('ai.approved') }}</div>
+              <div class="ai-confirm-done" v-else-if="m.confirm.status==='rejected'">✕ {{ t('ai.rejected') }}</div>
+              <div class="ai-confirm-done" v-else>{{ t('ai.processing') }}</div>
+            </div>
+            <div v-if="m.error" style="color:#f05050;font-size:12px;margin-top:6px">⚠ {{ m.error }}</div>
+          </div>
         </div>
       </div>
       <div class="ai-input">
@@ -2880,7 +3079,7 @@ const I18N = {
     'common.running':'运行中','common.stopped':'已停止','common.enabled':'启用','common.disabled':'停用',
     'common.folder':'文件夹','common.file':'文件','common.edit':'编辑','common.delete':'删除','common.settings':'设置',
     'common.backup':'备份','common.restart':'重启','common.run':'执行','common.download':'下载','common.rename':'重命名',
-    'common.state':'状态','common.actions':'操作','common.log':'日志','common.type':'类型','common.name':'名称',
+    'common.state':'状态','common.actions':'操作','common.copy':'コピー','common.copied':'コピーしました','common.copyFail':'コピーに失敗しました','common.copy':'複製','common.copied':'已複製','common.copyFail':'複製失敗','common.copy':'复制','common.copied':'已复制','common.copyFail':'复制失败','common.log':'日志','common.type':'类型','common.name':'名称',
     'login.title':'登录面板','login.username':'用户名','login.password':'密码','login.remember':'记住我',
     'login.forgot':'忘记密码？','login.submit':'登 录','login.invalid':'用户名或密码输入错误','login.fail':'登录失败','login.showPass':'显示密码','login.hidePass':'隐藏密码',
     'login.footer':'OpsMini v1.1.0 · AI 驱动的主机运维面板',
@@ -2915,7 +3114,7 @@ const I18N = {
     'set.tfa':'二步验证 (2FA)','set.autoup':'自动更新','set.opsantSso':'允许 OpsAnt 免认证跳转','set.opsantLink':'接入 OpsAnt','set.opsantLinkDesc':'配置后，本机将作为 Agent 接入 OpsAnt 多机运维管理平台，接入后需在 OpsAnt 上同意纳管','set.opsantServerAddr':'OpsAnt 地址','set.opsantServerAddrPh':'例如 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'与 OpsAnt 的 OPSMINI_TOKEN 一致','set.opsantRunning':'已连接','set.opsantStopped':'未接入','set.ai':'AI 大模型接入','set.aiEnable':'启用 AI 助手','btn.copy':'复制','btn.copied':'已复制','set.model':'模型服务商','set.apiKey':'API Key',
     'set.apiBase':'API 地址','set.exec':'自然语言执行操作','set.logAna':'日志智能分析','set.diag':'告警智能诊断',
     'set.theme':'外观与主题','set.customColor':'自定义主色（企业品牌色 / 个人偏好）','set.metrics':'监控导出','set.appTemplate':'应用模版','set.notifications':'通知','notif.readAll':'全部已读','notif.viewAll':'查看全部','notif.empty':'暂无通知','notif.level':'级别','notif.title':'标题','notif.content':'内容','notif.time':'时间','notif.status':'状态','notif.read':'已读','notif.unread':'未读','notif.markRead':'标记已读','notif.clearAll':'清空','notif.clearConfirm':'确定清空全部通知？','notif.cleared':'已清空','notif.readAllDone':'已全部标记为已读','notif.levelError':'错误','notif.levelWarn':'警告','notif.levelInfo':'提示','notif.justNow':'刚刚','notif.minAgo':'分钟前','notif.hourAgo':'小时前','tpl.categories':'分类管理','tpl.addCat':'+ 添加分类','tpl.catName':'分类名称','tpl.catKey':'分类标识','tpl.templates':'应用模版','tpl.addTpl':'+ 添加模版','tpl.name':'名称','tpl.cat':'分类','tpl.icon':'图标','tpl.version':'版本','tpl.ports':'端口','tpl.container':'容器名','tpl.desc':'简介','tpl.script':'安装脚本','tpl.import':'导入','tpl.export':'导出','tpl.imported':'模版导入成功 ✓','tpl.importFail':'导入失败','tpl.exportFail':'导出失败','tpl.importSlug':'模版标识（留空自动生成，如 redis）','tpl.importName':'应用名称（留空从 README 首行读取）','store.all':'全部','store.start':'启动','store.stop':'停止','store.restart':'重启','set.metricsOn':'认证已启用','set.metricsOff':'未启用认证','set.metricsDesc':'以 node_exporter 兼容格式暴露系统指标，供 Prometheus 直接抓取，社区 Node Dashboard 可直接使用。','set.metricsEndpoint':'抓取端点','set.metricsAuth':'启用认证','set.metricsUser':'用户名','set.metricsPass':'密码','set.metricsUserPh':'留空则开放访问','set.metricsPassPh':'请输入密码','set.metricsTokenPh':'留空则开放访问','set.metricsGen':'生成随机','set.metricsHint':'保存后，Prometheus 需配置 basic_auth（用户名 + 密码）；用户名为空则无需认证。','set.metricsTokenEmpty':'请设置用户名和密码，或关闭认证','set.aiSaved':'AI 配置已保存 ✓','set.aiSaveFail':'保存失败','set.aiKeyEmpty':'请先填写 API Key','set.metricsSaved':'监控导出设置已保存 ✓','set.metricsSaveFail':'保存失败','btn.save':'保存','set.menu':'菜单显示','set.lang':'语言 / Language',
-    'ai.title':'OpsMini AI 助手','ai.pageDesc':'与 AI 大模型对话，管理 MCP 工具','ai.chatTab':'聊天窗','ai.mcpTab':'MCP','ai.skillTab':'技能','ai.deepThink':'深度思考','ai.deepThinkTip':'先思考后回答，解决推理问题','skill.recommend':'推荐技能','skill.install':'一键安装','skill.installed':'已安装','skill.installedDone':'安装成功','skill.installedList':'已安装技能','skill.upload':'上传安装','skill.create':'创建技能','skill.name':'名称','skill.description':'描述','skill.empty':'暂无已安装技能，可从上方推荐一键安装，或上传 / 创建','skill.deleteConfirm':'确认删除技能','skill.createNamePh':'请输入技能名称（英文，如 my-skill）','skill.createDescPh':'请输入技能描述','skill.searchPh':'搜索技能…','skill.all':'全部','skill.noResult':'未找到技能','skill.search':'搜索','skill.loadMore':'加载更多','skill.enable':'启用','skill.disable':'禁用','skill.enabled':'已启用','skill.disabled':'已禁用','ai.send':'发送','mcp.add':'+ 添加 MCP','mcp.name':'名称','mcp.transport':'传输方式','mcp.endpoint':'命令 / 地址','mcp.command':'启动命令','mcp.url':'服务地址','mcp.configMode':'配置方式','mcp.modeForm':'表格输入','mcp.modeJson':'配置文件','mcp.json':'JSON 配置','mcp.jsonHint':'输入完整 MCP 配置 JSON（支持 name/transport/command/url/headers/timeout）','mcp.jsonInvalid':'JSON 格式错误','mcp.jsonNoName':'JSON 缺少 name 字段','mcp.headers':'请求头','mcp.headerName':'请求头名称','mcp.headerValue':'请求头值','mcp.addHeader':'添加请求头','mcp.timeout':'超时时间','mcp.empty':'暂无 MCP 服务，点击右上角添加','mcp.deleteConfirm':'确认删除该 MCP 服务','modal.mcp':'添加 MCP','modal.mcpEdit':'编辑 MCP','sysUser.loginable':'可登录','sysUser.home':'家目录','sysUser.loginStatus':'登录状态','sysUser.canLogin':'可登录','sysUser.cannotLogin':'不可登录','sysGroup.name':'组名','sysGroup.members':'成员','firewall.disabled':'未启用','firewall.enabled':'已启用','firewall.status':'状态','firewall.backend':'防火墙类型','firewall.rules':'规则','ai.connected':'已连接','ai.context':'当前上下文','ai.placeholder':'输入指令，或点击上方建议…','ai.sessions':'会话','ai.newSession':'新建会话','ai.newSessionTitle':'新会话','ai.noSessions':'暂无会话','ai.renameHint':'双击重命名','ai.renamePh':'请输入会话名称','ai.rename':'重命名','ai.delete':'删除','mfa.title':'双因素验证','mfa.code':'验证码','mfa.hint':'请输入验证器 APP 中显示的 6 位动态验证码','mfa.required':'该账号已开启双因素验证，请输入验证码','mfa.invalid':'验证码错误或已过期','mfa.verify':'验证','mfa.codeHint':'请输入 6 位验证码','mfa.enableGlobal':'启用双因素验证','mfa.status':'绑定状态','mfa.bound':'已绑定','mfa.unbound':'未绑定','mfa.bind':'生成绑定二维码','mfa.regen':'重新生成','mfa.codePh':'6 位验证码','mfa.verifyBind':'验证并绑定','mfa.unbind':'解绑','mfa.enabled':'双因素验证已启用','mfa.disabled':'双因素验证已关闭','mfa.disableConfirm':'确认解绑双因素验证？解绑后登录将不再要求验证码','mfa.appHint':'支持阿里云 APP、腾讯云 APP、华为云 APP、腾讯身份验证小程序等 Google Authenticator 兼容验证器扫码绑定','mfa.qrFail':'二维码生成失败，请手动输入密钥','mfa.scanHint':'请使用验证器 APP 扫描二维码','files.showHidden':'显示隐藏文件','files.uploadHint':'上传到当前目录','files.dirDownload':'下载目录','files.dirDownloadDesc':'平台会自动创建该目录的压缩包并下载','files.dirSize':'目录大小','files.diskUsage':'磁盘使用率','files.dirDelete':'删除目录','files.dirDeleteDesc':'删除目录将删除该目录下的所有文件，此操作不可恢复','files.dirDeleteConfirm':'请输入目录名称以确认删除','container.delConfirm':'确认删除容器','container.delImgConfirm':'确认删除镜像','container.restartConfirm':'确认重启容器','container.logs':'容器日志','container.logLines':'行','container.logEmpty':'暂无日志','container.logLoading':'加载中…','container.filterAll':'全部','container.filterRunning':'运行中','container.filterStopped':'已停止','container.noContainer':'暂无容器','container.detail':'容器详情','container.tabBasic':'基本信息','container.tabNetwork':'网络','container.tabMounts':'存储卷','container.detailId':'容器 ID','container.detailCreated':'创建时间','container.detailStarted':'启动时间','container.detailPlatform':'平台','container.detailCommand':'启动命令','container.detailWorkdir':'工作目录','container.detailRestart':'重启策略','container.detailEnv':'环境变量','container.detailPorts':'端口映射','container.detailNetworks':'网络','container.detailIp':'IP 地址','container.detailGateway':'网关','container.detailMac':'MAC 地址','container.detailNoNet':'无网络','container.detailSource':'宿主机路径','container.detailMode':'读写模式','container.detailNoMount':'无挂载','set.auditRetention':'面板日志保留时间','group.security':'安全','menu.security':'主机安全','menu.loginSecurity':'登录安全','menu.firewall':'防火墙','page.security':'主机安全','security.desc':'主机安全体检、文件完整性监控与威胁检测','security.loginDesc':'分析系统认证日志，检测 SSH 暴力破解与异常登录','security.fwDesc':'管理系统防火墙端口与规则（ufw / firewalld / iptables）','sec.tab.overview':'安全总览','sec.tab.baseline':'基线检查','sec.tab.login':'登录安全','sec.tab.firewall':'防火墙','sec.tab.fim':'文件完整性','sec.tab.threat':'威胁检测','sec.viewAll':'查看全部','sec.score':'安全评分','sec.grade.excellent':'优秀','sec.grade.good':'良好','sec.grade.fair':'一般','sec.grade.danger':'危险','sec.scan':'一键体检','sec.scanning':'体检中…','sec.suggestion':'修复建议','sec.detail':'检测详情','sec.noScan':'尚未执行体检，点击「一键体检」','sec.bruteForce':'疑似暴力破解','sec.topFailedIp':'失败登录来源 TOP 10','sec.anomaly':'异常登录','sec.sshHardening':'SSH 加固建议','sec.failed24h':'24h 失败登录','sec.success24h':'24h 成功登录','sec.logFile':'日志文件','sec.noLogin':'未检测到失败登录','sec.fwEnable':'启用','sec.fwDisable':'停用','sec.fwAllow':'开放端口','sec.fwPort':'端口','sec.fwProto':'协议','sec.fwBackend':'后端','sec.fwAction':'动作','sec.fwPortPh':'端口号','sec.fwAdd':'添加','sec.fimRebuild':'重建基线','sec.fimBaselines':'基线文件','sec.fimEvents':'变更事件','sec.fimRemove':'移除','sec.fimEmpty':'暂无变更事件','sec.threatScan':'立即扫描','sec.threatResolve':'处理','sec.threatKind':'类型','sec.threatSeverity':'严重度','sec.threatEmpty':'未发现威胁','sec.pass':'通过','sec.fail':'未通过','sec.warn':'警告','common.count':'次数','common.ip':'来源 IP','common.path':'路径','common.saved':'已保存','set.notify':'通知设置','notify.smtp':'邮件通知（SMTP）','notify.wecom':'企业微信','notify.dingtalk':'钉钉','notify.feishu':'飞书','notify.webhook':'Webhook 地址','notify.webhookHint':'留空则不启用该通知','alert.ch.panel':'面板','alert.ch.email':'邮件','alert.ch.wecom':'企业微信','alert.ch.dingtalk':'钉钉','alert.ch.feishu':'飞书','notify.guideTitle':'如何配置','notify.wecomGuide':'企业微信群 → 群设置 → 群机器人 → 添加机器人 → 复制 Webhook 地址','notify.dingtalkGuide':'钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义（安全设置选关键词）→ 复制 Webhook','notify.feishuGuide':'飞书群 → 设置 → 群机器人 → 添加机器人 → 自定义机器人 → 复制 Webhook 地址','notify.smtpHost':'SMTP 服务器','notify.smtpPort':'端口','notify.smtpFrom':'发件人','notify.smtpTo':'收件人','notify.smtpUser':'用户名','notify.smtpPass':'密码','profile.title':'个人设置','profile.basic':'基本设置','profile.messages':'消息管理','profile.desc':'修改昵称、头像、邮箱与密码','profile.info':'基本信息','profile.nickname':'昵称','profile.icon':'头像图标','profile.email':'邮箱','profile.password':'修改密码','profile.oldPass':'当前密码','profile.newPass':'新密码','profile.confirmPass':'确认新密码','profile.passEmpty':'请输入密码','profile.passMismatch':'两次输入的密码不一致','pager.prev':'上一页','pager.next':'下一页',
+    'ai.title':'OpsMini AI 助手','ai.pageDesc':'与 AI 大模型对话，管理 MCP 工具','ai.chatTab':'聊天窗','ai.mcpTab':'MCP','ai.skillTab':'技能','ai.deepThink':'深度思考','ai.deepThinkTip':'先思考后回答，解决推理问题','skill.recommend':'推荐技能','skill.install':'一键安装','skill.installed':'已安装','skill.installedDone':'安装成功','skill.installedList':'已安装技能','skill.upload':'上传安装','skill.create':'创建技能','skill.name':'名称','skill.description':'描述','skill.empty':'暂无已安装技能，可从上方推荐一键安装，或上传 / 创建','skill.deleteConfirm':'确认删除技能','skill.createNamePh':'请输入技能名称（英文，如 my-skill）','skill.createDescPh':'请输入技能描述','skill.searchPh':'搜索技能…','skill.all':'全部','skill.noResult':'未找到技能','skill.search':'搜索','skill.loadMore':'加载更多','skill.enable':'启用','skill.disable':'禁用','skill.enabled':'已启用','skill.disabled':'已禁用','ai.send':'发送','mcp.add':'+ 添加 MCP','mcp.name':'名称','mcp.transport':'传输方式','mcp.endpoint':'命令 / 地址','mcp.command':'启动命令','mcp.url':'服务地址','mcp.configMode':'配置方式','mcp.modeForm':'表格输入','mcp.modeJson':'配置文件','mcp.json':'JSON 配置','mcp.jsonHint':'输入完整 MCP 配置 JSON（支持 name/transport/command/url/headers/timeout）','mcp.jsonInvalid':'JSON 格式错误','mcp.jsonNoName':'JSON 缺少 name 字段','mcp.headers':'请求头','mcp.headerName':'请求头名称','mcp.headerValue':'请求头值','mcp.addHeader':'添加请求头','mcp.timeout':'超时时间','mcp.empty':'暂无 MCP 服务，点击右上角添加','mcp.deleteConfirm':'确认删除该 MCP 服务','modal.mcp':'添加 MCP','modal.mcpEdit':'编辑 MCP','sysUser.loginable':'可登录','sysUser.home':'家目录','sysUser.loginStatus':'登录状态','sysUser.canLogin':'可登录','sysUser.cannotLogin':'不可登录','sysGroup.name':'组名','sysGroup.members':'成员','firewall.disabled':'未启用','firewall.enabled':'已启用','firewall.status':'状态','firewall.backend':'防火墙类型','firewall.rules':'规则','ai.connected':'已连接','ai.context':'当前上下文','ai.placeholder':'输入指令，或点击上方建议…','ai.sessions':'会话','ai.newSession':'新建会话','ai.newSessionTitle':'新会话','ai.noSessions':'暂无会话','ai.renameHint':'双击重命名','ai.renamePh':'请输入会话名称','ai.rename':'重命名','ai.delete':'删除','ai.mcpServer':'OpsMini 作为 MCP Server','ai.mcpEndpoint':'MCP 端点地址','ai.mcpEnabled':'启用 MCP 端点','ai.mcpAllowHigh':'允许 MCP 高危操作','ai.mcpToken':'访问令牌','ai.showToken':'显示','ai.hideToken':'隐藏','ai.mcpRotate':'重置令牌','ai.mcpRotateConfirm':'重置后旧令牌立即失效，确认重置？','ai.mcpHint':'把上面的地址与令牌填入任意支持 Streamable HTTP 的 MCP 客户端（Claude Desktop / Cursor / OpsAnt 等），即可让它们使用 OpsMini 的运维工具集。','ai.mcpHighWarn':'已允许 MCP 客户端执行高危操作（不经过面板确认），请确保令牌不被泄露。','ai.stepThinking':'分析中…','ai.stepCall':'调用','ai.stepTools':' 个工具','ai.statusRunning':'执行中','ai.statusPending':'待确认','ai.confirmTitle':'高危操作确认','ai.approve':'批准执行','ai.reject':'拒绝','ai.approved':'已批准，操作已执行','ai.rejected':'已拒绝，操作未执行','ai.processing':'处理中…','ai.confirmHint':'批准后将在服务器上真实执行','ai.toolsTab':'工具权限','ai.toolName':'工具','ai.toolRisk':'风险','ai.toolPerm':'所需权限','ai.toolDesc':'说明','ai.toolPolicy':'策略','ai.policyAuto':'免确认','ai.policyConfirm':'需确认','ai.policyDeny':'禁用','ai.riskReadonly':'只读','ai.riskLow':'低危','ai.riskHigh':'高危','ai.riskForbidden':'禁止','ai.riskReadonlyDesc':'只读取数据、不修改系统，AI 可自主执行。','ai.riskLowDesc':'低风险写操作，可设置为免确认以提升效率。','ai.riskHighDesc':'高危操作，每次执行都必须人工批准。','ai.riskForbiddenDesc':'硬禁止的危险命令（如 rm -rf /、mkfs），即使批准也不会执行。','mfa.title':'双因素验证','mfa.code':'验证码','mfa.hint':'请输入验证器 APP 中显示的 6 位动态验证码','mfa.required':'该账号已开启双因素验证，请输入验证码','mfa.invalid':'验证码错误或已过期','mfa.verify':'验证','mfa.codeHint':'请输入 6 位验证码','mfa.enableGlobal':'启用双因素验证','mfa.status':'绑定状态','mfa.bound':'已绑定','mfa.unbound':'未绑定','mfa.bind':'生成绑定二维码','mfa.regen':'重新生成','mfa.codePh':'6 位验证码','mfa.verifyBind':'验证并绑定','mfa.unbind':'解绑','mfa.enabled':'双因素验证已启用','mfa.disabled':'双因素验证已关闭','mfa.disableConfirm':'确认解绑双因素验证？解绑后登录将不再要求验证码','mfa.appHint':'支持阿里云 APP、腾讯云 APP、华为云 APP、腾讯身份验证小程序等 Google Authenticator 兼容验证器扫码绑定','mfa.qrFail':'二维码生成失败，请手动输入密钥','mfa.scanHint':'请使用验证器 APP 扫描二维码','files.showHidden':'显示隐藏文件','files.uploadHint':'上传到当前目录','files.dirDownload':'下载目录','files.dirDownloadDesc':'平台会自动创建该目录的压缩包并下载','files.dirSize':'目录大小','files.diskUsage':'磁盘使用率','files.dirDelete':'删除目录','files.dirDeleteDesc':'删除目录将删除该目录下的所有文件，此操作不可恢复','files.dirDeleteConfirm':'请输入目录名称以确认删除','container.delConfirm':'确认删除容器','container.delImgConfirm':'确认删除镜像','container.restartConfirm':'确认重启容器','container.logs':'容器日志','container.logLines':'行','container.logEmpty':'暂无日志','container.logLoading':'加载中…','container.filterAll':'全部','container.filterRunning':'运行中','container.filterStopped':'已停止','container.noContainer':'暂无容器','container.detail':'容器详情','container.tabBasic':'基本信息','container.tabNetwork':'网络','container.tabMounts':'存储卷','container.detailId':'容器 ID','container.detailCreated':'创建时间','container.detailStarted':'启动时间','container.detailPlatform':'平台','container.detailCommand':'启动命令','container.detailWorkdir':'工作目录','container.detailRestart':'重启策略','container.detailEnv':'环境变量','container.detailPorts':'端口映射','container.detailNetworks':'网络','container.detailIp':'IP 地址','container.detailGateway':'网关','container.detailMac':'MAC 地址','container.detailNoNet':'无网络','container.detailSource':'宿主机路径','container.detailMode':'读写模式','container.detailNoMount':'无挂载','set.auditRetention':'面板日志保留时间','group.security':'安全','menu.security':'主机安全','menu.loginSecurity':'登录安全','menu.firewall':'防火墙','page.security':'主机安全','security.desc':'主机安全体检、文件完整性监控与威胁检测','security.loginDesc':'分析系统认证日志，检测 SSH 暴力破解与异常登录','security.fwDesc':'管理系统防火墙端口与规则（ufw / firewalld / iptables）','sec.tab.overview':'安全总览','sec.tab.baseline':'基线检查','sec.tab.login':'登录安全','sec.tab.firewall':'防火墙','sec.tab.fim':'文件完整性','sec.tab.threat':'威胁检测','sec.viewAll':'查看全部','sec.score':'安全评分','sec.grade.excellent':'优秀','sec.grade.good':'良好','sec.grade.fair':'一般','sec.grade.danger':'危险','sec.scan':'一键体检','sec.scanning':'体检中…','sec.suggestion':'修复建议','sec.detail':'检测详情','sec.noScan':'尚未执行体检，点击「一键体检」','sec.bruteForce':'疑似暴力破解','sec.topFailedIp':'失败登录来源 TOP 10','sec.anomaly':'异常登录','sec.sshHardening':'SSH 加固建议','sec.failed24h':'24h 失败登录','sec.success24h':'24h 成功登录','sec.logFile':'日志文件','sec.noLogin':'未检测到失败登录','sec.fwEnable':'启用','sec.fwDisable':'停用','sec.fwAllow':'开放端口','sec.fwPort':'端口','sec.fwProto':'协议','sec.fwBackend':'后端','sec.fwAction':'动作','sec.fwPortPh':'端口号','sec.fwAdd':'添加','sec.fimRebuild':'重建基线','sec.fimBaselines':'基线文件','sec.fimEvents':'变更事件','sec.fimRemove':'移除','sec.fimEmpty':'暂无变更事件','sec.threatScan':'立即扫描','sec.threatResolve':'处理','sec.threatKind':'类型','sec.threatSeverity':'严重度','sec.threatEmpty':'未发现威胁','sec.pass':'通过','sec.fail':'未通过','sec.warn':'警告','common.count':'次数','common.ip':'来源 IP','common.path':'路径','common.saved':'已保存','set.notify':'通知设置','notify.smtp':'邮件通知（SMTP）','notify.wecom':'企业微信','notify.dingtalk':'钉钉','notify.feishu':'飞书','notify.webhook':'Webhook 地址','notify.webhookHint':'留空则不启用该通知','alert.ch.panel':'面板','alert.ch.email':'邮件','alert.ch.wecom':'企业微信','alert.ch.dingtalk':'钉钉','alert.ch.feishu':'飞书','notify.guideTitle':'如何配置','notify.wecomGuide':'企业微信群 → 群设置 → 群机器人 → 添加机器人 → 复制 Webhook 地址','notify.dingtalkGuide':'钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义（安全设置选关键词）→ 复制 Webhook','notify.feishuGuide':'飞书群 → 设置 → 群机器人 → 添加机器人 → 自定义机器人 → 复制 Webhook 地址','notify.smtpHost':'SMTP 服务器','notify.smtpPort':'端口','notify.smtpFrom':'发件人','notify.smtpTo':'收件人','notify.smtpUser':'用户名','notify.smtpPass':'密码','profile.title':'个人设置','profile.basic':'基本设置','profile.messages':'消息管理','profile.desc':'修改昵称、头像、邮箱与密码','profile.info':'基本信息','profile.nickname':'昵称','profile.icon':'头像图标','profile.email':'邮箱','profile.password':'修改密码','profile.oldPass':'当前密码','profile.newPass':'新密码','profile.confirmPass':'确认新密码','profile.passEmpty':'请输入密码','profile.passMismatch':'两次输入的密码不一致','pager.prev':'上一页','pager.next':'下一页',
     'svc.web':'Web 服务器','svc.db':'数据库服务','svc.cache':'缓存服务','svc.container':'容器引擎','svc.php':'PHP 运行环境','svc.ssh':'远程登录',
     'qa.website':'添加网站','qa.websiteSub':'快速创建站点','qa.db':'创建数据库','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'安装应用','qa.storeSub':'软件商店一键安装','qa.container':'新建容器','qa.containerSub':'Docker 容器',
@@ -2960,7 +3159,7 @@ const I18N = {
     'set.tfa':'兩步驗證 (2FA)','set.autoup':'自動更新','set.opsantSso':'允許 OpsAnt 免認證跳轉','set.opsantLink':'接入 OpsAnt','set.opsantLinkDesc':'配置後，本機將作為 Agent 接入 OpsAnt 多機運維管理平台，接入後需在 OpsAnt 上同意納管','set.opsantServerAddr':'OpsAnt 位址','set.opsantServerAddrPh':'例如 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'與 OpsAnt 的 OPSMINI_TOKEN 一致','set.opsantRunning':'已連線','set.opsantStopped':'未接入','set.ai':'AI 大模型接入','set.aiEnable':'启用 AI 助手','btn.copy':'複製','btn.copied':'已複製','set.model':'模型供應商','set.apiKey':'API Key',
     'set.apiBase':'API 位址','set.exec':'自然語言執行操作','set.logAna':'日誌智慧分析','set.diag':'告警智慧診斷',
     'set.theme':'外觀與主題','set.customColor':'自訂主色（企業品牌色 / 個人偏好）','set.metrics':'監控匯出','set.metricsOn':'認證已啟用','set.metricsOff':'未啟用認證','set.metricsDesc':'以 node_exporter 相容格式暴露系統指標，供 Prometheus 直接抓取，社群 Node Dashboard 可直接使用。','set.metricsEndpoint':'抓取端點','set.metricsAuth':'啟用認證','set.metricsUser':'使用者名稱','set.metricsPass':'密碼','set.metricsUserPh':'留空則開放存取','set.metricsPassPh':'請輸入密碼','set.metricsTokenPh':'留空則開放存取','set.metricsGen':'產生隨機','set.metricsHint':'儲存後，Prometheus 需設定 basic_auth（使用者名稱 + 密碼）；使用者名稱為空則無需認證。','set.metricsTokenEmpty':'請設定使用者名稱和密碼，或關閉認證','set.aiSaved':'AI 設定已儲存 ✓','set.aiSaveFail':'儲存失敗','set.aiKeyEmpty':'請先填寫 API Key','set.metricsSaved':'監控匯出設定已儲存 ✓','set.metricsSaveFail':'儲存失敗','btn.save':'儲存','set.menu':'選單顯示','set.lang':'語言 / Language',
-    'ai.title':'OpsMini AI 助理','ai.pageDesc':'與 AI 大模型對話，管理 MCP 工具','ai.chatTab':'聊天窗','ai.mcpTab':'MCP','ai.send':'傳送','mcp.add':'+ 新增 MCP','mcp.name':'名稱','mcp.transport':'傳輸方式','mcp.endpoint':'命令 / 位址','mcp.command':'啟動命令','mcp.url':'服務位址','mcp.configMode':'設定方式','mcp.modeForm':'表單輸入','mcp.modeJson':'設定檔','mcp.json':'JSON 設定','mcp.jsonHint':'輸入完整 MCP 設定 JSON（支援 name/transport/command/url/headers/timeout）','mcp.jsonInvalid':'JSON 格式錯誤','mcp.jsonNoName':'JSON 缺少 name 欄位','mcp.headers':'請求標頭','mcp.headerName':'標頭名稱','mcp.headerValue':'標頭值','mcp.addHeader':'新增標頭','mcp.timeout':'逾時時間','mcp.empty':'暫無 MCP 服務，點擊右上角新增','mcp.deleteConfirm':'確認刪除該 MCP 服務','modal.mcp':'新增 MCP','modal.mcpEdit':'編輯 MCP','sysUser.loginable':'可登入','sysUser.home':'家目錄','sysUser.loginStatus':'登入狀態','sysUser.canLogin':'可登入','sysUser.cannotLogin':'不可登入','sysGroup.name':'群組名','sysGroup.members':'成員','firewall.disabled':'未啟用','firewall.enabled':'已啟用','firewall.status':'狀態','firewall.backend':'防火牆類型','firewall.rules':'規則','ai.connected':'已連線','ai.context':'目前上下文','ai.placeholder':'輸入指令，或點擊上方建議…','ai.sessions':'會話','ai.newSession':'新增會話','ai.newSessionTitle':'新會話','ai.noSessions':'暫無會話','ai.renameHint':'雙擊重新命名','ai.renamePh':'請輸入會話名稱','ai.rename':'重新命名','ai.delete':'刪除','mfa.title':'雙因素驗證','mfa.code':'驗證碼','mfa.hint':'請輸入驗證器 APP 中顯示的 6 位動態驗證碼','mfa.required':'該帳號已開啟雙因素驗證，請輸入驗證碼','mfa.invalid':'驗證碼錯誤或已過期','mfa.verify':'驗證','mfa.codeHint':'請輸入 6 位驗證碼','mfa.enableGlobal':'啟用雙因素驗證','mfa.status':'綁定狀態','mfa.bound':'已綁定','mfa.unbound':'未綁定','mfa.bind':'產生綁定 QR Code','mfa.regen':'重新產生','mfa.codePh':'6 位驗證碼','mfa.verifyBind':'驗證並綁定','mfa.unbind':'解除綁定','mfa.enabled':'雙因素驗證已啟用','mfa.disabled':'雙因素驗證已關閉','mfa.disableConfirm':'確認解除綁定雙因素驗證？解除後登入將不再要求驗證碼','mfa.appHint':'支援阿里雲 APP、騰訊雲 APP、華為雲 APP、騰訊身份驗證小程式等 Google Authenticator 相容驗證器掃碼綁定','mfa.qrFail':'QR Code 產生失敗，請手動輸入金鑰','mfa.scanHint':'請使用驗證器 APP 掃描 QR Code','files.showHidden':'顯示隱藏檔案','files.uploadHint':'上傳到目前目錄','files.dirDownload':'下載目錄','files.dirDownloadDesc':'平台會自動建立該目錄的壓縮檔並下載','files.dirSize':'目錄大小','files.diskUsage':'磁碟使用率','files.dirDelete':'刪除目錄','files.dirDeleteDesc':'刪除目錄將刪除該目錄下的所有檔案，此操作無法復原','files.dirDeleteConfirm':'請輸入目錄名稱以確認刪除','container.delConfirm':'確認刪除容器','container.delImgConfirm':'確認刪除映像','container.restartConfirm':'確認重新啟動容器','container.logs':'容器日誌','container.logLines':'行','container.logEmpty':'暫無日誌','container.logLoading':'載入中…','set.auditRetention':'面板日誌保留時間',
+    'ai.title':'OpsMini AI 助理','ai.pageDesc':'與 AI 大模型對話，管理 MCP 工具','ai.chatTab':'聊天窗','ai.mcpTab':'MCP','ai.send':'傳送','mcp.add':'+ 新增 MCP','mcp.name':'名稱','mcp.transport':'傳輸方式','mcp.endpoint':'命令 / 位址','mcp.command':'啟動命令','mcp.url':'服務位址','mcp.configMode':'設定方式','mcp.modeForm':'表單輸入','mcp.modeJson':'設定檔','mcp.json':'JSON 設定','mcp.jsonHint':'輸入完整 MCP 設定 JSON（支援 name/transport/command/url/headers/timeout）','mcp.jsonInvalid':'JSON 格式錯誤','mcp.jsonNoName':'JSON 缺少 name 欄位','mcp.headers':'請求標頭','mcp.headerName':'標頭名稱','mcp.headerValue':'標頭值','mcp.addHeader':'新增標頭','mcp.timeout':'逾時時間','mcp.empty':'暫無 MCP 服務，點擊右上角新增','mcp.deleteConfirm':'確認刪除該 MCP 服務','modal.mcp':'新增 MCP','modal.mcpEdit':'編輯 MCP','sysUser.loginable':'可登入','sysUser.home':'家目錄','sysUser.loginStatus':'登入狀態','sysUser.canLogin':'可登入','sysUser.cannotLogin':'不可登入','sysGroup.name':'群組名','sysGroup.members':'成員','firewall.disabled':'未啟用','firewall.enabled':'已啟用','firewall.status':'狀態','firewall.backend':'防火牆類型','firewall.rules':'規則','ai.connected':'已連線','ai.context':'目前上下文','ai.placeholder':'輸入指令，或點擊上方建議…','ai.sessions':'會話','ai.newSession':'新增會話','ai.newSessionTitle':'新會話','ai.noSessions':'暫無會話','ai.renameHint':'雙擊重新命名','ai.renamePh':'請輸入會話名稱','ai.rename':'重新命名','ai.delete':'刪除','ai.mcpServer':'OpsMini 作為 MCP Server','ai.mcpEndpoint':'MCP 端點位址','ai.mcpEnabled':'啟用 MCP 端點','ai.mcpAllowHigh':'允許 MCP 高風險操作','ai.mcpToken':'存取權杖','ai.showToken':'顯示','ai.hideToken':'隱藏','ai.mcpRotate':'重設權杖','ai.mcpRotateConfirm':'重設後舊權杖立即失效，確認重設？','ai.mcpHint':'把上方位址與權杖填入任何支援 Streamable HTTP 的 MCP 用戶端（Claude Desktop / Cursor / OpsAnt 等），即可讓它們使用 OpsMini 的維運工具集。','ai.mcpHighWarn':'已允許 MCP 用戶端執行高風險操作（不經面板確認），請確保權杖不外洩。','ai.stepThinking':'分析中…','ai.stepCall':'呼叫','ai.stepTools':' 個工具','ai.statusRunning':'執行中','ai.statusPending':'待確認','ai.confirmTitle':'高風險操作確認','ai.approve':'批准執行','ai.reject':'拒絕','ai.approved':'已批准，操作已執行','ai.rejected':'已拒絕，操作未執行','ai.processing':'處理中…','ai.confirmHint':'批准後將在伺服器上真實執行','ai.toolsTab':'工具權限','ai.toolName':'工具','ai.toolRisk':'風險','ai.toolPerm':'所需權限','ai.toolDesc':'說明','ai.toolPolicy':'策略','ai.policyAuto':'免確認','ai.policyConfirm':'需確認','ai.policyDeny':'停用','ai.riskReadonly':'唯讀','ai.riskLow':'低風險','ai.riskHigh':'高風險','ai.riskForbidden':'禁止','ai.riskReadonlyDesc':'只讀取資料、不修改系統，AI 可自主執行。','ai.riskLowDesc':'低風險寫入操作，可設為免確認以提升效率。','ai.riskHighDesc':'高風險操作，每次執行都必須人工批准。','ai.riskForbiddenDesc':'硬禁止的危險指令（如 rm -rf /、mkfs），即使批准也不會執行。','mfa.title':'雙因素驗證','mfa.code':'驗證碼','mfa.hint':'請輸入驗證器 APP 中顯示的 6 位動態驗證碼','mfa.required':'該帳號已開啟雙因素驗證，請輸入驗證碼','mfa.invalid':'驗證碼錯誤或已過期','mfa.verify':'驗證','mfa.codeHint':'請輸入 6 位驗證碼','mfa.enableGlobal':'啟用雙因素驗證','mfa.status':'綁定狀態','mfa.bound':'已綁定','mfa.unbound':'未綁定','mfa.bind':'產生綁定 QR Code','mfa.regen':'重新產生','mfa.codePh':'6 位驗證碼','mfa.verifyBind':'驗證並綁定','mfa.unbind':'解除綁定','mfa.enabled':'雙因素驗證已啟用','mfa.disabled':'雙因素驗證已關閉','mfa.disableConfirm':'確認解除綁定雙因素驗證？解除後登入將不再要求驗證碼','mfa.appHint':'支援阿里雲 APP、騰訊雲 APP、華為雲 APP、騰訊身份驗證小程式等 Google Authenticator 相容驗證器掃碼綁定','mfa.qrFail':'QR Code 產生失敗，請手動輸入金鑰','mfa.scanHint':'請使用驗證器 APP 掃描 QR Code','files.showHidden':'顯示隱藏檔案','files.uploadHint':'上傳到目前目錄','files.dirDownload':'下載目錄','files.dirDownloadDesc':'平台會自動建立該目錄的壓縮檔並下載','files.dirSize':'目錄大小','files.diskUsage':'磁碟使用率','files.dirDelete':'刪除目錄','files.dirDeleteDesc':'刪除目錄將刪除該目錄下的所有檔案，此操作無法復原','files.dirDeleteConfirm':'請輸入目錄名稱以確認刪除','container.delConfirm':'確認刪除容器','container.delImgConfirm':'確認刪除映像','container.restartConfirm':'確認重新啟動容器','container.logs':'容器日誌','container.logLines':'行','container.logEmpty':'暫無日誌','container.logLoading':'載入中…','set.auditRetention':'面板日誌保留時間',
     'svc.web':'網頁伺服器','svc.db':'資料庫服務','svc.cache':'快取服務','svc.container':'容器引擎','svc.php':'PHP 執行環境','svc.ssh':'遠端登入',
     'qa.website':'新增網站','qa.websiteSub':'快速建立站點','qa.db':'建立資料庫','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'安裝應用','qa.storeSub':'軟體商店一鍵安裝','qa.container':'新增容器','qa.containerSub':'Docker 容器',
@@ -2970,7 +3169,7 @@ const I18N = {
     'common.running':'Running','common.stopped':'Stopped','common.enabled':'Enabled','common.disabled':'Disabled',
     'common.folder':'Folder','common.file':'File','common.edit':'Edit','common.delete':'Delete','common.settings':'Settings',
     'common.backup':'Backup','common.restart':'Restart','common.run':'Run','common.download':'Download','common.rename':'Rename',
-    'common.state':'Status','common.actions':'Actions','common.log':'Log','common.type':'Type','common.name':'Name',
+    'common.state':'Status','common.actions':'Actions','common.copy':'Copy','common.copied':'Copied','common.copyFail':'Copy failed','common.log':'Log','common.type':'Type','common.name':'Name',
     'login.title':'Sign In','login.username':'Username','login.password':'Password','login.remember':'Remember me',
     'login.forgot':'Forgot password?','login.submit':'Sign In','login.invalid':'Invalid username or password','login.fail':'Login failed','login.showPass':'Show password','login.hidePass':'Hide password',
     'login.footer':'OpsMini v1.1.0 · AI-powered server management panel',
@@ -3005,7 +3204,7 @@ const I18N = {
     'set.tfa':'Two-factor (2FA)','set.autoup':'Auto Update','set.opsantSso':'Allow OpsAnt SSO login','set.opsantLink':'Connect to OpsAnt','set.opsantLinkDesc':'Connect this host as an Agent to the OpsAnt multi-host ops platform; approval is required on OpsAnt.','set.opsantServerAddr':'OpsAnt Address','set.opsantServerAddrPh':'e.g. 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'Must match OpsAnt OPSMINI_TOKEN','set.opsantRunning':'Connected','set.opsantStopped':'Not connected','set.ai':'AI Model Integration','set.aiEnable':'Enable AI Assistant','btn.copy':'Copy','btn.copied':'Copied','set.model':'Model Provider','set.apiKey':'API Key',
     'set.apiBase':'API Endpoint','set.exec':'Natural-language execution','set.logAna':'Log analysis','set.diag':'Alert diagnosis',
     'set.theme':'Appearance & Theme','set.customColor':'Custom accent (brand / preference)','set.metrics':'Metrics Export','set.appTemplate':'App Templates','set.notifications':'Notifications','notif.readAll':'Read all','notif.viewAll':'View all','notif.empty':'No notifications','notif.level':'Level','notif.title':'Title','notif.content':'Content','notif.time':'Time','notif.status':'Status','notif.read':'Read','notif.unread':'Unread','notif.markRead':'Mark read','notif.clearAll':'Clear all','notif.clearConfirm':'Clear all notifications?','notif.cleared':'Cleared','notif.readAllDone':'All marked as read','notif.levelError':'Error','notif.levelWarn':'Warning','notif.levelInfo':'Info','notif.justNow':'Just now','notif.minAgo':'min ago','notif.hourAgo':'hr ago','tpl.categories':'Categories','tpl.addCat':'+ Add Category','tpl.catName':'Category Name','tpl.catKey':'Category Key','tpl.templates':'Templates','tpl.addTpl':'+ Add Template','tpl.name':'Name','tpl.cat':'Category','tpl.icon':'Icon','tpl.version':'Version','tpl.ports':'Ports','tpl.container':'Container','tpl.desc':'Description','tpl.script':'Install Script','tpl.import':'Import','tpl.export':'Export','tpl.imported':'Template imported ✓','tpl.importFail':'Import failed','tpl.exportFail':'Export failed','tpl.importSlug':'Template ID (blank = auto, e.g. redis)','tpl.importName':'App name (blank = read from README)','store.all':'All','store.start':'Start','store.stop':'Stop','store.restart':'Restart','set.metricsOn':'Auth enabled','set.metricsOff':'No auth','set.metricsDesc':'Expose system metrics in node_exporter-compatible format for Prometheus scraping; community Node Dashboards work out of the box.','set.metricsEndpoint':'Endpoint','set.metricsAuth':'Enable auth','set.metricsUser':'Username','set.metricsPass':'Password','set.metricsUserPh':'empty means open access','set.metricsPassPh':'enter password','set.metricsTokenPh':'empty means open access','set.metricsGen':'Generate','set.metricsHint':'After saving, configure Prometheus basic_auth with this username and password; empty username disables auth.','set.metricsTokenEmpty':'Set username and password, or disable auth','set.aiSaved':'AI settings saved ✓','set.aiSaveFail':'Save failed','set.aiKeyEmpty':'Enter an API key first','set.metricsSaved':'Metrics export settings saved ✓','set.metricsSaveFail':'Save failed','btn.save':'Save','set.menu':'Menu Visibility','set.lang':'Language / 语言',
-    'ai.title':'OpsMini AI Assistant','ai.pageDesc':'Chat with AI models and manage MCP tools','ai.chatTab':'Chat','ai.mcpTab':'MCP','ai.skillTab':'Skills','ai.deepThink':'Deep thinking','ai.deepThinkTip':'Think before answering, solve reasoning problems','skill.recommend':'Recommended','skill.install':'Install','skill.installed':'Installed','skill.installedDone':'Installed','skill.installedList':'Installed Skills','skill.upload':'Upload','skill.create':'Create','skill.name':'Name','skill.description':'Description','skill.empty':'No installed skills','skill.deleteConfirm':'Delete skill','skill.createNamePh':'Skill name (e.g. my-skill)','skill.createDescPh':'Skill description','skill.searchPh':'Search skills…','skill.all':'All','skill.noResult':'No skills found','skill.search':'Search','skill.loadMore':'Load more','skill.enable':'Enable','skill.disable':'Disable','skill.enabled':'Enabled','skill.disabled':'Disabled','ai.send':'Send','mcp.add':'+ Add MCP','mcp.name':'Name','mcp.transport':'Transport','mcp.endpoint':'Command / URL','mcp.command':'Command','mcp.url':'URL','mcp.configMode':'Config Mode','mcp.modeForm':'Form Input','mcp.modeJson':'Config File','mcp.json':'JSON Config','mcp.jsonHint':'Paste a complete MCP config JSON (supports name/transport/command/url/headers/timeout)','mcp.jsonInvalid':'Invalid JSON','mcp.jsonNoName':'JSON missing "name" field','mcp.headers':'Headers','mcp.headerName':'Header Name','mcp.headerValue':'Header Value','mcp.addHeader':'Add Header','mcp.timeout':'Timeout','mcp.empty':'No MCP servers, click to add','mcp.deleteConfirm':'Confirm deleting this MCP server','modal.mcp':'Add MCP','modal.mcpEdit':'Edit MCP','sysUser.loginable':'logins','sysUser.home':'Home','sysUser.loginStatus':'Login Status','sysUser.canLogin':'Can login','sysUser.cannotLogin':'No login','sysGroup.name':'Group Name','sysGroup.members':'Members','firewall.disabled':'Disabled','firewall.enabled':'Enabled','firewall.status':'Status','firewall.backend':'Backend','firewall.rules':'Rules','ai.connected':'Connected','ai.context':'Current context','ai.placeholder':'Type a command, or tap a suggestion…','ai.sessions':'Sessions','ai.newSession':'New session','ai.newSessionTitle':'New chat','ai.noSessions':'No sessions','ai.renameHint':'Double-click to rename','ai.renamePh':'Enter session name','ai.rename':'Rename','ai.delete':'Delete','mfa.title':'Two-Factor Authentication','mfa.code':'Verification code','mfa.hint':'Enter the 6-digit code shown in your authenticator app','mfa.required':'This account has 2FA enabled, enter the code','mfa.invalid':'Invalid or expired code','mfa.verify':'Verify','mfa.codeHint':'Enter the 6-digit code','mfa.enableGlobal':'Enable 2FA','mfa.status':'Binding status','mfa.bound':'Bound','mfa.unbound':'Not bound','mfa.bind':'Generate QR code','mfa.regen':'Regenerate','mfa.codePh':'6-digit code','mfa.verifyBind':'Verify & bind','mfa.unbind':'Unbind','mfa.enabled':'2FA enabled','mfa.disabled':'2FA disabled','mfa.disableConfirm':'Unbind 2FA? Login will no longer require a code','mfa.appHint':'Supports Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator Mini Program and other Google Authenticator-compatible authenticators','mfa.qrFail':'QR code generation failed, enter the secret manually','mfa.scanHint':'Scan the QR code with your authenticator app','files.showHidden':'Show hidden files','files.uploadHint':'Upload to current directory','files.dirDownload':'Download Folder','files.dirDownloadDesc':'The panel will create a zip archive of this folder and download it','files.dirSize':'Folder Size','files.diskUsage':'Disk Usage','files.dirDelete':'Delete Folder','files.dirDeleteDesc':'Deleting the folder will remove all files inside it. This cannot be undone','files.dirDeleteConfirm':'Type the folder name to confirm deletion','container.delConfirm':'Delete container','container.delImgConfirm':'Delete image','container.restartConfirm':'Restart container','container.logs':'Container logs','container.logLines':'lines','container.logEmpty':'No logs','container.logLoading':'Loading...','container.filterAll':'All','container.filterRunning':'Running','container.filterStopped':'Stopped','container.noContainer':'No containers','container.detail':'Container details','container.tabBasic':'Basic','container.tabNetwork':'Network','container.tabMounts':'Volumes','container.detailId':'Container ID','container.detailCreated':'Created','container.detailStarted':'Started','container.detailPlatform':'Platform','container.detailCommand':'Command','container.detailWorkdir':'Working dir','container.detailRestart':'Restart policy','container.detailEnv':'Environment','container.detailPorts':'Port mappings','container.detailNetworks':'Networks','container.detailIp':'IP address','container.detailGateway':'Gateway','container.detailMac':'MAC address','container.detailNoNet':'No networks','container.detailSource':'Source','container.detailMode':'Mode','container.detailNoMount':'No mounts','set.auditRetention':'Panel log retention','group.security':'Security','menu.security':'Host Security','menu.loginSecurity':'Login Security','menu.firewall':'Firewall','page.security':'Host Security','security.desc':'Host security scan, file integrity and threat detection','security.loginDesc':'Analyze auth logs to detect SSH brute force and anomalies','security.fwDesc':'Manage firewall ports and rules (ufw / firewalld / iptables)','sec.tab.overview':'Overview','sec.tab.baseline':'Baseline','sec.tab.login':'Login Security','sec.tab.firewall':'Firewall','sec.tab.fim':'File Integrity','sec.tab.threat':'Threats','sec.viewAll':'View all','sec.score':'Security Score','sec.grade.excellent':'Excellent','sec.grade.good':'Good','sec.grade.fair':'Fair','sec.grade.danger':'Danger','sec.scan':'Run Scan','sec.scanning':'Scanning...','sec.suggestion':'Suggestion','sec.detail':'Detail','sec.noScan':'Not scanned yet, click "Run Scan"','sec.bruteForce':'Brute force','sec.topFailedIp':'Top 10 Failed IPs','sec.anomaly':'Anomalies','sec.sshHardening':'SSH hardening','sec.failed24h':'Failed logins (24h)','sec.success24h':'Success logins (24h)','sec.logFile':'Log file','sec.noLogin':'No failed logins detected','sec.fwEnable':'Enable','sec.fwDisable':'Disable','sec.fwAllow':'Allow port','sec.fwPort':'Port','sec.fwProto':'Protocol','sec.fwBackend':'Backend','sec.fwAction':'Action','sec.fwPortPh':'port number','sec.fwAdd':'Add','sec.fimRebuild':'Rebuild baseline','sec.fimBaselines':'Baselines','sec.fimEvents':'Changes','sec.fimRemove':'Remove','sec.fimEmpty':'No changes','sec.threatScan':'Scan now','sec.threatResolve':'Resolve','sec.threatKind':'Type','sec.threatSeverity':'Severity','sec.threatEmpty':'No threats','sec.pass':'Pass','sec.fail':'Fail','sec.warn':'Warn','common.count':'Count','common.saved':'Saved','set.notify':'Notifications','notify.smtp':'Email (SMTP)','notify.wecom':'WeCom','notify.dingtalk':'DingTalk','notify.feishu':'Feishu','notify.webhook':'Webhook URL','notify.webhookHint':'Leave empty to disable this notification','alert.ch.panel':'Panel','alert.ch.email':'Email','alert.ch.wecom':'WeCom','alert.ch.dingtalk':'DingTalk','alert.ch.feishu':'Feishu','notify.guideTitle':'How to configure','notify.wecomGuide':'WeCom group → Settings → Group Robot → Add Robot → copy the Webhook URL','notify.dingtalkGuide':'DingTalk group → Settings → Group Assistant → Add Robot → Custom → copy the Webhook','notify.feishuGuide':'Feishu group → Settings → Group Robot → Add Robot → Custom → copy the Webhook URL','notify.smtpHost':'SMTP server','notify.smtpPort':'Port','notify.smtpFrom':'From','notify.smtpTo':'To','notify.smtpUser':'Username','notify.smtpPass':'Password','profile.title':'Profile','profile.basic':'Basic','profile.messages':'Messages','profile.desc':'Edit nickname, avatar, email and password','profile.info':'Basic Info','profile.nickname':'Nickname','profile.icon':'Avatar icon','profile.email':'Email','profile.password':'Change Password','profile.oldPass':'Current password','profile.newPass':'New password','profile.confirmPass':'Confirm password','profile.passEmpty':'Enter password','profile.passMismatch':'Passwords do not match','pager.prev':'Prev','pager.next':'Next','common.ip':'IP','common.path':'Path',
+    'ai.title':'OpsMini AI Assistant','ai.pageDesc':'Chat with AI models and manage MCP tools','ai.chatTab':'Chat','ai.mcpTab':'MCP','ai.skillTab':'Skills','ai.deepThink':'Deep thinking','ai.deepThinkTip':'Think before answering, solve reasoning problems','skill.recommend':'Recommended','skill.install':'Install','skill.installed':'Installed','skill.installedDone':'Installed','skill.installedList':'Installed Skills','skill.upload':'Upload','skill.create':'Create','skill.name':'Name','skill.description':'Description','skill.empty':'No installed skills','skill.deleteConfirm':'Delete skill','skill.createNamePh':'Skill name (e.g. my-skill)','skill.createDescPh':'Skill description','skill.searchPh':'Search skills…','skill.all':'All','skill.noResult':'No skills found','skill.search':'Search','skill.loadMore':'Load more','skill.enable':'Enable','skill.disable':'Disable','skill.enabled':'Enabled','skill.disabled':'Disabled','ai.send':'Send','mcp.add':'+ Add MCP','mcp.name':'Name','mcp.transport':'Transport','mcp.endpoint':'Command / URL','mcp.command':'Command','mcp.url':'URL','mcp.configMode':'Config Mode','mcp.modeForm':'Form Input','mcp.modeJson':'Config File','mcp.json':'JSON Config','mcp.jsonHint':'Paste a complete MCP config JSON (supports name/transport/command/url/headers/timeout)','mcp.jsonInvalid':'Invalid JSON','mcp.jsonNoName':'JSON missing "name" field','mcp.headers':'Headers','mcp.headerName':'Header Name','mcp.headerValue':'Header Value','mcp.addHeader':'Add Header','mcp.timeout':'Timeout','mcp.empty':'No MCP servers, click to add','mcp.deleteConfirm':'Confirm deleting this MCP server','modal.mcp':'Add MCP','modal.mcpEdit':'Edit MCP','sysUser.loginable':'logins','sysUser.home':'Home','sysUser.loginStatus':'Login Status','sysUser.canLogin':'Can login','sysUser.cannotLogin':'No login','sysGroup.name':'Group Name','sysGroup.members':'Members','firewall.disabled':'Disabled','firewall.enabled':'Enabled','firewall.status':'Status','firewall.backend':'Backend','firewall.rules':'Rules','ai.connected':'Connected','ai.context':'Current context','ai.placeholder':'Type a command, or tap a suggestion…','ai.sessions':'Sessions','ai.newSession':'New session','ai.newSessionTitle':'New chat','ai.noSessions':'No sessions','ai.renameHint':'Double-click to rename','ai.renamePh':'Enter session name','ai.rename':'Rename','ai.delete':'Delete','ai.mcpServer':'OpsMini as an MCP server','ai.mcpEndpoint':'MCP endpoint','ai.mcpEnabled':'Enable MCP endpoint','ai.mcpAllowHigh':'Allow high-risk MCP operations','ai.mcpToken':'Access token','ai.showToken':'Show','ai.hideToken':'Hide','ai.mcpRotate':'Rotate token','ai.mcpRotateConfirm':'The old token stops working immediately. Rotate it?','ai.mcpHint':'Paste the endpoint and token above into any MCP client that supports Streamable HTTP (Claude Desktop / Cursor / OpsAnt, ...) to let it use the OpsMini operations toolset.','ai.mcpHighWarn':'MCP clients may now run high-risk operations without the panel confirmation step. Keep the token secret.','ai.stepThinking':'Analyzing…','ai.stepCall':'Call','ai.stepTools':' tools','ai.statusRunning':'Running','ai.statusPending':'Awaiting approval','ai.confirmTitle':'High-risk operation','ai.approve':'Approve','ai.reject':'Reject','ai.approved':'Approved and executed','ai.rejected':'Rejected, not executed','ai.processing':'Processing…','ai.confirmHint':'It will really run on the server once approved','ai.toolsTab':'Tool permissions','ai.toolName':'Tool','ai.toolRisk':'Risk','ai.toolPerm':'Permission','ai.toolDesc':'Description','ai.toolPolicy':'Policy','ai.policyAuto':'Auto','ai.policyConfirm':'Confirm','ai.policyDeny':'Disabled','ai.riskReadonly':'Read-only','ai.riskLow':'Low risk','ai.riskHigh':'High risk','ai.riskForbidden':'Forbidden','ai.riskReadonlyDesc':'Reads data only, never modifies the host; the AI may run it on its own.','ai.riskLowDesc':'Low-risk write operation; can be set to auto to move faster.','ai.riskHighDesc':'High-risk operation; every run needs explicit human approval.','ai.riskForbiddenDesc':'Hard-blocked destructive commands (e.g. rm -rf /, mkfs) that are never executed, even with approval.','mfa.title':'Two-Factor Authentication','mfa.code':'Verification code','mfa.hint':'Enter the 6-digit code shown in your authenticator app','mfa.required':'This account has 2FA enabled, enter the code','mfa.invalid':'Invalid or expired code','mfa.verify':'Verify','mfa.codeHint':'Enter the 6-digit code','mfa.enableGlobal':'Enable 2FA','mfa.status':'Binding status','mfa.bound':'Bound','mfa.unbound':'Not bound','mfa.bind':'Generate QR code','mfa.regen':'Regenerate','mfa.codePh':'6-digit code','mfa.verifyBind':'Verify & bind','mfa.unbind':'Unbind','mfa.enabled':'2FA enabled','mfa.disabled':'2FA disabled','mfa.disableConfirm':'Unbind 2FA? Login will no longer require a code','mfa.appHint':'Supports Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator Mini Program and other Google Authenticator-compatible authenticators','mfa.qrFail':'QR code generation failed, enter the secret manually','mfa.scanHint':'Scan the QR code with your authenticator app','files.showHidden':'Show hidden files','files.uploadHint':'Upload to current directory','files.dirDownload':'Download Folder','files.dirDownloadDesc':'The panel will create a zip archive of this folder and download it','files.dirSize':'Folder Size','files.diskUsage':'Disk Usage','files.dirDelete':'Delete Folder','files.dirDeleteDesc':'Deleting the folder will remove all files inside it. This cannot be undone','files.dirDeleteConfirm':'Type the folder name to confirm deletion','container.delConfirm':'Delete container','container.delImgConfirm':'Delete image','container.restartConfirm':'Restart container','container.logs':'Container logs','container.logLines':'lines','container.logEmpty':'No logs','container.logLoading':'Loading...','container.filterAll':'All','container.filterRunning':'Running','container.filterStopped':'Stopped','container.noContainer':'No containers','container.detail':'Container details','container.tabBasic':'Basic','container.tabNetwork':'Network','container.tabMounts':'Volumes','container.detailId':'Container ID','container.detailCreated':'Created','container.detailStarted':'Started','container.detailPlatform':'Platform','container.detailCommand':'Command','container.detailWorkdir':'Working dir','container.detailRestart':'Restart policy','container.detailEnv':'Environment','container.detailPorts':'Port mappings','container.detailNetworks':'Networks','container.detailIp':'IP address','container.detailGateway':'Gateway','container.detailMac':'MAC address','container.detailNoNet':'No networks','container.detailSource':'Source','container.detailMode':'Mode','container.detailNoMount':'No mounts','set.auditRetention':'Panel log retention','group.security':'Security','menu.security':'Host Security','menu.loginSecurity':'Login Security','menu.firewall':'Firewall','page.security':'Host Security','security.desc':'Host security scan, file integrity and threat detection','security.loginDesc':'Analyze auth logs to detect SSH brute force and anomalies','security.fwDesc':'Manage firewall ports and rules (ufw / firewalld / iptables)','sec.tab.overview':'Overview','sec.tab.baseline':'Baseline','sec.tab.login':'Login Security','sec.tab.firewall':'Firewall','sec.tab.fim':'File Integrity','sec.tab.threat':'Threats','sec.viewAll':'View all','sec.score':'Security Score','sec.grade.excellent':'Excellent','sec.grade.good':'Good','sec.grade.fair':'Fair','sec.grade.danger':'Danger','sec.scan':'Run Scan','sec.scanning':'Scanning...','sec.suggestion':'Suggestion','sec.detail':'Detail','sec.noScan':'Not scanned yet, click "Run Scan"','sec.bruteForce':'Brute force','sec.topFailedIp':'Top 10 Failed IPs','sec.anomaly':'Anomalies','sec.sshHardening':'SSH hardening','sec.failed24h':'Failed logins (24h)','sec.success24h':'Success logins (24h)','sec.logFile':'Log file','sec.noLogin':'No failed logins detected','sec.fwEnable':'Enable','sec.fwDisable':'Disable','sec.fwAllow':'Allow port','sec.fwPort':'Port','sec.fwProto':'Protocol','sec.fwBackend':'Backend','sec.fwAction':'Action','sec.fwPortPh':'port number','sec.fwAdd':'Add','sec.fimRebuild':'Rebuild baseline','sec.fimBaselines':'Baselines','sec.fimEvents':'Changes','sec.fimRemove':'Remove','sec.fimEmpty':'No changes','sec.threatScan':'Scan now','sec.threatResolve':'Resolve','sec.threatKind':'Type','sec.threatSeverity':'Severity','sec.threatEmpty':'No threats','sec.pass':'Pass','sec.fail':'Fail','sec.warn':'Warn','common.count':'Count','common.saved':'Saved','set.notify':'Notifications','notify.smtp':'Email (SMTP)','notify.wecom':'WeCom','notify.dingtalk':'DingTalk','notify.feishu':'Feishu','notify.webhook':'Webhook URL','notify.webhookHint':'Leave empty to disable this notification','alert.ch.panel':'Panel','alert.ch.email':'Email','alert.ch.wecom':'WeCom','alert.ch.dingtalk':'DingTalk','alert.ch.feishu':'Feishu','notify.guideTitle':'How to configure','notify.wecomGuide':'WeCom group → Settings → Group Robot → Add Robot → copy the Webhook URL','notify.dingtalkGuide':'DingTalk group → Settings → Group Assistant → Add Robot → Custom → copy the Webhook','notify.feishuGuide':'Feishu group → Settings → Group Robot → Add Robot → Custom → copy the Webhook URL','notify.smtpHost':'SMTP server','notify.smtpPort':'Port','notify.smtpFrom':'From','notify.smtpTo':'To','notify.smtpUser':'Username','notify.smtpPass':'Password','profile.title':'Profile','profile.basic':'Basic','profile.messages':'Messages','profile.desc':'Edit nickname, avatar, email and password','profile.info':'Basic Info','profile.nickname':'Nickname','profile.icon':'Avatar icon','profile.email':'Email','profile.password':'Change Password','profile.oldPass':'Current password','profile.newPass':'New password','profile.confirmPass':'Confirm password','profile.passEmpty':'Enter password','profile.passMismatch':'Passwords do not match','pager.prev':'Prev','pager.next':'Next','common.ip':'IP','common.path':'Path',
     'svc.web':'Web server','svc.db':'Database service','svc.cache':'Cache service','svc.container':'Container engine','svc.php':'PHP runtime','svc.ssh':'Remote login',
     'qa.website':'Add Website','qa.websiteSub':'Create a site quickly','qa.db':'Create Database','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'Install App','qa.storeSub':'One-click from app store','qa.container':'New Container','qa.containerSub':'Docker container',
@@ -3050,7 +3249,7 @@ const I18N = {
     'set.tfa':'二要素認証 (2FA)','set.autoup':'自動更新','set.opsantSso':'OpsAnt SSO ログインを許可','set.opsantLink':'OpsAnt に接続','set.opsantLinkDesc':'本機を Agent として OpsAnt マルチホスト運用管理プラットフォームに接続します。接続後、OpsAnt 上で承認が必要です。','set.opsantServerAddr':'OpsAnt アドレス','set.opsantServerAddrPh':'例: 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'OpsAnt の OPSMINI_TOKEN と一致','set.opsantRunning':'接続済み','set.opsantStopped':'未接続','set.ai':'AI モデル連携','set.aiEnable':'AI アシスタントを有効化','btn.copy':'コピー','btn.copied':'コピーしました','set.model':'モデルプロバイダー','set.apiKey':'API キー',
     'set.apiBase':'API エンドポイント','set.exec':'自然言語での操作実行','set.logAna':'ログ分析','set.diag':'アラート診断',
     'set.theme':'外観とテーマ','set.customColor':'カスタムアクセント（ブランド / 好み）','set.metrics':'監視エクスポート','set.metricsOn':'認証有効','set.metricsOff':'認証なし','set.metricsDesc':'node_exporter 互換形式でシステム指標を公開し、Prometheus が直接スクレイプできます。','set.metricsEndpoint':'エンドポイント','set.metricsAuth':'認証を有効化','set.metricsUser':'ユーザー名','set.metricsPass':'パスワード','set.metricsUserPh':'空なら公開','set.metricsPassPh':'パスワードを入力','set.metricsTokenPh':'空なら公開','set.metricsGen':'ランダム生成','set.metricsHint':'保存後、Prometheus で basic_auth（ユーザー名 + パスワード）を設定してください。空なら認証なし。','set.metricsTokenEmpty':'ユーザー名とパスワードを設定するか、認証を無効化してください','set.aiSaved':'AI 設定を保存しました ✓','set.aiSaveFail':'保存に失敗','set.aiKeyEmpty':'API キーを入力してください','set.metricsSaved':'監視エクスポート設定を保存しました ✓','set.metricsSaveFail':'保存に失敗','btn.save':'保存','set.menu':'メニュー表示','set.lang':'言語 / Language',
-    'ai.title':'OpsMini AI アシスタント','ai.pageDesc':'AI モデルと対話し、MCP ツールを管理','ai.chatTab':'チャット','ai.mcpTab':'MCP','ai.send':'送信','mcp.add':'+ MCP 追加','mcp.name':'名前','mcp.transport':'トランスポート','mcp.endpoint':'コマンド / URL','mcp.command':'起動コマンド','mcp.url':'URL','mcp.configMode':'設定方法','mcp.modeForm':'フォーム入力','mcp.modeJson':'設定ファイル','mcp.json':'JSON 設定','mcp.jsonHint':'完全な MCP 設定 JSON を入力（name/transport/command/url/headers/timeout 対応）','mcp.jsonInvalid':'JSON 形式エラー','mcp.jsonNoName':'JSON に name フィールドがありません','mcp.headers':'ヘッダー','mcp.headerName':'ヘッダー名','mcp.headerValue':'ヘッダー値','mcp.addHeader':'ヘッダー追加','mcp.timeout':'タイムアウト','mcp.empty':'MCP サーバーがありません','mcp.deleteConfirm':'この MCP サーバーを削除しますか','modal.mcp':'MCP 追加','modal.mcpEdit':'MCP 編集','sysUser.loginable':'ログイン可','sysUser.home':'ホーム','sysUser.loginStatus':'ログイン状態','sysUser.canLogin':'ログイン可','sysUser.cannotLogin':'ログイン不可','sysGroup.name':'グループ名','sysGroup.members':'メンバー','firewall.disabled':'無効','firewall.enabled':'有効','firewall.status':'状態','firewall.backend':'バックエンド','firewall.rules':'ルール','ai.connected':'接続済み','ai.context':'現在のコンテキスト','ai.placeholder':'指示を入力、または候補をタップ…','ai.sessions':'セッション','ai.newSession':'新しいセッション','ai.newSessionTitle':'新しいチャット','ai.noSessions':'セッションなし','ai.renameHint':'ダブルクリックで名前変更','ai.renamePh':'セッション名を入力','ai.rename':'名前変更','ai.delete':'削除','mfa.title':'二要素認証','mfa.code':'認証コード','mfa.hint':'認証アプリに表示される 6 桁のコードを入力','mfa.required':'このアカウントは二要素認証が有効です。コードを入力してください','mfa.invalid':'コードが無効または期限切れです','mfa.verify':'検証','mfa.codeHint':'6 桁のコードを入力','mfa.enableGlobal':'二要素認証を有効化','mfa.status':'バインド状態','mfa.bound':'バインド済み','mfa.unbound':'未バインド','mfa.bind':'QR コード生成','mfa.regen':'再生成','mfa.codePh':'6 桁コード','mfa.verifyBind':'検証してバインド','mfa.unbind':'バインド解除','mfa.enabled':'二要素認証が有効になりました','mfa.disabled':'二要素認証を無効にしました','mfa.disableConfirm':'二要素認証を解除しますか？解除後はログインにコードが不要になります','mfa.appHint':'Alibaba Cloud APP、Tencent Cloud APP、Huawei Cloud APP、Tencent Authenticator ミニプログラムなど Google Authenticator 互換アプリに対応','mfa.qrFail':'QR コード生成失敗。シークレットを手動入力してください','mfa.scanHint':'認証アプリで QR コードをスキャン','files.showHidden':'隠しファイルを表示','files.uploadHint':'現在のディレクトリにアップロード','files.dirDownload':'フォルダーをダウンロード','files.dirDownloadDesc':'このフォルダーを圧縮してダウンロードします','files.dirSize':'フォルダーサイズ','files.diskUsage':'ディスク使用率','files.dirDelete':'フォルダーを削除','files.dirDeleteDesc':'フォルダーを削除すると、その中のすべてのファイルが削除されます。元に戻せません','files.dirDeleteConfirm':'確認のためフォルダー名を入力してください','container.delConfirm':'コンテナを削除','container.delImgConfirm':'イメージを削除','container.restartConfirm':'コンテナを再起動','container.logs':'コンテナログ','container.logLines':'行','container.logEmpty':'ログなし','container.logLoading':'読み込み中…','set.auditRetention':'パネルログ保持期間',
+    'ai.title':'OpsMini AI アシスタント','ai.pageDesc':'AI モデルと対話し、MCP ツールを管理','ai.chatTab':'チャット','ai.mcpTab':'MCP','ai.send':'送信','mcp.add':'+ MCP 追加','mcp.name':'名前','mcp.transport':'トランスポート','mcp.endpoint':'コマンド / URL','mcp.command':'起動コマンド','mcp.url':'URL','mcp.configMode':'設定方法','mcp.modeForm':'フォーム入力','mcp.modeJson':'設定ファイル','mcp.json':'JSON 設定','mcp.jsonHint':'完全な MCP 設定 JSON を入力（name/transport/command/url/headers/timeout 対応）','mcp.jsonInvalid':'JSON 形式エラー','mcp.jsonNoName':'JSON に name フィールドがありません','mcp.headers':'ヘッダー','mcp.headerName':'ヘッダー名','mcp.headerValue':'ヘッダー値','mcp.addHeader':'ヘッダー追加','mcp.timeout':'タイムアウト','mcp.empty':'MCP サーバーがありません','mcp.deleteConfirm':'この MCP サーバーを削除しますか','modal.mcp':'MCP 追加','modal.mcpEdit':'MCP 編集','sysUser.loginable':'ログイン可','sysUser.home':'ホーム','sysUser.loginStatus':'ログイン状態','sysUser.canLogin':'ログイン可','sysUser.cannotLogin':'ログイン不可','sysGroup.name':'グループ名','sysGroup.members':'メンバー','firewall.disabled':'無効','firewall.enabled':'有効','firewall.status':'状態','firewall.backend':'バックエンド','firewall.rules':'ルール','ai.connected':'接続済み','ai.context':'現在のコンテキスト','ai.placeholder':'指示を入力、または候補をタップ…','ai.sessions':'セッション','ai.newSession':'新しいセッション','ai.newSessionTitle':'新しいチャット','ai.noSessions':'セッションなし','ai.renameHint':'ダブルクリックで名前変更','ai.renamePh':'セッション名を入力','ai.rename':'名前変更','ai.delete':'削除','ai.mcpServer':'OpsMini を MCP サーバーとして公開','ai.mcpEndpoint':'MCP エンドポイント','ai.mcpEnabled':'MCP エンドポイントを有効化','ai.mcpAllowHigh':'MCP の高リスク操作を許可','ai.mcpToken':'アクセストークン','ai.showToken':'表示','ai.hideToken':'非表示','ai.mcpRotate':'トークンを再生成','ai.mcpRotateConfirm':'再生成すると旧トークンは即時無効になります。よろしいですか？','ai.mcpHint':'上のエンドポイントとトークンを Streamable HTTP 対応の MCP クライアント（Claude Desktop / Cursor / OpsAnt など）に設定すると、OpsMini の運用ツール群を利用できます。','ai.mcpHighWarn':'MCP クライアントがパネルの確認なしで高リスク操作を実行できます。トークンの管理に注意してください。','ai.stepThinking':'分析中…','ai.stepCall':'呼び出し','ai.stepTools':' 個のツール','ai.statusRunning':'実行中','ai.statusPending':'承認待ち','ai.confirmTitle':'高リスク操作の確認','ai.approve':'承認して実行','ai.reject':'拒否','ai.approved':'承認済み、実行しました','ai.rejected':'拒否されました、実行していません','ai.processing':'処理中…','ai.confirmHint':'承認するとサーバー上で実際に実行されます','ai.toolsTab':'ツール権限','ai.toolName':'ツール','ai.toolRisk':'リスク','ai.toolPerm':'必要権限','ai.toolDesc':'説明','ai.toolPolicy':'ポリシー','ai.policyAuto':'確認なし','ai.policyConfirm':'確認あり','ai.policyDeny':'無効','ai.riskReadonly':'読み取り専用','ai.riskLow':'低リスク','ai.riskHigh':'高リスク','ai.riskForbidden':'禁止','ai.riskReadonlyDesc':'データを読むだけでシステムを変更しないため、AI が自動実行できます。','ai.riskLowDesc':'低リスクの書き込み操作。効率化のため確認なしに設定できます。','ai.riskHighDesc':'高リスク操作。実行のたびに人の承認が必要です。','ai.riskForbiddenDesc':'危険なコマンド（rm -rf /、mkfs など）はハードブロックされ、承認しても実行されません。','mfa.title':'二要素認証','mfa.code':'認証コード','mfa.hint':'認証アプリに表示される 6 桁のコードを入力','mfa.required':'このアカウントは二要素認証が有効です。コードを入力してください','mfa.invalid':'コードが無効または期限切れです','mfa.verify':'検証','mfa.codeHint':'6 桁のコードを入力','mfa.enableGlobal':'二要素認証を有効化','mfa.status':'バインド状態','mfa.bound':'バインド済み','mfa.unbound':'未バインド','mfa.bind':'QR コード生成','mfa.regen':'再生成','mfa.codePh':'6 桁コード','mfa.verifyBind':'検証してバインド','mfa.unbind':'バインド解除','mfa.enabled':'二要素認証が有効になりました','mfa.disabled':'二要素認証を無効にしました','mfa.disableConfirm':'二要素認証を解除しますか？解除後はログインにコードが不要になります','mfa.appHint':'Alibaba Cloud APP、Tencent Cloud APP、Huawei Cloud APP、Tencent Authenticator ミニプログラムなど Google Authenticator 互換アプリに対応','mfa.qrFail':'QR コード生成失敗。シークレットを手動入力してください','mfa.scanHint':'認証アプリで QR コードをスキャン','files.showHidden':'隠しファイルを表示','files.uploadHint':'現在のディレクトリにアップロード','files.dirDownload':'フォルダーをダウンロード','files.dirDownloadDesc':'このフォルダーを圧縮してダウンロードします','files.dirSize':'フォルダーサイズ','files.diskUsage':'ディスク使用率','files.dirDelete':'フォルダーを削除','files.dirDeleteDesc':'フォルダーを削除すると、その中のすべてのファイルが削除されます。元に戻せません','files.dirDeleteConfirm':'確認のためフォルダー名を入力してください','container.delConfirm':'コンテナを削除','container.delImgConfirm':'イメージを削除','container.restartConfirm':'コンテナを再起動','container.logs':'コンテナログ','container.logLines':'行','container.logEmpty':'ログなし','container.logLoading':'読み込み中…','set.auditRetention':'パネルログ保持期間',
     'svc.web':'Web サーバー','svc.db':'データベース','svc.cache':'キャッシュ','svc.container':'コンテナエンジン','svc.php':'PHP ランタイム','svc.ssh':'リモートログイン',
     'qa.website':'サイト追加','qa.websiteSub':'サイトをすばやく作成','qa.db':'DB 作成','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'アプリ導入','qa.storeSub':'ストアからワンクリック','qa.container':'コンテナ作成','qa.containerSub':'Docker コンテナ',
@@ -3060,7 +3259,7 @@ const I18N = {
     'common.running':'실행 중','common.stopped':'중지됨','common.enabled':'활성화','common.disabled':'비활성화',
     'common.folder':'폴더','common.file':'파일','common.edit':'편집','common.delete':'삭제','common.settings':'설정',
     'common.backup':'백업','common.restart':'재시작','common.run':'실행','common.download':'다운로드','common.rename':'이름 변경',
-    'common.state':'상태','common.actions':'작업','common.log':'로그','common.type':'유형','common.name':'이름',
+    'common.state':'상태','common.actions':'작업','common.copy':'복사','common.copied':'복사됨','common.copyFail':'복사 실패','common.log':'로그','common.type':'유형','common.name':'이름',
     'login.title':'로그인','login.username':'사용자 이름','login.password':'비밀번호','login.remember':'로그인 유지',
     'login.forgot':'비밀번호 찾기','login.submit':'로그인','login.invalid':'사용자 이름 또는 비밀번호가 올바르지 않습니다','login.fail':'로그인 실패','login.showPass':'비밀번호 표시','login.hidePass':'비밀번호 숨기기',
     'login.footer':'OpsMini v1.1.0 · AI 기반 서버 관리 패널',
@@ -3095,7 +3294,7 @@ const I18N = {
     'set.tfa':'2단계 인증 (2FA)','set.autoup':'자동 업데이트','set.opsantSso':'OpsAnt SSO 로그인 허용','set.opsantLink':'OpsAnt 연결','set.opsantLinkDesc':'이 호스트를 Agent로 OpsAnt 멀티 호스트 운영 관리 플랫폼에 연결합니다. 연결 후 OpsAnt에서 승인이 필요합니다.','set.opsantServerAddr':'OpsAnt 주소','set.opsantServerAddrPh':'예: 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'OpsAnt OPSMINI_TOKEN과 일치','set.opsantRunning':'연결됨','set.opsantStopped':'연결 안 됨','set.ai':'AI 모델 연동','set.aiEnable':'AI 어시스턴트 활성화','btn.copy':'복사','btn.copied':'복사됨','set.model':'모델 제공자','set.apiKey':'API 키',
     'set.apiBase':'API 엔드포인트','set.exec':'자연어 작업 실행','set.logAna':'로그 분석','set.diag':'알림 진단',
     'set.theme':'외관 및 테마','set.customColor':'사용자 지정 강조색','set.metrics':'메트릭 내보내기','set.metricsOn':'인증 활성화됨','set.metricsOff':'인증 없음','set.metricsDesc':'node_exporter 호환 형식으로 시스템 메트릭을 노출하여 Prometheus가 직접 스크랩할 수 있습니다.','set.metricsEndpoint':'엔드포인트','set.metricsAuth':'인증 사용','set.metricsUser':'사용자 이름','set.metricsPass':'비밀번호','set.metricsUserPh':'비우면 공개','set.metricsPassPh':'비밀번호 입력','set.metricsTokenPh':'비우면 공개','set.metricsGen':'랜덤 생성','set.metricsHint':'저장 후 Prometheus에서 basic_auth(사용자 이름 + 비밀번호)를 설정하세요. 빈 사용자 이름은 인증 없음.','set.metricsTokenEmpty':'사용자 이름과 비밀번호를 설정하거나 인증을 비활성화하세요','set.aiSaved':'AI 설정 저장됨 ✓','set.aiSaveFail':'저장 실패','set.aiKeyEmpty':'API 키를 먼저 입력하세요','set.metricsSaved':'메트릭 내보내기 설정 저장됨 ✓','set.metricsSaveFail':'저장 실패','btn.save':'저장','set.menu':'메뉴 표시','set.lang':'언어 / Language',
-    'ai.title':'OpsMini AI 어시스턴트','ai.pageDesc':'AI 모델과 대화하고 MCP 도구 관리','ai.chatTab':'채팅','ai.mcpTab':'MCP','ai.send':'보내기','mcp.add':'+ MCP 추가','mcp.name':'이름','mcp.transport':'전송 방식','mcp.endpoint':'명령 / URL','mcp.command':'시작 명령','mcp.url':'URL','mcp.configMode':'설정 방식','mcp.modeForm':'폼 입력','mcp.modeJson':'설정 파일','mcp.json':'JSON 설정','mcp.jsonHint':'완전한 MCP 설정 JSON을 입력하세요 (name/transport/command/url/headers/timeout 지원)','mcp.jsonInvalid':'JSON 형식 오류','mcp.jsonNoName':'JSON에 name 필드가 없습니다','mcp.headers':'헤더','mcp.headerName':'헤더 이름','mcp.headerValue':'헤더 값','mcp.addHeader':'헤더 추가','mcp.timeout':'시간 초과','mcp.empty':'MCP 서버 없음','mcp.deleteConfirm':'이 MCP 서버를 삭제하시겠습니까','modal.mcp':'MCP 추가','modal.mcpEdit':'MCP 편집','sysUser.loginable':'로그인 가능','sysUser.home':'홈','sysUser.loginStatus':'로그인 상태','sysUser.canLogin':'로그인 가능','sysUser.cannotLogin':'로그인 불가','sysGroup.name':'그룹명','sysGroup.members':'구성원','firewall.disabled':'비활성화','firewall.enabled':'활성화','firewall.status':'상태','firewall.backend':'백엔드','firewall.rules':'규칙','ai.connected':'연결됨','ai.context':'현재 컨텍스트','ai.placeholder':'명령을 입력하거나 제안을 탭하세요…','ai.sessions':'세션','ai.newSession':'새 세션','ai.newSessionTitle':'새 채팅','ai.noSessions':'세션 없음','ai.renameHint':'더블클릭하여 이름 변경','ai.renamePh':'세션 이름 입력','ai.rename':'이름 변경','ai.delete':'삭제','mfa.title':'2단계 인증','mfa.code':'인증 코드','mfa.hint':'인증 앱에 표시된 6자리 코드를 입력하세요','mfa.required':'이 계정은 2단계 인증이 활성화되어 있습니다. 코드를 입력하세요','mfa.invalid':'코드가 잘못되었거나 만료되었습니다','mfa.verify':'확인','mfa.codeHint':'6자리 코드를 입력하세요','mfa.enableGlobal':'2단계 인증 활성화','mfa.status':'바인딩 상태','mfa.bound':'바인딩됨','mfa.unbound':'바인딩 안 됨','mfa.bind':'QR 코드 생성','mfa.regen':'재생성','mfa.codePh':'6자리 코드','mfa.verifyBind':'확인 및 바인딩','mfa.unbind':'바인딩 해제','mfa.enabled':'2단계 인증이 활성화되었습니다','mfa.disabled':'2단계 인증이 비활성화되었습니다','mfa.disableConfirm':'2단계 인증을 해제하시겠습니까? 해제 후 로그인 시 코드가 필요하지 않습니다','mfa.appHint':'Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator 미니프로그램 등 Google Authenticator 호환 앱 지원','mfa.qrFail':'QR 코드 생성 실패, 시크릿을 수동으로 입력하세요','mfa.scanHint':'인증 앱으로 QR 코드를 스캔하세요','files.showHidden':'숨김 파일 표시','files.uploadHint':'현재 디렉터리에 업로드','files.dirDownload':'폴더 다운로드','files.dirDownloadDesc':'이 폴더를 압축하여 다운로드합니다','files.dirSize':'폴더 크기','files.diskUsage':'디스크 사용률','files.dirDelete':'폴더 삭제','files.dirDeleteDesc':'폴더를 삭제하면 그 안의 모든 파일이 삭제되며 되돌릴 수 없습니다','files.dirDeleteConfirm':'삭제 확인을 위해 폴더 이름을 입력하세요','container.delConfirm':'컨테이너 삭제','container.delImgConfirm':'이미지 삭제','container.restartConfirm':'컨테이너 재시작','container.logs':'컨테이너 로그','container.logLines':'줄','container.logEmpty':'로그 없음','container.logLoading':'불러오는 중...','set.auditRetention':'패널 로그 보존 기간',
+    'ai.title':'OpsMini AI 어시스턴트','ai.pageDesc':'AI 모델과 대화하고 MCP 도구 관리','ai.chatTab':'채팅','ai.mcpTab':'MCP','ai.send':'보내기','mcp.add':'+ MCP 추가','mcp.name':'이름','mcp.transport':'전송 방식','mcp.endpoint':'명령 / URL','mcp.command':'시작 명령','mcp.url':'URL','mcp.configMode':'설정 방식','mcp.modeForm':'폼 입력','mcp.modeJson':'설정 파일','mcp.json':'JSON 설정','mcp.jsonHint':'완전한 MCP 설정 JSON을 입력하세요 (name/transport/command/url/headers/timeout 지원)','mcp.jsonInvalid':'JSON 형식 오류','mcp.jsonNoName':'JSON에 name 필드가 없습니다','mcp.headers':'헤더','mcp.headerName':'헤더 이름','mcp.headerValue':'헤더 값','mcp.addHeader':'헤더 추가','mcp.timeout':'시간 초과','mcp.empty':'MCP 서버 없음','mcp.deleteConfirm':'이 MCP 서버를 삭제하시겠습니까','modal.mcp':'MCP 추가','modal.mcpEdit':'MCP 편집','sysUser.loginable':'로그인 가능','sysUser.home':'홈','sysUser.loginStatus':'로그인 상태','sysUser.canLogin':'로그인 가능','sysUser.cannotLogin':'로그인 불가','sysGroup.name':'그룹명','sysGroup.members':'구성원','firewall.disabled':'비활성화','firewall.enabled':'활성화','firewall.status':'상태','firewall.backend':'백엔드','firewall.rules':'규칙','ai.connected':'연결됨','ai.context':'현재 컨텍스트','ai.placeholder':'명령을 입력하거나 제안을 탭하세요…','ai.sessions':'세션','ai.newSession':'새 세션','ai.newSessionTitle':'새 채팅','ai.noSessions':'세션 없음','ai.renameHint':'더블클릭하여 이름 변경','ai.renamePh':'세션 이름 입력','ai.rename':'이름 변경','ai.delete':'삭제','ai.mcpServer':'OpsMini를 MCP 서버로 공개','ai.mcpEndpoint':'MCP 엔드포인트','ai.mcpEnabled':'MCP 엔드포인트 사용','ai.mcpAllowHigh':'MCP 고위험 작업 허용','ai.mcpToken':'액세스 토큰','ai.showToken':'표시','ai.hideToken':'숨기기','ai.mcpRotate':'토큰 재발급','ai.mcpRotateConfirm':'재발급하면 기존 토큰이 즉시 무효화됩니다. 진행할까요?','ai.mcpHint':'위 주소와 토큰을 Streamable HTTP를 지원하는 MCP 클라이언트(Claude Desktop / Cursor / OpsAnt 등)에 입력하면 OpsMini의 운영 도구를 사용할 수 있습니다.','ai.mcpHighWarn':'MCP 클라이언트가 패널 확인 없이 고위험 작업을 실행할 수 있습니다. 토큰을 안전하게 관리하세요.','ai.stepThinking':'분석 중…','ai.stepCall':'호출','ai.stepTools':'개 도구','ai.statusRunning':'실행 중','ai.statusPending':'승인 대기','ai.confirmTitle':'고위험 작업 확인','ai.approve':'승인 후 실행','ai.reject':'거부','ai.approved':'승인되어 실행되었습니다','ai.rejected':'거부되어 실행되지 않았습니다','ai.processing':'처리 중…','ai.confirmHint':'승인하면 서버에서 실제로 실행됩니다','ai.toolsTab':'도구 권한','ai.toolName':'도구','ai.toolRisk':'위험도','ai.toolPerm':'필요 권한','ai.toolDesc':'설명','ai.toolPolicy':'정책','ai.policyAuto':'확인 없음','ai.policyConfirm':'확인 필요','ai.policyDeny':'사용 안 함','ai.riskReadonly':'읽기 전용','ai.riskLow':'저위험','ai.riskHigh':'고위험','ai.riskForbidden':'금지','ai.riskReadonlyDesc':'데이터만 읽고 시스템을 변경하지 않아 AI가 자동 실행합니다.','ai.riskLowDesc':'저위험 쓰기 작업으로, 효율을 위해 확인 없음으로 설정할 수 있습니다.','ai.riskHighDesc':'고위험 작업으로 실행할 때마다 사람의 승인이 필요합니다.','ai.riskForbiddenDesc':'위험한 명령(rm -rf /, mkfs 등)은 강제 차단되어 승인해도 실행되지 않습니다.','mfa.title':'2단계 인증','mfa.code':'인증 코드','mfa.hint':'인증 앱에 표시된 6자리 코드를 입력하세요','mfa.required':'이 계정은 2단계 인증이 활성화되어 있습니다. 코드를 입력하세요','mfa.invalid':'코드가 잘못되었거나 만료되었습니다','mfa.verify':'확인','mfa.codeHint':'6자리 코드를 입력하세요','mfa.enableGlobal':'2단계 인증 활성화','mfa.status':'바인딩 상태','mfa.bound':'바인딩됨','mfa.unbound':'바인딩 안 됨','mfa.bind':'QR 코드 생성','mfa.regen':'재생성','mfa.codePh':'6자리 코드','mfa.verifyBind':'확인 및 바인딩','mfa.unbind':'바인딩 해제','mfa.enabled':'2단계 인증이 활성화되었습니다','mfa.disabled':'2단계 인증이 비활성화되었습니다','mfa.disableConfirm':'2단계 인증을 해제하시겠습니까? 해제 후 로그인 시 코드가 필요하지 않습니다','mfa.appHint':'Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator 미니프로그램 등 Google Authenticator 호환 앱 지원','mfa.qrFail':'QR 코드 생성 실패, 시크릿을 수동으로 입력하세요','mfa.scanHint':'인증 앱으로 QR 코드를 스캔하세요','files.showHidden':'숨김 파일 표시','files.uploadHint':'현재 디렉터리에 업로드','files.dirDownload':'폴더 다운로드','files.dirDownloadDesc':'이 폴더를 압축하여 다운로드합니다','files.dirSize':'폴더 크기','files.diskUsage':'디스크 사용률','files.dirDelete':'폴더 삭제','files.dirDeleteDesc':'폴더를 삭제하면 그 안의 모든 파일이 삭제되며 되돌릴 수 없습니다','files.dirDeleteConfirm':'삭제 확인을 위해 폴더 이름을 입력하세요','container.delConfirm':'컨테이너 삭제','container.delImgConfirm':'이미지 삭제','container.restartConfirm':'컨테이너 재시작','container.logs':'컨테이너 로그','container.logLines':'줄','container.logEmpty':'로그 없음','container.logLoading':'불러오는 중...','set.auditRetention':'패널 로그 보존 기간',
     'svc.web':'웹 서버','svc.db':'데이터베이스','svc.cache':'캐시','svc.container':'컨테이너 엔진','svc.php':'PHP 런타임','svc.ssh':'원격 로그인',
     'qa.website':'사이트 추가','qa.websiteSub':'빠르게 사이트 생성','qa.db':'DB 생성','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'앱 설치','qa.storeSub':'스토어에서 원클릭 설치','qa.container':'컨테이너 생성','qa.containerSub':'Docker 컨테이너',
@@ -3105,7 +3304,7 @@ const I18N = {
     'common.running':'กำลังทำงาน','common.stopped':'หยุดแล้ว','common.enabled':'เปิดใช้งาน','common.disabled':'ปิดใช้งาน',
     'common.folder':'โฟลเดอร์','common.file':'ไฟล์','common.edit':'แก้ไข','common.delete':'ลบ','common.settings':'ตั้งค่า',
     'common.backup':'สำรองข้อมูล','common.restart':'เริ่มใหม่','common.run':'เรียกใช้','common.download':'ดาวน์โหลด','common.rename':'เปลี่ยนชื่อ',
-    'common.state':'สถานะ','common.actions':'การดำเนินการ','common.log':'บันทึก','common.type':'ประเภท','common.name':'ชื่อ',
+    'common.state':'สถานะ','common.actions':'การดำเนินการ','common.copy':'คัดลอก','common.copied':'คัดลอกแล้ว','common.copyFail':'คัดลอกไม่สำเร็จ','common.log':'บันทึก','common.type':'ประเภท','common.name':'ชื่อ',
     'login.title':'เข้าสู่ระบบ','login.username':'ชื่อผู้ใช้','login.password':'รหัสผ่าน','login.remember':'จดจำฉัน',
     'login.forgot':'ลืมรหัสผ่าน?','login.submit':'เข้าสู่ระบบ','login.invalid':'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง','login.fail':'เข้าสู่ระบบล้มเหลว','login.showPass':'แสดงรหัสผ่าน','login.hidePass':'ซ่อนรหัสผ่าน',
     'login.footer':'OpsMini v1.1.0 · แผงจัดการเซิร์ฟเวอร์ที่ขับเคลื่อนด้วย AI',
@@ -3140,7 +3339,7 @@ const I18N = {
     'set.tfa':'ยืนยันสองขั้นตอน (2FA)','set.autoup':'อัปเดตอัตโนมัติ','set.opsantSso':'อนุญาต OpsAnt SSO เข้าสู่ระบบ','set.opsantLink':'เชื่อมต่อ OpsAnt','set.opsantLinkDesc':'เชื่อมต่อโฮสต์นี้เป็น Agent กับ OpsAnt ต้องได้รับการอนุมัติบน OpsAnt','set.opsantServerAddr':'ที่อยู่ OpsAnt','set.opsantServerAddrPh':'เช่น 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'ต้องตรงกับ OPSMINI_TOKEN ของ OpsAnt','set.opsantRunning':'เชื่อมต่อแล้ว','set.opsantStopped':'ยังไม่เชื่อมต่อ','set.ai':'เชื่อมต่อโมเดล AI','set.aiEnable':'เปิดใช้งานผู้ช่วย AI','btn.copy':'คัดลอก','btn.copied':'คัดลอกแล้ว','set.model':'ผู้ให้บริการโมเดล','set.apiKey':'คีย์ API',
     'set.apiBase':'ที่อยู่ API','set.exec':'สั่งงานด้วยภาษาธรรมชาติ','set.logAna':'วิเคราะห์บันทึก','set.diag':'วินิจฉัยการแจ้งเตือน',
     'set.theme':'ธีมและรูปลักษณ์','set.customColor':'สีหลักที่กำหนดเอง','set.metrics':'ส่งออกเมตริก','set.metricsOn':'เปิดการยืนยันแล้ว','set.metricsOff':'ไม่มีการยืนยัน','set.metricsDesc':'เปิดเผยเมตริกระบบในรูปแบบที่เข้ากันได้กับ node_exporter ให้ Prometheus ดึงข้อมูลได้โดยตรง','set.metricsEndpoint':'ปลายทาง','set.metricsAuth':'เปิดการยืนยัน','set.metricsUser':'ชื่อผู้ใช้','set.metricsPass':'รหัสผ่าน','set.metricsUserPh':'เว้นว่างคือเปิดสาธารณะ','set.metricsPassPh':'ป้อนรหัสผ่าน','set.metricsTokenPh':'เว้นว่างคือเปิดสาธารณะ','set.metricsGen':'สุ่มสร้าง','set.metricsHint':'หลังบันทึก ให้ตั้งค่า Prometheus basic_auth ด้วยชื่อผู้ใช้และรหัสผ่านนี้; เว้นว่างคือไม่ต้องยืนยัน','set.metricsTokenEmpty':'ตั้งชื่อผู้ใช้และรหัสผ่าน หรือปิดการยืนยัน','set.aiSaved':'บันทึกการตั้งค่า AI แล้ว ✓','set.aiSaveFail':'บันทึกล้มเหลว','set.aiKeyEmpty':'กรุณากรอก API Key ก่อน','set.metricsSaved':'บันทึกการตั้งค่าการส่งออกเมตริกแล้ว ✓','set.metricsSaveFail':'บันทึกล้มเหลว','btn.save':'บันทึก','set.menu':'การแสดงเมนู','set.lang':'ภาษา / Language',
-    'ai.title':'ผู้ช่วย OpsMini AI','ai.pageDesc':'สนทนากับโมเดล AI และจัดการเครื่องมือ MCP','ai.chatTab':'แชท','ai.mcpTab':'MCP','ai.send':'ส่ง','mcp.add':'+ เพิ่ม MCP','mcp.name':'ชื่อ','mcp.transport':'การขนส่ง','mcp.endpoint':'คำสั่ง / URL','mcp.command':'คำสั่งเริ่มต้น','mcp.url':'URL','mcp.configMode':'วิธีกำหนดค่า','mcp.modeForm':'ป้อนแบบฟอร์ม','mcp.modeJson':'ไฟล์กำหนดค่า','mcp.json':'การกำหนดค่า JSON','mcp.jsonHint':'วาง JSON การกำหนดค่า MCP แบบเต็ม (รองรับ name/transport/command/url/headers/timeout)','mcp.jsonInvalid':'รูปแบบ JSON ไม่ถูกต้อง','mcp.jsonNoName':'JSON ไม่มีฟิลด์ name','mcp.headers':'ส่วนหัว','mcp.headerName':'ชื่อส่วนหัว','mcp.headerValue':'ค่าส่วนหัว','mcp.addHeader':'เพิ่มส่วนหัว','mcp.timeout':'หมดเวลา','mcp.empty':'ยังไม่มี MCP','mcp.deleteConfirm':'ยืนยันการลบ MCP นี้','modal.mcp':'เพิ่ม MCP','modal.mcpEdit':'แก้ไข MCP','sysUser.loginable':'เข้าสู่ระบบได้','sysUser.home':'โฮม','sysUser.loginStatus':'สถานะการเข้าสู่ระบบ','sysUser.canLogin':'เข้าสู่ระบบได้','sysUser.cannotLogin':'เข้าสู่ระบบไม่ได้','sysGroup.name':'ชื่อกลุ่ม','sysGroup.members':'สมาชิก','firewall.disabled':'ปิดใช้งาน','firewall.enabled':'เปิดใช้งาน','firewall.status':'สถานะ','firewall.backend':'แบ็กเอนด์','firewall.rules':'กฎ','ai.connected':'เชื่อมต่อแล้ว','ai.context':'บริบทปัจจุบัน','ai.placeholder':'พิมพ์คำสั่ง หรือแตะคำแนะนำ…','ai.sessions':'เซสชัน','ai.newSession':'เซสชันใหม่','ai.newSessionTitle':'แชทใหม่','ai.noSessions':'ยังไม่มีเซสชัน','ai.renameHint':'ดับเบิลคลิกเพื่อเปลี่ยนชื่อ','ai.renamePh':'ป้อนชื่อเซสชัน','ai.rename':'เปลี่ยนชื่อ','ai.delete':'ลบ','mfa.title':'การยืนยันสองขั้นตอน','mfa.code':'รหัสยืนยัน','mfa.hint':'ป้อนรหัส 6 หลักที่แสดงในแอปยืนยันตัวตน','mfa.required':'บัญชีนี้เปิดการยืนยันสองขั้นตอน กรุณาป้อนรหัส','mfa.invalid':'รหัสไม่ถูกต้องหรือหมดอายุ','mfa.verify':'ยืนยัน','mfa.codeHint':'ป้อนรหัส 6 หลัก','mfa.enableGlobal':'เปิดการยืนยันสองขั้นตอน','mfa.status':'สถานะการผูก','mfa.bound':'ผูกแล้ว','mfa.unbound':'ยังไม่ผูก','mfa.bind':'สร้าง QR Code','mfa.regen':'สร้างใหม่','mfa.codePh':'รหัส 6 หลัก','mfa.verifyBind':'ยืนยันและผูก','mfa.unbind':'ยกเลิกการผูก','mfa.enabled':'เปิดการยืนยันสองขั้นตอนแล้ว','mfa.disabled':'ปิดการยืนยันสองขั้นตอนแล้ว','mfa.disableConfirm':'ยกเลิกการผูกการยืนยันสองขั้นตอน? หลังยกเลิกการเข้าสู่ระบบจะไม่ต้องใช้รหัส','mfa.appHint':'รองรับ Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator Mini Program และแอปที่เข้ากันได้กับ Google Authenticator','mfa.qrFail':'สร้าง QR Code ล้มเหลว กรุณาป้อนคีย์ด้วยตนเอง','mfa.scanHint':'สแกน QR Code ด้วยแอปยืนยันตัวตน','files.showHidden':'แสดงไฟล์ที่ซ่อน','files.uploadHint':'อัปโหลดไปยังไดเรกทอรีปัจจุบัน','files.dirDownload':'ดาวน์โหลดโฟลเดอร์','files.dirDownloadDesc':'ระบบจะสร้างไฟล์บีบอัดของโฟลเดอร์นี้และดาวน์โหลด','files.dirSize':'ขนาดโฟลเดอร์','files.diskUsage':'การใช้งานดิสก์','files.dirDelete':'ลบโฟลเดอร์','files.dirDeleteDesc':'การลบโฟลเดอร์จะลบไฟล์ทั้งหมดภายใน และไม่สามารถกู้คืนได้','files.dirDeleteConfirm':'พิมพ์ชื่อโฟลเดอร์เพื่อยืนยันการลบ','container.delConfirm':'ลบคอนเทนเนอร์','container.delImgConfirm':'ลบอิมเมจ','container.restartConfirm':'รีสตาร์ทคอนเทนเนอร์','container.logs':'ล็อกคอนเทนเนอร์','container.logLines':'บรรทัด','container.logEmpty':'ไม่มีล็อก','container.logLoading':'กำลังโหลด...','set.auditRetention':'ระยะเวลาเก็บบันทึกแผง',
+    'ai.title':'ผู้ช่วย OpsMini AI','ai.pageDesc':'สนทนากับโมเดล AI และจัดการเครื่องมือ MCP','ai.chatTab':'แชท','ai.mcpTab':'MCP','ai.send':'ส่ง','mcp.add':'+ เพิ่ม MCP','mcp.name':'ชื่อ','mcp.transport':'การขนส่ง','mcp.endpoint':'คำสั่ง / URL','mcp.command':'คำสั่งเริ่มต้น','mcp.url':'URL','mcp.configMode':'วิธีกำหนดค่า','mcp.modeForm':'ป้อนแบบฟอร์ม','mcp.modeJson':'ไฟล์กำหนดค่า','mcp.json':'การกำหนดค่า JSON','mcp.jsonHint':'วาง JSON การกำหนดค่า MCP แบบเต็ม (รองรับ name/transport/command/url/headers/timeout)','mcp.jsonInvalid':'รูปแบบ JSON ไม่ถูกต้อง','mcp.jsonNoName':'JSON ไม่มีฟิลด์ name','mcp.headers':'ส่วนหัว','mcp.headerName':'ชื่อส่วนหัว','mcp.headerValue':'ค่าส่วนหัว','mcp.addHeader':'เพิ่มส่วนหัว','mcp.timeout':'หมดเวลา','mcp.empty':'ยังไม่มี MCP','mcp.deleteConfirm':'ยืนยันการลบ MCP นี้','modal.mcp':'เพิ่ม MCP','modal.mcpEdit':'แก้ไข MCP','sysUser.loginable':'เข้าสู่ระบบได้','sysUser.home':'โฮม','sysUser.loginStatus':'สถานะการเข้าสู่ระบบ','sysUser.canLogin':'เข้าสู่ระบบได้','sysUser.cannotLogin':'เข้าสู่ระบบไม่ได้','sysGroup.name':'ชื่อกลุ่ม','sysGroup.members':'สมาชิก','firewall.disabled':'ปิดใช้งาน','firewall.enabled':'เปิดใช้งาน','firewall.status':'สถานะ','firewall.backend':'แบ็กเอนด์','firewall.rules':'กฎ','ai.connected':'เชื่อมต่อแล้ว','ai.context':'บริบทปัจจุบัน','ai.placeholder':'พิมพ์คำสั่ง หรือแตะคำแนะนำ…','ai.sessions':'เซสชัน','ai.newSession':'เซสชันใหม่','ai.newSessionTitle':'แชทใหม่','ai.noSessions':'ยังไม่มีเซสชัน','ai.renameHint':'ดับเบิลคลิกเพื่อเปลี่ยนชื่อ','ai.renamePh':'ป้อนชื่อเซสชัน','ai.rename':'เปลี่ยนชื่อ','ai.delete':'ลบ','ai.mcpServer':'เปิด OpsMini เป็น MCP Server','ai.mcpEndpoint':'ที่อยู่ MCP','ai.mcpEnabled':'เปิดใช้งาน MCP','ai.mcpAllowHigh':'อนุญาตการทำงานเสี่ยงสูงผ่าน MCP','ai.mcpToken':'โทเคนเข้าใช้','ai.showToken':'แสดง','ai.hideToken':'ซ่อน','ai.mcpRotate':'สร้างโทเคนใหม่','ai.mcpRotateConfirm':'โทเคนเดิมจะใช้ไม่ได้ทันที ยืนยันหรือไม่?','ai.mcpHint':'นำที่อยู่และโทเคนด้านบนไปใส่ใน MCP ไคลเอนต์ที่รองรับ Streamable HTTP (Claude Desktop / Cursor / OpsAnt ฯลฯ) เพื่อใช้งานชุดเครื่องมือของ OpsMini','ai.mcpHighWarn':'ขณะนี้ MCP ไคลเอนต์สามารถทำงานเสี่ยงสูงได้โดยไม่ผ่านการยืนยันจากแผงควบคุม โปรดเก็บโทเคนให้ปลอดภัย','ai.stepThinking':'กำลังวิเคราะห์…','ai.stepCall':'เรียกใช้','ai.stepTools':' เครื่องมือ','ai.statusRunning':'กำลังทำงาน','ai.statusPending':'รอการอนุมัติ','ai.confirmTitle':'ยืนยันการดำเนินการเสี่ยงสูง','ai.approve':'อนุมัติและดำเนินการ','ai.reject':'ปฏิเสธ','ai.approved':'อนุมัติแล้ว ดำเนินการเรียบร้อย','ai.rejected':'ถูกปฏิเสธ ไม่ได้ดำเนินการ','ai.processing':'กำลังดำเนินการ…','ai.confirmHint':'เมื่ออนุมัติจะทำงานจริงบนเซิร์ฟเวอร์','ai.toolsTab':'สิทธิ์เครื่องมือ','ai.toolName':'เครื่องมือ','ai.toolRisk':'ความเสี่ยง','ai.toolPerm':'สิทธิ์ที่ต้องใช้','ai.toolDesc':'คำอธิบาย','ai.toolPolicy':'นโยบาย','ai.policyAuto':'ไม่ต้องยืนยัน','ai.policyConfirm':'ต้องยืนยัน','ai.policyDeny':'ปิดใช้งาน','ai.riskReadonly':'อ่านเท่านั้น','ai.riskLow':'ความเสี่ยงต่ำ','ai.riskHigh':'ความเสี่ยงสูง','ai.riskForbidden':'ห้าม','ai.riskReadonlyDesc':'อ่านข้อมูลเท่านั้น ไม่แก้ไขระบบ AI จึงทำงานได้เอง','ai.riskLowDesc':'การเขียนความเสี่ยงต่ำ ตั้งเป็นไม่ต้องยืนยันเพื่อความรวดเร็วได้','ai.riskHighDesc':'การดำเนินการเสี่ยงสูง ต้องได้รับการอนุมัติจากคนทุกครั้ง','ai.riskForbiddenDesc':'คำสั่งอันตรายที่ถูกบล็อกถาวร (เช่น rm -rf /, mkfs) ไม่อนุมัติก็ไม่ทำงาน','mfa.title':'การยืนยันสองขั้นตอน','mfa.code':'รหัสยืนยัน','mfa.hint':'ป้อนรหัส 6 หลักที่แสดงในแอปยืนยันตัวตน','mfa.required':'บัญชีนี้เปิดการยืนยันสองขั้นตอน กรุณาป้อนรหัส','mfa.invalid':'รหัสไม่ถูกต้องหรือหมดอายุ','mfa.verify':'ยืนยัน','mfa.codeHint':'ป้อนรหัส 6 หลัก','mfa.enableGlobal':'เปิดการยืนยันสองขั้นตอน','mfa.status':'สถานะการผูก','mfa.bound':'ผูกแล้ว','mfa.unbound':'ยังไม่ผูก','mfa.bind':'สร้าง QR Code','mfa.regen':'สร้างใหม่','mfa.codePh':'รหัส 6 หลัก','mfa.verifyBind':'ยืนยันและผูก','mfa.unbind':'ยกเลิกการผูก','mfa.enabled':'เปิดการยืนยันสองขั้นตอนแล้ว','mfa.disabled':'ปิดการยืนยันสองขั้นตอนแล้ว','mfa.disableConfirm':'ยกเลิกการผูกการยืนยันสองขั้นตอน? หลังยกเลิกการเข้าสู่ระบบจะไม่ต้องใช้รหัส','mfa.appHint':'รองรับ Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator Mini Program และแอปที่เข้ากันได้กับ Google Authenticator','mfa.qrFail':'สร้าง QR Code ล้มเหลว กรุณาป้อนคีย์ด้วยตนเอง','mfa.scanHint':'สแกน QR Code ด้วยแอปยืนยันตัวตน','files.showHidden':'แสดงไฟล์ที่ซ่อน','files.uploadHint':'อัปโหลดไปยังไดเรกทอรีปัจจุบัน','files.dirDownload':'ดาวน์โหลดโฟลเดอร์','files.dirDownloadDesc':'ระบบจะสร้างไฟล์บีบอัดของโฟลเดอร์นี้และดาวน์โหลด','files.dirSize':'ขนาดโฟลเดอร์','files.diskUsage':'การใช้งานดิสก์','files.dirDelete':'ลบโฟลเดอร์','files.dirDeleteDesc':'การลบโฟลเดอร์จะลบไฟล์ทั้งหมดภายใน และไม่สามารถกู้คืนได้','files.dirDeleteConfirm':'พิมพ์ชื่อโฟลเดอร์เพื่อยืนยันการลบ','container.delConfirm':'ลบคอนเทนเนอร์','container.delImgConfirm':'ลบอิมเมจ','container.restartConfirm':'รีสตาร์ทคอนเทนเนอร์','container.logs':'ล็อกคอนเทนเนอร์','container.logLines':'บรรทัด','container.logEmpty':'ไม่มีล็อก','container.logLoading':'กำลังโหลด...','set.auditRetention':'ระยะเวลาเก็บบันทึกแผง',
     'svc.web':'เว็บเซิร์ฟเวอร์','svc.db':'บริการฐานข้อมูล','svc.cache':'บริการแคช','svc.container':'เอนจินคอนเทนเนอร์','svc.php':'รันไทม์ PHP','svc.ssh':'เข้าสู่ระบบระยะไกล',
     'qa.website':'เพิ่มเว็บไซต์','qa.websiteSub':'สร้างเว็บไซต์อย่างรวดเร็ว','qa.db':'สร้างฐานข้อมูล','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'ติดตั้งแอป','qa.storeSub':'ติดตั้งจากร้านแอปในคลิกเดียว','qa.container':'คอนเทนเนอร์ใหม่','qa.containerSub':'คอนเทนเนอร์ Docker',
@@ -3150,7 +3349,7 @@ const I18N = {
     'common.running':'Läuft','common.stopped':'Gestoppt','common.enabled':'Aktiviert','common.disabled':'Deaktiviert',
     'common.folder':'Ordner','common.file':'Datei','common.edit':'Bearbeiten','common.delete':'Löschen','common.settings':'Einstellungen',
     'common.backup':'Backup','common.restart':'Neustart','common.run':'Ausführen','common.download':'Herunterladen','common.rename':'Umbenennen',
-    'common.state':'Status','common.actions':'Aktionen','common.log':'Protokoll','common.type':'Typ','common.name':'Name',
+    'common.state':'Status','common.actions':'Aktionen','common.copy':'Kopieren','common.copied':'Kopiert','common.copyFail':'Kopieren fehlgeschlagen','common.log':'Protokoll','common.type':'Typ','common.name':'Name',
     'login.title':'Anmelden','login.username':'Benutzername','login.password':'Passwort','login.remember':'Angemeldet bleiben',
     'login.forgot':'Passwort vergessen?','login.submit':'Anmelden','login.invalid':'Benutzername oder Passwort falsch','login.fail':'Anmeldung fehlgeschlagen','login.showPass':'Passwort anzeigen','login.hidePass':'Passwort ausblenden',
     'login.footer':'OpsMini v1.1.0 · KI-gesteuertes Server-Verwaltungspanel',
@@ -3185,7 +3384,7 @@ const I18N = {
     'set.tfa':'Zwei-Faktor (2FA)','set.autoup':'Automatische Updates','set.opsantSso':'OpsAnt SSO-Login erlauben','set.opsantLink':'Mit OpsAnt verbinden','set.opsantLinkDesc':'Diesen Host als Agent mit der OpsAnt Multi-Host Operations Platform verbinden; Freigabe auf OpsAnt erforderlich.','set.opsantServerAddr':'OpsAnt-Adresse','set.opsantServerAddrPh':'z.B. 47.104.172.52:4507','set.opsantToken':'Token','set.opsantTokenPh':'Muss mit dem OPSMINI_TOKEN von OpsAnt übereinstimmen','set.opsantRunning':'Verbunden','set.opsantStopped':'Nicht verbunden','set.ai':'KI-Modell-Integration','set.aiEnable':'KI-Assistent aktivieren','btn.copy':'Kopieren','btn.copied':'Kopiert','set.model':'Modellanbieter','set.apiKey':'API-Schlüssel',
     'set.apiBase':'API-Endpunkt','set.exec':'Ausführung in natürlicher Sprache','set.logAna':'Protokollanalyse','set.diag':'Alarmdiagnose',
     'set.theme':'Erscheinungsbild & Design','set.customColor':'Benutzerdefinierte Akzentfarbe','set.metrics':'Metrik-Export','set.metricsOn':'Auth aktiviert','set.metricsOff':'Keine Auth','set.metricsDesc':'Systemmetriken im node_exporter-kompatiblen Format für Prometheus-Scraping bereitstellen.','set.metricsEndpoint':'Endpunkt','set.metricsAuth':'Auth aktivieren','set.metricsUser':'Benutzername','set.metricsPass':'Passwort','set.metricsUserPh':'leer = offener Zugriff','set.metricsPassPh':'Passwort eingeben','set.metricsTokenPh':'leer = offener Zugriff','set.metricsGen':'Generieren','set.metricsHint':'Nach dem Speichern Prometheus basic_auth mit diesem Benutzernamen und Passwort konfigurieren; leerer Benutzername deaktiviert Auth.','set.metricsTokenEmpty':'Benutzername und Passwort setzen oder Auth deaktivieren','set.aiSaved':'AI-Einstellungen gespeichert ✓','set.aiSaveFail':'Speichern fehlgeschlagen','set.aiKeyEmpty':'Bitte zuerst API-Key eingeben','set.metricsSaved':'Metrik-Export-Einstellungen gespeichert ✓','set.metricsSaveFail':'Speichern fehlgeschlagen','btn.save':'Speichern','set.menu':'Menü-Sichtbarkeit','set.lang':'Sprache / Language',
-    'ai.title':'OpsMini KI-Assistent','ai.pageDesc':'Mit KI-Modellen chatten und MCP-Tools verwalten','ai.chatTab':'Chat','ai.mcpTab':'MCP','ai.send':'Senden','mcp.add':'+ MCP hinzufügen','mcp.name':'Name','mcp.transport':'Transport','mcp.endpoint':'Befehl / URL','mcp.command':'Startbefehl','mcp.url':'URL','mcp.configMode':'Konfigurationsmodus','mcp.modeForm':'Formular','mcp.modeJson':'Konfigurationsdatei','mcp.json':'JSON-Konfiguration','mcp.jsonHint':'Vollständige MCP-Konfiguration als JSON einfügen (name/transport/command/url/headers/timeout)','mcp.jsonInvalid':'Ungültiges JSON','mcp.jsonNoName':'JSON ohne "name"-Feld','mcp.headers':'Header','mcp.headerName':'Header-Name','mcp.headerValue':'Header-Wert','mcp.addHeader':'Header hinzufügen','mcp.timeout':'Timeout','mcp.empty':'Keine MCP-Server','mcp.deleteConfirm':'Diesen MCP-Server löschen','modal.mcp':'MCP hinzufügen','modal.mcpEdit':'MCP bearbeiten','sysUser.loginable':'anmeldbar','sysUser.home':'Home','sysUser.loginStatus':'Anmeldestatus','sysUser.canLogin':'Anmeldbar','sysUser.cannotLogin':'Nicht anmeldbar','sysGroup.name':'Gruppenname','sysGroup.members':'Mitglieder','firewall.disabled':'Deaktiviert','firewall.enabled':'Aktiviert','firewall.status':'Status','firewall.backend':'Backend','firewall.rules':'Regeln','ai.connected':'Verbunden','ai.context':'Aktueller Kontext','ai.placeholder':'Befehl eingeben oder Vorschlag antippen…','ai.sessions':'Sitzungen','ai.newSession':'Neue Sitzung','ai.newSessionTitle':'Neuer Chat','ai.noSessions':'Keine Sitzungen','ai.renameHint':'Doppelklick zum Umbenennen','ai.renamePh':'Sitzungsnamen eingeben','ai.rename':'Umbenennen','ai.delete':'Löschen','mfa.title':'Zwei-Faktor-Authentifizierung','mfa.code':'Bestätigungscode','mfa.hint':'Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein','mfa.required':'Für dieses Konto ist 2FA aktiviert, Code eingeben','mfa.invalid':'Code ungültig oder abgelaufen','mfa.verify':'Bestätigen','mfa.codeHint':'6-stelligen Code eingeben','mfa.enableGlobal':'2FA aktivieren','mfa.status':'Bindungsstatus','mfa.bound':'Gebunden','mfa.unbound':'Nicht gebunden','mfa.bind':'QR-Code generieren','mfa.regen':'Neu generieren','mfa.codePh':'6-stelliger Code','mfa.verifyBind':'Bestätigen & binden','mfa.unbind':'Bindung aufheben','mfa.enabled':'2FA aktiviert','mfa.disabled':'2FA deaktiviert','mfa.disableConfirm':'2FA-Bindung aufheben? Anmeldung verlangt danach keinen Code mehr','mfa.appHint':'Unterstützt Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator Mini-Programm u.a. Google-Authenticator-kompatible Apps','mfa.qrFail':'QR-Code-Generierung fehlgeschlagen, Geheimnis manuell eingeben','mfa.scanHint':'QR-Code mit Authenticator-App scannen','files.showHidden':'Versteckte Dateien anzeigen','files.uploadHint':'In aktuelles Verzeichnis hochladen','files.dirDownload':'Ordner herunterladen','files.dirDownloadDesc':'Das Panel erstellt ein ZIP-Archiv dieses Ordners und lädt es herunter','files.dirSize':'Ordnergröße','files.diskUsage':'Festplattennutzung','files.dirDelete':'Ordner löschen','files.dirDeleteDesc':'Beim Löschen des Ordners werden alle darin enthaltenen Dateien entfernt. Dies kann nicht rückgängig gemacht werden','files.dirDeleteConfirm':'Geben Sie den Ordnernamen zur Bestätigung ein','container.delConfirm':'Container löschen','container.delImgConfirm':'Image löschen','container.restartConfirm':'Container neu starten','container.logs':'Container-Protokolle','container.logLines':'Zeilen','container.logEmpty':'Keine Protokolle','container.logLoading':'Lade...','set.auditRetention':'Aufbewahrung Panel-Protokolle',
+    'ai.title':'OpsMini KI-Assistent','ai.pageDesc':'Mit KI-Modellen chatten und MCP-Tools verwalten','ai.chatTab':'Chat','ai.mcpTab':'MCP','ai.send':'Senden','mcp.add':'+ MCP hinzufügen','mcp.name':'Name','mcp.transport':'Transport','mcp.endpoint':'Befehl / URL','mcp.command':'Startbefehl','mcp.url':'URL','mcp.configMode':'Konfigurationsmodus','mcp.modeForm':'Formular','mcp.modeJson':'Konfigurationsdatei','mcp.json':'JSON-Konfiguration','mcp.jsonHint':'Vollständige MCP-Konfiguration als JSON einfügen (name/transport/command/url/headers/timeout)','mcp.jsonInvalid':'Ungültiges JSON','mcp.jsonNoName':'JSON ohne "name"-Feld','mcp.headers':'Header','mcp.headerName':'Header-Name','mcp.headerValue':'Header-Wert','mcp.addHeader':'Header hinzufügen','mcp.timeout':'Timeout','mcp.empty':'Keine MCP-Server','mcp.deleteConfirm':'Diesen MCP-Server löschen','modal.mcp':'MCP hinzufügen','modal.mcpEdit':'MCP bearbeiten','sysUser.loginable':'anmeldbar','sysUser.home':'Home','sysUser.loginStatus':'Anmeldestatus','sysUser.canLogin':'Anmeldbar','sysUser.cannotLogin':'Nicht anmeldbar','sysGroup.name':'Gruppenname','sysGroup.members':'Mitglieder','firewall.disabled':'Deaktiviert','firewall.enabled':'Aktiviert','firewall.status':'Status','firewall.backend':'Backend','firewall.rules':'Regeln','ai.connected':'Verbunden','ai.context':'Aktueller Kontext','ai.placeholder':'Befehl eingeben oder Vorschlag antippen…','ai.sessions':'Sitzungen','ai.newSession':'Neue Sitzung','ai.newSessionTitle':'Neuer Chat','ai.noSessions':'Keine Sitzungen','ai.renameHint':'Doppelklick zum Umbenennen','ai.renamePh':'Sitzungsnamen eingeben','ai.rename':'Umbenennen','ai.delete':'Löschen','ai.mcpServer':'OpsMini als MCP-Server','ai.mcpEndpoint':'MCP-Endpunkt','ai.mcpEnabled':'MCP-Endpunkt aktivieren','ai.mcpAllowHigh':'Riskante MCP-Aktionen erlauben','ai.mcpToken':'Zugriffstoken','ai.showToken':'Anzeigen','ai.hideToken':'Verbergen','ai.mcpRotate':'Token erneuern','ai.mcpRotateConfirm':'Das alte Token wird sofort ungültig. Erneuern?','ai.mcpHint':'Tragen Sie Endpunkt und Token oben in einen MCP-Client mit Streamable-HTTP-Unterstützung ein (Claude Desktop / Cursor / OpsAnt …), um das OpsMini-Werkzeugset zu nutzen.','ai.mcpHighWarn':'MCP-Clients dürfen nun riskante Aktionen ohne Bestätigung im Panel ausführen. Halten Sie das Token geheim.','ai.stepThinking':'Analyse läuft…','ai.stepCall':'Aufruf','ai.stepTools':' Tools','ai.statusRunning':'Läuft','ai.statusPending':'Wartet auf Freigabe','ai.confirmTitle':'Bestätigung einer riskanten Aktion','ai.approve':'Freigeben und ausführen','ai.reject':'Ablehnen','ai.approved':'Freigegeben und ausgeführt','ai.rejected':'Abgelehnt, nicht ausgeführt','ai.processing':'Wird verarbeitet…','ai.confirmHint':'Nach der Freigabe wird es wirklich auf dem Server ausgeführt','ai.toolsTab':'Tool-Berechtigungen','ai.toolName':'Tool','ai.toolRisk':'Risiko','ai.toolPerm':'Berechtigung','ai.toolDesc':'Beschreibung','ai.toolPolicy':'Richtlinie','ai.policyAuto':'Ohne Bestätigung','ai.policyConfirm':'Mit Bestätigung','ai.policyDeny':'Deaktiviert','ai.riskReadonly':'Nur Lesen','ai.riskLow':'Geringes Risiko','ai.riskHigh':'Hohes Risiko','ai.riskForbidden':'Verboten','ai.riskReadonlyDesc':'Liest nur Daten und ändert nichts – die KI darf es selbst ausführen.','ai.riskLowDesc':'Schreibzugriff mit geringem Risiko; kann für Tempo auf „ohne Bestätigung“ gesetzt werden.','ai.riskHighDesc':'Riskante Aktion; jede Ausführung erfordert eine menschliche Freigabe.','ai.riskForbiddenDesc':'Gesperrte zerstörerische Befehle (z. B. rm -rf /, mkfs) werden nie ausgeführt – auch nicht mit Freigabe.','mfa.title':'Zwei-Faktor-Authentifizierung','mfa.code':'Bestätigungscode','mfa.hint':'Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein','mfa.required':'Für dieses Konto ist 2FA aktiviert, Code eingeben','mfa.invalid':'Code ungültig oder abgelaufen','mfa.verify':'Bestätigen','mfa.codeHint':'6-stelligen Code eingeben','mfa.enableGlobal':'2FA aktivieren','mfa.status':'Bindungsstatus','mfa.bound':'Gebunden','mfa.unbound':'Nicht gebunden','mfa.bind':'QR-Code generieren','mfa.regen':'Neu generieren','mfa.codePh':'6-stelliger Code','mfa.verifyBind':'Bestätigen & binden','mfa.unbind':'Bindung aufheben','mfa.enabled':'2FA aktiviert','mfa.disabled':'2FA deaktiviert','mfa.disableConfirm':'2FA-Bindung aufheben? Anmeldung verlangt danach keinen Code mehr','mfa.appHint':'Unterstützt Alibaba Cloud APP, Tencent Cloud APP, Huawei Cloud APP, Tencent Authenticator Mini-Programm u.a. Google-Authenticator-kompatible Apps','mfa.qrFail':'QR-Code-Generierung fehlgeschlagen, Geheimnis manuell eingeben','mfa.scanHint':'QR-Code mit Authenticator-App scannen','files.showHidden':'Versteckte Dateien anzeigen','files.uploadHint':'In aktuelles Verzeichnis hochladen','files.dirDownload':'Ordner herunterladen','files.dirDownloadDesc':'Das Panel erstellt ein ZIP-Archiv dieses Ordners und lädt es herunter','files.dirSize':'Ordnergröße','files.diskUsage':'Festplattennutzung','files.dirDelete':'Ordner löschen','files.dirDeleteDesc':'Beim Löschen des Ordners werden alle darin enthaltenen Dateien entfernt. Dies kann nicht rückgängig gemacht werden','files.dirDeleteConfirm':'Geben Sie den Ordnernamen zur Bestätigung ein','container.delConfirm':'Container löschen','container.delImgConfirm':'Image löschen','container.restartConfirm':'Container neu starten','container.logs':'Container-Protokolle','container.logLines':'Zeilen','container.logEmpty':'Keine Protokolle','container.logLoading':'Lade...','set.auditRetention':'Aufbewahrung Panel-Protokolle',
     'svc.web':'Webserver','svc.db':'Datenbankdienst','svc.cache':'Cache-Dienst','svc.container':'Container-Engine','svc.php':'PHP-Laufzeit','svc.ssh':'Remote-Login',
     'qa.website':'Website hinzufügen','qa.websiteSub':'Schnell eine Site erstellen','qa.db':'Datenbank erstellen','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'App installieren','qa.storeSub':'Mit einem Klick aus dem Store','qa.container':'Neuer Container','qa.containerSub':'Docker-Container',
@@ -3608,6 +3807,10 @@ createApp({
       aiTab: 'chat',
       aiSessions: [],
       currentSessionId: null,
+      aiBackend: false,
+      agentTools: [],
+      mcpServer: { enabled:true, allow_high_risk:false, token:'', endpoint:'/mcp', high_risk_tool_count:0 },
+      showMcpToken: false,
       mcpServers: [],
       skills: [],
       skillCatalog: [],
@@ -5468,32 +5671,227 @@ createApp({
     async send(text){
       const msg = (text || this.aiInput).trim();
       if(!msg || this.aiLoading) return;
-      if(!this.currentSessionId){ this.newSession(); }
+      let sess = this.aiSessions.find(s => s.id === this.currentSessionId);
+      if(!sess){ this.newSession(); sess = this.aiSessions[0]; }
       this.aiMessages.push({ role:'user', text: msg });
       this.aiInput = '';
-      this.aiMessages.push({ role:'ai', text:'', typing:true });
+      const ai = { role:'ai', text:'', typing:true, steps:[], confirm:null, error:'' };
+      this.aiMessages.push(ai);
       // 新会话用首条用户消息作标题
-      const cur = this.aiSessions.find(s => s.id === this.currentSessionId);
-      if(cur && cur.title === this.t('ai.newSessionTitle') && this.aiMessages.filter(m=>m.role==='user').length === 1){
-        cur.title = msg.slice(0, 24);
+      if(sess.title === this.t('ai.newSessionTitle') && this.aiMessages.filter(m=>m.role==='user').length === 1){
+        sess.title = msg.slice(0, 24);
       }
       this.persistAiSessions();
       this.$nextTick(()=>this.scrollAI());
       this.aiLoading = true;
-      const idx = this.aiMessages.length - 1;
-      const ctx = this.aiContextText || this.aiCtx.label;
       try{
-        const full = await this.streamChat(msg, ctx, idx);
-        if(!full && !this.aiMessages[idx].text) this.aiMessages[idx] = { role:'ai', text:'(empty reply)' };
+        await this.agentChat(msg, ai, sess);
       }catch(e){
-        this.aiMessages[idx] = { role:'ai', text: (this.aiMessages[idx].text || '') || ('⚠ ' + e.message) };
+        ai.error = e.message || String(e);
       }finally{
+        ai.typing = false;
         this.aiLoading = false;
-        this.persistAiSessions();
+        if(!this.aiBackend) this.persistAiSessions();
         this.$nextTick(()=>this.scrollAI());
       }
     },
-    // streamChat 流式对话：fetch /ai/chat/stream，逐 chunk 追加到 aiMessages[idx].text。
+    // agentChat AI 智能体对话：POST /ai/agent/chat，SSE 流式接收思考链 / 工具调用 / 确认事件。
+    async agentChat(message, ai, sess){
+      const body = JSON.stringify({
+        session_id: (sess && sess.serverId) ? sess.serverId : '',
+        message,
+        context: this.aiContextText || this.aiCtx.label,
+        deep_think: this.aiDeepThink,
+      });
+      const res = await this.agentFetch('/api/v1/ai/agent/chat', body);
+      // 无 ai.agent 权限（或后端版本较旧）时退回普通流式问答，保证可用性。
+      if(res.status === 403 || res.status === 404){
+        const idx = this.aiMessages.indexOf(ai);
+        const full = await this.streamChat(message, this.aiContextText || this.aiCtx.label, idx);
+        ai.text = full || ai.text;
+        return;
+      }
+      if(!res.ok){
+        const eb = await res.json().catch(()=>null);
+        throw new Error((eb && eb.message) || ('HTTP ' + res.status));
+      }
+      await this.consumeAgentStream(res, ai, sess);
+    },
+    // agentFetch 带 token 与自动刷新重试的 POST。
+    async agentFetch(url, body){
+      const doFetch = () => fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + this.token },
+        body,
+      });
+      let res = await doFetch();
+      if(res.status === 401 && await this.tryRefreshToken()){ res = await doFetch(); }
+      return res;
+    },
+    // consumeAgentStream 解析 SSE 事件流并驱动界面。
+    async consumeAgentStream(res, ai, sess){
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buf += decoder.decode(value, { stream:true });
+        let nl;
+        while((nl = buf.indexOf('\n')) >= 0){
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if(!line.startsWith('data:')) continue;
+          const data = line.slice(5).trim();
+          if(!data || data === '[DONE]') continue;
+          let ev = null;
+          try{ ev = JSON.parse(data); }catch(e){ continue; }
+          this.handleAgentEvent(ev, ai, sess);
+        }
+        this.$nextTick(()=>this.scrollAI());
+      }
+    },
+    // handleAgentEvent 把后端事件映射成消息里的思考链与确认卡片。
+    handleAgentEvent(ev, ai, sess){
+      switch(ev.type){
+        case 'session':
+          if(sess && ev.session_id) sess.serverId = ev.session_id;
+          this.aiBackend = true;
+          break;
+        case 'step':
+          ai.steps.push({ step: ev.step, thinking:'', tools:[], open:true });
+          break;
+        case 'thinking': {
+          if(!ev.delta) break;
+          let st = ai.steps[ai.steps.length-1];
+          if(!st){ st = { step:1, thinking:'', tools:[], open:true }; ai.steps.push(st); }
+          st.thinking += ev.delta;
+          break;
+        }
+        case 'tool_call': {
+          let st = ai.steps[ai.steps.length-1];
+          if(!st){ st = { step: ev.step||1, thinking:'', tools:[], open:true }; ai.steps.push(st); }
+          const exist = st.tools.find(t => t.id === ev.id);
+          if(exist){
+            // 恢复执行后同一个调用会再次上报，只更新状态不重复插入。
+            exist.status = 'running';
+            exist.preview = ev.preview || exist.preview;
+            exist.args = ev.args || exist.args;
+          }else{
+            st.tools.push({ id: ev.id, name: ev.name, args: ev.args || {}, risk: ev.risk || '',
+              preview: ev.preview || '', status:'running', summary:'', detail:'', open:false });
+          }
+          break;
+        }
+        case 'tool_result': {
+          const tl = this.findTool(ai, ev.id);
+          if(tl){
+            tl.status = ev.ok ? 'ok' : 'fail';
+            tl.summary = ev.summary || '';
+            tl.detail = ev.detail || '';
+            if(!tl.preview && ev.summary) tl.preview = String(ev.summary).split('\n')[0].slice(0, 90);
+          }
+          break;
+        }
+        case 'confirm': {
+          const tl = this.findTool(ai, ev.id);
+          if(tl) tl.status = 'pending';
+          ai.confirm = { id: ev.approval_id, toolCallId: ev.id, name: ev.name,
+            preview: ev.preview || '', risk: ev.risk || 'high_write', status:'pending' };
+          ai.openConfirm = true;
+          ai.typing = false;
+          break;
+        }
+        case 'final':
+          ai.text = ev.content || '';
+          ai.typing = false;
+          // 去掉没有工具调用的空步骤
+          ai.steps = ai.steps.filter(s => s.tools.length);
+          break;
+        case 'error':
+          ai.error = ev.message || this.t('common.failed');
+          ai.typing = false;
+          break;
+        case 'done':
+          ai.typing = false;
+          break;
+      }
+    },
+    // findTool 在整条消息的思考链中按 tool_call_id 找到工具项。
+    findTool(ai, id){
+      if(!ai.steps) return null;
+      for(const st of ai.steps){
+        const tl = st.tools.find(t => t.id === id);
+        if(tl) return tl;
+      }
+      return null;
+    },
+    // decideApproval 提交人工审批决定并继续执行（SSE）。
+    async decideApproval(ai, approved){
+      const c = ai.confirm;
+      if(!c || c.status !== 'pending' || this.aiLoading) return;
+      c.status = approved ? 'approving' : 'rejecting';
+      this.aiLoading = true;
+      const sess = this.aiSessions.find(s => s.id === this.currentSessionId);
+      try{
+        const res = await this.agentFetch('/api/v1/ai/agent/approve', JSON.stringify({ approval_id: c.id, approved }));
+        if(!res.ok){
+          const eb = await res.json().catch(()=>null);
+          throw new Error((eb && eb.message) || ('HTTP ' + res.status));
+        }
+        await this.consumeAgentStream(res, ai, sess);
+        c.status = approved ? 'approved' : 'rejected';
+      }catch(e){
+        c.status = 'pending';
+        ai.error = e.message || String(e);
+      }finally{
+        this.aiLoading = false;
+        this.$nextTick(()=>this.scrollAI());
+      }
+    },
+    // stepTitle 生成思考链每一行的标题。
+    stepTitle(st){
+      const n = st.tools.length;
+      if(n === 0) return this.t('ai.stepThinking');
+      if(n === 1) return this.t('ai.stepCall') + ' ' + st.tools[0].name;
+      return this.t('ai.stepCall') + ' ' + n + this.t('ai.stepTools');
+    },
+    // riskLabel 风险等级的中文标签。
+    riskLabel(risk){
+      if(risk === 'readonly') return this.t('ai.riskReadonly');
+      if(risk === 'low_write') return this.t('ai.riskLow');
+      if(risk === 'high_write') return this.t('ai.riskHigh');
+      return '';
+    },
+    // toolStatusLabel 工具执行状态标签。
+    toolStatusLabel(status){
+      if(status === 'running') return this.t('ai.statusRunning');
+      if(status === 'ok') return '✓';
+      if(status === 'fail') return '✕';
+      if(status === 'pending') return this.t('ai.statusPending');
+      return '';
+    },
+    // toolPreview 根据工具名与参数生成可读的一句话描述（历史回放时使用）。
+    toolPreview(name, args){
+      if(!args || typeof args !== 'object') return name;
+      const a = args;
+      if(a.command) return '执行命令：' + a.command;
+      if(a.path) return name + '：' + a.path;
+      if(a.container) return a.container + (a.action ? ' · ' + a.action : '');
+      if(a.service) return a.service + (a.action ? ' · ' + a.action : '');
+      if(a.action) return name + ' · ' + a.action;
+      if(a.keyword) return name + '：' + a.keyword;
+      if(a.name) return name + '：' + a.name;
+      const keys = Object.keys(a);
+      if(!keys.length) return name;
+      return name + ' ' + JSON.stringify(a);
+    },
+    // parseArgs 容错解析工具参数 JSON。
+    parseArgs(raw){
+      if(!raw) return {};
+      try{ return JSON.parse(raw) || {}; }catch(e){ return {}; }
+    },
+    // streamChat 普通流式问答（无 ai.agent 权限时的降级通道）：fetch /ai/chat/stream。
     async streamChat(message, ctx, idx){
       const body = JSON.stringify({ message, context: ctx, deep_think: this.aiDeepThink });
       const doFetch = () => fetch('/api/v1/ai/chat/stream', {
@@ -5527,8 +5925,10 @@ createApp({
           try{ obj = JSON.parse(data); }catch(e){ continue; }
           if(obj && obj.delta){
             full += obj.delta;
-            this.aiMessages[idx].text = full;
-            this.aiMessages[idx].typing = false;
+            if(this.aiMessages[idx]){
+              this.aiMessages[idx].text = full;
+              this.aiMessages[idx].typing = false;
+            }
           } else if(obj && obj.error){
             throw new Error(obj.error);
           }
@@ -5537,14 +5937,34 @@ createApp({
       }
       return full;
     },
-    // ===== AI 会话管理 =====
-    initAiSessions(){
+    // ===== AI 会话管理（后端持久化，失败时回退 localStorage）=====
+    async initAiSessions(){
+      try{
+        const data = await this.api('/ai/agent/sessions');
+        const list = (data && data.sessions) || [];
+        this.aiBackend = true;
+        this.aiSessions = list.map(s => ({
+          id:'b'+s.id, serverId:s.id,
+          title:s.title || this.t('ai.newSessionTitle'),
+          messages:[], loaded:false,
+        }));
+        if(this.aiSessions.length){
+          this.currentSessionId = this.aiSessions[0].id;
+          this.aiMessages = this.aiSessions[0].messages;
+          await this.loadAgentMessages(this.aiSessions[0]);
+          return;
+        }
+        this.newSession();
+        return;
+      }catch(e){ /* 无 ai.agent 权限或旧后端：回退到本地会话 */ }
+      this.aiBackend = false;
       try{
         const raw = localStorage.getItem('opsmini-ai-sessions');
         if(raw){
           const arr = JSON.parse(raw);
           if(Array.isArray(arr) && arr.length){
-            this.aiSessions = arr.map(s => ({ id:s.id, title:s.title || this.t('ai.newSessionTitle'), messages:(s.messages||[]).map(m=>({ role:m.role, text:m.text })) }));
+            this.aiSessions = arr.map(s => ({ id:s.id, serverId:'', title:s.title || this.t('ai.newSessionTitle'), loaded:true,
+              messages:(s.messages||[]).map(m=>({ role:m.role, text:m.text })) }));
             this.currentSessionId = this.aiSessions[0].id;
             this.aiMessages = this.aiSessions[0].messages;
             return;
@@ -5553,29 +5973,98 @@ createApp({
       }catch(e){}
       this.newSession();
     },
+    // loadAgentMessages 从后端拉取会话历史并重建思考链。
+    async loadAgentMessages(s){
+      if(!s.serverId || s.loaded) return;
+      try{
+        const data = await this.api('/ai/agent/sessions/' + s.serverId + '/messages');
+        const rows = (data && data.messages) || [];
+        const pending = (data && data.pending) || [];
+        const msgs = [];
+        let cur = null;
+        for(const m of rows){
+          if(m.role === 'user'){ msgs.push({ role:'user', text: m.content }); cur = null; continue; }
+          if(m.role === 'assistant'){
+            cur = { role:'ai', text:'', typing:false, steps:[], confirm:null, error:'' };
+            msgs.push(cur);
+            const calls = m.tool_calls || [];
+            if(calls.length){
+              const st = { step: cur.steps.length + 1, thinking:'', tools:[], open:false };
+              for(const tc of calls){
+                // 初始为「待确认」，随后由工具结果消息改写为成功/失败。
+                st.tools.push({ id: tc.id, name: tc.function.name,
+                  args: this.parseArgs(tc.function.arguments),
+                  preview: this.toolPreview(tc.function.name, this.parseArgs(tc.function.arguments)),
+                  risk:'', status:'pending', summary:'', detail:'', open:false });
+              }
+              cur.steps.push(st);
+            }
+            if(m.content) cur.text = m.content;
+            continue;
+          }
+          if(m.role === 'tool'){
+            if(cur && cur.steps.length){
+              const st = cur.steps[cur.steps.length-1];
+              const tl = st.tools.find(t => t.id === m.tool_call_id);
+              if(tl){
+                tl.summary = m.content || '';
+                tl.status = /失败|未执行|被拒绝|已取消|禁止|拒绝|禁止执行/.test(m.content || '') ? 'fail' : 'ok';
+                if(!tl.preview) tl.preview = String(m.content || '').split('\n')[0].slice(0, 90);
+              }
+            }
+            continue;
+          }
+          if(m.role === 'system' && (m.content||'').indexOf('【历史对话摘要】') === 0){
+            msgs.push({ role:'ai', text: m.content, typing:false, steps:[], confirm:null, error:'' });
+            cur = null;
+          }
+        }
+        // 未处理的审批：挂到最后一条 AI 消息上，刷新页面后仍可继续操作。
+        if(pending.length && cur){
+          const p = pending[0];
+          cur.confirm = { id:p.id, toolCallId:p.tool_call_id, name:p.tool_name,
+            preview:p.preview || '', risk:'high_write', status:'pending' };
+          if(cur.steps.length){
+            const st = cur.steps[cur.steps.length-1];
+            const tl = st.tools.find(t => t.id === p.tool_call_id);
+            if(tl){ tl.status = 'pending'; if(p.preview) tl.preview = p.preview; }
+          }
+        }
+        s.messages.splice(0, s.messages.length, ...msgs);
+        s.loaded = true;
+        this.aiMessages = s.messages;
+      }catch(e){ s.loaded = true; }
+    },
     newSession(){
-      const s = { id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2,6), title: this.t('ai.newSessionTitle'), messages: [] };
+      const s = { id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), serverId:'',
+        title: this.t('ai.newSessionTitle'), messages:[], loaded:true };
       this.aiSessions.unshift(s);
       this.currentSessionId = s.id;
       this.aiMessages = s.messages;
       this.aiInput = '';
       this.persistAiSessions();
     },
-    switchSession(id){
+    async switchSession(id){
       const s = this.aiSessions.find(x => x.id === id);
       if(!s) return;
       this.currentSessionId = id;
       this.aiMessages = s.messages;
       this.aiInput = '';
+      if(this.aiBackend && !s.loaded) await this.loadAgentMessages(s);
       this.$nextTick(()=>this.scrollAI());
     },
-    deleteSession(id){
+    async deleteSession(id){
+      const s = this.aiSessions.find(x => x.id === id);
+      if(s && this.aiBackend && s.serverId){
+        try{ await this.api('/ai/agent/sessions/' + s.serverId, { method:'DELETE' }); }catch(e){}
+      }
       const idx = this.aiSessions.findIndex(x => x.id === id);
       if(idx < 0) return;
       this.aiSessions.splice(idx, 1);
       if(this.aiSessions.length === 0){ this.newSession(); return; }
       this.currentSessionId = this.aiSessions[0].id;
       this.aiMessages = this.aiSessions[0].messages;
+      if(this.aiBackend && !this.aiSessions[0].loaded) await this.loadAgentMessages(this.aiSessions[0]);
       this.persistAiSessions();
     },
     renameSession(id){
@@ -5585,6 +6074,7 @@ createApp({
       if(name && name.trim()){ s.title = name.trim(); this.persistAiSessions(); }
     },
     persistAiSessions(){
+      if(this.aiBackend) return; // 后端已持久化，无需写入本地
       try{
         const clean = this.aiSessions.map(s => ({
           id: s.id, title: s.title,
@@ -5593,9 +6083,67 @@ createApp({
         localStorage.setItem('opsmini-ai-sessions', JSON.stringify(clean));
       }catch(e){}
     },
+    // ===== AI 工具权限 =====
+    async loadAgentTools(){
+      try{
+        const d = await this.api('/ai/agent/tools');
+        this.agentTools = (d && d.tools) || [];
+      }catch(e){ this.toast(e.message); }
+      this.loadMcpServer();
+    },
+    // loadMcpServer 读取「OpsMini 作为 MCP Server」的端点配置。
+    async loadMcpServer(){
+      try{
+        const d = await this.api('/ai/agent/mcp-server');
+        if(d) this.mcpServer = d;
+      }catch(e){ /* 老版本或权限不足时忽略 */ }
+    },
+    // saveMcpServer 更新 MCP Server 开关。
+    async saveMcpServer(patch){
+      try{
+        const d = await this.api('/ai/agent/mcp-server', { method:'PUT', body: JSON.stringify(patch) });
+        if(d) this.mcpServer = d;
+        this.toast(this.t('store.saved'));
+      }catch(e){ this.toast(e.message); }
+    },
+    // rotateMcpToken 重新生成访问令牌。
+    async rotateMcpToken(){
+      if(!confirm(this.t('ai.mcpRotateConfirm'))) return;
+      await this.saveMcpServer({ rotate_token: true });
+    },
+    // copyMcpToken 复制令牌到剪贴板。
+    async copyMcpToken(){
+      try{
+        await navigator.clipboard.writeText(this.mcpServer.token || '');
+        this.toast(this.t('common.copied'));
+      }catch(e){ this.toast(this.t('common.copyFail')); }
+    },
+    // mcpServerURL 计算 MCP 端点完整地址。
+    mcpServerURL(){
+      if(!this.mcpServer) return '';
+      return window.location.origin + (this.mcpServer.endpoint || '/mcp');
+    },
+    // mcpClientExample 生成给外部 MCP 客户端的配置示例。
+    mcpClientExample(){
+      if(!this.mcpServer) return '';
+      const url = window.location.origin + (this.mcpServer.endpoint || '/mcp');
+      return JSON.stringify({
+        mcpServers: {
+          opsmini: { type:'http', url, headers:{ Authorization:'Bearer ' + (this.mcpServer.token || '') } },
+        },
+      }, null, 2);
+    },
+    async setToolPolicy(tool, policy){
+      const prev = tool.policy;
+      tool.policy = policy;
+      try{
+        await this.api('/ai/agent/tools/policy', { method:'PUT', body: JSON.stringify({ policies: { [tool.name]: policy } }) });
+        this.toast(this.t('store.saved'));
+      }catch(e){ tool.policy = prev; this.toast(e.message); }
+    },
     scrollAI(){ const el=this.$refs.aiBody || document.getElementById('ai-chat-body'); if(el) el.scrollTop = el.scrollHeight; },
     // ===== AI 页面（MCP 管理）=====
-    setAiTab(tab){ this.aiTab = tab; if(tab==='mcp') this.loadMcp(); else if(tab==='skill'){ this.loadSkills(); this.fetchSkillCatalog(); } },
+    setAiTab(tab){ this.aiTab = tab; if(tab==='mcp') this.loadMcp(); else if(tab==='skill'){ this.loadSkills(); this.fetchSkillCatalog(); } else if(tab==='tools') this.loadAgentTools(); },
     async loadMcp(){ try{ this.mcpServers = await this.api('/mcp'); }catch(e){ this.toast(e.message); } },
     async loadSkills(){
       try{ this.skills = await this.api('/skills'); }catch(e){ this.skills = []; }
