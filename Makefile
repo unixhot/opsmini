@@ -1,9 +1,14 @@
 # OpsMini 多架构发布构建（面向 Linux 主机面板）。
 # 依赖：Go 1.25+（纯 Go 驱动无 CGO，可直接交叉编译，无需额外工具链）。
 
-VERSION    ?= $(shell git describe --tags --always 2>/dev/null || echo dev)
+VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+GIT_SHA    := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+# 工作区是否有未提交改动。有改动却仍打版本号，会让二进制与 tag 语义脱节
+# （v1.4.0、v1.2.1 各踩过一次）。这里让 -version 直接把 -dirty 后缀打出来，
+# 谁都能一眼看出"这个包不是干净的 tag 构建"。
+GIT_DIRTY  := $(shell git status --porcelain 2>/dev/null | head -n 1)
+GIT_COMMIT := $(GIT_SHA)$(if $(GIT_DIRTY),-dirty,)
 LDFLAGS    := -s -w \
 	-X main.version=$(VERSION) \
 	-X main.buildTime=$(BUILD_TIME) \
@@ -15,7 +20,7 @@ TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
 DIST_DIR := dist
 BIN      := opsmini
 
-.PHONY: all build build-all clean version
+.PHONY: all build build-all clean version release-check release
 
 ## build: 编译当前平台的二进制到 dist/
 build:
@@ -41,3 +46,21 @@ clean:
 ## version: 打印当前版本信息
 version:
 	@echo "version=$(VERSION) commit=$(GIT_COMMIT) time=$(BUILD_TIME)"
+	@if [ -n "$(GIT_DIRTY)" ]; then echo "⚠ 工作区有未提交改动（构建产物会带 -dirty）"; fi
+
+## release-check: 发布前预检——工作区必须干净，且 HEAD 必须正好落在 tag 上
+## 正确顺序：git commit → git tag vX.Y.Z → make release（这样 VERSION 就是干净的 tag 名，
+## 产物名才符合 opsmini-v<版本>-linux-<架构>，且 -version 的 commit == tag 指向的 commit）
+release-check:
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "✗ 工作区有未提交改动，先 commit 再构建（否则 -version 的 commit 与 tag 不符）"; \
+		git status --porcelain; exit 1; fi
+	@if [ -z "$$(git describe --tags --exact-match 2>/dev/null)" ]; then \
+		echo "✗ HEAD 未指向任何 tag，当前 VERSION=$(VERSION)"; \
+		echo "  请先打 tag：git tag vX.Y.Z && make release"; exit 1; fi
+	@echo "✓ 工作区干净，tag=$$(git describe --tags --exact-match)，commit=$$(git rev-parse --short HEAD)"
+
+## release: 预检通过后交叉编译全部平台
+release: release-check build-all
+	@echo "发布包："
+	@ls -lh $(DIST_DIR)/$(BIN)-$(VERSION)-* 2>/dev/null || true
