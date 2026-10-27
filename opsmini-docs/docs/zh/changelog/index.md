@@ -2,6 +2,20 @@
 
 各版本变更记录。
 
+## v1.2.1（2026-10-27）
+
+**修正：移除 4 个跨边界实现的多机 AI 工具**
+
+v1.2.0 注册了 `list_remote_hosts` / `remote_exec` / `remote_pull_file` / `remote_push_file` 四个多机工具，让面板的 AI 通过 OpsMini Server 的控制面 HTTP 接口（4508）向其它纳管主机下发命令与文件。这个实现越过了架构边界，现已移除：
+
+- 4508 是 OpsMini Server 提供给 OpsAnt 的**内部**接口，定位「仅本机 / 内网」，且不校验鉴权；
+- 面板在多机链路中的角色是**被纳管的 Agent**，只应通过 4507 的 gRPC 长连接与 Server 通信（注册、心跳、接收任务），不应反向调用控制面；
+- 要让这个设计可用，就必须把 4508 暴露到公网 —— 等于挂出一个无认证的远程命令执行入口。
+
+工具集因此回到 **29 个**（16 只读 / 5 低危写 / 8 高危写）。多机编排与多机 AI 由 OpsAnt 承担，它已有统一的执行 API（`/api/opsant/v1/tasks/run-shell/`、`tasks/run-script/`、`tasks/send-file/`、`tasks/get-minion-file/` 等）以及 salt / ansible / opsmini 三个执行引擎。
+
+**升级无需迁移**：这 4 个工具在旧版本中依赖 4508 可达，实际一直不可用。
+
 ## v1.2.0（2026-10-27）
 
 **AI 智能体（从「运维顾问」到「运维操作员」）**

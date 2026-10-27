@@ -92,7 +92,6 @@ L3 が対象とするのは `rm -rf /`（重要なシステムディレクトリ
 | L0 読み取り専用 | 16 | `sys_overview`、`list_processes`、`list_ports`、`dir_usage`、`read_file`、`search_logs`、`query_metrics`、`docker_ps`、`security_status` |
 | L1 低リスク書き込み | 5 | `clean_temp`、`clean_logs`、`service_control`、`docker_control`、`install_skill` |
 | L2 高リスク書き込み | 8 | `exec_command`、`write_file`、`delete_path`、`modify_sshd`、`compress_dir`、`cron_write`、`kill_process`、`firewall_rule` |
-| マルチホスト（任意設定） | 4 | `list_remote_hosts`、`remote_exec`、`remote_pull_file`、`remote_push_file` |
 | 外部 MCP | 動的 | `mcp__<server>__<tool>`。リスクは `readOnlyHint` アノテーションから取得 |
 
 ツールはパネルの RBAC を継承します。読み取り専用ロールには書き込み権限が必要なツールが見えず、L2 ツールには加えて `ai.agent.write` 権限が必要です。
@@ -153,9 +152,17 @@ L3 が対象とするのは `rm -rf /`（重要なシステムディレクトリ
 
 権限：`ai.agent`（エージェントの利用）と `ai.agent.write`（高リスク操作の承認）。旧エンドポイント `/ai/chat`、`/ai/chat/stream` はフォールバック経路として残しています。
 
-## 10. マルチホスト管理
+## 10. マルチホスト機能の帰属：パネルは単一ホストのみ
 
-パネルに `agent.server_addr`（OpsAnt ホスト上の OpsMini Server データプレーン）が設定されると、4 つのマルチホストツールが自動的に登録されます。これらは Server のコントロールプレーン HTTP API（既定では同一ホストの 4508 番ポート）を通じて、他の管理対象ホストでコマンドやスクリプトを実行し、ファイルを送受信します。SSH は一切使いません。アドレスとトークンは `ai_remote_server_url` / `ai_remote_server_token` で上書きできます。
+OpsMini は**単一ホスト向けパネル**であり、AI のツール群はこのマシンだけを操作します。複数ホストの操作は OpsAnt の役割です。OpsAnt こそが中心で、salt / ansible / opsmini の 3 つの実行エンジンと統一された実行 API（`/api/opsant/v1/tasks/run-shell/`、`tasks/run-script/`、`tasks/send-file/`、`tasks/get-minion-file/` など）を持っています。
+
+以前のバージョンには 4 つのマルチホストツール（`remote_list_hosts`、`remote_exec`、`remote_pull_file`、`remote_push_file`）があり、OpsMini Server のコントロールプレーン HTTP API（4508）経由で他のホストにタスクを送っていました。これらはアーキテクチャの境界を越えていたため削除しました：
+
+- 4508 は OpsMini Server が OpsAnt（Django）向けに提供する**内部** API で、「ローカル / 内部ネットワーク限定」の位置づけであり、認証も行いません。
+- この経路でのパネルの役割は**管理される Agent** であり、4507 の gRPC 長接続で Server と通信する（登録・ハートビート・タスク受信）べきで、コントロールプレーンを逆に呼ぶべきではありません。
+- その誤った設計を通すには 4508 を外部公開する必要があり、認証のない遠隔コマンド実行口をインターネットに晒すことになります。
+
+したがって役割分担は、**単一ホストの運用と AI は OpsMini、複数ホストの編成と AI は OpsAnt** です。両者は「OpsMini を OpsAnt の一つの管理方式として扱う」形で接続され、データの流れは常に OpsAnt → Agent です。
 
 ## 11. 定時 AI タスク（ホスト点検など）
 

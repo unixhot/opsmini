@@ -119,33 +119,10 @@ func buildAIAgent(
 	// Tool registry.
 	reg := aiagent.NewRegistry()
 
-	// Remote control plane (M8-E): derived from the Agent configuration so the
-	// panel can drive every host enrolled on the OpsMini Server. The HTTP control
-	// plane defaults to the gRPC host with port 4508; both can be overridden.
-	remoteClient := tools.NewRemoteClient(
-		func() string {
-			if v := getSetting("ai_remote_server_url"); v != "" {
-				return v
-			}
-			addr, _, _ := d.agentConfig.Current()
-			host := addr
-			if i := strings.LastIndex(addr, ":"); i > 0 {
-				host = addr[:i]
-			}
-			if host == "" {
-				return ""
-			}
-			return "http://" + host + ":4508"
-		},
-		func() string {
-			if v := getSetting("ai_remote_server_token"); v != "" {
-				return v
-			}
-			_, token, _ := d.agentConfig.Current()
-			return token
-		},
-		dataDir,
-	)
+	// OpsMini is a single-host panel: tools operate on this machine only.
+	// Driving other hosts is OpsAnt's job (it owns the multi-host execution
+	// API and the salt/ansible/opsmini engines), so the panel deliberately has
+	// no remote tool set.
 
 	tools.Build(reg, tools.Deps{
 		Sys:       d.sys,
@@ -162,8 +139,6 @@ func buildAIAgent(
 		Skill:     d.skill,
 		Mcp:       d.mcp,
 		Metrics:   d.metrics,
-		Agent:     agentMgr,
-		Remote:    remoteClient,
 		DataDir:   dataDir,
 		PanelPort: cfg.Server.Port,
 		Setting:   getSetting,

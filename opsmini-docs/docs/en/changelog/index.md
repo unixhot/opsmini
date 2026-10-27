@@ -2,6 +2,20 @@
 
 Change records for each version.
 
+## v1.2.1 (2026-10-27)
+
+**Fix: remove four multi-host AI tools that crossed an architectural boundary**
+
+v1.2.0 registered four multi-host tools (`list_remote_hosts` / `remote_exec` / `remote_pull_file` / `remote_push_file`) that let the panel's AI dispatch commands and files to other enrolled hosts through the OpsMini Server control-plane HTTP API on port 4508. That implementation crossed a boundary and has been removed:
+
+- 4508 is an **internal** API the OpsMini Server offers to OpsAnt. It is scoped to "local host / internal network" and performs no authentication.
+- On the multi-host path the panel is the **managed Agent**; it should talk to the Server only over the gRPC connection on 4507 (register, heartbeat, receive tasks) and must not call the control plane back.
+- Making that design work would require exposing 4508 to the internet — i.e. publishing an unauthenticated remote command entry point.
+
+The tool set therefore returns to **29** (16 read-only / 5 low-risk write / 8 high-risk write). Multi-host orchestration and multi-host AI belong to OpsAnt, which already provides a unified execution API (`/api/opsant/v1/tasks/run-shell/`, `tasks/run-script/`, `tasks/send-file/`, `tasks/get-minion-file/`, ...) plus the salt / ansible / opsmini engines.
+
+**No migration needed**: those four tools required 4508 to be reachable and were never actually usable.
+
 ## v1.2.0 (2026-10-27)
 
 **AI agent: from advisor to operator**

@@ -2,6 +2,20 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.2.1 (2026-10-27)
+
+**Korrektur: vier Mehrhost-KI-Werkzeuge entfernt, die eine Grenze überschritten**
+
+v1.2.0 registrierte vier Mehrhost-Werkzeuge (`list_remote_hosts` / `remote_exec` / `remote_pull_file` / `remote_push_file`), damit die KI des Panels über die HTTP-API der Steuerebene des OpsMini Server (4508) Befehle und Dateien an andere erfasste Hosts schickt. Diese Umsetzung überschritt eine Architekturgrenze und wurde entfernt.
+
+- 4508 ist eine **interne** API, die der OpsMini Server OpsAnt bereitstellt, gedacht für „nur lokal / internes Netz“, und sie prüft keine Anmeldedaten.
+- Auf dem Mehrhost-Weg ist das Panel der **verwaltete Agent** und sollte ausschließlich über die gRPC-Langzeitverbindung auf 4507 mit dem Server sprechen (Registrierung, Heartbeat, Auftragsannahme) — nicht die Steuerebene zurückrufen.
+- Damit dieses Design funktioniert, müsste 4508 nach außen geöffnet werden — also ein unauthentifizierter Einstiegspunkt zur entfernten Befehlsausführung im Internet.
+
+Damit sind es wieder **29 Werkzeuge** (16 lesend / 5 risikoarm schreibend / 8 risikoreich schreibend). Mehrhost-Orchestrierung und Mehrhost-KI übernimmt OpsAnt mit seiner einheitlichen Ausführungs-API (`/api/opsant/v1/tasks/run-shell/`, `tasks/run-script/`, `tasks/send-file/`, `tasks/get-minion-file/` usw.) und drei Ausführungsengines.
+
+**Keine Migration nötig**: Die vier Werkzeuge setzten auch in der alten Version voraus, dass 4508 erreichbar ist, und waren praktisch nie nutzbar.
+
 ## v1.2.0 (2026-10-27)
 
 **KI-Agent: vom Betriebsberater zum Betriebsausführenden**

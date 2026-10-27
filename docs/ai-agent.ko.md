@@ -92,7 +92,6 @@ L3가 다루는 것은 `rm -rf /`(핵심 시스템 디렉터리 포함), `mkfs`,
 | L0 읽기 전용 | 16 | `sys_overview`, `list_processes`, `list_ports`, `dir_usage`, `read_file`, `search_logs`, `query_metrics`, `docker_ps`, `security_status` |
 | L1 저위험 쓰기 | 5 | `clean_temp`, `clean_logs`, `service_control`, `docker_control`, `install_skill` |
 | L2 고위험 쓰기 | 8 | `exec_command`, `write_file`, `delete_path`, `modify_sshd`, `compress_dir`, `cron_write`, `kill_process`, `firewall_rule` |
-| 다중 호스트(선택) | 4 | `list_remote_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file` |
 | 외부 MCP | 동적 | `mcp__<server>__<tool>`, 위험 등급은 `readOnlyHint` 주석에서 도출 |
 
 도구는 패널의 RBAC를 그대로 따릅니다. 읽기 전용 역할은 쓰기 권한이 필요한 도구를 아예 보지 못하고, L2 도구는 추가로 `ai.agent.write` 권한이 필요합니다.
@@ -153,9 +152,17 @@ L3가 다루는 것은 `rm -rf /`(핵심 시스템 디렉터리 포함), `mkfs`,
 
 권한: `ai.agent`(에이전트 사용)와 `ai.agent.write`(고위험 작업 승인). 이전 엔드포인트 `/ai/chat`, `/ai/chat/stream`은 폴백 경로로 남아 있습니다.
 
-## 10. 다중 호스트 관리
+## 10. 다중 호스트 기능의 소속: 패널은 단일 호스트만
 
-패널에 `agent.server_addr`(OpsAnt 호스트의 OpsMini Server 데이터 플레인)이 설정되면 다중 호스트 도구 4개가 자동 등록됩니다. 이들은 Server의 컨트롤 플레인 HTTP API(기본값은 같은 호스트의 4508 포트)를 통해 다른 관리 대상 호스트에서 명령이나 스크립트를 실행하고 파일을 주고받습니다. SSH는 전혀 쓰지 않습니다. 주소와 토큰은 `ai_remote_server_url` / `ai_remote_server_token`으로 덮어쓸 수 있습니다.
+OpsMini 는 **단일 호스트 패널**이며, AI 도구 집합은 이 머신만 조작합니다. 여러 호스트 조작은 OpsAnt 의 역할입니다. OpsAnt 가 중심이며 salt / ansible / opsmini 세 가지 실행 엔진과 통합 실행 API(`/api/opsant/v1/tasks/run-shell/`, `tasks/run-script/`, `tasks/send-file/`, `tasks/get-minion-file/` 등)를 보유합니다.
+
+초기 버전에는 4개의 다중 호스트 도구(`remote_list_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file`)가 있었고, OpsMini Server 의 컨트롤 플레인 HTTP API(4508)를 통해 다른 호스트로 작업을 보냈습니다. 이 도구들은 아키텍처 경계를 넘었기 때문에 제거했습니다.
+
+- 4508 은 OpsMini Server 가 OpsAnt(Django)에게 제공하는 **내부** API 로, "로컬/내부망 전용"이며 인증을 검사하지 않습니다.
+- 이 경로에서 패널의 역할은 **관리 대상 Agent** 이며, 4507 의 gRPC 장기 연결로 Server 와 통신(등록·하트비트·작업 수신)해야 하고, 컨트롤 플레인을 역으로 호출해서는 안 됩니다.
+- 그 잘못된 설계를 동작시키려면 4508 을 외부에 노출해야 하며, 이는 인증 없는 원격 명령 실행 입구를 인터넷에 두는 것과 같습니다.
+
+따라서 역할 분담은 **단일 호스트 운영과 AI 는 OpsMini, 다중 호스트 오케스트레이션과 AI 는 OpsAnt** 입니다. 둘은 "OpsMini 를 OpsAnt 의 한 가지 관리 방식으로 취급"하는 형태로 연결되며, 데이터 흐름은 항상 OpsAnt → Agent 입니다.
 
 ## 11. 예약 AI 작업(호스트 점검 등)
 

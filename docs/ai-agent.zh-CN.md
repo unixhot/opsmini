@@ -90,7 +90,6 @@ L3 覆盖的危险模式包括：`rm -rf /`（含系统关键目录）、`mkfs`�
 | L0 只读 | 16 | `sys_overview`、`list_processes`、`list_ports`、`dir_usage`、`read_file`、`search_logs`、`query_metrics`、`docker_ps`、`security_status` |
 | L1 低危写 | 5 | `clean_temp`、`clean_logs`、`service_control`、`docker_control`、`install_skill` |
 | L2 高危写 | 8 | `exec_command`、`write_file`、`delete_path`、`modify_sshd`、`compress_dir`、`cron_write`、`kill_process`、`firewall_rule` |
-| 多机（需配置） | 4 | `list_remote_hosts`、`remote_exec`、`remote_pull_file`、`remote_push_file` |
 | 外部 MCP | 动态 | `mcp__<server>__<tool>`，风险等级由 `readOnlyHint` 注解推导 |
 
 工具继承面板的 RBAC：只读角色看不到需要写权限的工具，L2 工具额外要求 `ai.agent.write` 权限。
@@ -151,9 +150,17 @@ L3 覆盖的危险模式包括：`rm -rf /`（含系统关键目录）、`mkfs`�
 
 权限点：`ai.agent`（使用智能体）、`ai.agent.write`（授权 AI 执行高风险操作）。旧接口 `/ai/chat`、`/ai/chat/stream` 保留作为降级通道。
 
-## 10. 多机统一管理
+## 10. 多机能力归属：面板只做本机
 
-当面板配置了 `agent.server_addr`（指向 OpsAnt 上的 OpsMini Server 数据面）后，内核自动注册 4 个多机工具，通过 Server 的控制面 HTTP 接口（默认同主机的 4508 端口）操作其它被纳管主机：命令/脚本下发、文件拉取与下发，全程免 SSH。地址与令牌可用 `ai_remote_server_url` / `ai_remote_server_token` 覆盖。
+OpsMini 是**单机面板**，AI 工具集只操作本机。多机操作属于 OpsAnt —— 它才是中心，手里有 salt / ansible / opsmini 三个执行引擎和统一的执行 API（`/api/opsant/v1/tasks/run-shell/`、`tasks/run-script/`、`tasks/send-file/`、`tasks/get-minion-file/` 等）。
+
+早期版本曾给面板加过 4 个多机工具（`remote_list_hosts`、`remote_exec`、`remote_pull_file`、`remote_push_file`），通过 OpsMini Server 的控制面 HTTP 接口（4508）反向下发任务。这些工具已移除，原因是它们越过了架构边界：
+
+- 4508 是 OpsMini Server 给 OpsAnt（Django）用的**内部**接口，定位「仅本机 / 内网」，且不校验鉴权；
+- 面板在这条链路上的角色是**被纳管的 Agent**，只应通过 4507 的 gRPC 长连接与 Server 通信（注册、心跳、接收任务），不应反向调用控制面；
+- 为了让那个错误设计跑通，就得把 4508 暴露出来 —— 等于把一个无认证的远程命令执行入口挂到公网。
+
+因此分工是：**单机运维与单机 AI 在 OpsMini；多机编排与多机 AI 在 OpsAnt**。两者通过「OpsMini 作为 OpsAnt 的一种纳管方式」衔接，数据流向始终是 OpsAnt → Agent。
 
 ## 11. 定时 AI 任务（主机巡检等）
 

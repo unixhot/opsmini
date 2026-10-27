@@ -6,7 +6,6 @@
 package tools
 
 import (
-	"github.com/opsmini/opsmini/internal/agent"
 	"github.com/opsmini/opsmini/internal/aiagent"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -29,10 +28,6 @@ type Deps struct {
 	Skill    *service.SkillService
 	Mcp      *service.McpService
 	Metrics  *service.MetricCollector
-	Agent    *agent.Manager // remote gRPC peer managed by OpsAnt (M8-E)
-	// Remote is the OpsMini Server control-plane client used to drive other
-	// enrolled hosts (M8-E). Nil or unconfigured disables the remote tool set.
-	Remote *RemoteClient
 
 	// DataDir returns the panel data directory (skills, uploaded files).
 	DataDir func() string
@@ -43,9 +38,12 @@ type Deps struct {
 }
 
 // Build registers every built-in tool on the registry.
+//
+// OpsMini is a single-host panel: every tool here operates on the local machine
+// only. Driving other hosts belongs to OpsAnt, which owns the multi-host
+// execution API (/api/opsant/v1/tasks/*) and the salt/ansible/opsmini engines.
 func Build(reg *aiagent.Registry, d Deps) {
 	reg.RegisterAll(readonlyTools(d))
 	reg.RegisterAll(lowRiskTools(d))
 	reg.RegisterAll(highRiskTools(d))
-	reg.RegisterAll(remoteTools(d))
 }

@@ -123,7 +123,6 @@ message sequence from the database and resumes:
 | L0 read-only | 16 | `sys_overview`, `list_processes`, `list_ports`, `dir_usage`, `read_file`, `search_logs`, `query_metrics`, `docker_ps`, `security_status` |
 | L1 low-risk write | 5 | `clean_temp`, `clean_logs`, `service_control`, `docker_control`, `install_skill` |
 | L2 high-risk write | 8 | `exec_command`, `write_file`, `delete_path`, `modify_sshd`, `compress_dir`, `cron_write`, `kill_process`, `firewall_rule` |
-| Multi-host (opt-in) | 4 | `list_remote_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file` |
 | External MCP | dynamic | `mcp__<server>__<tool>`, risk derived from the `readOnlyHint` annotation |
 
 Tools inherit the panel's RBAC: a read-only role never sees tools that need write
@@ -200,13 +199,17 @@ Permissions: `ai.agent` (use the agent) and `ai.agent.write` (authorise
 high-risk actions). The older `/ai/chat` and `/ai/chat/stream` endpoints remain as
 a fallback channel.
 
-## 10. Multi-host management
+## 10. Who owns multi-host: the panel stays single-host
 
-Once the panel has an `agent.server_addr` (the OpsMini Server data plane on the
-OpsAnt host), four multi-host tools are registered automatically. They drive the
-Server's control-plane HTTP API (port 4508 on the same host by default) to run
-commands or scripts and move files on other enrolled hosts — no SSH anywhere.
-`ai_remote_server_url` / `ai_remote_server_token` override the derived address.
+OpsMini is a **single-host panel**; its AI tool set operates on this machine only. Multi-host work belongs to OpsAnt — that is the hub, and it owns three execution engines (salt / ansible / opsmini) plus a unified execution API (`/api/opsant/v1/tasks/run-shell/`, `tasks/run-script/`, `tasks/send-file/`, `tasks/get-minion-file/`, ...).
+
+Earlier versions shipped four multi-host tools (`remote_list_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file`) that dispatched tasks through the OpsMini Server control-plane HTTP API on port 4508. They were removed because they crossed an architectural boundary:
+
+- 4508 is an **internal** API the OpsMini Server offers to OpsAnt (Django). It is scoped to "local host / internal network" and performs no authentication;
+- on that path the panel is the **managed Agent**. It should talk to the Server only over the gRPC connection on 4507 (register, heartbeat, receive tasks) and must not call the control plane back;
+- making that flawed design work would require exposing 4508 — i.e. putting an unauthenticated remote command entry point on the internet.
+
+The split is therefore: **single-host operations and single-host AI live in OpsMini; multi-host orchestration and multi-host AI live in OpsAnt.** They connect through "OpsMini as one enrolment method of OpsAnt", and the data flow is always OpsAnt → Agent.
 
 ## 11. Scheduled AI tasks (host inspection and friends)
 

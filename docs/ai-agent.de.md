@@ -92,7 +92,6 @@ Nach dem Freigeben oder Ablehnen stellt `POST /ai/agent/approve` die vollständi
 | L0 nur lesend | 16 | `sys_overview`, `list_processes`, `list_ports`, `dir_usage`, `read_file`, `search_logs`, `query_metrics`, `docker_ps`, `security_status` |
 | L1 risikoarm schreibend | 5 | `clean_temp`, `clean_logs`, `service_control`, `docker_control`, `install_skill` |
 | L2 risikoreich schreibend | 8 | `exec_command`, `write_file`, `delete_path`, `modify_sshd`, `compress_dir`, `cron_write`, `kill_process`, `firewall_rule` |
-| Mehrere Hosts (optional) | 4 | `list_remote_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file` |
 | Externes MCP | dynamisch | `mcp__<server>__<tool>`, Risiko aus der `readOnlyHint`-Annotation abgeleitet |
 
 Werkzeuge erben das RBAC des Panels: Eine nur lesende Rolle sieht keine Werkzeuge, die Schreibrechte benötigen, und L2-Werkzeuge verlangen zusätzlich die Berechtigung `ai.agent.write`.
@@ -153,9 +152,17 @@ Beispiel für die Client-Konfiguration (Claude Desktop / Cursor und andere Strea
 
 Berechtigungen: `ai.agent` (Agent nutzen) und `ai.agent.write` (risikoreiche Aktionen autorisieren). Die älteren Endpunkte `/ai/chat` und `/ai/chat/stream` bleiben als Ausweichkanal erhalten.
 
-## 10. Verwaltung mehrerer Hosts
+## 10. Wem die Mehrhost-Fähigkeit gehört: das Panel macht nur einen Host
 
-Sobald das Panel ein `agent.server_addr` hat (die Datenebene des OpsMini Server auf dem OpsAnt-Host), werden vier Multi-Host-Werkzeuge automatisch registriert. Sie nutzen die HTTP-API der Steuerebene des Servers (standardmäßig Port 4508 auf demselben Host), um auf anderen erfassten Hosts Befehle oder Skripte auszuführen und Dateien zu übertragen — ganz ohne SSH. `ai_remote_server_url` / `ai_remote_server_token` überschreiben die abgeleitete Adresse.
+OpsMini ist ein **Einzelhost-Panel**; das KI-Werkzeugset arbeitet ausschließlich auf dieser Maschine. Mehrhost-Vorgänge gehören zu OpsAnt — es ist die Zentrale und verfügt über drei Ausführungsengines (salt / ansible / opsmini) sowie eine einheitliche Ausführungs-API (`/api/opsant/v1/tasks/run-shell/`, `tasks/run-script/`, `tasks/send-file/`, `tasks/get-minion-file/` usw.).
+
+Frühere Versionen brachten vier Mehrhost-Werkzeuge mit (`remote_list_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file`), die Aufträge über die HTTP-API der Steuerebene des OpsMini Server (Port 4508) an andere Hosts schickten. Sie wurden entfernt, weil sie die Architekturgrenze überschritten:
+
+- 4508 ist eine **interne** API, die der OpsMini Server für OpsAnt (Django) bereitstellt, gedacht für „nur lokal / internes Netz“, und sie prüft keine Anmeldedaten;
+- die Rolle des Panels auf diesem Weg ist die eines **verwalteten Agent**, der ausschließlich über die gRPC-Langzeitverbindung auf 4507 mit dem Server spricht (Registrierung, Heartbeat, Auftragsannahme) und die Steuerebene nicht umgekehrt aufruft;
+- damit dieses fehlerhafte Design funktioniert, müsste 4508 nach außen geöffnet werden — also ein unauthentifizierter Einstiegspunkt zur entfernten Befehlsausführung im Internet.
+
+Die Aufgabenteilung lautet daher: **Einzelhost-Betrieb und Einzelhost-KI in OpsMini, Mehrhost-Orchestrierung und Mehrhost-KI in OpsAnt.** Verbunden sind beide über „OpsMini als eine Verwaltungsart von OpsAnt“, und die Datenflussrichtung ist immer OpsAnt → Agent.
 
 ## 11. Geplante KI-Aufgaben (Host-Prüfung und Verwandtes)
 
