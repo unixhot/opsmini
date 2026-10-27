@@ -31,7 +31,6 @@ Beispielwerkzeuge je Stufe:
 | L0 nur lesend | `sys_overview`, `list_processes`, `list_ports`, `list_disks`, `dir_usage`, `read_file`, `search_logs`, `query_metrics`, `docker_ps`, `security_status` |
 | L1 risikoarm schreibend | `clean_temp`, `clean_logs`, `service_control`, `docker_control`, `install_skill` |
 | L2 risikoreich schreibend | `exec_command`, `write_file`, `delete_path`, `modify_sshd`, `compress_dir`, `cron_write`, `kill_process`, `firewall_rule` |
-| Mehrere Hosts (optional) | `list_remote_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file` |
 
 Werkzeuge folgen außerdem dem RBAC des Panels: Eine nur lesende Rolle sieht keine Werkzeuge, die Schreibrechte benötigen, und L2-Werkzeuge verlangen zusätzlich die Berechtigung `ai.agent.write`.
 

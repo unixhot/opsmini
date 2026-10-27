@@ -31,7 +31,6 @@ Representative tools per level:
 | L0 read-only | `sys_overview`, `list_processes`, `list_ports`, `list_disks`, `dir_usage`, `read_file`, `search_logs`, `query_metrics`, `docker_ps`, `security_status` |
 | L1 low-risk write | `clean_temp`, `clean_logs`, `service_control`, `docker_control`, `install_skill` |
 | L2 high-risk write | `exec_command`, `write_file`, `delete_path`, `modify_sshd`, `compress_dir`, `cron_write`, `kill_process`, `firewall_rule` |
-| Multi-host (opt-in) | `list_remote_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file` |
 
 Tools also respect the panel's RBAC: a read-only role never sees tools that need write permissions, and L2 tools additionally require the `ai.agent.write` permission.
 

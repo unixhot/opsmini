@@ -31,7 +31,6 @@ AI 能做的每一件事都由一个「工具」定义，每个工具带风险�
 | L0 只读 | `sys_overview`、`list_processes`、`list_ports`、`list_disks`、`dir_usage`、`read_file`、`search_logs`、`query_metrics`、`docker_ps`、`security_status` |
 | L1 低危写 | `clean_temp`、`clean_logs`、`service_control`、`docker_control`、`install_skill` |
 | L2 高危写 | `exec_command`、`write_file`、`delete_path`、`modify_sshd`、`compress_dir`、`cron_write`、`kill_process`、`firewall_rule` |
-| 多机（需配置） | `list_remote_hosts`、`remote_exec`、`remote_pull_file`、`remote_push_file` |
 
 工具还受面板 RBAC 约束：只读角色看不到需要写权限的工具；L2 工具额外需要 `ai.agent.write` 权限。
 

@@ -31,7 +31,6 @@ AI가 할 수 있는 모든 일은 **도구**로 정의되며, 각 도구에는 
 | L0 읽기 전용 | `sys_overview`, `list_processes`, `list_ports`, `list_disks`, `dir_usage`, `read_file`, `search_logs`, `query_metrics`, `docker_ps`, `security_status` |
 | L1 저위험 쓰기 | `clean_temp`, `clean_logs`, `service_control`, `docker_control`, `install_skill` |
 | L2 고위험 쓰기 | `exec_command`, `write_file`, `delete_path`, `modify_sshd`, `compress_dir`, `cron_write`, `kill_process`, `firewall_rule` |
-| 다중 호스트(설정 필요) | `list_remote_hosts`, `remote_exec`, `remote_pull_file`, `remote_push_file` |
 
 도구는 패널의 RBAC도 따릅니다. 읽기 전용 역할은 쓰기 권한이 필요한 도구를 보지 못하고, L2 도구는 추가로 `ai.agent.write` 권한이 필요합니다.
 

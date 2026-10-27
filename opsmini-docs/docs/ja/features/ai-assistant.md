@@ -31,7 +31,6 @@ AI ができることはすべて「ツール」として定義され、各ツ�
 | L0 読み取り専用 | `sys_overview`、`list_processes`、`list_ports`、`list_disks`、`dir_usage`、`read_file`、`search_logs`、`query_metrics`、`docker_ps`、`security_status` |
 | L1 低リスク書き込み | `clean_temp`、`clean_logs`、`service_control`、`docker_control`、`install_skill` |
 | L2 高リスク書き込み | `exec_command`、`write_file`、`delete_path`、`modify_sshd`、`compress_dir`、`cron_write`、`kill_process`、`firewall_rule` |
-| マルチホスト（要設定） | `list_remote_hosts`、`remote_exec`、`remote_pull_file`、`remote_push_file` |
 
 ツールはパネルの RBAC にも従います。読み取り専用ロールには書き込み権限が必要なツールが見えず、L2 ツールには加えて `ai.agent.write` 権限が必要です。
 
