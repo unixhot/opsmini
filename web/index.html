@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpsMini · AI 驱动的主机运维面板</title>
+<title>OpsMini · 主机上的 AI 运维 Agent</title>
 <link rel="icon" type="image/png" href="./static/ico.png">
 <!--
   OpsMini 高保真原型 v0.1
@@ -469,6 +469,7 @@
   .login-brand .brand-logo{width:52px;height:52px;border-radius:14px}
   .login-brand img{height:34px;width:auto;display:block}
   .login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:22px}
+  .login-lead{font-size:12px;color:var(--t3);text-align:center;line-height:1.6;margin:-14px auto 20px;max-width:280px}
   .login-field{margin-bottom:16px}
   .pass-wrap{position:relative}
   .pass-wrap .input{padding-right:72px}
@@ -538,6 +539,7 @@
         <div class="brand-sub" style="color:var(--t3)">{{ t('brand.tagline') }}</div>
       </div>
       <div class="login-title">{{ mfaRequired ? t('mfa.title') : t('login.title') }}</div>
+      <div class="login-lead" v-if="!mfaRequired">{{ t('login.lead') }}</div>
       <div class="login-field" v-if="!mfaRequired">
         <label class="form-label">{{ t('login.username') }}</label>
         <input class="input" v-model="loginUser" :placeholder="t('login.userPh')" autocomplete="username">
@@ -3718,9 +3720,9 @@ const I18N = {
     'common.folder':'文件夹','common.file':'文件','common.edit':'编辑','common.delete':'删除','common.settings':'设置',
     'common.backup':'备份','common.restart':'重启','common.run':'执行','common.download':'下载','common.rename':'重命名',
     'common.state':'状态','common.actions':'操作','common.copy':'コピー','common.copied':'コピーしました','common.copyFail':'コピーに失敗しました','common.copy':'複製','common.copied':'已複製','common.copyFail':'複製失敗','common.copy':'复制','common.copied':'已复制','common.copyFail':'复制失败','common.log':'日志','common.type':'类型','common.name':'名称',
-    'login.title':'登录面板','login.username':'用户名','login.password':'密码','login.remember':'记住我',
+    'login.title':'登录','login.username':'用户名','login.password':'密码','login.remember':'记住我',
     'login.forgot':'忘记密码？','login.submit':'登 录','login.invalid':'用户名或密码输入错误','login.fail':'登录失败','login.showPass':'显示密码','login.hidePass':'隐藏密码',
-    'login.footer':'AI 驱动的主机运维面板',
+    'login.footer':'常驻运行 · 动作可回滚 · 数据不出本机',
     'topbar.search':'搜索功能 / 命令 / 文档…','topbar.status':'运行正常','topbar.ai':'AI 助手','topbar.notif':'通知',
     'topbar.logout':'退出','topbar.lang':'Language / 语言',
     'group.overview':'总览','group.apps':'应用','group.tools':'工具','group.system':'系统',
@@ -3763,9 +3765,9 @@ const I18N = {
     'common.folder':'資料夾','common.file':'檔案','common.edit':'編輯','common.delete':'刪除','common.settings':'設定',
     'common.backup':'備份','common.restart':'重新啟動','common.run':'執行','common.download':'下載','common.rename':'重新命名',
     'common.state':'狀態','common.actions':'操作','common.log':'日誌','common.type':'類型','common.name':'名稱',
-    'login.title':'登入面板','login.username':'使用者名稱','login.password':'密碼','login.remember':'記住我',
+    'login.title':'登入','login.username':'使用者名稱','login.password':'密碼','login.remember':'記住我',
     'login.forgot':'忘記密碼？','login.submit':'登 入','login.invalid':'使用者名稱或密碼輸入錯誤','login.fail':'登入失敗','login.showPass':'顯示密碼','login.hidePass':'隱藏密碼',
-    'login.footer':'AI 驅動的主機維運面板',
+    'login.footer':'常駐執行 · 動作可還原 · 資料不出本機',
     'topbar.search':'搜尋功能 / 指令 / 文件…','topbar.status':'運行正常','topbar.ai':'AI 助理','topbar.notif':'通知',
     'topbar.logout':'登出','topbar.lang':'Language / 語言',
     'group.overview':'總覽','group.apps':'應用','group.tools':'工具','group.system':'系統',
@@ -3810,7 +3812,7 @@ const I18N = {
     'common.state':'Status','common.actions':'Actions','common.copy':'Copy','common.copied':'Copied','common.copyFail':'Copy failed','common.log':'Log','common.type':'Type','common.name':'Name',
     'login.title':'Sign In','login.username':'Username','login.password':'Password','login.remember':'Remember me',
     'login.forgot':'Forgot password?','login.submit':'Sign In','login.invalid':'Invalid username or password','login.fail':'Login failed','login.showPass':'Show password','login.hidePass':'Hide password',
-    'login.footer':'AI-powered server management panel',
+    'login.footer':'Resident · Reversible actions · Data stays local',
     'topbar.search':'Search features / commands / docs…','topbar.status':'Healthy','topbar.ai':'AI Assistant','topbar.notif':'Notifications',
     'topbar.logout':'Log out','topbar.lang':'Language / 语言',
     'group.overview':'Overview','group.apps':'Apps','group.tools':'Tools','group.system':'System',
@@ -3855,7 +3857,7 @@ const I18N = {
     'common.state':'状態','common.actions':'操作','common.log':'ログ','common.type':'種類','common.name':'名前',
     'login.title':'ログイン','login.username':'ユーザー名','login.password':'パスワード','login.remember':'ログイン状態を保持',
     'login.forgot':'パスワードを忘れた？','login.submit':'ログイン','login.invalid':'ユーザー名またはパスワードが正しくありません','login.fail':'ログイン失敗','login.showPass':'パスワードを表示','login.hidePass':'パスワードを隠す',
-    'login.footer':'AI 駆動のサーバー管理パネル',
+    'login.footer':'常駐稼働 · 操作は元に戻せる · データは端末内',
     'topbar.search':'機能 / コマンド / ドキュメントを検索…','topbar.status':'正常','topbar.ai':'AI アシスタント','topbar.notif':'通知',
     'topbar.logout':'ログアウト','topbar.lang':'Language / 言語',
     'group.overview':'概要','group.apps':'アプリ','group.tools':'ツール','group.system':'システム',
@@ -3900,7 +3902,7 @@ const I18N = {
     'common.state':'상태','common.actions':'작업','common.copy':'복사','common.copied':'복사됨','common.copyFail':'복사 실패','common.log':'로그','common.type':'유형','common.name':'이름',
     'login.title':'로그인','login.username':'사용자 이름','login.password':'비밀번호','login.remember':'로그인 유지',
     'login.forgot':'비밀번호 찾기','login.submit':'로그인','login.invalid':'사용자 이름 또는 비밀번호가 올바르지 않습니다','login.fail':'로그인 실패','login.showPass':'비밀번호 표시','login.hidePass':'비밀번호 숨기기',
-    'login.footer':'AI 기반 서버 관리 패널',
+    'login.footer':'상주 실행 · 되돌릴 수 있는 동작 · 데이터는 로컬',
     'topbar.search':'기능 / 명령 / 문서 검색…','topbar.status':'정상','topbar.ai':'AI 어시스턴트','topbar.notif':'알림',
     'topbar.logout':'로그아웃','topbar.lang':'Language / 언어',
     'group.overview':'개요','group.apps':'앱','group.tools':'도구','group.system':'시스템',
@@ -3945,7 +3947,7 @@ const I18N = {
     'common.state':'สถานะ','common.actions':'การดำเนินการ','common.copy':'คัดลอก','common.copied':'คัดลอกแล้ว','common.copyFail':'คัดลอกไม่สำเร็จ','common.log':'บันทึก','common.type':'ประเภท','common.name':'ชื่อ',
     'login.title':'เข้าสู่ระบบ','login.username':'ชื่อผู้ใช้','login.password':'รหัสผ่าน','login.remember':'จดจำฉัน',
     'login.forgot':'ลืมรหัสผ่าน?','login.submit':'เข้าสู่ระบบ','login.invalid':'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง','login.fail':'เข้าสู่ระบบล้มเหลว','login.showPass':'แสดงรหัสผ่าน','login.hidePass':'ซ่อนรหัสผ่าน',
-    'login.footer':'แผงจัดการเซิร์ฟเวอร์ที่ขับเคลื่อนด้วย AI',
+    'login.footer':'ทำงานตลอดเวลา · ย้อนกลับได้ · ข้อมูลอยู่ในเครื่อง',
     'topbar.search':'ค้นหาฟีเจอร์ / คำสั่ง / เอกสาร…','topbar.status':'ปกติ','topbar.ai':'ผู้ช่วย AI','topbar.notif':'การแจ้งเตือน',
     'topbar.logout':'ออกจากระบบ','topbar.lang':'Language / ภาษา',
     'group.overview':'ภาพรวม','group.apps':'แอป','group.tools':'เครื่องมือ','group.system':'ระบบ',
@@ -3990,7 +3992,7 @@ const I18N = {
     'common.state':'Status','common.actions':'Aktionen','common.copy':'Kopieren','common.copied':'Kopiert','common.copyFail':'Kopieren fehlgeschlagen','common.log':'Protokoll','common.type':'Typ','common.name':'Name',
     'login.title':'Anmelden','login.username':'Benutzername','login.password':'Passwort','login.remember':'Angemeldet bleiben',
     'login.forgot':'Passwort vergessen?','login.submit':'Anmelden','login.invalid':'Benutzername oder Passwort falsch','login.fail':'Anmeldung fehlgeschlagen','login.showPass':'Passwort anzeigen','login.hidePass':'Passwort ausblenden',
-    'login.footer':'KI-gesteuertes Server-Verwaltungspanel',
+    'login.footer':'Dauerhaft aktiv · Umkehrbare Aktionen · Daten bleiben lokal',
     'topbar.search':'Funktionen / Befehle / Doku suchen…','topbar.status':'Fehlerfrei','topbar.ai':'KI-Assistent','topbar.notif':'Benachrichtigungen',
     'topbar.logout':'Abmelden','topbar.lang':'Language / Sprache',
     'group.overview':'Übersicht','group.apps':'Apps','group.tools':'Werkzeuge','group.system':'System',
@@ -4051,7 +4053,7 @@ const I18N10 = {
 };
 
 const I18N2 = {
-  'zh-CN': { 'brand.tagline':'AI 驱动的主机运维面板','login.userPh':'请输入用户名','login.passPh':'请输入密码',
+  'zh-CN': { 'brand.tagline':'主机上的 AI 运维 Agent','login.lead':'把 AI 装进服务器，让它自己运维自己','login.userPh':'请输入用户名','login.passPh':'请输入密码',
     'misc.uptime':'已运行','misc.cores':'核','misc.load':'负载','misc.todayTotal':'今日累计','misc.menu':'菜单','misc.collapse':'收起菜单','misc.expand':'展开菜单','misc.goDashboard':'回到仪表盘',
     'misc.connected':'已连接','misc.ip':'IP 地址','misc.mac':'MAC 地址','misc.rxTx':'接收 / 发送',
     'misc.svcStatus':'服务状态','misc.ports':'网络端口','misc.noPorts':'暂无监听端口','misc.noLogs':'暂无安全日志','misc.quick':'快捷操作','misc.securityLog':'安全与运行日志','misc.coreDiff':'核心差异化',
@@ -4060,7 +4062,7 @@ const I18N2 = {
     'range.h30':'30分钟','range.h1':'1小时','range.h6':'6小时','range.h24':'24小时','range.d7':'7天',
     'common.sleep':'休眠','common.admin':'管理员','common.kill':'结束','misc.me':'我',
     'btn.refreshed':'已刷新','set.saved':'已保存','set.saveFail':'保存失败','set.idleTimeout':'登录空闲超时','set.alertRetention':'告警事件保留时间','set.minutes':'分钟','set.days':'天','set.seconds':'秒','set.idleLogout':'长时间未操作，已自动退出登录','cron.taskKind':'任务类型','cron.readonly':'只读','cron.taskKindHint':'系统/用户任务由系统 crontab 管理，面板仅支持新建面板任务','monitor.eventsTab':'告警事件','alertEvent.all':'全部','alertEvent.active':'告警中','alertEvent.resolved':'已恢复','alertEvent.recovered':'恢复','alert.enable':'启用','alert.disable':'禁用','alertEvent.empty':'暂无告警事件','alertEvent.rule':'规则名称','alertEvent.message':'告警内容','alertEvent.critical':'严重','alertEvent.warning':'警告','alertEvent.deleteConfirm':'确认删除该告警事件','alert.threshold':'阈值','th.time':'时间','th.level':'级别' },
-  'zh-TW': {'misc.uptimeShort':'已執行', 'brand.tagline':'AI 驅動的主機維運面板','login.userPh':'請輸入使用者名稱','login.passPh':'請輸入密碼',
+  'zh-TW': {'misc.uptimeShort':'已執行', 'brand.tagline':'主機上的 AI 維運 Agent','login.lead':'把 AI 裝進伺服器，讓它自己維運自己','login.userPh':'請輸入使用者名稱','login.passPh':'請輸入密碼',
     'misc.uptime':'已運行','misc.cores':'核心','misc.load':'負載','misc.todayTotal':'今日累計','misc.menu':'選單','misc.collapse':'收起選單','misc.expand':'展開選單','misc.goDashboard':'回到儀表板',
     'misc.connected':'已連線','misc.ip':'IP 位址','misc.mac':'MAC 位址','misc.rxTx':'接收 / 傳送',
     'misc.svcStatus':'服務狀態','misc.ports':'網路連接埠','misc.noPorts':'暫無監聽連接埠','misc.noLogs':'暫無安全日誌','misc.quick':'快捷操作','misc.securityLog':'安全與運行日誌','misc.coreDiff':'核心差異化',
@@ -4069,7 +4071,7 @@ const I18N2 = {
     'range.h30':'30分鐘','range.h1':'1小時','range.h6':'6小時','range.h24':'24小時','range.d7':'7天',
     'common.sleep':'休眠','common.admin':'管理員','common.kill':'結束','misc.me':'我',
     'btn.refreshed':'已重新整理','set.saved':'已儲存','set.saveFail':'儲存失敗','set.idleTimeout':'登入閒置逾時','set.alertRetention':'告警事件保留時間','set.minutes':'分鐘','set.days':'天','set.seconds':'秒','set.idleLogout':'長時間未操作，已自動登出','cron.taskKind':'任務類型','cron.readonly':'唯讀','cron.taskKindHint':'系統/使用者任務由系統 crontab 管理，面板僅支援新增面板任務','monitor.eventsTab':'告警事件','alertEvent.all':'全部','alertEvent.active':'告警中','alertEvent.resolved':'已恢復','alertEvent.recovered':'恢復','alert.enable':'啟用','alert.disable':'停用','alertEvent.empty':'暫無告警事件','alertEvent.rule':'規則名稱','alertEvent.message':'告警內容','alertEvent.critical':'嚴重','alertEvent.warning':'警告','alertEvent.deleteConfirm':'確認刪除該告警事件','alert.threshold':'閾值','th.time':'時間','th.level':'級別' },
-  'en': { 'brand.tagline':'AI-powered server management panel','login.userPh':'Enter username','login.passPh':'Enter password',
+  'en': { 'brand.tagline':'The AI ops agent on your server','login.lead':'Put an AI inside your server and let it run itself','login.userPh':'Enter username','login.passPh':'Enter password',
     'misc.uptime':'Uptime','misc.cores':'cores','misc.load':'Load','misc.todayTotal':'Today','misc.menu':'Menu','misc.collapse':'Collapse','misc.expand':'Expand','misc.goDashboard':'Back to dashboard',
     'misc.connected':'Connected','misc.ip':'IP Address','misc.mac':'MAC Address','misc.rxTx':'RX / TX',
     'misc.svcStatus':'Services','misc.ports':'Listening Ports','misc.noPorts':'No listening ports','misc.noLogs':'No security logs','misc.quick':'Quick Actions','misc.securityLog':'Security & Runtime Logs','misc.coreDiff':'Core Differentiator',
@@ -4078,7 +4080,7 @@ const I18N2 = {
     'range.h30':'30m','range.h1':'1h','range.h6':'6h','range.h24':'24h','range.d7':'7d',
     'common.sleep':'Sleeping','common.admin':'Admin','common.kill':'Kill','misc.me':'Me',
     'btn.refreshed':'Refreshed','set.saved':'Saved','set.saveFail':'Save failed','set.idleTimeout':'Login idle timeout','set.alertRetention':'Alert retention','set.minutes':'min','set.days':'days','set.seconds':'sec','set.idleLogout':'Inactive too long, logged out','cron.taskKind':'Task type','cron.readonly':'Read-only','cron.taskKindHint':'System/user tasks are managed by system crontab; panel only creates panel tasks','monitor.eventsTab':'Alert Events','alertEvent.all':'All','alertEvent.active':'Active','alertEvent.resolved':'Resolved','alertEvent.recovered':'Recovered','alert.enable':'Enable','alert.disable':'Disable','alertEvent.empty':'No alert events','alertEvent.rule':'Rule','alertEvent.message':'Message','alertEvent.critical':'Critical','alertEvent.warning':'Warning','alertEvent.deleteConfirm':'Delete this alert event?','alert.threshold':'Threshold','th.time':'Time','th.level':'Level' },
-  'ja': {'misc.noLogs':'セキュリティログはありません','misc.noPorts':'リッスンポートはありません','misc.ports':'リッスンポート','misc.uptimeShort':'稼働中', 'brand.tagline':'AI 駆動のサーバー管理パネル','login.userPh':'ユーザー名を入力','login.passPh':'パスワードを入力',
+  'ja': {'misc.noLogs':'セキュリティログはありません','misc.noPorts':'リッスンポートはありません','misc.ports':'リッスンポート','misc.uptimeShort':'稼働中', 'brand.tagline':'サーバー上で動く AI 運用エージェント','login.lead':'AI をサーバーに住まわせ、自分で運用させる','login.userPh':'ユーザー名を入力','login.passPh':'パスワードを入力',
     'misc.uptime':'稼働時間','misc.cores':'コア','misc.load':'負荷','misc.todayTotal':'本日の累計','misc.menu':'メニュー','misc.collapse':'メニューを閉じる','misc.expand':'メニューを開く','misc.goDashboard':'ダッシュボードへ',
     'misc.connected':'接続済み','misc.ip':'IP アドレス','misc.mac':'MAC アドレス','misc.rxTx':'受信 / 送信',
     'misc.svcStatus':'サービス状態','misc.quick':'クイック操作','misc.securityLog':'セキュリティログ','misc.coreDiff':'コア差別化',
@@ -4087,7 +4089,7 @@ const I18N2 = {
     'range.h30':'30分','range.h1':'1時間','range.h6':'6時間','range.h24':'24時間','range.d7':'7日',
     'common.sleep':'スリープ','common.admin':'管理者','common.kill':'終了','misc.me':'私',
     'btn.refreshed':'更新完了','set.saved':'保存しました','set.saveFail':'保存失敗','set.idleTimeout':'ログインアイドルタイムアウト','set.alertRetention':'アラート保持期間','set.minutes':'分','set.days':'日','set.seconds':'秒','set.idleLogout':'長時間操作がなかったためログアウトしました','cron.taskKind':'タスク種別','cron.readonly':'読み取り専用','cron.taskKindHint':'システム/ユーザータスクはシステム crontab が管理、パネルはパネルタスクのみ作成可能','monitor.eventsTab':'アラートイベント','alertEvent.all':'すべて','alertEvent.active':'発生中','alertEvent.resolved':'復旧済み','alertEvent.recovered':'回復','alert.enable':'有効化','alert.disable':'無効化','alertEvent.empty':'アラートイベントなし','alertEvent.rule':'ルール名','alertEvent.message':'メッセージ','alertEvent.critical':'重大','alertEvent.warning':'警告','alertEvent.deleteConfirm':'このアラートイベントを削除しますか？','alert.threshold':'しきい値','th.time':'時刻','th.level':'レベル' },
-  'ko': {'misc.noLogs':'보안 로그 없음','misc.noPorts':'수신 포트 없음','misc.ports':'수신 포트','misc.uptimeShort':'가동 중', 'brand.tagline':'AI 기반 서버 관리 패널','login.userPh':'사용자 이름 입력','login.passPh':'비밀번호 입력',
+  'ko': {'misc.noLogs':'보안 로그 없음','misc.noPorts':'수신 포트 없음','misc.ports':'수신 포트','misc.uptimeShort':'가동 중', 'brand.tagline':'서버 위에서 사는 AI 운영 에이전트','login.lead':'AI 를 서버에 심으면 스스로 운영합니다','login.userPh':'사용자 이름 입력','login.passPh':'비밀번호 입력',
     'misc.uptime':'가동 시간','misc.cores':'코어','misc.load':'부하','misc.todayTotal':'오늘 누적','misc.menu':'메뉴','misc.collapse':'메뉴 접기','misc.expand':'메뉴 펼치기','misc.goDashboard':'대시보드로',
     'misc.connected':'연결됨','misc.ip':'IP 주소','misc.mac':'MAC 주소','misc.rxTx':'수신 / 전송',
     'misc.svcStatus':'서비스 상태','misc.quick':'빠른 작업','misc.securityLog':'보안 및 실행 로그','misc.coreDiff':'핵심 차별점',
@@ -4096,7 +4098,7 @@ const I18N2 = {
     'range.h30':'30분','range.h1':'1시간','range.h6':'6시간','range.h24':'24시간','range.d7':'7일',
     'common.sleep':'절전','common.admin':'관리자','common.kill':'종료','misc.me':'나',
     'btn.refreshed':'새로고침됨','set.saved':'저장됨','set.saveFail':'저장 실패','set.idleTimeout':'로그인 유휴 시간 초과','set.alertRetention':'알림 보존 기간','set.minutes':'분','set.days':'일','set.seconds':'초','set.idleLogout':'장시간 미사용으로 로그아웃되었습니다','cron.taskKind':'작업 유형','cron.readonly':'읽기 전용','cron.taskKindHint':'시스템/사용자 작업은 시스템 crontab이 관리하며 패널은 패널 작업만 생성 가능','monitor.eventsTab':'알림 이벤트','alertEvent.all':'전체','alertEvent.active':'발생 중','alertEvent.resolved':'복구됨','alertEvent.recovered':'복구','alert.enable':'활성화','alert.disable':'비활성화','alertEvent.empty':'알림 이벤트 없음','alertEvent.rule':'규칙 이름','alertEvent.message':'메시지','alertEvent.critical':'심각','alertEvent.warning':'경고','alertEvent.deleteConfirm':'이 알림 이벤트를 삭제하시겠습니까?','alert.threshold':'임계값','th.time':'시간','th.level':'수준' },
-  'th': {'misc.noLogs':'ไม่มีบันทึกความปลอดภัย','misc.noPorts':'ไม่มีพอร์ตที่เปิดรับฟัง','misc.ports':'พอร์ตที่เปิดรับฟัง','misc.uptimeShort':'ทำงานแล้ว', 'brand.tagline':'แผงจัดการเซิร์ฟเวอร์ที่ขับเคลื่อนด้วย AI','login.userPh':'ป้อนชื่อผู้ใช้','login.passPh':'ป้อนรหัสผ่าน',
+  'th': {'misc.noLogs':'ไม่มีบันทึกความปลอดภัย','misc.noPorts':'ไม่มีพอร์ตที่เปิดรับฟัง','misc.ports':'พอร์ตที่เปิดรับฟัง','misc.uptimeShort':'ทำงานแล้ว', 'brand.tagline':'AI ops agent บนเซิร์ฟเวอร์ของคุณ','login.lead':'ใส่ AI ลงในเซิร์ฟเวอร์ ให้มันดูแลตัวเอง','login.userPh':'ป้อนชื่อผู้ใช้','login.passPh':'ป้อนรหัสผ่าน',
     'misc.uptime':'ทำงานแล้ว','misc.cores':'คอร์','misc.load':'โหลด','misc.todayTotal':'สะสมวันนี้','misc.menu':'เมนู','misc.collapse':'ย่อเมนู','misc.expand':'ขยายเมนู','misc.goDashboard':'กลับแดชบอร์ด',
     'misc.connected':'เชื่อมต่อแล้ว','misc.ip':'ที่อยู่ IP','misc.mac':'ที่อยู่ MAC','misc.rxTx':'รับ / ส่ง',
     'misc.svcStatus':'สถานะบริการ','misc.quick':'การทำงานด่วน','misc.securityLog':'บันทึกความปลอดภัย','misc.coreDiff':'จุดเด่นหลัก',
@@ -4105,7 +4107,7 @@ const I18N2 = {
     'range.h30':'30 นาที','range.h1':'1 ชม.','range.h6':'6 ชม.','range.h24':'24 ชม.','range.d7':'7 วัน',
     'common.sleep':'พัก','common.admin':'ผู้ดูแล','common.kill':'สิ้นสุด','misc.me':'ฉัน',
     'btn.refreshed':'รีเฟรชแล้ว','set.saved':'บันทึกแล้ว','set.saveFail':'บันทึกล้มเหลว','set.idleTimeout':'หมดเวลาว่างการเข้าสู่ระบบ','set.alertRetention':'ระยะเวลาเก็บการแจ้งเตือน','set.minutes':'นาที','set.days':'วัน','set.seconds':'วินาที','set.idleLogout':'ไม่มีการใช้งานนานเกินไป ออกจากระบบแล้ว','cron.taskKind':'ประเภทงาน','cron.readonly':'อ่านอย่างเดียว','cron.taskKindHint':'งานระบบ/ผู้ใช้จัดการโดย crontab ระบบ แผงสร้างได้เฉพาะงานแผง','monitor.eventsTab':'เหตุการณ์แจ้งเตือน','alertEvent.all':'ทั้งหมด','alertEvent.active':'กำลังแจ้งเตือน','alertEvent.resolved':'กู้คืนแล้ว','alertEvent.recovered':'กู้คืน','alert.enable':'เปิดใช้งาน','alert.disable':'ปิดใช้งาน','alertEvent.empty':'ยังไม่มีเหตุการณ์แจ้งเตือน','alertEvent.rule':'ชื่อกฎ','alertEvent.message':'ข้อความ','alertEvent.critical':'วิกฤต','alertEvent.warning':'คำเตือน','alertEvent.deleteConfirm':'ลบเหตุการณ์แจ้งเตือนนี้?','alert.threshold':'เกณฑ์','th.time':'เวลา','th.level':'ระดับ' },
-  'de': {'misc.noLogs':'Keine Sicherheitsprotokolle','misc.noPorts':'Keine überwachten Ports','misc.ports':'Überwachte Ports','misc.uptimeShort':'Läuft seit', 'brand.tagline':'KI-gesteuertes Server-Verwaltungspanel','login.userPh':'Benutzernamen eingeben','login.passPh':'Passwort eingeben',
+  'de': {'misc.noLogs':'Keine Sicherheitsprotokolle','misc.noPorts':'Keine überwachten Ports','misc.ports':'Überwachte Ports','misc.uptimeShort':'Läuft seit', 'brand.tagline':'Der KI-Betriebsagent auf Ihrem Server','login.lead':'Die KI in den Server holen — er wartet sich selbst','login.userPh':'Benutzernamen eingeben','login.passPh':'Passwort eingeben',
     'misc.uptime':'Betriebszeit','misc.cores':'Kerne','misc.load':'Last','misc.todayTotal':'Heute gesamt','misc.menu':'Menü','misc.collapse':'Menü einklappen','misc.expand':'Menü ausklappen','misc.goDashboard':'Zum Dashboard',
     'misc.connected':'Verbunden','misc.ip':'IP-Adresse','misc.mac':'MAC-Adresse','misc.rxTx':'Empfangen / Senden',
     'misc.svcStatus':'Dienste','misc.quick':'Schnellaktionen','misc.securityLog':'Sicherheits- & Laufzeitprotokolle','misc.coreDiff':'Kerndifferenzierung',
