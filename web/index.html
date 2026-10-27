@@ -5076,7 +5076,12 @@ createApp({
     },
     // ===== 多语言 =====
     t(key){ const dicts=[I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
-    setLang(code){ this.lang = code; this.langOpen = false; this.persistLang(); },
+    setDocTitle(){
+      document.title = this.loggedIn
+        ? 'OpsMini · ' + (location.hostname || location.host || 'localhost')
+        : 'OpsMini · ' + this.t('brand.tagline');
+    },
+    setLang(code){ this.lang = code; this.langOpen = false; this.persistLang(); this.setDocTitle(); },
     persistLang(){ try{ localStorage.setItem('opsmini-lang', this.lang); }catch(e){} },
     loadLang(){ try{ const l=localStorage.getItem('opsmini-lang'); if(l && I18N[l]){ this.lang = l; return; } }catch(e){} this.lang = this.detectLang(); },
     detectLang(){ const nav = ((typeof navigator!=='undefined' && (navigator.language || navigator.userLanguage)) || 'zh-CN').toLowerCase(); if(/tw|hk|mo|hant/.test(nav)) return 'zh-TW'; if(/^zh|hans/.test(nav)) return 'zh-CN'; if(/^en/.test(nav)) return 'en'; if(/^ja/.test(nav)) return 'ja'; if(/^ko/.test(nav)) return 'ko'; if(/^th/.test(nav)) return 'th'; if(/^de/.test(nav)) return 'de'; return 'zh-CN'; },
@@ -5352,6 +5357,7 @@ createApp({
           if(path !== '/auth/login' && path !== '/auth/mfa/verify'){
             this.token = ''; this.refreshToken = ''; this.loggedIn = false;
             try{ localStorage.removeItem('opsmini-token'); localStorage.removeItem('opsmini-refresh'); }catch(e){}
+            this.setDocTitle();
             this.toast('登录已过期，请重新登录');
           }
           throw new Error('unauthorized');
@@ -5426,6 +5432,7 @@ createApp({
       this.loadNotifications();
       this.loadOpsantSso();
       this.loadAgentConfig();
+      this.setDocTitle();
       this.toast('欢迎回来，'+this.loginUser);
       this.loadDashboard();
     },
@@ -5450,6 +5457,7 @@ createApp({
       try{ await this.api('/auth/logout', { method:'POST' }); }catch(e){}
       this.token = ''; this.refreshToken = ''; this.loggedIn = false; this.loginPass = '';
       try{ localStorage.removeItem('opsmini-token'); localStorage.removeItem('opsmini-refresh'); localStorage.removeItem('opsmini-login'); }catch(e){}
+      this.setDocTitle();
       this.toast('已退出登录');
     },
     // ===== 空闲自动退出 =====
@@ -7695,8 +7703,8 @@ createApp({
     if(this.loggedIn){ this.loadPerms(); this.loadNotifications(); this.loadOpsantSso(); this.loadAgentConfig(); this.$nextTick(()=>this.onPageChange()); }
     else { this.trySSOLogin(); }
     this.checkVersion();
-    // 页面标题：OpsMini · 访问地址，便于多标签页区分
-    document.title = 'OpsMini · ' + (location.hostname || location.host || 'localhost');
+    // 页面标题：登录后显示访问地址（多标签页便于区分主机），登录页显示定位文案
+    this.setDocTitle();
     this._clockTimer = setInterval(()=>this.updateClock(), 1000);
     window.addEventListener('resize', ()=>this.renderCharts());
     this._fsHandler = () => { this.termFullscreen = !!document.fullscreenElement; this.$nextTick(()=>this.fitTerminal()); };
