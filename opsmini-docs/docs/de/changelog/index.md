@@ -2,6 +2,52 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.2.0 (2026-10-27)
+
+**KI-Agent: vom Betriebsberater zum Betriebsausführenden**
+
+- **Eigener schlanker ReAct-Kern**: Reason → Act → Observe ohne Agent-Framework, damit das einzelne Binary und der Build ohne CGO erhalten bleiben. Ein Durchlauf ist auf 12 Schritte begrenzt; danach stoppt der Agent die Werkzeugaufrufe und berichtet den bekannten Stand
+- **33 eingebaute Werkzeuge**: 16 lesende (Systemübersicht, Prozesse, Ports, Datenträger, Verzeichnisgröße, Logsuche, Dienste, Container, Sicherheit u. a.), 5 risikoarme Schreibvorgänge, 8 risikoreiche Schreibvorgänge sowie 4 Mehrhost-Werkzeuge, die dynamisch aus der Agent-Konfiguration registriert werden
+- **Gestreamte Werkzeugaufrufe**: `tool_calls`-Fragmente werden je Index gesammelt und zusammengesetzt; Anbieter ohne Streaming-Unterstützung fallen automatisch auf einen nicht gestreamten Versuch zurück
+- **Sichtbare Denkkette**: Die Oberfläche zeigt schrittweise, welches Werkzeug mit welchen Argumenten lief und welche Rohausgabe zurückkam, sodass das Ergebnis prüfbar ist
+
+**Abgestufte Berechtigungen und menschliche Freigabe**
+
+- **Vierstufiges Risikomodell**: L0 nur lesend läuft frei / L1 risikoarm fragt standardmäßig nach (pro Werkzeug freistellbar) / L2 risikoreich fragt immer nach und ist nie freistellbar / L3 katastrophale Vorgänge werden per Muster hart blockiert
+- **L3 blockiert vor der Ausführung**: `rm -rf /`, `mkfs`, `dd of=/dev/sd*`, Fork-Bomben, das Leeren der Firewall, das Überschreiben von `/etc/passwd` und Ähnliches werden abgelehnt, selbst wenn ein Administrator zustimmt. Zwei weitere Regeln schützen das Panel selbst (Datenverzeichnis nicht anfassen, Panel-Port nicht schließen)
+- **Unterbrechen und Fortsetzen**: Ein risikoreicher Aufruf wird gespeichert und angehalten; nach Zustimmung oder Ablehnung im Chat wird die Nachrichtenfolge aus SQLite fortgesetzt. Der Ablehnungspfad wurde nachweislich ohne Nebenwirkungen geprüft
+
+**Bidirektionales MCP**
+
+- **MCP-Client**: auf Basis des offiziellen MCP-Go-SDK mit stdio und Streamable HTTP. Werkzeuge externer MCP-Server werden als `mcp__<Server>__<Werkzeug>` eingebunden; die Konfiguration wird alle 2 Minuten abgeglichen
+- **MCP-Server**: veröffentlicht das eigene Werkzeugset unter `/mcp` hinter einem Bearer-Token und gibt standardmäßig nur L0/L1 frei (L2 wird nicht an nicht autorisierte Clients ausgeliefert, da diese den Bestätigungsdialog des Panels nicht darstellen können)
+
+**Geplante KI-Aufgaben**
+
+- **Vierter Aufgabentyp „Agent-Aufgabe"**: Prompt schreiben und nach Cron ausführen. Zeitplan, Aktivierung, letzte Ausführung und Fehlermeldungen nutzen die vorhandene Mechanik vollständig mit
+- **Berechtigungen werden unbeaufsichtigt herabgestuft**: Beim planmäßigen Lauf klickt niemand auf „Zustimmen", daher wird jedes L2-Werkzeug direkt abgelehnt und der Grund an das Modell zurückgegeben. Das Modell wechselt auf lesende Werkzeuge, führt die Aufgabe zu Ende und vermerkt im Bericht, dass der Vorgang einen Menschen erfordert, samt kopierbarem Befehl
+- **Zuverlässigkeit und Kosten**: Schrittlimit und Gesamt-Timeout pro Aufgabe; drei aufeinanderfolgende Fehlschläge deaktivieren die Aufgabe automatisch, damit ein defekter Job nicht ewig alarmiert. Speichern im Panel setzt den Fehlerzähler zurück
+- **Fünf eingebaute Prüfvorlagen**: Host-Prüfung, Sicherheitsprüfung, Speicherplatz, Dienststatus, Log-Auffälligkeiten, dazu vier gängige Zeitplanvorlagen
+
+**Einzelne HTML-Berichtsdatei**
+
+- **Ein Bericht ist eine eigenständige HTML-Datei**: Inline-Styles, kein Skript, kein externes Stylesheet, keine Web-Schrift, keine Bilder – sie lässt sich vom USB-Stick, als Mailanhang oder von jedem statischen Server aus anzeigen
+- **Öffnen oder herunterladen**: Jede Aufgabenzeile bietet „Öffnen" (direkt in einem neuen Tab) und „Herunterladen"; chinesische Dateinamen werden nach RFC 5987 kodiert
+- **Archiviert im Datenverzeichnis**: `.html` und `.md` landen unter `<Datenverzeichnis>/reports/<Aufgabenname>/`; alle erzeugten Artefakte liegen je Funktion in einem Unterverzeichnis
+- **Sichere Darstellung**: Der Berichtstext mischt Modellprosa mit Host-Daten (Logauszüge, Prozess-Kommandozeilen, Konfigurationswerte). Der Renderer maskiert zuerst das gesamte Dokument als HTML und wendet erst danach Inline-Regeln an; nur http/https/mailto-Ziele sind erlaubt, sodass ein `<script>` in einer Logzeile als Text erscheint. Zusätzlich wird eine strikte CSP gesendet
+- **Wenn PDF benötigt wird**: Im geöffneten Bericht „Drucken → Als PDF speichern" verwenden; das Stylesheet enthält bereits Druckregeln
+
+**Benachrichtigungen und Audit**
+
+- **Gemeinsamer Notifier**: Der Benachrichtigungsversand wurde aus den Alarmen in einen gemeinsamen `Notifier` extrahiert (Panel / E-Mail / WeCom / DingTalk / Feishu), sodass KI-Aufgaben und Alarme identisch reagieren. Ohne Kanalauswahl wird die Meldung im Panel zugestellt
+- **Audit-Spur**: KI-Werkzeugaufrufe landen im Audit-Log; Ablehnungen im unbeaufsichtigten Lauf als `unattended-deny`, menschliche Ablehnungen mit dem Präfix `reject:`
+
+**Weitere Verbesserungen**
+
+- Die Versionsangabe in der Seitenleiste zeigt nun die echte Backend-Version statt eines festen Werts
+- Das Design-Dokument `docs/ai-agent.md` wurde in 7 Sprachen ergänzt
+- Administratoren können die Werkzeugrichtlinien unter „KI-Assistent → Werkzeugrechte" anpassen; risikoreiche Werkzeuge bleiben immer auf „Nachfragen" gesperrt
+
 ## v1.1.0 (2026-09-21)
 
 **Multi-Host-Verwaltung (Agent / Server-Architektur)**
