@@ -188,8 +188,28 @@ section{padding:64px 0}
 .bubble{padding:11px 15px;border-radius:12px;max-width:88%}
 .bubble.user{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;justify-self:end;box-shadow:0 4px 12px rgba(37,99,235,.2)}
 .bubble.bot{background:#fff;border:1px solid var(--border);color:var(--text-dim)}
-.bubble.bot .hl{color:var(--accent);font-family:var(--mono)}
+.bubble.bot .hl{color:var(--accent);font-family:var(--mono);
+  background:none;border:0;padding:0;border-radius:0;display:inline;box-shadow:none;transition:none}
+.bubble.bot .hl:hover{border-color:transparent;transform:none}
 .bubble.bot .ok{color:var(--green)}
+
+/* AI agent execution trail */
+.agent-run{display:grid;gap:6px;margin:14px 0}
+.agent-step{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;
+  color:var(--text-dim);background:#fff;border:1px solid var(--border);border-radius:9px;padding:8px 11px}
+.agent-step .st-i{flex:none;width:17px;height:17px;border-radius:50%;background:#eef4ff;color:var(--accent);
+  font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.agent-step .st-name{color:var(--accent)}
+.agent-step .st-arg{color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agent-step .st-ok{margin-left:auto;flex:none;color:var(--green)}
+.agent-confirm{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:12.5px;color:#b45309;
+  background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px}
+.agent-confirm .cf-i{flex:none;width:16px;height:16px;border-radius:50%;background:#f59e0b;color:#fff;
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.agent-caps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:30px}
+.agent-caps .cap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.agent-caps .cap b{display:block;font-size:15px;color:var(--text);margin-bottom:8px}
+.agent-caps .cap span{font-size:13px;color:var(--text-dim);line-height:1.65}
 
 /* features grid */
 .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
@@ -332,6 +352,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   .arch{grid-template-columns:1fr}
   .arch-arrow{transform:rotate(90deg)}
   .stats-band{grid-template-columns:repeat(2,1fr)}
+  .agent-caps{grid-template-columns:repeat(2,1fr)}
   .hero h1{font-size:38px}
   .hero{padding:120px 0 70px}
   section{padding:60px 0}
@@ -348,6 +369,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 @media (max-width:600px){
   .feat-grid{grid-template-columns:1fr}
   .stats-band{grid-template-columns:1fr 1fr}
+  .agent-caps{grid-template-columns:1fr}
   .hero h1{font-size:30px}
   .hero p.lead{font-size:16px}
   .hero{padding:110px 0 56px}
@@ -470,28 +492,38 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   </div>
 </section>
 
-<!-- ================= AI BAND ================= -->
+<!-- ================= AI AGENT BAND ================= -->
 <section id="ai" data-page-node-id="HFUF8IYwUvqDEOBABneV1G">
   <div class="container" data-page-node-id="Qa7HkIRbpvvvP35NbwFrpF">
     <div class="ai-band" data-page-node-id="9GyqyUoN8ytzi4NsbFqc3g">
       <div data-page-node-id="IwykEDrxoAOKGXG8QjqYgy">
-        <div class="sec-tag" data-i18n="ai.tag" data-page-node-id="4ocFP0mF43wPEpWoXXmOJ8">AI Operations</div>
-        <h3 data-i18n="ai.h3" data-page-node-id="UUO3mI2mPknDAzYi8ZfJpB">把"运维经验"装进面板里</h3>
-        <p data-i18n="ai.p" data-page-node-id="1ZY6XhwsiQDF6hPXQDHTb3">不只是又一个控制台。OpsMini 内置 AI 运维助手，用自然语言描述问题，它读取系统实时状态、分析日志、给出诊断结论，甚至直接帮你执行修复命令。</p>
+        <div class="sec-tag" data-i18n="ai.tag" data-page-node-id="4ocFP0mF43wPEpWoXXmOJ8">AI Agent</div>
+        <h3 data-i18n="ai.h3" data-page-node-id="UUO3mI2mPknDAzYi8ZfJpB">它不只是聊天，它会动手</h3>
+        <p data-i18n="ai.p" data-page-node-id="1ZY6XhwsiQDF6hPXQDHTb3">OpsMini 内置自研 ReAct 智能体。接到问题后自主规划、连续调用运维工具查证，把每一步的工具、参数和原始输出都摊在你面前；按危险程度分级放权——该自己动手的自己动手，该问你的必须先问。</p>
         <ul class="ai-points" data-page-node-id="FEaBhV7W44RSbqUHP1TGzy">
-          <li data-i18n="ai.l1" data-page-node-id="sy0HX7Omb157Ij9Yq6tDdK">自然语言诊断：「为什么内存占用这么高」</li>
-          <li data-i18n="ai.l2" data-page-node-id="lvE0keXRICr5ux6gxlqZup">日志智能分析：自动 tail 相关日志并归因</li>
-          <li data-i18n="ai.l3" data-page-node-id="F0HfGIYVLufffbO6VTDAnR">命令生成与执行：建议 → 确认 → 执行，全程审计</li>
-          <li data-i18n="ai.l4" data-page-node-id="31GKEnqjbgUlJrcIyyLipf">技能市场（Skills）：可安装、可上传的 AI 运维技能包</li>
-          <li data-i18n="ai.l5" data-page-node-id="uxKU4xpfefDq4FBwuChY0P">流式输出（SSE），边思考边给结果</li>
+          <li data-i18n="ai.l1" data-page-node-id="sy0HX7Omb157Ij9Yq6tDdK">自主多步排查：一次提问连查磁盘、进程、日志，直到定位到原因</li>
+          <li data-i18n="ai.l2" data-page-node-id="lvE0keXRICr5ux6gxlqZup">33 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全</li>
+          <li data-i18n="ai.l3" data-page-node-id="F0HfGIYVLufffbO6VTDAnR">四级护栏：L0 自主、L1 可配置、L2 必须确认、L3 直接禁止（如 rm -rf /）</li>
+          <li data-i18n="ai.l4" data-page-node-id="31GKEnqjbgUlJrcIyyLipf">定时巡检：排进计划任务，每天早上自动体检并归档单文件 HTML 报告</li>
+          <li data-i18n="ai.l5" data-page-node-id="uxKU4xpfefDq4FBwuChY0P">双向 MCP：能调用外部 MCP 工具，也能把自身 33 个工具发布给 Claude / Cursor</li>
         </ul>
       </div>
       <div class="chat-demo" data-page-node-id="2rY8u36vxS0R6Ehc8prXus">
-        <div class="bubble user" data-i18n="ai.b1q" data-page-node-id="LiBQ3dWvMTqRFhMTPVltcF">最近服务器总是半夜被重启，帮我查一下原因</div>
-        <div class="bubble bot" data-i18n-html="ai.b1a" data-page-node-id="oap4xHqK5aoXnOEcYpk3hn">已检查 <span class="hl" data-page-node-id="SoUNZ8P4gDqKf9jUYk25oH">/var/log/messages</span> 与 systemd 日志：<br data-page-node-id="SCllf2H0pf9WNzUkYHK44U">· 03:14 <span class="hl" data-page-node-id="2scZH27V3oQ9kfSZpY63br">oom-killer</span> 触发，杀掉进程 <span class="hl" data-page-node-id="2DB0S3a4NzcqNtfZ09d2ve">java -Xmx4g</span><br data-page-node-id="ZynUrqbMHaEFl4JAqFK8hP">· 物理内存 4G，JVM 堆 + 页缓存溢出<br data-page-node-id="xttrsG0tIyIu1kVnYN4Zi4">建议：将 Xmx 降至 2g，或添加 swap。要我帮你执行吗？ <span class="ok" data-page-node-id="RsyHE2mXGCCtJApzdllsc0">[y/N]</span></div>
-        <div class="bubble user" data-i18n="ai.b2q" data-page-node-id="A4wTOmFZC40LbhOPLZrGc8">执行第一条</div>
-        <div class="bubble bot" data-i18n="ai.b2a" data-page-node-id="CtrNq6txGTPEQRDMJSvqHI">✅ 已修改 systemd 单元并重启服务。将持续监控 48h，若再次 OOM 会通过告警通知你。</div>
+        <div class="bubble user" data-i18n="ai.b1q" data-page-node-id="LiBQ3dWvMTqRFhMTPVltcF">磁盘告警了，帮我查一下是什么占的</div>
+        <div class="agent-run">
+          <div class="agent-step"><span class="st-i">1</span><span class="st-name">dir_usage</span><span class="st-arg" data-i18n="ai.step1">/var/log</span><span class="st-ok">✓ 42ms</span></div>
+          <div class="agent-step"><span class="st-i">2</span><span class="st-name">list_disks</span><span class="st-arg" data-i18n="ai.step2">/var</span><span class="st-ok">✓ 18ms</span></div>
+          <div class="agent-step"><span class="st-i">3</span><span class="st-name">search_logs</span><span class="st-arg" data-i18n="ai.step3">No space left</span><span class="st-ok">✓ 61ms</span></div>
+        </div>
+        <div class="bubble bot" data-i18n-html="ai.b1a" data-page-node-id="oap4xHqK5aoXnOEcYpk3hn">定位到 <span class="hl">/var/log/app.log</span> 单文件 2.1 GB，30 天未轮转。<br>只读排查已自动完成；清空该文件需要 root 权限，已挂起等你确认。</div>
+        <div class="agent-confirm"><span class="cf-i">!</span><span data-i18n="ai.confirm">高危操作已挂起 · 等待你批准</span></div>
       </div>
+    </div>
+    <div class="agent-caps">
+      <div class="cap"><b data-i18n="ai.cap1.t">自主执行</b><span data-i18n="ai.cap1.d">不预设工作流，按现场情况决定下一步查什么</span></div>
+      <div class="cap"><b data-i18n="ai.cap2.t">分级授权</b><span data-i18n="ai.cap2.d">破坏性操作在执行前被拦截，要你点一下才放行</span></div>
+      <div class="cap"><b data-i18n="ai.cap3.t">定时巡检</b><span data-i18n="ai.cap3.d">无人值守跑完，产出可打开可下载的 HTML 报告</span></div>
+      <div class="cap"><b data-i18n="ai.cap4.t">双向 MCP</b><span data-i18n="ai.cap4.d">既是客户端也是服务端，与外部 AI 生态互通</span></div>
     </div>
   </div>
 </section>
@@ -687,11 +719,12 @@ const I18N = {
   'hero.stat.mem':'内存','hero.stat.disk':'磁盘',
   'hero.aiq':'🤖 用户：磁盘占用突然涨了，帮我看看',
   'hero.aia':'分析 /var/log：journal 日志未轮转，占 <em>6.8 GB</em>。建议执行 journalctl --vacuum-size=500M，预计释放 <em>6.3 GB</em> ✅',
-  'ai.tag':'AI Operations','ai.h3':'把“运维经验”装进面板里','ai.p':'不只是又一个控制台。OpsMini 内置 AI 运维助手，用自然语言描述问题，它读取系统实时状态、分析日志、给出诊断结论，甚至直接帮你执行修复命令。',
-  'ai.l1':'自然语言诊断：「为什么内存占用这么高」','ai.l2':'日志智能分析：自动 tail 相关日志并归因','ai.l3':'命令生成与执行：建议 → 确认 → 执行，全程审计','ai.l4':'技能市场（Skills）：可安装、可上传的 AI 运维技能包','ai.l5':'流式输出（SSE），边思考边给结果',
-  'ai.b1q':'最近服务器总是半夜被重启，帮我查一下原因',
-  'ai.b1a':'已检查 <span class="hl">/var/log/messages</span> 与 systemd 日志：<br>· 03:14 <span class="hl">oom-killer</span> 触发，杀掉进程 <span class="hl">java -Xmx4g</span><br>· 物理内存 4G，JVM 堆 + 页缓存溢出<br>建议：将 Xmx 降至 2g，或添加 swap。要我帮你执行吗？ <span class="ok">[y/N]</span>',
-  'ai.b2q':'执行第一条','ai.b2a':'✅ 已修改 systemd 单元并重启服务。将持续监控 48h，若再次 OOM 会通过告警通知你。',
+  'ai.tag':'AI Agent','ai.h3':'它不只是聊天，它会动手','ai.p':'OpsMini 内置自研 ReAct 智能体。接到问题后自主规划、连续调用运维工具查证，把每一步的工具、参数和原始输出都摊在你面前；按危险程度分级放权——该自己动手的自己动手，该问你的必须先问。',
+  'ai.l1':'自主多步排查：一次提问连查磁盘、进程、日志，直到定位到原因','ai.l2':'33 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全','ai.l3':'四级护栏：L0 自主、L1 可配置、L2 必须确认、L3 直接禁止（如 rm -rf /）','ai.l4':'定时巡检：排进计划任务，每天早上自动体检并归档单文件 HTML 报告','ai.l5':'双向 MCP：能调用外部 MCP 工具，也能把自身 33 个工具发布给 Claude / Cursor',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'磁盘告警了，帮我查一下是什么占的','ai.b1a':'定位到 <span class="hl">/var/log/app.log</span> 单文件 2.1 GB，30 天未轮转。<br>只读排查已自动完成；清空该文件需要 root 权限，已挂起等你确认。',
+  'ai.confirm':'高危操作已挂起 · 等待你批准',
+  'ai.cap1.t':'自主执行','ai.cap1.d':'不预设工作流，按现场情况决定下一步查什么','ai.cap2.t':'分级授权','ai.cap2.d':'破坏性操作在执行前被拦截，要你点一下才放行','ai.cap3.t':'定时巡检','ai.cap3.d':'无人值守跑完，产出可打开可下载的 HTML 报告','ai.cap4.t':'双向 MCP','ai.cap4.d':'既是客户端也是服务端，与外部 AI 生态互通',
   'feat.tag':'Features','feat.h2':'单机运维，一站配齐','feat.p':'从监控到安全，从容器到计划任务，覆盖一台服务器日常运维的全部高频场景。',
   'f1.t':'实时监控与趋势','f1.d':'CPU / 内存 / 磁盘 / 网络实时指标，ECharts 可视化，数据持久化 SQLite 保留 30 天，24h / 7d 趋势一目了然。','f1.tags':'<span>仪表盘</span><span>历史趋势</span><span>Prometheus 指标</span>',
   'f2.t':'告警与通知','f2.d':'自定义告警规则（CPU、内存、磁盘、端口存活等），事件中心集中管理，未读通知角标实时提醒。','f2.tags':'<span>告警规则</span><span>事件中心</span><span>站内通知</span>',
@@ -737,11 +770,12 @@ const I18N = {
   'hero.stat.mem':'Memory','hero.stat.disk':'Disk',
   'hero.aiq':'🤖 User: disk usage suddenly spiked, can you check?',
   'hero.aia':'Analyzing /var/log: journal logs are not rotated, taking up <em>6.8 GB</em>. Suggest running journalctl --vacuum-size=500M to free <em>6.3 GB</em> ✅',
-  'ai.tag':'AI Operations','ai.h3':'Ops expertise, built right in','ai.p':'Not just another console. OpsMini ships an AI operations assistant: describe the problem in natural language and it reads live system state, analyzes logs, delivers a diagnosis, and can even run the fix for you.',
-  'ai.l1':'Natural-language diagnosis — "why is memory so high?"','ai.l2':'Smart log analysis: auto-tails relevant logs and attributes causes','ai.l3':'Command generation & execution: suggest → confirm → run, fully audited','ai.l4':'Skills marketplace: installable, uploadable AI ops skill packs','ai.l5':'Streaming output (SSE) — see results as it thinks',
-  'ai.b1q':'My server keeps rebooting in the middle of the night, can you find out why?',
-  'ai.b1a':'Checked <span class="hl">/var/log/messages</span> and systemd logs:<br>· 03:14 <span class="hl">oom-killer</span> fired, killed process <span class="hl">java -Xmx4g</span><br>· 4G physical RAM, JVM heap + page cache overflow<br>Suggestion: lower Xmx to 2g, or add swap. Run it for you? <span class="ok">[y/N]</span>',
-  'ai.b2q':'Run the first one','ai.b2a':'✅ Modified the systemd unit and restarted the service. I will keep monitoring for 48h and notify you if it OOMs again.',
+  'ai.tag':'AI Agent','ai.h3':'It does not just chat — it acts','ai.p':'OpsMini ships a self-built ReAct agent. Given a question it plans, calls operations tools in sequence, and lays out every tool, argument and raw output for you. Authority is granted by risk tier: what it may do alone, it does; what needs you, waits for you.',
+  'ai.l1':'Multi-step investigation: one question, chained checks across disk, processes and logs until the cause is found','ai.l2':'33 built-in tools, tiered read-only / low-risk write / high-risk write, covering system, containers, services and security','ai.l3':'Four guard rails: L0 autonomous, L1 configurable, L2 always asks, L3 hard-blocked (e.g. rm -rf /)','ai.l4':'Scheduled inspection: put it on the task scheduler and get a single-file HTML report every morning','ai.l5':'Bidirectional MCP: call external MCP tools, and publish its own 33 tools to Claude / Cursor',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'Disk alert fired — find out what is filling it up','ai.b1a':'Traced it to <span class="hl">/var/log/app.log</span>: 2.1 GB in a single file, no rotation for 30 days.<br>The read-only investigation finished on its own; truncating it needs root, so the step is parked until you approve.',
+  'ai.confirm':'High-risk step parked · waiting for your approval',
+  'ai.cap1.t':'Autonomous','ai.cap1.d':'No fixed workflow — it decides the next check from what it finds','ai.cap2.t':'Tiered authority','ai.cap2.d':'Destructive steps are stopped before execution and need your click','ai.cap3.t':'Scheduled runs','ai.cap3.d':'Runs unattended and archives a report you can open or download','ai.cap4.t':'MCP both ways','ai.cap4.d':'Client and server at once — interoperates with the wider AI ecosystem',
   'feat.tag':'Features','feat.h2':'Everything for one server','feat.p':'From monitoring to security, containers to cron jobs — every high-frequency task for a single server.',
   'f1.t':'Realtime Monitoring','f1.d':'Live CPU / memory / disk / network metrics with ECharts visualization, persisted in SQLite for 30 days with 24h / 7d trends.','f1.tags':'<span>Dashboard</span><span>Trends</span><span>Prometheus metrics</span>',
   'f2.t':'Alerts & Notifications','f2.d':'Custom alert rules (CPU, memory, disk, port liveness), a central event center, and unread notification badges.','f2.tags':'<span>Alert rules</span><span>Events</span><span>In-app notices</span>',
@@ -787,11 +821,12 @@ const I18N = {
   'hero.stat.mem':'記憶體','hero.stat.disk':'磁碟',
   'hero.aiq':'🤖 使用者：磁碟占用突然變高，幫我看看',
   'hero.aia':'分析 /var/log：journal 日誌未輪轉，占 <em>6.8 GB</em>。建議執行 journalctl --vacuum-size=500M，預計釋放 <em>6.3 GB</em> ✅',
-  'ai.tag':'AI Operations','ai.h3':'把「維運經驗」裝進面板裡','ai.p':'不只是又一個控制台。OpsMini 內建 AI 維運助手，用自然語言描述問題，它讀取系統即時狀態、分析日誌、給出診斷結論，甚至直接幫你執行修復命令。',
-  'ai.l1':'自然語言診斷：「為什麼記憶體占用這麼高」','ai.l2':'日誌智慧分析：自動 tail 相關日誌並歸因','ai.l3':'命令生成與執行：建議 → 確認 → 執行，全程稽核','ai.l4':'技能市場（Skills）：可安裝、可上傳的 AI 維運技能包','ai.l5':'串流輸出（SSE），邊思考邊給結果',
-  'ai.b1q':'最近伺服器總是半夜被重啟，幫我查一下原因',
-  'ai.b1a':'已檢查 <span class="hl">/var/log/messages</span> 與 systemd 日誌：<br>· 03:14 <span class="hl">oom-killer</span> 觸發，殺掉程序 <span class="hl">java -Xmx4g</span><br>· 實體記憶體 4G，JVM 堆 + 頁快取溢出<br>建議：將 Xmx 降至 2g，或加入 swap。要我幫你執行嗎？ <span class="ok">[y/N]</span>',
-  'ai.b2q':'執行第一條','ai.b2a':'✅ 已修改 systemd 單元並重啟服務。將持續監控 48h，若再次 OOM 會透過告警通知你。',
+  'ai.tag':'AI Agent','ai.h3':'它不只是聊天，它會動手','ai.p':'OpsMini 內建自研 ReAct 智慧體。接到問題後自主規劃、連續呼叫維運工具查證，把每一步的工具、參數與原始輸出都攤在你面前；依危險程度分級授權——該自己動手的自己動手，該問你的必須先問。',
+  'ai.l1':'自主多步排查：一次提問連查磁碟、程序、日誌，直到定位到原因','ai.l2':'33 個內建工具：唯讀 / 低風險寫入 / 高風險寫入分級，涵蓋系統、容器、服務、安全','ai.l3':'四級護欄：L0 自主、L1 可設定、L2 必須確認、L3 直接禁止（如 rm -rf /）','ai.l4':'排程巡檢：排進計畫任務，每天早上自動健檢並歸檔單檔 HTML 報告','ai.l5':'雙向 MCP：能呼叫外部 MCP 工具，也能把自身 33 個工具發佈給 Claude / Cursor',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'磁碟告警了，幫我查一下是什麼佔的','ai.b1a':'定位到 <span class="hl">/var/log/app.log</span> 單檔 2.1 GB，30 天未輪替。<br>唯讀排查已自動完成；清空該檔需要 root 權限，已暫停等你確認。',
+  'ai.confirm':'高風險操作已暫停 · 等待你核准',
+  'ai.cap1.t':'自主執行','ai.cap1.d':'不預設工作流程，依現場情況決定下一步查什麼','ai.cap2.t':'分級授權','ai.cap2.d':'破壞性操作在執行前被攔截，要你點一下才放行','ai.cap3.t':'排程巡檢','ai.cap3.d':'無人值守跑完，產出可開啟可下載的 HTML 報告','ai.cap4.t':'雙向 MCP','ai.cap4.d':'既是用戶端也是伺服端，與外部 AI 生態互通',
   'feat.tag':'Features','feat.h2':'單機維運，一站配齊','feat.p':'從監控到安全，從容器到排程任務，涵蓋一台伺服器日常維運的全部高頻場景。',
   'f1.t':'即時監控與趨勢','f1.d':'CPU / 記憶體 / 磁碟 / 網路即時指標，ECharts 視覺化，資料持久化 SQLite 保留 30 天，24h / 7d 趨勢一目了然。','f1.tags':'<span>儀表板</span><span>歷史趨勢</span><span>Prometheus 指標</span>',
   'f2.t':'告警與通知','f2.d':'自訂告警規則（CPU、記憶體、磁碟、連接埠存活等），事件中心集中管理，未讀通知角標即時提醒。','f2.tags':'<span>告警規則</span><span>事件中心</span><span>站內通知</span>',
@@ -837,11 +872,12 @@ const I18N = {
   'hero.stat.mem':'メモリ','hero.stat.disk':'ディスク',
   'hero.aiq':'🤖 ユーザー：ディスク使用量が急に増えました。調べてください',
   'hero.aia':'/var/log を分析：journal ログがローテーションされておらず <em>6.8 GB</em> を占有。journalctl --vacuum-size=500M の実行を推奨、<em>6.3 GB</em> 解放見込み ✅',
-  'ai.tag':'AI Operations','ai.h3':'運用ノウハウをパネルに内蔵','ai.p':'ただのコンソールではありません。OpsMini には AI 運用アシスタントが内蔵され、自然言語で問題を伝えると、システムのリアルタイム状態を読み取り、ログを分析し、診断結果を提示。修正コマンドの実行まで行います。',
-  'ai.l1':'自然言語診断：「なぜメモリ使用量がこんなに高いのか」','ai.l2':'スマートログ分析：関連ログを自動 tail して原因を特定','ai.l3':'コマンド生成と実行：提案 → 確認 → 実行、全工程を監査','ai.l4':'スキルマーケット：インストール・アップロード可能な AI 運用スキル','ai.l5':'ストリーミング出力（SSE）で思考しながら結果を表示',
-  'ai.b1q':'サーバーが夜中に何度も再起動されます。原因を調べてください',
-  'ai.b1a':'<span class="hl">/var/log/messages</span> と systemd ログを確認：<br>· 03:14 <span class="hl">oom-killer</span> が発動し、プロセス <span class="hl">java -Xmx4g</span> を強制終了<br>· 物理メモリ 4G、JVM ヒープ＋ページキャッシュがオーバーフロー<br>提案：Xmx を 2g に下げるか、swap を追加。実行しますか？ <span class="ok">[y/N]</span>',
-  'ai.b2q':'1つ目を実行','ai.b2a':'✅ systemd ユニットを修正してサービスを再起動しました。48時間監視を継続し、再び OOM が発生した場合はアラートでお知らせします。',
+  'ai.tag':'AI Agent','ai.h3':'会話だけでなく、実際に手を動かします','ai.p':'OpsMini には自作の ReAct エージェントを内蔵しています。質問を受けると自律的に計画を立て、運用ツールを連続して呼び出して裏付けを取り、各ステップのツール・引数・生の出力をすべて提示します。権限は危険度で段階的に付与し、自分で実行してよいものは実行し、人に確認すべきものは必ず確認します。',
+  'ai.l1':'自律的な多段調査：1 回の質問でディスク・プロセス・ログを連続して確認し、原因まで追跡','ai.l2':'組み込みツール 33 個：読み取り専用 / 低リスク書き込み / 高リスク書き込みの段階分け。システム・コンテナ・サービス・セキュリティを網羅','ai.l3':'4 段階のガードレール：L0 自律、L1 設定可、L2 必ず確認、L3 は強制禁止（rm -rf / など）','ai.l4':'定時点検：スケジュールタスクに登録すれば、毎朝自動で点検し単一ファイルの HTML レポートを保存','ai.l5':'双方向 MCP：外部 MCP ツールを呼び出せ、自身の 33 ツールを Claude / Cursor へ公開も可能',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'ディスク警告が出ました。何が圧迫しているか調べてください','ai.b1a':'<span class="hl">/var/log/app.log</span> が単一ファイルで 2.1 GB、30 日間ローテーションされていないことが判明しました。<br>読み取り専用の調査は自動で完了済み。ファイルのクリアには root 権限が必要なため、承認待ちで停止しています。',
+  'ai.confirm':'高リスク操作を保留中 · 承認をお待ちしています',
+  'ai.cap1.t':'自律実行','ai.cap1.d':'ワークフローを固定せず、その場の状況から次の確認を決める','ai.cap2.t':'段階的な権限','ai.cap2.d':'破壊的な操作は実行前に止められ、あなたの承認が必要','ai.cap3.t':'定時点検','ai.cap3.d':'無人で実行し、開くことも保存もできる HTML レポートを残す','ai.cap4.t':'双方向 MCP','ai.cap4.d':'クライアントでもサーバーでもあり、外部の AI 生態系とつながる',
   'feat.tag':'Features','feat.h2':'1台のサーバーに必要なすべて','feat.p':'監視からセキュリティ、コンテナから cron まで、単一サーバー運用の高頻度タスクをすべてカバー。',
   'f1.t':'リアルタイム監視','f1.d':'CPU / メモリ / ディスク / ネットワークのリアルタイム指標を ECharts で可視化。SQLite に 30 日間保存され、24h / 7d のトレンドも一目瞭然。','f1.tags':'<span>ダッシュボード</span><span>トレンド</span><span>Prometheus 指標</span>',
   'f2.t':'アラートと通知','f2.d':'カスタムアラートルール（CPU・メモリ・ディスク・ポート死活など）、イベントセンター、未読通知バッジでリアルタイムに通知。','f2.tags':'<span>アラートルール</span><span>イベント</span><span>通知</span>',
@@ -887,11 +923,12 @@ const I18N = {
   'hero.stat.mem':'메모리','hero.stat.disk':'디스크',
   'hero.aiq':'🤖 사용자: 디스크 사용량이 갑자기 늘었어요. 확인해 주세요',
   'hero.aia':'/var/log 분석: journal 로그가 로테이션되지 않아 <em>6.8 GB</em> 차지. journalctl --vacuum-size=500M 실행 권장, <em>6.3 GB</em> 확보 예상 ✅',
-  'ai.tag':'AI Operations','ai.h3':'운영 노하우를 패널에 내장','ai.p':'단순한 콘솔이 아닙니다. OpsMini 에는 AI 운영 어시스턴트가 내장되어 자연어로 문제를 설명하면 시스템 실시간 상태를 읽고 로그를 분석해 진단 결과를 제시하고, 수정 명령 실행까지 도와줍니다.',
-  'ai.l1':'자연어 진단 — "메모리가 왜 이렇게 높지?"','ai.l2':'스마트 로그 분석: 관련 로그를 자동 tail 하여 원인 귀속','ai.l3':'명령 생성 및 실행: 제안 → 확인 → 실행, 전 과정 감사','ai.l4':'스킬 마켓: 설치·업로드 가능한 AI 운영 스킬팩','ai.l5':'스트리밍 출력(SSE)으로 생각하며 결과 제공',
-  'ai.b1q':'서버가 밤마다 재부팅돼요. 원인을 찾아주세요',
-  'ai.b1a':'<span class="hl">/var/log/messages</span> 와 systemd 로그 확인:<br>· 03:14 <span class="hl">oom-killer</span> 발동, 프로세스 <span class="hl">java -Xmx4g</span> 종료<br>· 물리 메모리 4G, JVM 힙 + 페이지 캐시 오버플로<br>제안: Xmx 를 2g 로 낮추거나 swap 추가. 실행할까요? <span class="ok">[y/N]</span>',
-  'ai.b2q':'첫 번째 실행','ai.b2a':'✅ systemd 유닛을 수정하고 서비스를 재시작했습니다. 48시간 모니터링을 지속하며 다시 OOM 이 발생하면 알림으로 알려드립니다.',
+  'ai.tag':'AI Agent','ai.h3':'대화만 하지 않고 직접 실행합니다','ai.p':'OpsMini 에는 자체 개발한 ReAct 에이전트가 내장되어 있습니다. 질문을 받으면 스스로 계획을 세우고 운영 도구를 연속으로 호출해 근거를 확인하며, 각 단계의 도구·인수·원본 출력을 모두 보여 줍니다. 권한은 위험도에 따라 등급을 나누어, 스스로 해도 되는 일은 실행하고 사람이 확인해야 할 일은 반드시 확인합니다.',
+  'ai.l1':'자율 다단계 조사: 한 번의 질문으로 디스크·프로세스·로그를 연속 확인해 원인까지 추적','ai.l2':'내장 도구 33개: 읽기 전용 / 저위험 쓰기 / 고위험 쓰기로 등급화, 시스템·컨테이너·서비스·보안 포함','ai.l3':'4단계 가드레일: L0 자율, L1 설정 가능, L2 반드시 확인, L3 강제 차단(rm -rf / 등)','ai.l4':'정기 점검: 예약 작업에 등록하면 매일 아침 자동 점검 후 단일 HTML 보고서 보관','ai.l5':'양방향 MCP: 외부 MCP 도구를 호출하고 자체 33개 도구를 Claude / Cursor 에 공개',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'디스크 경고가 떴어요. 무엇이 차지하는지 확인해 주세요','ai.b1a':'<span class="hl">/var/log/app.log</span> 단일 파일이 2.1 GB이며 30일간 로테이션되지 않은 것을 확인했습니다.<br>읽기 전용 조사는 자동으로 완료했고, 파일 비우기는 root 권한이 필요해 승인 대기로 멈춰 있습니다.',
+  'ai.confirm':'고위험 작업 보류 중 · 승인을 기다립니다',
+  'ai.cap1.t':'자율 실행','ai.cap1.d':'워크플로를 고정하지 않고 상황에 따라 다음 확인을 정합니다','ai.cap2.t':'단계별 권한','ai.cap2.d':'파괴적 작업은 실행 전에 차단되며 승인이 필요합니다','ai.cap3.t':'정기 점검','ai.cap3.d':'무인으로 실행하고 열거나 내려받을 수 있는 HTML 보고서를 남깁니다','ai.cap4.t':'양방향 MCP','ai.cap4.d':'클라이언트이자 서버로, 외부 AI 생태계와 연결됩니다',
   'feat.tag':'Features','feat.h2':'서버 한 대에 필요한 모든 것','feat.p':'모니터링부터 보안, 컨테이너부터 크론까지 단일 서버 운영의 모든 고빈도 작업을 커버합니다.',
   'f1.t':'실시간 모니터링','f1.d':'CPU / 메모리 / 디스크 / 네트워크 실시간 지표를 ECharts 로 시각화하고 SQLite 에 30일 보관하여 24h / 7d 추이를 한눈에 확인합니다.','f1.tags':'<span>대시보드</span><span>추이</span><span>Prometheus 지표</span>',
   'f2.t':'알림','f2.d':'사용자 정의 알림 규칙(CPU·메모리·디스크·포트 생존 등), 이벤트 센터, 읽지 않은 알림 배지로 실시간 안내합니다.','f2.tags':'<span>알림 규칙</span><span>이벤트</span><span>알림</span>',
@@ -937,11 +974,12 @@ const I18N = {
   'hero.stat.mem':'หน่วยความจำ','hero.stat.disk':'ดิสก์',
   'hero.aiq':'🤖 ผู้ใช้: ดิสก์ใช้พื้นที่เพิ่มขึ้นกะทันหัน ช่วยดูหน่อย',
   'hero.aia':'วิเคราะห์ /var/log: journal log ไม่ถูกหมุนเวียน ใช้ไป <em>6.8 GB</em> แนะนำให้รัน journalctl --vacuum-size=500M คาดว่าจะคืนพื้นที่ <em>6.3 GB</em> ✅',
-  'ai.tag':'AI Operations','ai.h3':'ใส่ "ประสบการณ์运维" ลงในแผง','ai.p':'ไม่ใช่แค่คอนโซลอีกตัว OpsMini มีผู้ช่วย AI ด้านการ运维ในตัว เพียงอธิบายปัญหาด้วยภาษาธรรมชาติ มันจะอ่านสถานะระบบแบบเรียลไทม์ วิเคราะห์ล็อก ให้ข้อสรุปการวินิจฉัย และช่วยรันคำสั่งแก้ไขให้ด้วย',
-  'ai.l1':'วินิจฉัยด้วยภาษาธรรมชาติ — "ทำไมหน่วยความจำถึงสูงจัง"','ai.l2':'วิเคราะห์ล็อกอัจฉริยะ: tail ล็อกที่เกี่ยวข้องและหาสาเหตุโดยอัตโนมัติ','ai.l3':'สร้างและรันคำสั่ง: แนะนำ → ยืนยัน → รัน พร้อมการตรวจสอบตลอด','ai.l4':'ตลาดสกิล (Skills): แพ็กสกิล AI ที่ติดตั้งและอัปโหลดได้','ai.l5':'เอาต์พุตแบบสตรีม (SSE) เห็นผลระหว่างคิด',
-  'ai.b1q':'เซิร์ฟเวอร์รีบูตเองตอนกลางคืนบ่อยมาก ช่วยหาสาเหตุหน่อย',
-  'ai.b1a':'ตรวจสอบ <span class="hl">/var/log/messages</span> และ systemd log แล้ว:<br>· 03:14 <span class="hl">oom-killer</span> ทำงาน ฆ่ากระบวนการ <span class="hl">java -Xmx4g</span><br>· RAM จริง 4G, JVM heap + page cache ล้น<br>แนะนำ: ลด Xmx ลงเหลือ 2g หรือเพิ่ม swap จะรันให้ไหม? <span class="ok">[y/N]</span>',
-  'ai.b2q':'รันอันแรก','ai.b2a':'✅ แก้ไข systemd unit และรีสตาร์ทบริการแล้ว จะเฝ้าดู 48 ชม. หาก OOM อีกจะแจ้งเตือนให้ทราบ',
+  'ai.tag':'AI Agent','ai.h3':'ไม่ใช่แค่คุย แต่ลงมือทำ','ai.p':'OpsMini มีเอเจนต์ ReAct ที่พัฒนาขึ้นเอง เมื่อได้คำถามจะวางแผนเอง เรียกเครื่องมือปฏิบัติการต่อเนื่องเพื่อตรวจสอบ และแสดงเครื่องมือ อาร์กิวเมนต์ และผลลัพธ์ดิบของทุกขั้นตอนให้เห็นชัด ส่วนสิทธิ์แบ่งตามระดับความเสี่ยง สิ่งที่ทำเองได้ก็ทำ สิ่งที่ต้องให้คนยืนยันก็ต้องถามก่อน',
+  'ai.l1':'ตรวจสอบหลายขั้นด้วยตนเอง: ถามครั้งเดียวก็ไล่เช็กดิสก์ โปรเซส และล็อกจนเจอสาเหตุ','ai.l2':'เครื่องมือในตัว 33 ตัว แบ่งเป็นอ่านอย่างเดียว / เขียนความเสี่ยงต่ำ / เขียนความเสี่ยงสูง ครอบคลุมระบบ คอนเทนเนอร์ บริการ และความปลอดภัย','ai.l3':'การ์ด 4 ระดับ: L0 ทำได้เอง, L1 ตั้งค่าได้, L2 ต้องยืนยัน, L3 ห้ามโดยเด็ดขาด (เช่น rm -rf /)','ai.l4':'ตรวจสอบตามกำหนดเวลา: ใส่ในงานตั้งเวลา แล้วได้รายงาน HTML ไฟล์เดียวทุกเช้าโดยอัตโนมัติ','ai.l5':'MCP สองทิศทาง: เรียกเครื่องมือ MCP ภายนอกได้ และเผยแพร่เครื่องมือ 33 ตัวของตัวเองให้ Claude / Cursor',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'มีการแจ้งเตือนดิสก์ ช่วยดูหน่อยว่าอะไรกินพื้นที่','ai.b1a':'พบว่า <span class="hl">/var/log/app.log</span> ไฟล์เดียวใช้ 2.1 GB และไม่มีการหมุนไฟล์มา 30 วัน<br>การตรวจสอบแบบอ่านอย่างเดียวเสร็จอัตโนมัติแล้ว ส่วนการล้างไฟล์ต้องใช้สิทธิ์ root จึงหยุดรอการยืนยันจากคุณ',
+  'ai.confirm':'การทำงานเสี่ยงสูงถูกพักไว้ · รอการอนุมัติจากคุณ',
+  'ai.cap1.t':'ทำงานเอง','ai.cap1.d':'ไม่กำหนดลำดับตายตัว ตัดสินใจเองว่าจะตรวจอะไรต่อไป','ai.cap2.t':'สิทธิ์ตามระดับ','ai.cap2.d':'การทำงานที่ทำลายข้อมูลถูกหยุดก่อนลงมือ และรอให้คุณอนุมัติ','ai.cap3.t':'ตรวจตามกำหนด','ai.cap3.d':'ทำงานแบบไม่มีผู้ดูแล และเก็บรายงาน HTML ที่เปิดหรือดาวน์โหลดได้','ai.cap4.t':'MCP สองทาง','ai.cap4.d':'เป็นทั้งไคลเอนต์และเซิร์ฟเวอร์ เชื่อมกับระบบนิเวศ AI ภายนอก',
   'feat.tag':'Features','feat.h2':'ครบทุกอย่างสำหรับหนึ่งเซิร์ฟเวอร์','feat.p':'จากการมอนิเตอร์ถึงความปลอดภัย จากคอนเทนเนอร์ถึง cron ครอบคลุมทุกงานที่ใช้บ่อยในการดูแลเซิร์ฟเวอร์เครื่องเดียว',
   'f1.t':'มอนิเตอร์เรียลไทม์','f1.d':'ตัวชี้วัด CPU / หน่วยความจำ / ดิสก์ / เครือข่ายแบบเรียลไทม์ แสดงผลด้วย ECharts เก็บใน SQLite นาน 30 วัน ดูแนวโน้ม 24h / 7d ได้ชัดเจน','f1.tags':'<span>แดชบอร์ด</span><span>แนวโน้ม</span><span>Prometheus metrics</span>',
   'f2.t':'การแจ้งเตือน','f2.d':'กฎแจ้งเตือนที่ปรับแต่งได้ (CPU, หน่วยความจำ, ดิสก์, port alive ฯลฯ), ศูนย์เหตุการณ์ และแจ้งเตือนที่ยังไม่ได้อ่าน','f2.tags':'<span>กฎแจ้งเตือน</span><span>เหตุการณ์</span><span>แจ้งเตือน</span>',
@@ -971,7 +1009,7 @@ const I18N = {
   'faq.q3':'ข้อมูลเก็บอยู่ที่ไหน? หายไหม?','faq.a3':'ข้อมูล config, ผู้ใช้, audit และ monitoring ทั้งหมดเก็บในไฟล์ SQLite เดียวในโฟลเดอร์เดียวกัน (ค่าเริ่มต้น opsmini.db) การ backup ก็แค่คัดลอกไฟล์นั้น ตัวชี้วัดถูกเก็บนาน 30 วัน ไม่หายหลังรีสตาร์ท',
   'faq.q4':'ฟีเจอร์ AI ต้องต่อ LLM ภายนอกไหม?','faq.a4':'ผู้ช่วย AI เชื่อมต่อกับบริการ LLM ภายนอก ใส่ endpoint และคีย์ใน "การตั้งค่า" ก็เปิดใช้ได้ หากไม่ตั้งค่าก็ไม่กระทบฟังก์ชันอื่นของแผง',
   'faq.q5':'มั่นใจเรื่องความปลอดภัยได้อย่างไร?','faq.a5':'JWT + TOTP สองขั้น (MFA) + RBAC สิทธิ์ตามบทบาท + audit log ครบถ้วน การวิเคราะห์ความปลอดภัยการล็อกอินจะตรวจจับ brute force และการล็อกอินผิดปกติ แนะนำให้จำกัด IP ต้นทางด้วยไฟร์วอลล์เมื่อเปิดสู่สาธารณะ',
-  'cta.h2':'ทำให้การ运维กลับมาง่ายอีกครั้ง','cta.p':'ไฟล์เดียว คัดลอกครั้งเดียว เปิดเบราว์เซอร์ เซิร์ฟเวอร์ของคุณก็มีผู้เชี่ยวชาญ AI แล้ว','cta.btn':'ดาวน์โหลด OpsMini →',
+  'cta.h2':'ทำให้การดูแลระบบกลับมาง่ายอีกครั้ง','cta.p':'ไฟล์เดียว คัดลอกครั้งเดียว เปิดเบราว์เซอร์ เซิร์ฟเวอร์ของคุณก็มีผู้เชี่ยวชาญ AI แล้ว','cta.btn':'ดาวน์โหลด OpsMini →',
   'foot.brand':'แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.c1t':'ผลิตภัณฑ์','foot.c1a':'ฟีเจอร์','foot.c1b':'AI Ops','foot.c1c':'เริ่มต้นใช้งาน','foot.c2t':'นักพัฒนา','foot.c2a':'REST API','foot.c2b':'สถาปัตยกรรม','foot.c2c':'FAQ','foot.c3t':'ชุมชน','foot.c3b':'ติชม','foot.bottom':'OpsMini © 2026 บริษัท ปักกิ่ง ซู่หยุน เทคโนโลยี จำกัด (opsmini.com)'
 },
 'de': {
@@ -987,11 +1025,12 @@ const I18N = {
   'hero.stat.mem':'Arbeitsspeicher','hero.stat.disk':'Festplatte',
   'hero.aiq':'🤖 Benutzer: Die Festplattennutzung ist plötzlich gestiegen, schau bitte nach',
   'hero.aia':'Analyse von /var/log: Journal-Logs nicht rotiert, belegen <em>6,8 GB</em>. Empfehlung: journalctl --vacuum-size=500M ausführen, gibt voraussichtlich <em>6,3 GB</em> frei ✅',
-  'ai.tag':'AI Operations','ai.h3':'Betriebs-Know-how direkt im Panel','ai.p':'Nicht nur eine weitere Konsole. OpsMini bringt einen KI-Ops-Assistenten mit: Problem in natürlicher Sprache beschreiben — er liest den Live-Systemzustand, analysiert Logs, liefert eine Diagnose und führt auf Wunsch sogar die Reparatur aus.',
-  'ai.l1':'Diagnose in natürlicher Sprache — „Warum ist der Speicher so voll?"','ai.l2':'Smarte Log-Analyse: tailt automatisch relevante Logs und ordnet Ursachen zu','ai.l3':'Befehle generieren & ausführen: vorschlagen → bestätigen → ausführen, vollständig auditiert','ai.l4':'Skills-Marktplatz: installierbare, hochladbare KI-Ops-Skill-Pakete','ai.l5':'Streaming-Ausgabe (SSE) — Ergebnisse schon beim Denken',
-  'ai.b1q':'Mein Server startet nachts ständig neu, kannst du die Ursache finden?',
-  'ai.b1a':'<span class="hl">/var/log/messages</span> und systemd-Logs geprüft:<br>· 03:14 <span class="hl">oom-killer</span> ausgelöst, Prozess <span class="hl">java -Xmx4g</span> beendet<br>· 4 GB RAM, JVM-Heap + Page-Cache-Überlauf<br>Vorschlag: Xmx auf 2g senken oder Swap hinzufügen. Soll ich es ausführen? <span class="ok">[y/N]</span>',
-  'ai.b2q':'Führe das erste aus','ai.b2a':'✅ systemd-Unit angepasst und Dienst neu gestartet. Ich überwache 48 h weiter und melde mich, falls es erneut zu OOM kommt.',
+  'ai.tag':'AI Agent','ai.h3':'Es chattet nicht nur, es handelt','ai.p':'OpsMini enthält einen selbst entwickelten ReAct-Agenten. Auf eine Frage plant er selbstständig, ruft Betriebswerkzeuge nacheinander auf und legt Werkzeug, Argumente und Rohausgabe jedes Schritts offen. Rechte werden nach Risikostufe vergeben: Was er allein darf, tut er; was dich braucht, wartet auf dich.',
+  'ai.l1':'Mehrstufige Untersuchung: eine Frage, verkettete Prüfungen über Datenträger, Prozesse und Logs bis zur Ursache','ai.l2':'33 eingebaute Werkzeuge, gestuft in lesend / risikoarm schreibend / risikoreich schreibend, für System, Container, Dienste und Sicherheit','ai.l3':'Vier Schutzstufen: L0 autonom, L1 konfigurierbar, L2 immer nachfragen, L3 hart gesperrt (z. B. rm -rf /)','ai.l4':'Geplante Prüfung: in die Zeitplanung gelegt, liefert sie jeden Morgen automatisch einen HTML-Bericht als Einzeldatei','ai.l5':'MCP in beide Richtungen: externe MCP-Werkzeuge aufrufen und die eigenen 33 Werkzeuge für Claude / Cursor veröffentlichen',
+  'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
+  'ai.b1q':'Datenträger-Warnung — finde heraus, was ihn füllt','ai.b1a':'Ursache gefunden: <span class="hl">/var/log/app.log</span> belegt allein 2.1 GB, seit 30 Tagen keine Rotation.<br>Die lesende Untersuchung lief automatisch; das Leeren braucht root und wartet daher auf deine Freigabe.',
+  'ai.confirm':'Risikoreicher Schritt angehalten · wartet auf Freigabe',
+  'ai.cap1.t':'Autonom','ai.cap1.d':'Kein festes Vorgehen — er entscheidet anhand der Befunde, was er als Nächstes prüft','ai.cap2.t':'Gestufte Rechte','ai.cap2.d':'Zerstörerische Schritte werden vor der Ausführung gestoppt und brauchen deinen Klick','ai.cap3.t':'Geplante Läufe','ai.cap3.d':'Läuft unbeaufsichtigt und legt einen Bericht zum Öffnen oder Herunterladen ab','ai.cap4.t':'MCP beidseitig','ai.cap4.d':'Client und Server zugleich — im Austausch mit dem weiteren KI-Ökosystem',
   'feat.tag':'Features','feat.h2':'Alles für einen Server','feat.p':'Von Monitoring über Sicherheit bis hin zu Containern und Cron-Jobs — alle häufigen Aufgaben für einen einzelnen Server.',
   'f1.t':'Echtzeit-Monitoring','f1.d':'Live-Metriken für CPU / Speicher / Festplatte / Netzwerk mit ECharts-Visualisierung, 30 Tage in SQLite persistiert, 24h-/7d-Trends auf einen Blick.','f1.tags':'<span>Dashboard</span><span>Trends</span><span>Prometheus-Metriken</span>',
   'f2.t':'Alarme & Benachrichtigungen','f2.d':'Eigene Alarmregeln (CPU, Speicher, Festplatte, Port-Erreichbarkeit), zentrale Ereignisübersicht und Ungelesen-Badges.','f2.tags':'<span>Alarmregeln</span><span>Ereignisse</span><span>Benachrichtigungen</span>',
