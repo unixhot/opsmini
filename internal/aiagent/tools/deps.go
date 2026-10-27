@@ -7,6 +7,7 @@ package tools
 
 import (
 	"github.com/opsmini/opsmini/internal/aiagent"
+	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/service"
 )
 
@@ -28,6 +29,9 @@ type Deps struct {
 	Skill    *service.SkillService
 	Mcp      *service.McpService
 	Metrics  *service.MetricCollector
+	// Safety provides the reversible action primitives (quarantine, snapshot,
+	// temporary IP bans). Nil disables the response tools.
+	Safety *safety.Manager
 
 	// DataDir returns the panel data directory (skills, uploaded files).
 	DataDir func() string
@@ -46,4 +50,5 @@ func Build(reg *aiagent.Registry, d Deps) {
 	reg.RegisterAll(readonlyTools(d))
 	reg.RegisterAll(lowRiskTools(d))
 	reg.RegisterAll(highRiskTools(d))
+	reg.RegisterAll(responseTools(d))
 }

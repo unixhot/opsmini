@@ -63,7 +63,59 @@ type RunOptions struct {
 	Title string
 	// MaxSteps overrides the configured per-turn step budget (0 = engine default).
 	MaxSteps int
+
+	// --- event-triggered (autonomous) runs -----------------------------------
+	// Mode is shadow | assist | auto. Shadow runs investigate and record what
+	// they *would* do but never write; assist runs writes through the approval
+	// flow; auto runs whitelisted low-risk writes directly.
+	Mode string
+	// IncidentID links the run to the event that triggered it (blank for
+	// interactive and scheduled runs).
+	IncidentID string
+	// AllowedTools, when non-empty, is an allowlist: only these tools are
+	// offered to the model. This is how a scenario can be denied exec_command
+	// entirely instead of being asked nicely not to use it.
+	AllowedTools []string
+	// DeniedTools always wins over AllowedTools.
+	DeniedTools []string
+	// MaxWrites caps write tools per run (0 = unlimited).
+	MaxWrites int
+	// AutoTools allows the listed L1 tools to bypass the confirmation step.
+	// Only used when Mode is auto; L2 tools are never affected.
+	AutoTools []string
+	// Evidence is the collector findings injected as a system message so the
+	// model starts from facts instead of guessing.
+	Evidence []string
+	// OnAction is called for every tool decision and completion, feeding the
+	// action log (decision chain).
+	OnAction ActionHook
 }
+
+// ActionEvent is one entry of the decision chain.
+type ActionEvent struct {
+	Name       string
+	Args       map[string]any
+	Risk       RiskLevel
+	Verdict    string // allow | confirm | deny | shadow
+	Rule       string
+	Result     string
+	Reversible bool
+	DurationMS int64
+}
+
+// ActionHook receives action events.
+type ActionHook func(ActionEvent)
+
+// Action verdicts recorded in the decision chain.
+const (
+	ActionAllow   = "allow"
+	ActionConfirm = "confirm"
+	ActionDeny    = "deny"
+	ActionShadow  = "shadow"
+)
+
+// ModeShadow runs the investigation without performing any write.
+const ModeShadow = "shadow"
 
 // Agent is the ReAct kernel: it reasons with the model, invokes tools, feeds the
 // observations back, and enforces the safety rails along the way.
@@ -242,10 +294,14 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 		emit = nopEmitter()
 	}
 	res := &SendResult{SessionID: sess.ID, Tools: toolsDone}
-	tools := a.availableTools(opt.RoleName)
+	tools := filterTools(a.availableTools(opt.RoleName), opt.AllowedTools, opt.DeniedTools)
 	msgs := make([]Message, 0, len(history)+2)
 	msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: a.systemPrompt(opt)})
+	if len(opt.Evidence) > 0 {
+		msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: evidenceBlock(opt)})
+	}
 	msgs = append(msgs, history...)
+	writes := 0
 
 	maxSteps := a.cfg.MaxSteps
 	if opt.MaxSteps > 0 {
@@ -316,10 +372,53 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 				continue
 			}
 
+			// Shadow mode and the write budget are enforced before any policy
+			// check: in shadow mode nothing is executed at all.
+			if tool.Risk >= RiskLowWrite {
+				if opt.Mode == ModeShadow {
+					reason := "影子模式：该操作已记录但未执行（仅观察，不改动系统）"
+					emit.Emit(Event{Type: EventToolCall, SessionID: sess.ID, ID: call.ID, Name: tool.Name,
+						Title: tool.Title, Args: args, Risk: tool.Risk.String(), RiskCode: int(tool.Risk), Preview: preview})
+					out := toolMessage(call.ID, tool.Name, reason)
+					msgs = append(msgs, out)
+					_ = a.store.Append(sess.ID, out)
+					if opt.OnAction != nil {
+						opt.OnAction(ActionEvent{Name: tool.Name, Args: args, Risk: tool.Risk,
+							Verdict: ActionShadow, Rule: "shadow-mode", Result: reason, Reversible: true})
+					}
+					if !containsString(res.Skipped, tool.Name) {
+						res.Skipped = append(res.Skipped, tool.Name)
+					}
+					continue
+				}
+				if opt.MaxWrites > 0 && writes >= opt.MaxWrites {
+					reason := fmt.Sprintf("动作预算已用完（本次最多 %d 个写操作），已拒绝继续执行；请在结论中说明剩余步骤需人工完成", opt.MaxWrites)
+					emit.Emit(Event{Type: EventToolResult, SessionID: sess.ID, ID: call.ID, Name: tool.Name,
+						OK: boolPtr(false), Summary: reason})
+					out := toolMessage(call.ID, tool.Name, reason)
+					msgs = append(msgs, out)
+					_ = a.store.Append(sess.ID, out)
+					if opt.OnAction != nil {
+						opt.OnAction(ActionEvent{Name: tool.Name, Args: args, Risk: tool.Risk,
+							Verdict: ActionDeny, Rule: "write-budget", Result: reason})
+					}
+					if !containsString(res.Skipped, tool.Name) {
+						res.Skipped = append(res.Skipped, tool.Name)
+					}
+					continue
+				}
+				writes++
+			}
+
 			// Decide whether the call may run unattended.
 			override := ""
 			if a.policy != nil {
 				override = a.policy(tool.Name)
+			}
+			if override == "" && tool.Risk == RiskLowWrite && containsStr(opt.AutoTools, tool.Name) {
+				// Auto mode whitelist: only the tools the policy explicitly
+				// trusts, and only for low-risk writes.
+				override = "auto"
 			}
 			switch PolicyFor(tool, override) {
 			case PolicyDeny:
@@ -427,6 +526,11 @@ func (a *Agent) runTool(ctx context.Context, opt RunOptions, call ToolCall, prev
 				Name: tool.Name, OK: boolPtr(false), Summary: summary, Duration: elapsed.Milliseconds()})
 		}
 		a.auditTool(opt, tool.Name, "error", preview+"｜"+err.Error())
+		if opt.OnAction != nil {
+			opt.OnAction(ActionEvent{Name: tool.Name, Args: call.Args(), Risk: tool.Risk,
+				Verdict: ActionAllow, Result: summary, DurationMS: elapsed.Milliseconds(),
+				Reversible: tool.Risk < RiskHighWrite})
+		}
 		return []Message{toolMessage(call.ID, tool.Name, summary)}
 	}
 	if len(result.Summary) > a.cfg.MaxToolSummary {
@@ -438,6 +542,11 @@ func (a *Agent) runTool(ctx context.Context, opt RunOptions, call ToolCall, prev
 			Duration: elapsed.Milliseconds()})
 	}
 	a.auditTool(opt, tool.Name, "execute", preview)
+	if opt.OnAction != nil {
+		opt.OnAction(ActionEvent{Name: tool.Name, Args: call.Args(), Risk: tool.Risk,
+			Verdict: ActionAllow, Result: truncateText(result.Summary, 400),
+			DurationMS: elapsed.Milliseconds(), Reversible: tool.Risk < RiskHighWrite})
+	}
 	return []Message{toolMessage(call.ID, tool.Name, result.Summary)}
 }
 
@@ -571,3 +680,56 @@ func containsString(list []string, v string) bool {
 
 // boolPtr returns a pointer to v (used for tri-state JSON fields).
 func boolPtr(v bool) *bool { return &v }
+
+
+// filterTools applies the scenario allowlist and the hard denylist.
+func filterTools(in []Tool, allow, deny []string) []Tool {
+	allowSet := map[string]bool{}
+	for _, n := range allow {
+		allowSet[n] = true
+	}
+	denySet := map[string]bool{}
+	for _, n := range deny {
+		denySet[n] = true
+	}
+	out := make([]Tool, 0, len(in))
+	for _, t := range in {
+		if denySet[t.Name] {
+			continue
+		}
+		if len(allowSet) > 0 && !allowSet[t.Name] {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// evidenceBlock renders collector findings as a system message so the model
+// starts from facts (this is worth several investigation rounds).
+func evidenceBlock(opt RunOptions) string {
+	var b strings.Builder
+	b.WriteString("以下事实由主机采集器在事件发生时确认，可直接作为排查起点（无需重复采集）：\n")
+	for _, e := range opt.Evidence {
+		b.WriteString("- ")
+		b.WriteString(e)
+		b.WriteString("\n")
+	}
+	b.WriteString("运行模式：")
+	if opt.Mode == ModeShadow {
+		b.WriteString("shadow（只观察，禁止任何写操作）")
+	} else {
+		b.WriteString(opt.Mode)
+	}
+	return b.String()
+}
+
+// containsStr reports whether the slice contains the value.
+func containsStr(list []string, v string) bool {
+	for _, s := range list {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}

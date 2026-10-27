@@ -18,6 +18,7 @@ import (
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/repository"
+	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/service"
 )
 
@@ -39,6 +40,7 @@ type toolDeps struct {
 	metrics     *service.MetricCollector
 	agentMgr    *agent.Manager
 	agentConfig *service.AgentConfigService
+	safety      *safety.Manager
 }
 
 // settingKeyToolPolicy is the panel setting that stores the per-tool policy
@@ -49,6 +51,12 @@ const settingKeyToolPolicy = "ai_tool_policy"
 type aiAgentBundle struct {
 	handler   *v1.AgentHandler
 	mcpServer *aiagent.MCPServer
+	// Exposed for the v1.3.0 autonomous loop (event-triggered runs reuse the same
+	// agent kernel, store and notifier as scheduled tasks).
+	agent    *aiagent.Agent
+	store    *aiagent.Store
+	notifier *service.Notifier
+	dataDir  func() string
 }
 
 // buildAIAgent assembles the AI Agent: LLM client, tool registry, guard rails,
@@ -142,6 +150,7 @@ func buildAIAgent(
 		DataDir:   dataDir,
 		PanelPort: cfg.Server.Port,
 		Setting:   getSetting,
+		Safety:    d.safety,
 	})
 
 	guard := aiagent.NewGuard(dataDir, cfg.Server.Port)
@@ -308,6 +317,10 @@ func buildAIAgent(
 	return aiAgentBundle{
 		handler:   v1.NewAgentHandler(agentDeps),
 		mcpServer: mcpServer,
+		agent:     a,
+		store:     store,
+		notifier:  notifier,
+		dataDir:   dataDir,
 	}
 }
 

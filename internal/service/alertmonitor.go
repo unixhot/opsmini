@@ -24,6 +24,16 @@ type AlertMonitor struct {
 	settings  func() map[string]string // returns all settings (for SMTP config)
 
 	stopCh chan struct{}
+
+	// onFire is called after an alert event is created and notifications sent.
+	// The perception layer uses it to turn metric alerts into signals instead of
+	// polling the same metrics twice.
+	onFire func(rule model.AlertRule, val, threshold float64, op string)
+}
+
+// SetOnFire registers a hook invoked whenever an alert fires.
+func (m *AlertMonitor) SetOnFire(fn func(rule model.AlertRule, val, threshold float64, op string)) {
+	m.onFire = fn
 }
 
 // NewAlertMonitor creates an AlertMonitor.
@@ -135,6 +145,9 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 		WebhookText: rule.Name + ": " + msg,
 	})
 	log.Printf("ALERT fired: %s (rule=%s, id=%d)", msg, rule.Name, e.ID)
+	if m.onFire != nil {
+		m.onFire(rule, val, threshold, op)
+	}
 }
 
 // resolve recovers an alert: marks the rule's active event as resolved and creates a

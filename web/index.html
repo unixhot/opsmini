@@ -1522,6 +1522,183 @@
         </div>
       </div>
 
+
+      <!-- ============ 事件中心（自主 Agent v1.3.0） ============ -->
+      <div v-if="page==='sentinel'">
+        <div class="page-head">
+          <div>
+            <div class="page-title">{{ t('menu.sentinel') }}</div>
+            <div class="page-desc">{{ t('sentinel.desc') }}</div>
+          </div>
+          <div class="row" style="gap:8px">
+            <span class="tag" :class="sentinelStats.paused?'err':'ok'">
+              <span class="tdot"></span>{{ sentinelStats.paused ? t('sentinel.paused') : t('sentinel.running') }}
+            </span>
+            <button class="btn ghost" @click="pauseSentinel(!sentinelStats.paused)">
+              {{ sentinelStats.paused ? t('sentinel.resumeAll') : t('sentinel.pause') }}
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom:16px">
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.signals24') }}</span></div><div class="stat-value" style="color:var(--info)">{{ sentinelStats.signals_24h || 0 }}</div></div>
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.openIncidents') }}</span></div><div class="stat-value" style="color:var(--warning)">{{ sentinelStats.incidents_open || 0 }}</div></div>
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.incidents24') }}</span></div><div class="stat-value" style="color:var(--primary)">{{ sentinelStats.incidents_24h || 0 }}</div></div>
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.actions24') }}</span></div><div class="stat-value" style="color:var(--success)">{{ sentinelStats.actions_24h || 0 }}</div></div>
+        </div>
+
+        <div class="page-tabs" style="margin-bottom:16px">
+          <span :class="{active: sentinelTab==='incidents'}" @click="sentinelTab='incidents'">{{ t('sentinel.tab.incidents') }}</span>
+          <span :class="{active: sentinelTab==='policies'}" @click="sentinelTab='policies';loadSentinelTab()">{{ t('sentinel.tab.policies') }}</span>
+          <span :class="{active: sentinelTab==='actions'}" @click="sentinelTab='actions';loadSentinelTab()">{{ t('sentinel.tab.actions') }}</span>
+          <span :class="{active: sentinelTab==='safety'}" @click="sentinelTab='safety';loadSentinelTab()">{{ t('sentinel.tab.safety') }}</span>
+          <span :class="{active: sentinelTab==='signals'}" @click="sentinelTab='signals';loadSentinelTab()">{{ t('sentinel.tab.signals') }}</span>
+        </div>
+
+        <div class="card" v-if="sentinelTab==='incidents'">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.event') }}</th>
+                <th>{{ t('sentinel.col.severity') }}</th><th>{{ t('sentinel.col.status') }}</th>
+                <th>{{ t('sentinel.col.mode') }}</th><th>{{ t('sentinel.col.summary') }}</th>
+                <th>{{ t('common.actions') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="i in sentinelIncidents" :key="i.id">
+                  <td class="mono">{{ fmtDT(i.last_seen) }}</td>
+                  <td>{{ i.title }}</td>
+                  <td><span class="tag" :class="sevTag(i.severity)">{{ i.severity }}</span></td>
+                  <td><span class="tag" :class="stTag(i.status)">{{ i.status }}</span></td>
+                  <td>{{ i.mode || '-' }}</td>
+                  <td style="max-width:420px;white-space:normal">{{ (i.summary || '-').slice(0,180) }}</td>
+                  <td>
+                    <a class="link" v-if="i.report_rel" @click="openSentinelReport(i)">{{ t('sentinel.report') }}</a>
+                    <a class="link" @click="ignoreIncident(i)" style="margin-left:10px">{{ t('sentinel.ignore') }}</a>
+                    <a class="link" @click="takeoverIncident(i)" style="margin-left:10px">{{ t('sentinel.takeover') }}</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="!sentinelIncidents.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+        </div>
+
+        <div class="card" v-if="sentinelTab==='policies'">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>{{ t('sentinel.col.policy') }}</th><th>{{ t('sentinel.col.scene') }}</th>
+                <th>{{ t('sentinel.col.threshold') }}</th><th>{{ t('sentinel.col.mode') }}</th>
+                <th>{{ t('sentinel.col.budget') }}</th><th>{{ t('sentinel.col.enabled') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="p in sentinelPolicies" :key="p.id">
+                  <td class="mono">{{ p.name }}</td>
+                  <td>{{ p.family }}</td>
+                  <td>{{ p.min_severity }}</td>
+                  <td>
+                    <select class="input" style="width:auto" :value="p.mode" @change="setPolicyMode(p, $event.target.value)">
+                      <option value="shadow">{{ t('sentinel.mode.shadow') }}</option>
+                      <option value="assist">{{ t('sentinel.mode.assist') }}</option>
+                      <option value="auto">{{ t('sentinel.mode.auto') }}</option>
+                    </select>
+                  </td>
+                  <td class="mono">{{ p.max_writes }} / {{ p.max_steps }} / {{ p.cooldown_sec }}s</td>
+                  <td><span class="switch" :class="{on: p.enabled}" @click="togglePolicy(p)"></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:12px 16px;color:var(--t3);font-size:12.5px">{{ t('sentinel.policyHint') }}</div>
+        </div>
+
+        <div class="card" v-if="sentinelTab==='actions'">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.tool') }}</th>
+                <th>{{ t('sentinel.col.risk') }}</th><th>{{ t('sentinel.col.verdict') }}</th>
+                <th>{{ t('sentinel.col.result') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="a in sentinelActions" :key="a.id">
+                  <td class="mono">{{ fmtDT(a.created_at) }}</td>
+                  <td class="mono">{{ a.tool }}</td>
+                  <td>{{ a.risk }}</td>
+                  <td><span class="tag" :class="verdictTag(a.verdict)">{{ a.verdict }}</span></td>
+                  <td style="max-width:520px;white-space:normal">{{ (a.result || '-').slice(0,200) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="!sentinelActions.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+        </div>
+
+        <div v-if="sentinelTab==='safety'">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><div class="card-title">{{ t('sentinel.quarantine') }}</div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.file') }}</th><th>{{ t('sentinel.col.reason') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
+                <tbody>
+                  <tr v-for="q in sentinelQuarantine" :key="q.id">
+                    <td class="mono">{{ fmtDT(q.created_at) }}</td>
+                    <td class="mono" style="max-width:360px;white-space:normal">{{ q.original_path }}</td>
+                    <td>{{ q.reason }}</td>
+                    <td>
+                      <a class="link" v-if="!q.restored_at" @click="restoreQuarantine(q)">{{ t('sentinel.restore') }}</a>
+                      <span v-else style="color:var(--t3)">{{ t('sentinel.restored') }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="!sentinelQuarantine.length" style="padding:30px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">{{ t('sentinel.blocked') }}</div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>{{ t('sentinel.col.time') }}</th><th>IP</th><th>{{ t('sentinel.col.reason') }}</th><th>{{ t('sentinel.col.expires') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
+                <tbody>
+                  <tr v-for="b in sentinelBlocks" :key="b.id">
+                    <td class="mono">{{ fmtDT(b.created_at) }}</td>
+                    <td class="mono">{{ b.ip }}</td>
+                    <td>{{ b.reason }}</td>
+                    <td class="mono">{{ fmtDT(b.expires_at) }}</td>
+                    <td><a class="link" v-if="!b.released_at" @click="unblockIp(b)">{{ t('sentinel.unblock') }}</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="!sentinelBlocks.length" style="padding:30px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+          </div>
+        </div>
+
+        <div class="card" v-if="sentinelTab==='signals'">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.kind') }}</th>
+                <th>{{ t('sentinel.col.severity') }}</th><th>{{ t('sentinel.col.subject') }}</th>
+                <th>{{ t('sentinel.col.message') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="g in sentinelSignals" :key="g.id">
+                  <td class="mono">{{ fmtDT(g.observed_at) }}</td>
+                  <td>{{ g.kind }}</td>
+                  <td><span class="tag" :class="sevTag(g.severity)">{{ g.severity }}</span></td>
+                  <td class="mono" style="max-width:280px;white-space:normal">{{ g.subject }}</td>
+                  <td style="max-width:520px;white-space:normal">{{ g.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="!sentinelSignals.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+        </div>
+      </div>
+
       <!-- ============ 计划任务 ============ -->
       <div v-if="page==='cron'">
         <div class="page-head">
@@ -3449,6 +3626,16 @@ const I18N = {
   },
 };
 
+const I18N9 = {
+  'zh-CN': { 'menu.sentinel':'事件中心','sentinel.desc':'采集器在这里汇总主机信号，按策略决定是否唤起 Agent；每次处置都可审计、可回滚。','sentinel.running':'自主运行中','sentinel.paused':'已急停（只读）','sentinel.pause':'急停','sentinel.resumeAll':'恢复自主','sentinel.signals24':'24h 信号','sentinel.openIncidents':'待处置','sentinel.incidents24':'24h 事件','sentinel.actions24':'24h 动作','sentinel.tab.incidents':'事件','sentinel.tab.policies':'策略','sentinel.tab.actions':'动作审计','sentinel.tab.safety':'隔离与封禁','sentinel.tab.signals':'信号流','sentinel.col.time':'时间','sentinel.col.event':'事件','sentinel.col.severity':'等级','sentinel.col.status':'状态','sentinel.col.mode':'模式','sentinel.col.summary':'摘要','sentinel.col.policy':'策略','sentinel.col.scene':'场景','sentinel.col.threshold':'触发阈值','sentinel.col.budget':'写/步/冷却','sentinel.col.enabled':'启用','sentinel.col.tool':'工具','sentinel.col.risk':'风险','sentinel.col.verdict':'裁决','sentinel.col.result':'结果','sentinel.col.file':'文件','sentinel.col.reason':'原因','sentinel.col.expires':'到期','sentinel.col.kind':'类型','sentinel.col.subject':'对象','sentinel.col.message':'内容','sentinel.report':'报告','sentinel.ignore':'忽略','sentinel.takeover':'接管','sentinel.empty':'暂无数据','sentinel.quarantine':'隔离文件（可还原）','sentinel.blocked':'临时封禁的 IP','sentinel.restore':'还原','sentinel.restored':'已还原','sentinel.unblock':'解封','sentinel.unblocked':'已解封','sentinel.mode.shadow':'影子','sentinel.mode.assist':'协助','sentinel.mode.auto':'自主','sentinel.policyHint':'影子=只观察不执行；协助=只读自动、写动作需人工；自主=仅白名单内的低危动作自动执行。' },
+  'zh-TW': { 'menu.sentinel':'事件中心','sentinel.desc':'採集器在這裡彙整主機訊號，依原則決定是否喚起 Agent；每次處置都可稽核、可還原。','sentinel.running':'自主運行中','sentinel.paused':'已急停（唯讀）','sentinel.pause':'急停','sentinel.resumeAll':'恢復自主','sentinel.signals24':'24h 訊號','sentinel.openIncidents':'待處置','sentinel.incidents24':'24h 事件','sentinel.actions24':'24h 動作','sentinel.tab.incidents':'事件','sentinel.tab.policies':'原則','sentinel.tab.actions':'動作稽核','sentinel.tab.safety':'隔離與封鎖','sentinel.tab.signals':'訊號流','sentinel.col.time':'時間','sentinel.col.event':'事件','sentinel.col.severity':'等級','sentinel.col.status':'狀態','sentinel.col.mode':'模式','sentinel.col.summary':'摘要','sentinel.col.policy':'原則','sentinel.col.scene':'場景','sentinel.col.threshold':'觸發閾值','sentinel.col.budget':'寫/步/冷卻','sentinel.col.enabled':'啟用','sentinel.col.tool':'工具','sentinel.col.risk':'風險','sentinel.col.verdict':'裁決','sentinel.col.result':'結果','sentinel.col.file':'檔案','sentinel.col.reason':'原因','sentinel.col.expires':'到期','sentinel.col.kind':'類型','sentinel.col.subject':'對象','sentinel.col.message':'內容','sentinel.report':'報告','sentinel.ignore':'忽略','sentinel.takeover':'接管','sentinel.empty':'暫無資料','sentinel.quarantine':'隔離檔案（可還原）','sentinel.blocked':'臨時封鎖的 IP','sentinel.restore':'還原','sentinel.restored':'已還原','sentinel.unblock':'解封','sentinel.unblocked':'已解封','sentinel.mode.shadow':'影子','sentinel.mode.assist':'協助','sentinel.mode.auto':'自主','sentinel.policyHint':'影子=只觀察不執行；協助=唯讀自動、寫動作需人工；自主=僅白名單內的低風險動作自動執行。' },
+  'en': { 'menu.sentinel':'Event Center','sentinel.desc':'Collectors aggregate host signals here; policies decide when the agent wakes up. Every action is auditable and reversible.','sentinel.running':'Autonomous','sentinel.paused':'Paused (read-only)','sentinel.pause':'Pause','sentinel.resumeAll':'Resume','sentinel.signals24':'Signals 24h','sentinel.openIncidents':'Open','sentinel.incidents24':'Incidents 24h','sentinel.actions24':'Actions 24h','sentinel.tab.incidents':'Incidents','sentinel.tab.policies':'Policies','sentinel.tab.actions':'Action log','sentinel.tab.safety':'Quarantine & bans','sentinel.tab.signals':'Signals','sentinel.col.time':'Time','sentinel.col.event':'Event','sentinel.col.severity':'Severity','sentinel.col.status':'Status','sentinel.col.mode':'Mode','sentinel.col.summary':'Summary','sentinel.col.policy':'Policy','sentinel.col.scene':'Scenario','sentinel.col.threshold':'Threshold','sentinel.col.budget':'Writes/Steps/Cooldown','sentinel.col.enabled':'Enabled','sentinel.col.tool':'Tool','sentinel.col.risk':'Risk','sentinel.col.verdict':'Verdict','sentinel.col.result':'Result','sentinel.col.file':'File','sentinel.col.reason':'Reason','sentinel.col.expires':'Expires','sentinel.col.kind':'Kind','sentinel.col.subject':'Subject','sentinel.col.message':'Message','sentinel.report':'Report','sentinel.ignore':'Ignore','sentinel.takeover':'Take over','sentinel.empty':'Nothing here yet','sentinel.quarantine':'Quarantined files (restorable)','sentinel.blocked':'Temporarily blocked IPs','sentinel.restore':'Restore','sentinel.restored':'Restored','sentinel.unblock':'Unblock','sentinel.unblocked':'Unblocked','sentinel.mode.shadow':'Shadow','sentinel.mode.assist':'Assist','sentinel.mode.auto':'Auto','sentinel.policyHint':'Shadow = observe only; Assist = reads automatic, writes need a human; Auto = only whitelisted low-risk writes run on their own.' },
+  'ja': { 'menu.sentinel':'イベントセンター','sentinel.desc':'コレクタがホストのシグナルを集約し、ポリシーがエージェントを起動するか決めます。すべての処置は監査可能で元に戻せます。','sentinel.running':'自律運転中','sentinel.paused':'停止中（読み取り専用）','sentinel.pause':'停止','sentinel.resumeAll':'再開','sentinel.signals24':'24h シグナル','sentinel.openIncidents':'未処理','sentinel.incidents24':'24h インシデント','sentinel.actions24':'24h アクション','sentinel.tab.incidents':'インシデント','sentinel.tab.policies':'ポリシー','sentinel.tab.actions':'操作監査','sentinel.tab.safety':'隔離と遮断','sentinel.tab.signals':'シグナル','sentinel.col.time':'時刻','sentinel.col.event':'イベント','sentinel.col.severity':'重要度','sentinel.col.status':'状態','sentinel.col.mode':'モード','sentinel.col.summary':'概要','sentinel.col.policy':'ポリシー','sentinel.col.scene':'シナリオ','sentinel.col.threshold':'しきい値','sentinel.col.budget':'書込/手数/冷却','sentinel.col.enabled':'有効','sentinel.col.tool':'ツール','sentinel.col.risk':'リスク','sentinel.col.verdict':'判定','sentinel.col.result':'結果','sentinel.col.file':'ファイル','sentinel.col.reason':'理由','sentinel.col.expires':'期限','sentinel.col.kind':'種類','sentinel.col.subject':'対象','sentinel.col.message':'内容','sentinel.report':'レポート','sentinel.ignore':'無視','sentinel.takeover':'引き継ぐ','sentinel.empty':'データがありません','sentinel.quarantine':'隔離ファイル（復元可能）','sentinel.blocked':'一時遮断した IP','sentinel.restore':'復元','sentinel.restored':'復元済み','sentinel.unblock':'解除','sentinel.unblocked':'解除済み','sentinel.mode.shadow':'シャドウ','sentinel.mode.assist':'支援','sentinel.mode.auto':'自律','sentinel.policyHint':'シャドウ=観察のみ／支援=読み取りは自動・書き込みは承認／自律=許可済みの低リスク操作のみ自動実行。' },
+  'ko': { 'menu.sentinel':'이벤트 센터','sentinel.desc':'수집기가 호스트 신호를 모으고 정책이 에이전트를 깨울지 결정합니다. 모든 처리는 감사 가능하고 되돌릴 수 있습니다.','sentinel.running':'자율 운영 중','sentinel.paused':'일시정지(읽기 전용)','sentinel.pause':'일시정지','sentinel.resumeAll':'재개','sentinel.signals24':'24h 신호','sentinel.openIncidents':'대기','sentinel.incidents24':'24h 인시던트','sentinel.actions24':'24h 동작','sentinel.tab.incidents':'인시던트','sentinel.tab.policies':'정책','sentinel.tab.actions':'동작 감사','sentinel.tab.safety':'격리와 차단','sentinel.tab.signals':'신호','sentinel.col.time':'시간','sentinel.col.event':'이벤트','sentinel.col.severity':'등급','sentinel.col.status':'상태','sentinel.col.mode':'모드','sentinel.col.summary':'요약','sentinel.col.policy':'정책','sentinel.col.scene':'시나리오','sentinel.col.threshold':'임계값','sentinel.col.budget':'쓰기/단계/쿨다운','sentinel.col.enabled':'사용','sentinel.col.tool':'도구','sentinel.col.risk':'위험','sentinel.col.verdict':'판정','sentinel.col.result':'결과','sentinel.col.file':'파일','sentinel.col.reason':'사유','sentinel.col.expires':'만료','sentinel.col.kind':'종류','sentinel.col.subject':'대상','sentinel.col.message':'내용','sentinel.report':'보고서','sentinel.ignore':'무시','sentinel.takeover':'인계','sentinel.empty':'데이터가 없습니다','sentinel.quarantine':'격리된 파일(복원 가능)','sentinel.blocked':'임시 차단 IP','sentinel.restore':'복원','sentinel.restored':'복원됨','sentinel.unblock':'해제','sentinel.unblocked':'해제됨','sentinel.mode.shadow':'그림자','sentinel.mode.assist':'지원','sentinel.mode.auto':'자율','sentinel.policyHint':'그림자=관찰만, 지원=읽기 자동·쓰기 승인, 자율=허용된 저위험 동작만 자동 실행.' },
+  'th': { 'menu.sentinel':'ศูนย์เหตุการณ์','sentinel.desc':'ตัวเก็บสัญญาณรวมสัญญาณจากโฮสต์ และนโยบายตัดสินว่าจะปลุก Agent หรือไม่ ทุกการกระทำตรวจสอบย้อนหลังและย้อนกลับได้','sentinel.running':'ทำงานอัตโนมัติ','sentinel.paused':'หยุดชั่วคราว (อ่านเท่านั้น)','sentinel.pause':'หยุด','sentinel.resumeAll':'ทำงานต่อ','sentinel.signals24':'สัญญาณ 24 ชม.','sentinel.openIncidents':'รอจัดการ','sentinel.incidents24':'เหตุการณ์ 24 ชม.','sentinel.actions24':'การกระทำ 24 ชม.','sentinel.tab.incidents':'เหตุการณ์','sentinel.tab.policies':'นโยบาย','sentinel.tab.actions':'บันทึกการกระทำ','sentinel.tab.safety':'กักกันและบล็อก','sentinel.tab.signals':'สัญญาณ','sentinel.col.time':'เวลา','sentinel.col.event':'เหตุการณ์','sentinel.col.severity':'ระดับ','sentinel.col.status':'สถานะ','sentinel.col.mode':'โหมด','sentinel.col.summary':'สรุป','sentinel.col.policy':'นโยบาย','sentinel.col.scene':'สถานการณ์','sentinel.col.threshold':'เกณฑ์','sentinel.col.budget':'เขียน/ขั้น/คูลดาวน์','sentinel.col.enabled':'เปิดใช้','sentinel.col.tool':'เครื่องมือ','sentinel.col.risk':'ความเสี่ยง','sentinel.col.verdict':'คำตัดสิน','sentinel.col.result':'ผลลัพธ์','sentinel.col.file':'ไฟล์','sentinel.col.reason':'เหตุผล','sentinel.col.expires':'หมดอายุ','sentinel.col.kind':'ชนิด','sentinel.col.subject':'วัตถุ','sentinel.col.message':'ข้อความ','sentinel.report':'รายงาน','sentinel.ignore':'เพิกเฉย','sentinel.takeover':'รับช่วง','sentinel.empty':'ยังไม่มีข้อมูล','sentinel.quarantine':'ไฟล์ที่กักกัน (กู้คืนได้)','sentinel.blocked':'IP ที่บล็อกชั่วคราว','sentinel.restore':'กู้คืน','sentinel.restored':'กู้คืนแล้ว','sentinel.unblock':'ปลดบล็อก','sentinel.unblocked':'ปลดบล็อกแล้ว','sentinel.mode.shadow':'เงา','sentinel.mode.assist':'ช่วยเหลือ','sentinel.mode.auto':'อัตโนมัติ','sentinel.policyHint':'เงา=ดูอย่างเดียว, ช่วยเหลือ=อ่านอัตโนมัติ เขียนต้องอนุมัติ, อัตโนมัติ=เฉพาะงานเสี่ยงต่ำที่อนุญาต' },
+  'de': { 'menu.sentinel':'Ereigniszentrale','sentinel.desc':'Collectors bündeln Host-Signale, Richtlinien entscheiden über den Agent-Lauf. Jede Aktion ist prüfbar und umkehrbar.','sentinel.running':'Autonom aktiv','sentinel.paused':'Pausiert (nur Lesen)','sentinel.pause':'Pausieren','sentinel.resumeAll':'Fortsetzen','sentinel.signals24':'Signale 24h','sentinel.openIncidents':'Offen','sentinel.incidents24':'Vorfälle 24h','sentinel.actions24':'Aktionen 24h','sentinel.tab.incidents':'Vorfälle','sentinel.tab.policies':'Richtlinien','sentinel.tab.actions':'Aktionsprotokoll','sentinel.tab.safety':'Quarantäne & Sperren','sentinel.tab.signals':'Signale','sentinel.col.time':'Zeit','sentinel.col.event':'Ereignis','sentinel.col.severity':'Stufe','sentinel.col.status':'Status','sentinel.col.mode':'Modus','sentinel.col.summary':'Zusammenfassung','sentinel.col.policy':'Richtlinie','sentinel.col.scene':'Szenario','sentinel.col.threshold':'Schwelle','sentinel.col.budget':'Schreib-/Schritt-/Cooldown','sentinel.col.enabled':'Aktiv','sentinel.col.tool':'Werkzeug','sentinel.col.risk':'Risiko','sentinel.col.verdict':'Urteil','sentinel.col.result':'Ergebnis','sentinel.col.file':'Datei','sentinel.col.reason':'Grund','sentinel.col.expires':'Ablauf','sentinel.col.kind':'Art','sentinel.col.subject':'Objekt','sentinel.col.message':'Meldung','sentinel.report':'Bericht','sentinel.ignore':'Ignorieren','sentinel.takeover':'Übernehmen','sentinel.empty':'Noch keine Daten','sentinel.quarantine':'Quarantänierte Dateien (wiederherstellbar)','sentinel.blocked':'Temporär gesperrte IPs','sentinel.restore':'Wiederherstellen','sentinel.restored':'Wiederhergestellt','sentinel.unblock':'Entsperren','sentinel.unblocked':'Entsperrt','sentinel.mode.shadow':'Schatten','sentinel.mode.assist':'Assistenz','sentinel.mode.auto':'Autonom','sentinel.policyHint':'Schatten = nur beobachten; Assistenz = Lesen automatisch, Schreiben mit Freigabe; Autonom = nur freigegebene risikoarme Aktionen.' },
+};
+
 const I18N2 = {
   'zh-CN': { 'brand.tagline':'AI 驱动的主机运维面板','login.userPh':'请输入用户名','login.passPh':'请输入密码',
     'misc.uptime':'已运行','misc.cores':'核','misc.load':'负载','misc.todayTotal':'今日累计','misc.menu':'菜单','misc.collapse':'收起菜单','misc.expand':'展开菜单','misc.goDashboard':'回到仪表盘',
@@ -4018,11 +4205,20 @@ createApp({
         { label:'menu.files', sub:'qa.filesSub', to:'files', icon:'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
         { label:'menu.terminal', sub:'qa.terminalSub', to:'terminal', icon:'M4 17l6-5-6-5 M12 19h8' },
       ],
+      sentinelTab:'incidents',
+      sentinelStats:{},
+      sentinelIncidents:[],
+      sentinelPolicies:[],
+      sentinelActions:[],
+      sentinelSignals:[],
+      sentinelQuarantine:[],
+      sentinelBlocks:[],
       menu: [
         { title:'group.overview', items:[
           { id:'dashboard', label:'menu.dashboard', icon:'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z' },
           { id:'monitoring', label:'menu.monitoring', icon:'M22 12h-4l-3 9L9 3l-3 9H2' },
           { id:'ai', label:'menu.ai', icon:'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z' },
+          { id:'sentinel', label:'menu.sentinel', icon:'M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z M12 8v4 M12 15h.01' },
         ]},
         { title:'group.security', items:[
           { id:'security', label:'menu.security', icon:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
@@ -4143,6 +4339,76 @@ createApp({
     },
   },
   methods: {
+    fmtDT(v){ if(!v) return '-'; const d=new Date(v); if(isNaN(d.getTime())) return String(v); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; },
+    sevTag(s){ return s==='critical'||s==='high' ? 'err' : (s==='medium' ? 'warn' : 'info'); },
+    stTag(s){ return s==='resolved' ? 'ok' : (s==='failed' ? 'err' : (s==='running' ? 'warn' : 'info')); },
+    verdictTag(v){ return v==='deny' ? 'err' : (v==='shadow' ? 'warn' : (v==='confirm' ? 'warn' : 'ok')); },
+    async loadSentinel(){
+      try{
+        const h = { 'Authorization':'Bearer ' + this.token };
+        const [st, inc, pol] = await Promise.all([
+          fetch('/api/v1/sentinel/stats', {headers:h}).then(r=>r.json()),
+          fetch('/api/v1/sentinel/incidents?limit=100', {headers:h}).then(r=>r.json()),
+          fetch('/api/v1/sentinel/policies', {headers:h}).then(r=>r.json()),
+        ]);
+        this.sentinelStats = (st && st.data) || {};
+        this.sentinelIncidents = (inc && inc.data) || [];
+        this.sentinelPolicies = (pol && pol.data) || [];
+        this.loadSentinelTab();
+      }catch(e){ /* panel stays usable when perception is disabled */ }
+    },
+    async loadSentinelTab(){
+      const h = { 'Authorization':'Bearer ' + this.token };
+      try{
+        if(this.sentinelTab==='actions'){
+          const r = await fetch('/api/v1/sentinel/actions?limit=100', {headers:h}).then(x=>x.json());
+          this.sentinelActions = (r && r.data) || [];
+        } else if(this.sentinelTab==='signals'){
+          const r = await fetch('/api/v1/sentinel/signals?limit=100', {headers:h}).then(x=>x.json());
+          this.sentinelSignals = (r && r.data) || [];
+        } else if(this.sentinelTab==='safety'){
+          const [q, b] = await Promise.all([
+            fetch('/api/v1/sentinel/quarantine', {headers:h}).then(x=>x.json()),
+            fetch('/api/v1/sentinel/blocks', {headers:h}).then(x=>x.json()),
+          ]);
+          this.sentinelQuarantine = (q && q.data) || [];
+          this.sentinelBlocks = (b && b.data) || [];
+        }
+      }catch(e){}
+    },
+    async pauseSentinel(on){
+      const r = await fetch('/api/v1/sentinel/pause', {method:'POST', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({paused: !!on})}).then(x=>x.json());
+      if(r && r.code===0){ this.sentinelStats.paused = !!on; this.toast(this.t('btn.saved')); }
+    },
+    async setPolicyMode(p, mode){
+      const r = await fetch('/api/v1/sentinel/policies/'+p.id, {method:'PUT', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({mode: mode, enabled: p.enabled})}).then(x=>x.json());
+      if(r && r.code===0){ p.mode = mode; this.toast(this.t('btn.saved')); } else { this.toast((r&&r.message)||this.t('btn.saveFail')); }
+    },
+    async togglePolicy(p){
+      const r = await fetch('/api/v1/sentinel/policies/'+p.id, {method:'PUT', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({mode: p.mode, enabled: !p.enabled})}).then(x=>x.json());
+      if(r && r.code===0){ p.enabled = !p.enabled; }
+    },
+    async ignoreIncident(i){
+      await fetch('/api/v1/sentinel/incidents/'+i.id+'/ignore', {method:'POST', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({by: this.user && this.user.username, note:'人工忽略'})});
+      this.toast(this.t('btn.saved')); this.loadSentinel();
+    },
+    async takeoverIncident(i){
+      await fetch('/api/v1/sentinel/incidents/'+i.id+'/takeover', {method:'POST', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({by: this.user && this.user.username})});
+      this.toast(this.t('btn.saved')); this.loadSentinel();
+    },
+    openSentinelReport(i){
+      const url = this.reportURL({lastReport: i.report_rel, lastSession: i.session_id}, 'view');
+      if(!url){ this.toast(this.t('cron.noReport')); return; }
+      window.open(url + '&token=' + encodeURIComponent(this.token), '_blank', 'noopener');
+    },
+    async restoreQuarantine(q){
+      const r = await fetch('/api/v1/sentinel/quarantine/'+q.id+'/restore', {method:'POST', headers:{'Authorization':'Bearer '+this.token}}).then(x=>x.json());
+      if(r && r.code===0){ this.toast(this.t('sentinel.restored')); this.loadSentinelTab(); } else { this.toast((r&&r.message)||''); }
+    },
+    async unblockIp(b){
+      const r = await fetch('/api/v1/sentinel/blocks/'+encodeURIComponent(b.ip), {method:'DELETE', headers:{'Authorization':'Bearer '+this.token}}).then(x=>x.json());
+      if(r && r.code===0){ this.toast(this.t('sentinel.unblocked')); this.loadSentinelTab(); }
+    },
     go(id){
       this.page=id; this.mobileNavOpen=false;
       // 切换页面时重置子 tab 到第一个，避免返回时停留在上次的 tab
@@ -4154,6 +4420,7 @@ createApp({
       else if(id==='logs') this.logType='panel';
       else if(id==='monitoring') this.monitorTab='chart';
       else if(id==='ai') this.aiTab='chat';
+      else if(id==='sentinel'){ this.sentinelTab='incidents'; }
       this.$nextTick(()=>this.renderCharts()); this.onPageChange();
     },
     goDashboard(){
@@ -4176,6 +4443,7 @@ createApp({
       else if(p==='cron') this.loadCrons && this.loadCrons();
       else if(p==='files') this.loadFiles && this.loadFiles();
       else if(p==='logs') this.loadLogs && this.loadLogs();
+      else if(p==='sentinel') this.loadSentinel && this.loadSentinel();
       else if(p==='users') this.loadUsers && this.loadUsers();
       else if(p==='containers') this.loadContainers && this.loadContainers();
       else if(p==='apps') this.loadApps && this.loadApps();
@@ -4186,7 +4454,7 @@ createApp({
       else if(p==='terminal') this.connectTerminal();
     },
     // ===== 多语言 =====
-    t(key){ const dicts=[I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
+    t(key){ const dicts=[I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
     setLang(code){ this.lang = code; this.langOpen = false; this.persistLang(); },
     persistLang(){ try{ localStorage.setItem('opsmini-lang', this.lang); }catch(e){} },
     loadLang(){ try{ const l=localStorage.getItem('opsmini-lang'); if(l && I18N[l]){ this.lang = l; return; } }catch(e){} this.lang = this.detectLang(); },

@@ -107,6 +107,7 @@ plugins:
             构建与部署: 構建與部署
             本地开发环境: 本地開發環境
             贡献指南: 貢獻指南
+            自主 Agent 运行时: 自主 Agent 執行環境
         - locale: en
           name: English
           build: true
@@ -153,6 +154,7 @@ plugins:
             目录结构: Directory
             构建与部署: Build & Deploy
             本地开发环境: Dev Environment
+            自主 Agent 运行时: Autonomous agent runtime
             贡献指南: Contributing
         - locale: ja
           name: 日本語
@@ -198,6 +200,7 @@ plugins:
             总体架构: 全体アーキテクチャ
             技术栈: 技術スタック
             目录结构: ディレクトリ構造
+            自主 Agent 运行时: 自律エージェント実行環境
             构建与部署: ビルドとデプロイ
             本地开发环境: ローカル開発環境
             贡献指南: 貢献ガイド
@@ -243,6 +246,7 @@ plugins:
             用户与权限: 사용자 및 권한
             主机安全: 호스트 보안
             总体架构: 전체 아키텍처
+            自主 Agent 运行时: 자율 에이전트 런타임
             技术栈: 기술 스택
             目录结构: 디렉터리 구조
             构建与部署: 빌드 및 배포
@@ -290,6 +294,7 @@ plugins:
             用户与权限: ผู้ใช้และสิทธิ์
             主机安全: ความปลอดภัยของโฮสต์
             总体架构: สถาปัตยกรรมโดยรวม
+            自主 Agent 运行时: รันไทม์เอเจนต์อัตโนมัติ
             技术栈: เทคโนโลยีสแต็ก
             目录结构: โครงสร้างไดเรกทอรี
             构建与部署: บิลด์และปรับใช้
@@ -336,6 +341,7 @@ plugins:
             系统管理: Systemverwaltung
             用户与权限: Benutzer & RBAC
             主机安全: Host-Sicherheit
+            自主 Agent 运行时: Autonome Agent-Laufzeit
             总体架构: Gesamtarchitektur
             技术栈: Tech-Stack
             目录结构: Verzeichnisstruktur
@@ -448,6 +454,7 @@ nav:
       - Prometheus 指标: api/prometheus.md
   - 架构设计:
       - 总体架构: architecture/index.md
+      - 自主 Agent 运行时: architecture/agent-runtime.md
       - 技术栈: architecture/tech-stack.md
       - 目录结构: architecture/directory.md
   - 开发指南:

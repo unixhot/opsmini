@@ -2,6 +2,8 @@
 package router
 
 import (
+	"context"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -16,8 +18,10 @@ import (
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/middleware"
+	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
 	"github.com/opsmini/opsmini/internal/repository"
+	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/service"
 	"github.com/opsmini/opsmini/web"
 )
@@ -166,6 +170,32 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			return kv
 		},
 	)
+	// Metric alerts are fed into the perception bus instead of being polled twice.
+	metricSigCh := make(chan model.Signal, 64)
+	alertMonitor.SetOnFire(func(rule model.AlertRule, val, threshold float64, op string) {
+		sev := model.SeverityMedium
+		if threshold >= 90 {
+			sev = model.SeverityHigh
+		}
+		now := time.Now()
+		sig := model.Signal{
+			ID:          fmt.Sprintf("m%d%d", now.UnixNano(), rule.ID),
+			Kind:        model.SignalKindMetric,
+			Source:      "alertmonitor",
+			Subject:     rule.Metric,
+			Family:      "metric",
+			Fingerprint: "metric." + rule.Metric,
+			DedupKey:    fmt.Sprintf("metric.%s|%d|%s", rule.Metric, rule.ID, now.Format("2006010215")),
+			Severity:    sev,
+			Message:     fmt.Sprintf("%s 当前 %v %s 阈值 %v（规则 %s）", rule.Metric, val, op, threshold, rule.Name),
+			ObservedAt:  now,
+			CreatedAt:   now,
+		}
+		select {
+		case metricSigCh <- sig:
+		default:
+		}
+	})
 	alertMonitor.Start()
 	securityMonitor.Start()
 
@@ -219,12 +249,41 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	appCategoryHandler := v1.NewAppCategoryHandler(appCategorySvc)
 
 	// ----- AI Agent (M8): self-built lightweight ReAct kernel + tool set -----
+	// Data directory shared by the agent, the safety store and report archiving.
+	panelDataDir := func() string {
+		if v, _ := settingSvc.Get("appstore_data_dir"); v != "" {
+			return v
+		}
+		return "/var/lib/opsmini/data"
+	}
+	safetyMgr := safety.New(db, panelDataDir, cfg.Server.Port)
+
 	agentBundle := buildAIAgent(cfg, db, settingSvc, auditSvc, roleSvc, userSvc, agentMgr, version, toolDeps{
 		sys: sysSvc, firewall: firewallSvc, file: fileSvc, log: logSvc,
 		cron: cronSvc, crontab: crontabSvc, website: websiteSvc, database: databaseSvc,
 		appStore: appStoreSvc, docker: dockerSvc, security: securitySvc,
 		skill: skillSvc, mcp: mcpSvc, metrics: metrics, agentConfig: agentConfigSvc,
+		safety: safetyMgr,
 	})
+
+	// v1.3.0 perception + trigger: collectors -> incidents -> agent runs.
+	sharedNotifier := service.NewNotifier(repository.NewNotificationRepo(db), func() map[string]string {
+		kv, _ := settingSvc.List()
+		return kv
+	})
+	sentinelBundle := buildSentinel(cfg, db, settingSvc, sharedNotifier, agentBundle, panelDataDir, metricSigCh)
+	sentinelHandler := sentinelBundle.handler
+	sentinelBundle.manager.Start(context.Background())
+	// Release expired IP bans even if nobody clicks anything.
+	go func() {
+		t := time.NewTicker(2 * time.Minute)
+		defer t.Stop()
+		for range t.C {
+			if n := sentinelBundle.safety.SweepBlocks(); n > 0 {
+				log.Printf("sentinel: released %d expired IP bans", n)
+			}
+		}
+	}()
 
 	authMw := middleware.Auth(jwtMgr)
 	// permMw performs fine-grained checks based on permission points.
@@ -358,6 +417,23 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/ai/agent/reports", permMw("ai.agent"), agentBundle.handler.Reports)
 			authed.GET("/ai/agent/mcp-server", permMw("ai.agent"), agentBundle.handler.MCPServerInfo)
 			authed.PUT("/ai/agent/mcp-server", permMw("settings.edit"), agentBundle.handler.UpdateMCPServer)
+
+			// Autonomous agent (v1.3.0): perception, incidents, policies, safety.
+			authed.GET("/sentinel/stats", permMw("ai.agent"), sentinelHandler.Stats)
+			authed.GET("/sentinel/signals", permMw("ai.agent"), sentinelHandler.Signals)
+			authed.GET("/sentinel/incidents", permMw("ai.agent"), sentinelHandler.Incidents)
+			authed.GET("/sentinel/incidents/:id", permMw("ai.agent"), sentinelHandler.Incident)
+			authed.POST("/sentinel/incidents/:id/ignore", permMw("ai.agent"), sentinelHandler.Ignore)
+			authed.POST("/sentinel/incidents/:id/takeover", permMw("ai.agent"), sentinelHandler.Takeover)
+			authed.GET("/sentinel/policies", permMw("ai.agent"), sentinelHandler.Policies)
+			authed.PUT("/sentinel/policies/:id", permMw("settings.edit"), sentinelHandler.UpdatePolicy)
+			authed.POST("/sentinel/pause", permMw("settings.edit"), sentinelHandler.Pause)
+			authed.GET("/sentinel/actions", permMw("ai.agent"), sentinelHandler.Actions)
+			authed.GET("/sentinel/quarantine", permMw("ai.agent"), sentinelHandler.Quarantine)
+			authed.POST("/sentinel/quarantine/:id/restore", permMw("ai.agent"), sentinelHandler.RestoreQuarantine)
+			authed.DELETE("/sentinel/quarantine/:id", permMw("ai.agent"), sentinelHandler.DeleteQuarantine)
+			authed.GET("/sentinel/blocks", permMw("ai.agent"), sentinelHandler.BlockedIPs)
+			authed.DELETE("/sentinel/blocks/:ip", permMw("ai.agent"), sentinelHandler.UnblockIP)
 
 			authed.GET("/mcp", mcpHandler.List)
 			authed.POST("/mcp", permMw("mcp.manage"), mcpHandler.Create)
