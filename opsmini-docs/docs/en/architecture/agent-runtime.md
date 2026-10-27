@@ -65,11 +65,44 @@ In event-triggered runs the **generic command execution tool is not offered at a
 
 The sidebar page has five tabs:
 
-- **Incidents**: status, severity, mode, summary, report link, ignore/take over
-- **Policies**: per-scenario mode (shadow/assist/auto), threshold, budget, enable switch
-- **Action log**: tool, risk, verdict (allow/deny/shadow/confirm), result
-- **Quarantine & bans**: restore a quarantined file, release an IP ban
-- **Signals**: the raw stream, so you can answer "why didn't it wake me that night"
+- **Incidents**: filter by category, level, status and keyword; 20 per page; **Details** shows the related
+  signals, the agent runs and the full action chain
+- **Policies**: create, edit and delete them; an "How to read these policies" panel explains the three
+  modes and every field in plain language
+- **Action log**: tool, risk, verdict (allow/deny/shadow/confirm), duration and result, paged and filterable
+- **Quarantine & bans**: restore a quarantined file, release an IP ban; long paths and reasons wrap
+  inside the cell instead of forcing a horizontal scrollbar
+- **Signals**: the raw stream, so you can answer "why didn't it wake me that night", also paged
+
+All four stat cards drill down: **Needs attention** jumps to the incident list filtered to everything a
+human still has to look at (open + triggered + running + failed), **Actions 24h** jumps to the action log.
+
+### What wakes the agent
+
+Three conditions must all hold: matching category, severity at or above `min_severity`, and outside the
+`cooldown_sec` window. Otherwise the incident is recorded and no model tokens are spent — this is the main
+cost control.
+
+`auto` mode only skips confirmation for the low-risk tools listed in `auto_tools`; it never bypasses the
+L0–L3 grading. Anything at L2 or above still needs a human.
+
+### Data retention
+
+Collection is write-heavy, so records expire automatically — once an hour:
+
+| Table | Default | Removed when |
+|---|---|---|
+| signals | 14 days | expired **and** its incident is closed |
+| incidents | 90 days | expired and closed (resolved/ignored/taken_over/failed) |
+| action log | 180 days | expired (audit kept longest) |
+| agent runs | 90 days | expired and its incident is closed |
+| quarantine | 30 days | only restored rows; the file itself is never touched |
+| IP bans | 30 days | only released rows |
+
+Three hard rules: **open incidents are never deleted** (with their signals and action chain),
+**quarantined files stay until restored**, and **bans stay until released**. Set the days in the panel;
+0 means keep forever. Changes apply immediately and survive a restart. The manual cleanup has a
+preview button so you can see the count before deleting anything.
 
 ## Troubleshooting
 

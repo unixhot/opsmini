@@ -322,8 +322,17 @@ deny_cmd_patterns rm -rf / · mkfs · dd of=/dev/ · shutdown/reboot · :(){ · 
 | GET | `/sentinel/actions` | ai.agent | 动作审计 |
 | GET | `/sentinel/quarantine` · POST `/:id/restore` · DELETE `/:id` | ai.agent | 隔离区 |
 | GET | `/sentinel/blocks` · DELETE `/:host/ip` | ai.agent | 封禁列表 / 解封 |
+| GET | `/sentinel/facets` | ai.agent | 筛选词表：分类计数、等级、场景清单、处置工具、模式 |
+| POST | `/sentinel/policies` · DELETE `/sentinel/policies/:id` | settings.edit | 新建 / 删除策略 |
+| GET/PUT | `/sentinel/retention` | ai.agent / settings.edit | 数据保留天数与各表行数 |
+| POST | `/sentinel/retention/purge` | settings.edit | 立即清理（`dry_run` 可只预览） |
 
-前端：侧边栏「事件中心」页，五个 Tab（事件 / 策略 / 动作审计 / 隔离与封禁 / 信号流），顶部常驻急停开关。文案在 `I18N9`（7 语言）。
+所有列表接口统一分页：`?page=&page_size=`（默认 20，上限 200），返回
+`{list, total, page, page_size}`。事件额外支持 `status`（含虚拟值 `unresolved` = open+triggered+running+failed）、
+`family`、`severity`、`q`；动作支持 `tool`、`verdict`、`q`；信号支持 `kind`、`severity`、`family`、`q`。
+
+前端：侧边栏「事件中心」页，五个 Tab（事件 / 策略 / 动作审计 / 隔离与封禁 / 信号流），顶部常驻急停开关。
+文案在 `I18N9` + `I18N10`（后者置于 dicts 首位，用于覆盖旧文案），7 语言各 118 键对齐。
 
 ---
 
@@ -396,3 +405,137 @@ deny_cmd_patterns rm -rf / · mkfs · dd of=/dev/ · shutdown/reboot · :(){ · 
 4. 单会话并发：极端情况下多场景同时发生会排队，后面的靠下一次信号重触发。
 5. assist 模式不续跑：写动作只出建议，需人工在 AI 助手里执行（v1.3.1 补 HITL 续跑）。
 6. `truncate_log` 会重写文件内容（保留尾部），对正在做 `tail -f` 的进程无影响，但会丢失前端输出——因此它只在 auto 白名单里按场景开放。
+
+---
+
+## 12. 面板：如何使用事件中心
+
+> 本节面向使用者，可直接作为官方文档的「事件中心」章节。
+
+### 12.1 四个数字都能点
+
+| 卡片 | 含义 | 点击后 |
+|---|---|---|
+| 24h 信号 | 采集器最近一天产出的原始观测数 | 跳到「信号流」 |
+| 待处置 | 还需要人看一眼的事件数（open + triggered + running + failed） | 跳到「事件」，按待处置筛选 |
+| 24h 事件 | 最近一天聚合出的事件数 | 跳到「事件」，全部 |
+| 24h 动作 | 最近一天 Agent 的工具调用数 | 跳到「动作审计」 |
+
+「待处置」和「24h 事件」差在哪：已处置、已忽略、已接管的那部分不计入待处置。数字对不上时先看这里。
+
+### 12.2 事件怎么分类
+
+事件按**场景（family）**分类，只有六种，与采集器一一对应：
+
+| family | 中文 | 来源采集器 | 典型触发 |
+|---|---|---|---|
+| `webshell` | WebShell | filewatch | web 目录新增脚本 + 内容特征，或进程链交叉命中 |
+| `auth.anomaly` | 登录异常 | authwatch | 非工作时段、新 IP、爆破后成功、authorized_keys 被改 |
+| `proc.anomaly` | 可疑进程 | procwatch | 挖矿特征、反弹 shell、web 用户派生 shell |
+| `net.anomaly` | 异常外联 | netwatch | 可疑端口、已知 C2 端口、异常出站 |
+| `log_growth` | 日志暴涨 | logwatch | 小时桶 EWMA 偏离 3σ，或超过 20MB/min |
+| `metric` | 指标告警 | metricwatch | 复用既有告警引擎，命中阈值即入总线 |
+
+分类下拉里的计数来自 `/sentinel/facets`，是**全量**计数，不受当前状态筛选影响。
+
+### 12.3 事件详情里有什么
+
+点行首的「详情」：
+
+- **摘要**：Agent 的结论（assist/auto 模式跑过才有）
+- **关联信号**：这条事件由哪些观测聚合而成，每条带等级与原文
+- **运行记录**：几次 Agent 运行、各用了多少步/工具/写操作
+- **动作链**：每一次工具调用 + 裁决 + 结果（`allow` / `deny` / `shadow` / `confirm`）
+
+判定「Agent 到底动没动手」看动作链：`verdict=allow` 且 `risk=low_write/high_write` 才是真写了。
+
+---
+
+## 13. 面板：策略怎么配
+
+### 13.1 一句话
+
+策略是**数据**，回答两件事：这类事件要不要叫醒 Agent、叫醒后它最多能做什么。表 `trigger_policies`，UI 可增删改，改完下一轮判定即生效，不用重启。
+
+### 13.2 唤醒的三个条件（AND）
+
+```
+事件分类 == 策略 family
+且 严重级 >= 策略 min_severity
+且 距上次同策略运行 >= cooldown_sec
+```
+
+不满足就只记录事件、不消耗模型额度。这是控制成本的主要开关。
+
+### 13.3 三种模式
+
+| 模式 | 只读工具 | 写动作 | 适合 |
+|---|---|---|---|
+| `shadow` | 自动 | **一律不执行**，只记「本来会做什么」 | 新场景上线前跑几天看判断准不准 |
+| `assist` | 自动 | 一律等人工确认（事件触发的运行里直接拒绝并记入 skipped） | 默认值，日常最稳 |
+| `auto` | 自动 | 只有 `auto_tools` 白名单里的 L1 动作直接执行 | 已跑稳的场景，且只放可回滚动作 |
+
+`auto` 不会突破 L0–L3 分级：L2 以上永远需要人，`auto_tools` 里填 L2 工具也不会生效。
+
+### 13.4 字段速查
+
+| 字段 | 类型 | 说明 | 常见错误 |
+|---|---|---|---|
+| `name` | 唯一字符串 | 创建后不可改 | 重名会报「策略名已存在」 |
+| `family` | 六选一 | 必须与采集器场景一致 | 自定义值永远匹配不上事件 |
+| `min_severity` | info…critical | 越低越敏感也越贵 | 调到 `info` 会让每个正常登录都唤醒 Agent |
+| `mode` | shadow/assist/auto | 见上表 | 新场景直接上 `auto` |
+| `cooldown_sec` | 0–86400 | 同策略两次运行最小间隔 | 设 0 等于不限制，同类事件会连续唤醒 |
+| `max_writes` | 0–20 | 一次运行最多写几次 | 设太小会让 Agent 做完取证就没法处置 |
+| `max_steps` / `max_seconds` / `max_tokens` | — | 单次运行的步数/时长/token 上限 | 步数太小会「查一半就停」 |
+| `allow_tools` | JSON 数组 | 下发给模型的工具全集 | 忘记放 `read_file` 会导致没法取证 |
+| `auto_tools` | JSON 数组 | 仅 auto 模式生效的免确认工具 | 填了 L2 工具不生效（安全设计） |
+| `verify` | JSON 数组 | 动作后的断言，见 §5.5 | 写成 `{}` 会被拒绝；空字符串表示不验证 |
+| `prompt` | 文本 | 处置 playbook，`{title}` 会被替换 | 写太笼统，模型容易乱查 |
+
+### 13.5 建议的上线节奏
+
+1. 新场景先 `shadow` 跑 3–7 天，看事件详情里的「本来会做什么」是否符合预期；
+2. 判断稳定后切 `assist`，此时只读自动、写要人点；
+3. 同一场景连续 7 天没有误判，再把 1–2 个可回滚动作放进 `auto_tools` 并切 `auto`；
+4. 任何时候都保留急停（右上角 Pause）：急停后所有运行强制降级为 shadow。
+
+---
+
+## 14. 数据保留与清理
+
+### 14.1 为什么要有
+
+信号是高频写入（这台测试机一天 50 条左右，繁忙主机可能上万），动作审计是每次工具调用一条。不清理的话 SQLite 会一直长。
+
+### 14.2 规则（重要）
+
+| 表 | 默认保留 | 清理条件 |
+|---|---|---|
+| `signals` | 14 天 | 超期 **且** 所属事件已关闭（或没挂事件） |
+| `incidents` | 90 天 | 超期 **且** 状态属于 resolved/ignored/taken_over/failed |
+| `actions` | 180 天 | 超期即删（审计留最久） |
+| `agent_runs` | 90 天 | 超期且所属事件已关闭 |
+| `quarantine` | 30 天 | **只删已还原**的记录行，文件本身不碰 |
+| `blocked_ips` | 30 天 | **只删已解封**的记录行 |
+
+三条硬规则：
+
+1. **待处置事件永不自动删**（open/triggered/running），它和它的信号、动作链都是证据；
+2. **隔离文件在还原前不动**，避免把可能要还原的东西弄丢；
+3. **封禁在解封前不动**，避免记录没了但 iptables 规则还在。
+
+设 `0` 表示永久保留。所有天数在「隔离与封禁 → 数据保留与清理」里改，落 `settings.sentinel_retention`，重启不丢。
+
+### 14.3 什么时候跑
+
+后台每小时一次（`startRetention`，首次延迟 3 分钟避开启动高峰），日志会打
+`sentinel: retention removed signals=N incidents=N ...`。
+
+手动触发：`POST /sentinel/retention/purge {"what":"all","dry_run":true}` 先看数量，
+再把 `dry_run` 设 false。UI 上就是「预览可清理量」和「立即清理」两个按钮。
+
+### 14.4 容量估算
+
+单条例行的 SQLite 开销（含索引）大致：signal ≈ 0.8 KB、action ≈ 1.2 KB、incident ≈ 2 KB。
+按每天 1 万条信号算，14 天约 110 MB，加上索引不到 200 MB —— 对单机面板是可接受量级。
