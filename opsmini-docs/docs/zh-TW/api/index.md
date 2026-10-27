@@ -7,7 +7,7 @@ OpsMini 對外暴露兩套標準 REST API，供瀏覽器 UI 與外部系統整�
 | API | 字首 | 使用者 | 認證 |
 |-----|------|--------|------|
 | 面板 API | `/api/v1` | 瀏覽器（人） | 使用者會話 JWT + RBAC |
-| Agent API | `/agent/v1` | 外部系統（機器） | Agent Token + 命令白名單 |
+| Agent 接入 | gRPC（Agent 主動對外） | 多機納管 | Server Token + 雙向流 |
 | Prometheus 指標 | `/metrics` | 監控系統 | 可選 Basic 認證 |
 
 統一響應格式：`{ "code": 0, "message": "ok", "data": ... }`，`code` 非 0 為業務錯誤。
@@ -20,7 +20,7 @@ OpsMini 對外暴露兩套標準 REST API，供瀏覽器 UI 與外部系統整�
 
     認證、使用者、監控、網站、容器、檔案、AI 等全部 UI 能力。
 
--   :material-api: **[Agent API（/agent/v1）agent-api.md**
+-   :material-api: **[Agent 接入（gRPC）](agent-api.md)**
 
     ---
 

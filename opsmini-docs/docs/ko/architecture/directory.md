@@ -46,4 +46,4 @@ opsmini/
 | `cron` / `log` | 예약 작업, 로그 |
 | `ai` | LLM 연동, 컨텍스트, 자연어 실행 |
 | `security` | 베이스라인, FIM, 위협, 방화벽, 로그인 보안 |
-| `agent` | 대외 REST API（`/agent/v1`） |
+| `agent` | 대외 REST API（`/mcp`） |

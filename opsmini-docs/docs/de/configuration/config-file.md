@@ -80,7 +80,7 @@ agent:
 
 | Parameter | Beschreibung | Standard |
 |------|------|------|
-| `allowed_commands` | Whitelist der Befehlspräfixe, die `/agent/v1/commands` ausführen darf | siehe oben |
+| ~~`allowed_commands`~~ | mit v1.2.1 zusammen mit der `/agent/v1`-REST-API entfernt | — |
 
 > `agent.token` ist veraltet. Das Authentifizierungs-Token der Agent-API wird nun auf der Seite „Einstellungen → API-Token" des Panels erzeugt und verwaltet; leer bedeutet, dass die Agent-API deaktiviert ist.
 

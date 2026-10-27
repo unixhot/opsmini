@@ -13,7 +13,7 @@ OpsMini 是一款轻量级 Linux 主机运维面板（对标宝塔 / 1Panel）�
 ## 核心特性
 
 - **AI 大模型运维**：自然语言诊断故障、分析日志、执行运维命令，接入 OpenAI / DeepSeek / Qwen / Ollama
-- **标准 REST API**：`/api/v1`（浏览器 UI）与 `/agent/v1`（机器对机器），供监控平台、自动化脚本、编排工具集成
+- **标准 REST API**：`/api/v1`（浏览器 UI）与 `/mcp`（机器对机器），供监控平台、自动化脚本、编排工具集成
 - **Docker 管理**：容器、镜像、卷、网络四类资源
 - **Web 终端**：WebSocket + pty 实现的类 SSH 交互式终端
 - **主机安全**：基线检查、文件完整性监控（FIM）、威胁检测、防火墙、登录安全
@@ -29,7 +29,7 @@ Go 1.25 · Gin · GORM · SQLite（纯 Go）· Vue 3 · ECharts
 | 能力 | 宝塔 / 1Panel | OpsMini |
 |------|--------------|---------|
 | 运维方式 | 图形化手动操作 | 图形化 + AI 自然语言运维 |
-| 对外集成 | 无标准 API | 标准 REST API（`/agent/v1`） |
+| 对外集成 | 无标准 API | 标准 REST API（`/mcp`） |
 | 监控集成 | 需额外装 node_exporter | 内置 `/metrics`（node_exporter 兼容） |
 | 交付形态 | 安装脚本 + 多组件 | 单二进制静态链接 |
 

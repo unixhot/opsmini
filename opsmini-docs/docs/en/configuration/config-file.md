@@ -80,7 +80,7 @@ agent:
 
 | Key | Description | Default |
 |-----|-------------|---------|
-| `allowed_commands` | Command prefixes allowed by `/agent/v1/commands` | see above |
+| ~~`allowed_commands`~~ | removed in v1.2.1 together with the `/agent/v1` REST API | — |
 
 > `agent.token` is deprecated. The Agent API token is now generated and managed on the panel "Settings → API Token" page; leaving it empty disables the Agent API.
 

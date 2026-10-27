@@ -2,7 +2,7 @@
 
 # OpsMini
 
-**AI 驅動的主機維運面板**
+**主機上的 AI 維運 Agent**
 
 [English](README.en.md) · [简体中文](../README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Deutsch](README.de.md)
 
@@ -12,7 +12,7 @@
 
 ## 繁體中文
 
-OpsMini 是一款 AI 驅動的主機維運面板（對標寶塔 / 1Panel），以內建 AI 大模型維運與對外標準 REST API 為核心差異化。
+OpsMini 是一台 Linux 主機上的常駐 AI 維運 Agent：自己採集指標、自己判斷異常、自己動手處理，遇到高風險動作停下來等你點頭。Web 介面只是它的觀察窗——你可以什麼都不點，它照樣每天把活幹完並留下報告。整個 Agent 是一個數十 MB 的靜態二進位，資料全部留在本機。
 
 ### 特性
 

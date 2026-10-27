@@ -46,4 +46,4 @@ opsmini/
 | `cron` / `log` | 計劃任務、日誌 |
 | `ai` | LLM 接入、上下文、NL 執行 |
 | `security` | 基線、FIM、威脅、防火牆、登入安全 |
-| `agent` | 對外 REST API（`/agent/v1`） |
+| `agent` | 對外 REST API（`/mcp`） |

@@ -42,7 +42,7 @@
 
 為外部系統（監控平臺、自動化指令碼、第三方編排工具）生成訪問令牌：
 
-- 生成的令牌用於呼叫 `/agent/v1` 介面，請求頭攜帶 `Authorization: Bearer <token>`
+- 舊的 `/agent/v1` API Token 頁面已在 v1.2.1 移除；需要從外部驅動面板請使用 MCP（見 [面板 API](../api/browser-api.md)）
 - 留空則**禁用** Agent API
 - 支援「生成隨機」一鍵生成強隨機令牌；儲存後生效
 - 洩露後應立即重新生成

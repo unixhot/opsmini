@@ -2,7 +2,7 @@
 
 # OpsMini
 
-**AI-Powered Server Management Panel**
+**The AI ops agent that lives on your server**
 
 [English](README.en.md) · [简体中文](../README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Deutsch](README.de.md)
 
@@ -11,7 +11,7 @@
 ---
 
 
-OpsMini is an AI-powered server management panel (similar to BaoTa / 1Panel), differentiated by built-in AI operations and a standard REST API for external integration.
+OpsMini is a resident AI ops agent on your Linux host: it collects metrics, judges what is wrong and acts — pausing for your approval before anything risky. The web UI is just its window: you can click nothing at all and it still gets the work done and leaves a report. The whole agent is one static binary of a few dozen MB, and all data stays on the machine.
 
 ### Features
 

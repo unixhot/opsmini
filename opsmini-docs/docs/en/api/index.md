@@ -7,7 +7,7 @@ OpsMini exposes two standard REST APIs for the browser UI and external integrati
 | API | Prefix | Consumer | Auth |
 |-----|--------|----------|------|
 | Panel API | `/api/v1` | Browser (humans) | User JWT + RBAC |
-| Agent API | `/agent/v1` | External systems (machines) | Agent Token + command allowlist |
+| Agent access | gRPC (agent dials out) | Fleet management | Server token + bidirectional stream |
 | Prometheus metrics | `/metrics` | Monitoring systems | Optional Basic auth |
 
 Unified response: `{ "code": 0, "message": "ok", "data": ... }`. A non-zero `code` is a business error.
@@ -20,7 +20,7 @@ Unified response: `{ "code": 0, "message": "ok", "data": ... }`. A non-zero `cod
 
     Auth, users, monitoring, websites, containers, files, AI, and more.
 
--   :material-api: **[Agent API (/agent/v1)](agent-api.md)**
+-   :material-api: **[Agent access (gRPC)](agent-api.md](agent-api.md)**
 
     ---
 

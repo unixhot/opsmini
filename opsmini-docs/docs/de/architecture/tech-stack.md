@@ -42,6 +42,6 @@
 │                                                          │
 │   Zwei REST-APIs nach außen:                             │
 │   · /api/v1   Panel-API (JWT + RBAC)                     │
-│   · /agent/v1 Agent-API (Token + Befehls-Whitelist)      │
+│   · /mcp Agent-API (Token + Befehls-Whitelist)      │
 └──────────────────────────────────────────────────────────┘
 ```

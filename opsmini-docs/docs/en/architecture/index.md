@@ -28,5 +28,5 @@ The technical architecture and design decisions of OpsMini.
 
 - **Single-machine monolith**: no microservices, delivered as a single process and single binary
 - **SQLite**: embedded and zero-ops, fully sufficient for the small volume of business data
-- **Dual API**: `/api/v1` for the UI, `/agent/v1` for integrations, with isolated authentication and permissions
+- **Dual API**: `/api/v1` for the UI, `/mcp` for integrations, with isolated authentication and permissions
 - **Pure Go without CGO**: one-click cross-compilation to a statically linked binary on any platform

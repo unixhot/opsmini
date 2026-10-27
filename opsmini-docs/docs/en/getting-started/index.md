@@ -32,7 +32,7 @@ Welcome to OpsMini — a lightweight Linux server panel. This guide gets you ins
 |---------|-------------|
 | **Standalone panel** | Each host runs an independent OpsMini instance, no central node required |
 | **Single binary** | Frontend embedded via `go:embed`; deploy by copying one executable |
-| **Dual API** | `/api/v1` for the browser UI (JWT + RBAC), `/agent/v1` for machines/third parties (Token + command allowlist) |
+| **Dual API** | `/api/v1` for the browser UI (JWT + RBAC), `/mcp` for machines/third parties (Token + command allowlist) |
 | **AI-powered ops** | Natural-language diagnosis, log analysis, command execution via OpenAI / DeepSeek / Qwen / Ollama |
 
 ## Next Steps

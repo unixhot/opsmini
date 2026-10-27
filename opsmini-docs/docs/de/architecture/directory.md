@@ -46,4 +46,4 @@ opsmini/
 | `cron` / `log` | Geplante Aufgaben, Logs |
 | `ai` | LLM-Anbindung, Kontext, Ausführung in natürlicher Sprache |
 | `security` | Baseline, FIM, Bedrohung, Firewall, Anmeldesicherheit |
-| `agent` | Externe REST-API (`/agent/v1`) |
+| `agent` | Externe REST-API (`/mcp`) |

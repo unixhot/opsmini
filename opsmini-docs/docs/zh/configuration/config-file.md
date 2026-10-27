@@ -80,7 +80,7 @@ agent:
 
 | 参数 | 说明 | 默认 |
 |------|------|------|
-| `allowed_commands` | 允许 `/agent/v1/commands` 执行的命令前缀白名单 | 见上 |
+| ~~`allowed_commands`~~ | v1.2.1 起随 `/agent/v1` REST 接口一并移除 | — |
 
 > `agent.token` 已废弃。Agent API 的认证令牌改由面板「设置 → API Token」页生成与管理，留空即禁用 Agent API。
 

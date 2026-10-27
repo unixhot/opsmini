@@ -400,6 +400,21 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 .guard-card.l3{border-top-color:#dc2626}.guard-card.l3 .lv{color:#b91c1c}
 .guard-note{margin-top:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;font-size:13.5px;color:#92400e;display:flex;gap:10px;align-items:flex-start}
 
+
+/* ---------- comparison table ---------- */
+.cmp-wrap{max-width:960px;margin:0 auto;border:1px solid var(--border);border-radius:18px;background:#fff;padding:6px 6px 2px;box-shadow:0 10px 40px rgba(37,99,235,.06);overflow-x:auto}
+table.cmp{width:100%;border-collapse:collapse;font-size:14px;min-width:660px}
+table.cmp th,table.cmp td{padding:13px 14px;text-align:center;border-bottom:1px solid var(--border)}
+table.cmp thead th{font-size:12.5px;color:var(--text-faint);font-weight:600}
+table.cmp thead th:first-child{text-align:left}
+table.cmp tbody th{text-align:left;font-weight:400;color:var(--text-dim);white-space:nowrap;font-size:13.5px}
+table.cmp td{font-family:var(--mono);font-size:15px;font-weight:700}
+table.cmp .me{background:rgba(37,99,235,.05);color:var(--accent)}
+table.cmp thead th.me{color:var(--accent);font-size:13px}
+table.cmp tr:last-child th,table.cmp tr:last-child td{border-bottom:0}
+table.cmp td.y{color:var(--green)}table.cmp td.n{color:#cbd5e1}table.cmp td.p{color:var(--amber)}
+.cmp-legend{text-align:center;font-size:12.5px;color:var(--text-faint);padding:12px 0 10px}
+
 @media (max-width:1240px){
   .nav-logo .tagline{display:none}
   .nav-links{gap:14px}
@@ -457,6 +472,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
       <a href="#features" data-i18n="nav.features" data-page-node-id="KaysrPsSxzLuoz5uWDLH3R">工具</a>
       <a href="#agent" data-i18n="nav.ai" data-page-node-id="IkFJ6oDLz9Zvk6tNEG0Out">Agent</a>
       <a href="#guard" data-i18n="nav.guard" data-page-node-id="newNavGuard0001">边界</a>
+      <a href="#compare" data-i18n="nav.compare" data-page-node-id="newNavCompare0001">对比</a>
       <a href="#arch" data-i18n="nav.arch" data-page-node-id="TpVFAjHinpZXW4lnGoXWW6">架构</a>
       <a href="#quickstart" data-i18n="nav.quickstart" data-page-node-id="5SoDGldlVgHQVrU48RSgtL">快速开始</a>
       <a href="#faq" data-i18n="nav.faq" data-page-node-id="ffcJO6ARn7qFBXye6tkZVJ">FAQ</a>
@@ -641,6 +657,39 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   </div>
 </section>
 
+<!-- ================= COMPARISON ================= -->
+<section id="compare">
+  <div class="container">
+    <div class="sec-head wide">
+      <div class="sec-tag" data-i18n="cmp.tag">Comparison</div>
+      <h2 data-i18n="cmp.h2">和别的方案摆在一起看</h2>
+      <p data-i18n="cmp.p">不比功能多少，比三件事：谁在动手、谁在等指令、数据在谁手里。</p>
+    </div>
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th data-i18n="cmp.c0">维度</th>
+            <th class="me">OpsMini</th>
+            <th data-i18n="cmp.c2">传统面板</th>
+            <th data-i18n="cmp.c3">SaaS 监控 Agent</th>
+            <th data-i18n="cmp.c4">配置管理</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th data-i18n="cmp.r1">能自己动手执行</th><td class="me y">✓</td><td class="n">✗</td><td class="n">✗</td><td class="y">✓</td></tr>
+          <tr><th data-i18n="cmp.r2">自己做判断，不用人写规则</th><td class="me y">✓</td><td class="n">✗</td><td class="p">~</td><td class="n">✗</td></tr>
+          <tr><th data-i18n="cmp.r3">数据不出本机</th><td class="me y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="y">✓</td></tr>
+          <tr><th data-i18n="cmp.r4">不依赖中心与外部服务</th><td class="me y">✓</td><td class="y">✓</td><td class="n">✗</td><td class="p">~</td></tr>
+          <tr><th data-i18n="cmp.r5">单文件、分钟级部署</th><td class="me y">✓</td><td class="p">~</td><td class="n">✗</td><td class="n">✗</td></tr>
+          <tr><th data-i18n="cmp.r6">开源，无商业版</th><td class="me y">✓</td><td class="p">~</td><td class="n">✗</td><td class="y">✓</td></tr>
+        </tbody>
+      </table>
+      <p class="cmp-legend" data-i18n="cmp.legend">✓ 支持　~ 部分支持　✗ 不支持</p>
+    </div>
+  </div>
+</section>
+
 <!-- ================= ARCH ================= -->
 <section id="arch" data-page-node-id="RxMleDr7M6jaBbaj890G4Y">
   <div class="container" data-page-node-id="Gm3LPMn97q1gMI5MjbUFwV">
@@ -659,7 +708,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
       <div class="arch-arrow" data-page-node-id="uNP0WlPuvVAbuBRtzHIKJa">⇄</div>
       <div class="arch-col" data-page-node-id="DGRpT7rO9P9daWLwZKCXJd">
         <h5 data-i18n="arch.c2" data-page-node-id="ilPirq7fHZlO2Xzmo1QRC5">OpsMini 服务</h5>
-        <div class="arch-box" data-page-node-id="jCzzkhHEiZ6jJ7GtAbAURa"><b data-i18n="arch.b4t" data-page-node-id="ywoBGQ7qFWomHEH60cZTN2">Go · Gin 路由层</b><span data-i18n="arch.b4s" data-page-node-id="lwW969E4ElLnJ7R7uXbFN3">/api/v1（UI）+ /agent/v1（机器对机器）</span></div>
+        <div class="arch-box" data-page-node-id="jCzzkhHEiZ6jJ7GtAbAURa"><b data-i18n="arch.b4t" data-page-node-id="ywoBGQ7qFWomHEH60cZTN2">Go · Gin 路由层</b><span data-i18n="arch.b4s" data-page-node-id="lwW969E4ElLnJ7R7uXbFN3">/api/v1 界面接口 · /mcp 工具接口 · gRPC 纳管</span></div>
         <div class="arch-box" data-page-node-id="tlLKApquiIq7kVebFqKHrq"><b data-i18n="arch.b5t" data-page-node-id="2ZUsOTDaBLiNoRyNYtyfBF">Service 层</b><span data-i18n="arch.b5s" data-page-node-id="8ufPgMyCBKus5qSTIhTje0">AI / 安全 / Docker / 监控 / 文件 / 计划任务…</span></div>
         <div class="arch-box" data-page-node-id="t3CyM7A4kSKI5GuTTY4PRG"><b data-i18n="arch.b6t" data-page-node-id="A5zX6VCWK4vLreCRTwaTWh">JWT 鉴权 + RBAC + MFA</b><span data-i18n="arch.b6s" data-page-node-id="aqTSXe0A7geds6f4LkGhfB">中间件链式校验</span></div>
       </div>
@@ -699,7 +748,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
       <div class="qs-steps" data-page-node-id="hwrO6hFLmVd5MZOSqJqIDz">
         <div class="qs-step" data-page-node-id="UuwLYrsXxJwLBwMmlW7Xse"><div class="num" data-page-node-id="4wvzIscLnYuoyRvTK7k6Li">1</div><div data-page-node-id="mRBlCXiDl4TGSTaUSx8wpd"><b data-i18n="qs.s1t" data-page-node-id="kKVgFsRgqwEBis6TtZIOZX">一键安装</b><span data-i18n="qs.s1d" data-page-node-id="qdR8gQqkv2x3MSMJHm9SMS">一条命令自动下载二进制、生成配置并注册 systemd 服务。</span></div></div>
         <div class="qs-step" data-page-node-id="XgOKeYvVGu3T9cGn2Blzgj"><div class="num" data-page-node-id="8Fg7b7gwRiQViUqRTQO0Fw">2</div><div data-page-node-id="pcwmYDy6kg36U81AfvRfLp"><b data-i18n="qs.s2t" data-page-node-id="fbDAtyGTdbD9D6v36KZdnN">打开登录</b><span data-i18n="qs.s2d" data-page-node-id="VNEUnRixE360SOho1t9wOF">访问 http://&lt;IP&gt;:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件。</span></div></div>
-        <div class="qs-step" data-page-node-id="eNJHcWKcj6qe2puAxglpH1"><div class="num" data-page-node-id="ZH27s49EhEkjC8fKkJFAKz">3</div><div data-page-node-id="8ZLFRzbdHw1LxS0fPCCO33"><b data-i18n="qs.s3t" data-page-node-id="xZqosQZncW9ecOgMeOGIqv">加固与接入</b><span data-i18n="qs.s3d" data-page-node-id="jDcsuqSq832sOhwySfrJZ4">开启 MFA 两步验证、配置防火墙；外部系统通过 /agent/v1 API 接入。</span></div></div>
+        <div class="qs-step" data-page-node-id="eNJHcWKcj6qe2puAxglpH1"><div class="num" data-page-node-id="ZH27s49EhEkjC8fKkJFAKz">3</div><div data-page-node-id="8ZLFRzbdHw1LxS0fPCCO33"><b data-i18n="qs.s3t" data-page-node-id="xZqosQZncW9ecOgMeOGIqv">加固与接入</b><span data-i18n="qs.s3d" data-page-node-id="jDcsuqSq832sOhwySfrJZ4">开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server。</span></div></div>
       </div>
     </div>
   </div>
@@ -712,7 +761,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
       <div class="stat" data-page-node-id="59qog8hAaDdCwI6SqnECsw"><div class="v" data-page-node-id="11ocB7eU8pVQXwYraXxrDm">1</div><div class="k" data-i18n="st.k1" data-page-node-id="xxy2UlCmzMQo0TcO1th34s">个二进制文件</div></div>
       <div class="stat" data-page-node-id="sDqAvm1QnqF9aK33rUt5vv"><div class="v" data-page-node-id="VRAL4Wab4kq7VsASIMhfG7">0</div><div class="k" data-i18n="st.k2" data-page-node-id="vbTvFHJolC0H9s7geMF2lQ">运行时依赖</div></div>
       <div class="stat" data-page-node-id="TOLiS7IT1D6Z5FUkHQICLC"><div class="v" data-page-node-id="7rKi2jUZrIiFIkhJwwZozC">7</div><div class="k" data-i18n="st.k3" data-page-node-id="AL0MwpsHld4vRZAhazSj7D">种界面语言</div></div>
-      <div class="stat" data-page-node-id="KJ4QWPjHwgXji3eT7oIYn1"><div class="v" data-page-node-id="TDiniEJrZ09wKtTIXmUP20">2</div><div class="k" data-i18n="st.k4" data-page-node-id="saeBkIMtxhxx47tbWeC5n1">套 REST API</div></div>
+      <div class="stat" data-page-node-id="KJ4QWPjHwgXji3eT7oIYn1"><div class="v" data-page-node-id="TDiniEJrZ09wKtTIXmUP20">2</div><div class="k" data-i18n="st.k4" data-page-node-id="saeBkIMtxhxx47tbWeC5n1">组对外接口</div></div>
     </div>
   </div>
 </section>
@@ -727,7 +776,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
     <div class="faq" data-page-node-id="qPCKEGiMNWmvnawgu0ZEVt">
       <details data-page-node-id="ECqL51hvReTjkct8y7hCBS">
         <summary data-i18n="faq.q1" data-page-node-id="pqG2vMVltecS1ZSIYEJWW6">OpsMini 和宝塔、1Panel 有什么区别？</summary>
-        <p data-i18n="faq.a1" data-page-node-id="D5RDc69ieWBCctQCLzcIbC">定位类似，都是单机运维面板。OpsMini 的差异点在于：① 内置 AI 运维助手，自然语言即可诊断和执行；② 提供 /agent/v1 机器对机器 API 与 MCP 支持，便于接入你自己的自动化体系；③ 纯 Go + SQLite 单文件交付，极简部署、无运行时依赖。</p>
+        <p data-i18n="faq.a1" data-page-node-id="D5RDc69ieWBCctQCLzcIbC">OpsMini 是常驻主机的 AI 运维 Agent，不是传统面板。页面只是它的观察窗：它能自主诊断并执行，提供 MCP 与机器对机器接口，纯 Go + SQLite 单文件交付。</p>
       </details>
       <details data-page-node-id="hjaPnk1c14dWMuIvkYcalg">
         <summary data-i18n="faq.q2" data-page-node-id="NQyoEMLb06XvhMRMeNACzU">支持哪些系统 / 架构？</summary>
@@ -841,16 +890,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'为“单机交付”而生的架构','arch.p':'没有外部数据库、没有消息队列、没有运行时依赖。拷贝一个文件，chmod +x，直接运行。',
   'arch.c1':'浏览器','arch.c2':'OpsMini 服务','arch.c3':'宿主机',
   'arch.b1t':'Vue 3 单页应用','arch.b1s':'go:embed 嵌入二进制，7 语言 i18n','arch.b2t':'ECharts 可视化','arch.b2s':'仪表盘 / 趋势图 / 告警面板','arch.b3t':'xterm.js 终端','arch.b3s':'WebSocket 全双工交互',
-  'arch.b4t':'Go · Gin 路由层','arch.b4s':'/api/v1（UI）+ /agent/v1（机器对机器）','arch.b5t':'Service 层','arch.b5s':'AI / 安全 / Docker / 监控 / 文件 / 计划任务…','arch.b6t':'JWT 鉴权 + RBAC + MFA','arch.b6s':'中间件链式校验',
+  'arch.b4t':'Go · Gin 路由层','arch.b4s':'/api/v1 界面接口 · /mcp 工具接口 · gRPC 纳管','arch.b5t':'Service 层','arch.b5s':'AI / 安全 / Docker / 监控 / 文件 / 计划任务…','arch.b6t':'JWT 鉴权 + RBAC + MFA','arch.b6s':'中间件链式校验',
   'arch.b7t':'SQLite（纯 Go 驱动）','arch.b7s':'单文件存储，免安装数据库','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系统与容器直接对接','arch.b9t':'pty / crontab / 防火墙','arch.b9s':'原生系统能力封装',
   'arch.note':'交叉编译支持 Linux amd64 / arm64 —— 树莓派、国产化服务器同样能跑',
   'qs.tag':'Quick Start','qs.h2':'三分钟跑起来','qs.p':'下载、执行、打开浏览器——没有安装向导，没有依赖地狱。',
-  'qs.s1t':'一键安装','qs.s1d':'一条命令自动下载二进制、生成配置并注册 systemd 服务','qs.s2t':'打开登录','qs.s2d':'访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙；外部系统通过 /agent/v1 API 接入',
-  'api.tag':'Developer API','api.h2':'为自动化而生','api.p':'面板能做的事，API 都能做。人用浏览器，程序用接口。','api.h3':'双通道 REST API',
-  'api.p2':'面向浏览器的 <b>/api/v1</b> 与面向机器的 <b>/agent/v1</b> 完全独立，令牌隔离、权限隔离。配合 MCP 协议支持，可被 AI Agent 直接调用。',
-  'api.l1':'JWT 鉴权 + 刷新令牌，Agent 长期凭证独立管理','api.l2':'覆盖容器、文件、监控、告警、安全、计划任务全模块','api.l3':'原生 MCP 接入，让外部 AI 助手直接操作你的服务器','api.l4':'OpenAPI 风格路由，curl 即可完成全部自动化',
+  'qs.s1t':'一键安装','qs.s1d':'一条命令自动下载二进制、生成配置并注册 systemd 服务','qs.s2t':'打开登录','qs.s2d':'访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server',
+  'api.tag':'Developer API','api.h2':'为自动化而生','api.p':'面板能做的事，API 都能做。人用浏览器，程序用接口。','api.h3':'界面接口 + 工具接口',
+  'api.p2':'面向界面的 <b>/api/v1</b> 与面向 AI 的 <b>/mcp</b> 相互独立：令牌隔离、权限隔离。Claude、Cursor 等可以直接调用面板能力。',
+  'api.l1':'JWT 鉴权 + 刷新令牌，MCP 用独立的长期 Token','api.l2':'覆盖容器、文件、监控、告警、安全、计划任务全模块','api.l3':'原生 MCP 接入，让外部 AI 助手直接操作你的服务器','api.l4':'OpenAPI 风格路由，curl 即可完成全部自动化',
   'api.code.title':'curl 示例',
-  'st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'套 REST API',
+  'st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'组对外接口',
   'faq.tag':'FAQ','faq.h2':'常见问题',
   'faq.q1':'OpsMini 和宝塔、1Panel 有什么区别？','faq.a1':'OpsMini 是常驻主机的 AI 运维 Agent，不是传统面板。页面只是它的观察窗：它能自主诊断并执行，提供 MCP 与机器对机器接口，纯 Go + SQLite 单文件交付。',
   'faq.q2':'支持哪些系统 / 架构？','faq.a2':'Linux amd64 与 arm64（含树莓派、国产化服务器）。面板本身是静态编译的 Go 二进制，只要内核版本不是特别古老即可运行。',
@@ -901,6 +950,21 @@ const I18N = {
   'faq.a7':'除模型调用外全部本地完成：指标、审计、报告都留在主机本地磁盘。模型可以接你自建的 OpenAI 兼容接口或本地 Ollama，这种情况下数据完全不出机器。',
   'faq.q8':'和宝塔、1Panel 比，到底差在哪？',
   'faq.a8':'那些是「你操作的工具」，OpsMini 是「替你操作的同事」。它的页面更像观察窗和审批台——你可以什么都不点，它照样每天把活干完并留下报告。',
+  'nav.compare':'对比',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'和别的方案摆在一起看',
+  'cmp.p':'不比功能多少，比三件事：谁在动手、谁在等指令、数据在谁手里。',
+  'cmp.c0':'维度',
+  'cmp.c2':'传统面板',
+  'cmp.c3':'SaaS 监控 Agent',
+  'cmp.c4':'配置管理',
+  'cmp.r1':'能自己动手执行',
+  'cmp.r2':'自己做判断，不用人写规则',
+  'cmp.r3':'数据不出本机',
+  'cmp.r4':'不依赖中心与外部服务',
+  'cmp.r5':'单文件、分钟级部署',
+  'cmp.r6':'开源，无商业版',
+  'cmp.legend':'✓ 支持　~ 部分支持　✗ 不支持',
 },
 'en': {
   'title':'OpsMini — The AI Ops Agent That Lives on Your Server','foot.faq':'FAQ',
@@ -934,16 +998,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'Built for single-binary delivery','arch.p':'No external database, no message queue, no runtime dependencies. Copy one file, chmod +x, and run.',
   'arch.c1':'Browser','arch.c2':'OpsMini Service','arch.c3':'Host',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'embedded via go:embed, 7-language i18n','arch.b2t':'ECharts viz','arch.b2s':'dashboard / trends / alerts','arch.b3t':'xterm.js terminal','arch.b3s':'full-duplex WebSocket',
-  'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) + /agent/v1 (M2M)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'chained middleware',
+  'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) · /mcp (tools) · gRPC (fleet)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'chained middleware',
   'arch.b7t':'SQLite (pure-Go)','arch.b7s':'single-file storage, no DB install','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direct system & container access','arch.b9t':'pty / crontab / firewall','arch.b9s':'native system wrappers',
   'arch.note':'Cross-compiles to Linux amd64 / arm64 — runs on Raspberry Pi and domestic servers alike',
   'qs.tag':'Quick Start','qs.h2':'Up and running in minutes','qs.p':'Download, execute, open the browser — no install wizard, no dependency hell.',
-  'qs.s1t':'One-click install','qs.s1d':'One command downloads the binary, generates config, and registers a systemd service','qs.s2t':'Open & log in','qs.s2d':'Visit http://<IP>:8888, user opsmini, password from the script output or .init_passwd','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA, configure firewall; integrate external systems via /agent/v1',
-  'api.tag':'Developer API','api.h2':'Made for automation','api.p':'Whatever the panel can do, the API can do. Humans use the browser, programs use the API.','api.h3':'Dual-channel REST API',
-  'api.p2':'The browser-facing <b>/api/v1</b> and machine-facing <b>/agent/v1</b> are fully isolated — separate tokens, separate permissions. With MCP support, AI agents can call it directly.',
-  'api.l1':'JWT auth + refresh tokens, independent long-lived agent credentials','api.l2':'Covers containers, files, monitoring, alerts, security and cron','api.l3':'Native MCP so external AI assistants can operate your server','api.l4':'OpenAPI-style routes — full automation with plain curl',
+  'qs.s1t':'One-click install','qs.s1d':'One command downloads the binary, generates config, and registers a systemd service','qs.s2t':'Open & log in','qs.s2d':'Visit http://<IP>:8888, user opsmini, password from the script output or .init_passwd','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA and the firewall; hook external AI tools up over /mcp, enrol hosts into OpsMini Server over gRPC',
+  'api.tag':'Developer API','api.h2':'Made for automation','api.p':'Whatever the panel can do, the API can do. Humans use the browser, programs use the API.','api.h3':'UI API + tool API',
+  'api.p2':'The UI-facing <b>/api/v1</b> and the AI-facing <b>/mcp</b> are independent — separate tokens, separate permissions. Claude, Cursor and others drive the panel directly.',
+  'api.l1':'JWT auth + refresh tokens; MCP uses its own long-lived token','api.l2':'Covers containers, files, monitoring, alerts, security and cron','api.l3':'Native MCP so external AI assistants can operate your server','api.l4':'OpenAPI-style routes — full automation with plain curl',
   'api.code.title':'curl example',
-  'st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'REST APIs',
+  'st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'external interfaces',
   'faq.tag':'FAQ','faq.h2':'Frequently Asked Questions',
   'faq.q1':'How is OpsMini different from BaoTa or 1Panel?','faq.a1':'OpsMini is a resident AI ops agent, not a classic panel. The web UI is its window: the agent diagnoses and executes on its own, speaks MCP and a machine-to-machine API, and ships as one Go + SQLite binary.',
   'faq.q2':'Which systems / architectures are supported?','faq.a2':'Linux amd64 and arm64 (including Raspberry Pi and domestic servers). The panel is a statically compiled Go binary, so it runs as long as the kernel is not too old.',
@@ -994,6 +1058,21 @@ const I18N = {
   'faq.a7':'Everything except model calls stays local: metrics, audit and reports live on the host disk. Point it at your own OpenAI-compatible endpoint or a local Ollama and no data leaves the machine at all.',
   'faq.q8':'How is it different from BaoTa or 1Panel?',
   'faq.a8':'Those are tools you operate; OpsMini is a colleague that operates for you. Its UI is closer to a viewing window and an approval desk — you can click nothing at all and it still finishes the work and leaves a report.',
+  'nav.compare':'Compare',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'Side by side with the alternatives',
+  'cmp.p':'Not about feature count — about who acts, who waits for orders, and who holds the data.',
+  'cmp.c0':'Dimension',
+  'cmp.c2':'Classic panel',
+  'cmp.c3':'SaaS monitoring agent',
+  'cmp.c4':'Config management',
+  'cmp.r1':'Acts on its own',
+  'cmp.r2':'Decides without hand-written rules',
+  'cmp.r3':'Data never leaves the host',
+  'cmp.r4':'No central service required',
+  'cmp.r5':'Single binary, minutes to deploy',
+  'cmp.r6':'Open source, no paid edition',
+  'cmp.legend':'✓ yes　~ partial　✗ no',
 },
 'zh-TW': {
   'title':'OpsMini — 主機上的 AI 維運 Agent','foot.faq':'常見問題',
@@ -1027,16 +1106,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'為「單機交付」而生的架構','arch.p':'沒有外部資料庫、沒有訊息佇列、沒有執行時依賴。拷貝一個檔案，chmod +x，直接執行。',
   'arch.c1':'瀏覽器','arch.c2':'OpsMini 服務','arch.c3':'主機',
   'arch.b1t':'Vue 3 單頁應用','arch.b1s':'go:embed 嵌入二進位，7 語言 i18n','arch.b2t':'ECharts 視覺化','arch.b2s':'儀表板 / 趨勢圖 / 告警面板','arch.b3t':'xterm.js 終端','arch.b3s':'WebSocket 全雙工互動',
-  'arch.b4t':'Go · Gin 路由層','arch.b4s':'/api/v1（UI）+ /agent/v1（機器對機器）','arch.b5t':'Service 層','arch.b5s':'AI / 安全 / Docker / 監控 / 檔案 / 排程任務…','arch.b6t':'JWT 鑑權 + RBAC + MFA','arch.b6s':'中介層鏈式校驗',
+  'arch.b4t':'Go · Gin 路由層','arch.b4s':'/api/v1 介面 · /mcp 工具 · gRPC 納管','arch.b5t':'Service 層','arch.b5s':'AI / 安全 / Docker / 監控 / 檔案 / 排程任務…','arch.b6t':'JWT 鑑權 + RBAC + MFA','arch.b6s':'中介層鏈式校驗',
   'arch.b7t':'SQLite（純 Go 驅動）','arch.b7s':'單檔案儲存，免安裝資料庫','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系統與容器直接對接','arch.b9t':'pty / crontab / 防火牆','arch.b9s':'原生系統能力封裝',
   'arch.note':'交叉編譯支援 Linux amd64 / arm64 —— 樹莓派、國產化伺服器同樣能跑',
   'qs.tag':'Quick Start','qs.h2':'三分鐘跑起來','qs.p':'下載、執行、開啟瀏覽器——沒有安裝精靈，沒有依賴地獄。',
-  'qs.s1t':'一鍵安裝','qs.s1d':'一條命令自動下載二進位制、產生設定並註冊 systemd 服務','qs.s2t':'開啟登入','qs.s2d':'訪問 http://<IP>:8888，帳號 opsmini，密碼見指令碼輸出或 .init_passwd 檔案','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、設定防火牆；外部系統透過 /agent/v1 API 接入',
-  'api.tag':'Developer API','api.h2':'為自動化而生','api.p':'面板能做的事，API 都能做。人用瀏覽器，程式用介面。','api.h3':'雙通道 REST API',
-  'api.p2':'面向瀏覽器的 <b>/api/v1</b> 與面向機器的 <b>/agent/v1</b> 完全獨立，令牌隔離、權限隔離。配合 MCP 協定支援，可被 AI Agent 直接呼叫。',
-  'api.l1':'JWT 鑑權 + 刷新令牌，Agent 長期憑證獨立管理','api.l2':'涵蓋容器、檔案、監控、告警、安全、排程任務全模組','api.l3':'原生 MCP 接入，讓外部 AI 助手直接操作你的伺服器','api.l4':'OpenAPI 風格路由，curl 即可完成全部自動化',
+  'qs.s1t':'一鍵安裝','qs.s1d':'一條命令自動下載二進位制、產生設定並註冊 systemd 服務','qs.s2t':'開啟登入','qs.s2d':'訪問 http://<IP>:8888，帳號 opsmini，密碼見指令碼輸出或 .init_passwd 檔案','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、設定防火牆；外部 AI 工具透過 /mcp 接入，多台主機用 gRPC 納管到 OpsMini Server',
+  'api.tag':'Developer API','api.h2':'為自動化而生','api.p':'面板能做的事，API 都能做。人用瀏覽器，程式用介面。','api.h3':'介面 + 工具雙接口',
+  'api.p2':'面向介面的 <b>/api/v1</b> 與面向 AI 的 <b>/mcp</b> 相互獨立：令牌隔離、權限隔離。Claude、Cursor 等可直接呼叫面板能力。',
+  'api.l1':'JWT 鑑權 + 刷新令牌，MCP 使用獨立的長期 Token','api.l2':'涵蓋容器、檔案、監控、告警、安全、排程任務全模組','api.l3':'原生 MCP 接入，讓外部 AI 助手直接操作你的伺服器','api.l4':'OpenAPI 風格路由，curl 即可完成全部自動化',
   'api.code.title':'curl 範例',
-  'st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'套 REST API',
+  'st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'組對外介面',
   'faq.tag':'FAQ','faq.h2':'常見問題',
   'faq.q1':'OpsMini 和寶塔、1Panel 有什麼區別？','faq.a1':'OpsMini 是常駐主機的 AI 維運 Agent，不是傳統面板。頁面只是它的觀察窗：它能自主診斷並執行，提供 MCP 與機器對機器介面，純 Go + SQLite 單檔交付。',
   'faq.q2':'支援哪些系統 / 架構？','faq.a2':'Linux amd64 與 arm64（含樹莓派、國產化伺服器）。面板本身是靜態編譯的 Go 二進位，只要核心版本不是特別古老即可執行。',
@@ -1087,6 +1166,21 @@ const I18N = {
   'faq.a7':'除模型呼叫外全部本地完成：指標、稽核、報告都留在主機本地磁碟。模型可以接你自建的 OpenAI 相容介面或本地 Ollama，這種情況下資料完全不出機器。',
   'faq.q8':'和寶塔、1Panel 比，到底差在哪？',
   'faq.a8':'那些是「你操作的工具」，OpsMini 是「替你操作的同事」。它的頁面更像觀察窗和審批台——你可以什麼都不點，它照樣每天把活幹完並留下報告。',
+  'nav.compare':'對比',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'和其他方案擺在一起看',
+  'cmp.p':'不比功能多少，比三件事：誰在動手、誰在等指令、資料在誰手裡。',
+  'cmp.c0':'維度',
+  'cmp.c2':'傳統面板',
+  'cmp.c3':'SaaS 監控 Agent',
+  'cmp.c4':'設定管理',
+  'cmp.r1':'能自己動手執行',
+  'cmp.r2':'自己做判斷，不用人寫規則',
+  'cmp.r3':'資料不出本機',
+  'cmp.r4':'不依賴中心與外部服務',
+  'cmp.r5':'單檔、分鐘級部署',
+  'cmp.r6':'開源，無商業版',
+  'cmp.legend':'✓ 支援　~ 部分支援　✗ 不支援',
 },
 'ja': {
   'title':'OpsMini — サーバー上で動く AI 運用エージェント','foot.faq':'よくある質問',
@@ -1120,16 +1214,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'単一バイナリ配布のための設計','arch.p':'外部データベースなし、メッセージキューなし、ランタイム依存なし。ファイルを1つコピーして chmod +x すれば動きます。',
   'arch.c1':'ブラウザ','arch.c2':'OpsMini サービス','arch.c3':'ホスト',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed でバイナリに埋め込み、7 言語 i18n','arch.b2t':'ECharts 可視化','arch.b2s':'ダッシュボード / トレンド / アラート','arch.b3t':'xterm.js ターミナル','arch.b3s':'全二重 WebSocket',
-  'arch.b4t':'Go · Gin ルーター','arch.b4s':'/api/v1（UI）+ /agent/v1（M2M）','arch.b5t':'Service 層','arch.b5s':'AI / セキュリティ / Docker / 監視 / ファイル / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'ミドルウェアチェーン検証',
+  'arch.b4t':'Go · Gin ルーター','arch.b4s':'/api/v1（UI）· /mcp（ツール）· gRPC（統合管理）','arch.b5t':'Service 層','arch.b5s':'AI / セキュリティ / Docker / 監視 / ファイル / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'ミドルウェアチェーン検証',
   'arch.b7t':'SQLite（純 Go）','arch.b7s':'単一ファイル保存、DB 不要','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'システム・コンテナへ直接アクセス','arch.b9t':'pty / crontab / ファイアウォール','arch.b9s':'ネイティブ機能のラッパー',
   'arch.note':'Linux amd64 / arm64 にクロスコンパイル——Raspberry Pi や国産サーバーでも動作',
   'qs.tag':'Quick Start','qs.h2':'数分で起動','qs.p':'ダウンロード、実行、ブラウザを開くだけ——インストールウィザードも依存地獄もありません。',
-  'qs.s1t':'ワンクリックインストール','qs.s1d':'1 コマンドでバイナリのダウンロード・設定生成・systemd 登録まで完了','qs.s2t':'開いてログイン','qs.s2d':'http://<IP>:8888 にアクセス、ユーザー opsmini、パスワードはスクリプト出力または .init_passwd','qs.s3t':'強化と連携','qs.s3d':'MFA を有効化、ファイアウォールを設定；外部システムは /agent/v1 API で接続',
-  'api.tag':'Developer API','api.h2':'自動化のために','api.p':'パネルでできることは API でもできる。人はブラウザ、プログラムは API。','api.h3':'二重チャネル REST API',
-  'api.p2':'ブラウザ向け <b>/api/v1</b> とマシン向け <b>/agent/v1</b> は完全に独立し、トークンと権限が分離。MCP 対応により AI エージェントから直接呼び出せます。',
-  'api.l1':'JWT 認証 + リフレッシュトークン、エージェント長期資格情報を独立管理','api.l2':'コンテナ・ファイル・監視・アラート・セキュリティ・cron をすべてカバー','api.l3':'ネイティブ MCP で外部 AI アシスタントからサーバーを操作','api.l4':'OpenAPI スタイルのルートで、curl だけで完全自動化',
+  'qs.s1t':'ワンクリックインストール','qs.s1d':'1 コマンドでバイナリのダウンロード・設定生成・systemd 登録まで完了','qs.s2t':'開いてログイン','qs.s2d':'http://<IP>:8888 にアクセス、ユーザー opsmini、パスワードはスクリプト出力または .init_passwd','qs.s3t':'強化と連携','qs.s3d':'MFA とファイアウォールを有効化。外部 AI ツールは /mcp で接続し、複数ホストは gRPC で OpsMini Server に統合',
+  'api.tag':'Developer API','api.h2':'自動化のために','api.p':'パネルでできることは API でもできる。人はブラウザ、プログラムは API。','api.h3':'UI API + ツール API',
+  'api.p2':'UI 向け <b>/api/v1</b> と AI 向け <b>/mcp</b> は独立しており、トークンと権限が分離されています。Claude や Cursor から直接呼び出せます。',
+  'api.l1':'JWT 認証 + リフレッシュトークン、MCP は専用の長期トークン','api.l2':'コンテナ・ファイル・監視・アラート・セキュリティ・cron をすべてカバー','api.l3':'ネイティブ MCP で外部 AI アシスタントからサーバーを操作','api.l4':'OpenAPI スタイルのルートで、curl だけで完全自動化',
   'api.code.title':'curl の例',
-  'st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'REST API',
+  'st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'外部インターフェース',
   'faq.tag':'FAQ','faq.h2':'よくある質問',
   'faq.q1':'OpsMini と宝塔・1Panel の違いは？','faq.a1':'OpsMini は常駐型の AI 運用エージェントであり、従来のパネルではありません。画面は観測窓です。自律的に診断・実行し、MCP とマシン間 API を備え、Go + SQLite の単一バイナリで動作します。',
   'faq.q2':'対応システム / アーキテクチャは？','faq.a2':'Linux amd64 と arm64（Raspberry Pi や国産サーバーを含む）。静的コンパイルされた Go バイナリなので、カーネルが古すぎなければ動作します。',
@@ -1180,6 +1274,21 @@ const I18N = {
   'faq.a7':'モデル呼び出しを除きすべてローカルで完結します。指標・監査・レポートはホストのディスクに残ります。自前の OpenAI 互換 API やローカル Ollama を使えば、データは一切外に出ません。',
   'faq.q8':'宝塔や 1Panel との違いは何ですか？',
   'faq.a8':'それらは「あなたが操作する道具」、OpsMini は「代わりに操作する同僚」です。画面は観測窓と承認台に近く、何もクリックしなくても毎日の作業を終えてレポートを残します。',
+  'nav.compare':'比較',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'他の選択肢と並べて見る',
+  'cmp.p':'機能の数ではなく、誰が動くか、誰が指示を待つか、データが誰の手にあるか。',
+  'cmp.c0':'項目',
+  'cmp.c2':'従来のパネル',
+  'cmp.c3':'SaaS 監視エージェント',
+  'cmp.c4':'構成管理',
+  'cmp.r1':'自分で実行する',
+  'cmp.r2':'人がルールを書かずに判断する',
+  'cmp.r3':'データが端末外に出ない',
+  'cmp.r4':'中央サーバー不要',
+  'cmp.r5':'単一ファイル・数分で導入',
+  'cmp.r6':'オープンソース・商用版なし',
+  'cmp.legend':'✓ 対応　~ 一部対応　✗ 非対応',
 },
 'ko': {
   'title':'OpsMini — 서버 위에서 사는 AI 운영 에이전트','foot.faq':'FAQ',
@@ -1213,16 +1322,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'단일 바이너리 배포를 위한 설계','arch.p':'외부 DB 없음, 메시지 큐 없음, 런타임 의존성 없음. 파일 하나 복사하고 chmod +x 하면 바로 실행됩니다.',
   'arch.c1':'브라우저','arch.c2':'OpsMini 서비스','arch.c3':'호스트',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed 로 바이너리에 내장, 7개 언어 i18n','arch.b2t':'ECharts 시각화','arch.b2s':'대시보드 / 추이 / 알림','arch.b3t':'xterm.js 터미널','arch.b3s':'전이중 WebSocket',
-  'arch.b4t':'Go · Gin 라우터','arch.b4s':'/api/v1(UI) + /agent/v1(M2M)','arch.b5t':'Service 계층','arch.b5s':'AI / 보안 / Docker / 모니터링 / 파일 / 크론…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'미들웨어 체인 검증',
+  'arch.b4t':'Go · Gin 라우터','arch.b4s':'/api/v1(UI) · /mcp(도구) · gRPC(통합 관리)','arch.b5t':'Service 계층','arch.b5s':'AI / 보안 / Docker / 모니터링 / 파일 / 크론…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'미들웨어 체인 검증',
   'arch.b7t':'SQLite(순수 Go)','arch.b7s':'단일 파일 저장, DB 설치 불필요','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'시스템·컨테이너 직접 연동','arch.b9t':'pty / crontab / 방화벽','arch.b9s':'네이티브 시스템 래퍼',
   'arch.note':'Linux amd64 / arm64 크로스 컴파일——라즈베리파이와 국산 서버에서도 동작',
   'qs.tag':'Quick Start','qs.h2':'몇 분이면 실행','qs.p':'다운로드, 실행, 브라우저 열기——설치 마법사도 의존성 지옥도 없습니다.',
-  'qs.s1t':'원클릭 설치','qs.s1d':'한 줄 명령으로 바이너리 다운로드·설정 생성·systemd 등록까지 완료','qs.s2t':'열고 로그인','qs.s2d':'http://<IP>:8888 접속, 계정 opsmini, 비밀번호는 스크립트 출력 또는 .init_passwd','qs.s3t':'강화 및 연동','qs.s3d':'MFA 활성화, 방화벽 설정; 외부 시스템은 /agent/v1 API 로 연동',
-  'api.tag':'Developer API','api.h2':'자동화를 위해','api.p':'패널이 할 수 있는 일은 API 도 할 수 있습니다. 사람은 브라우저, 프로그램은 API 를 사용합니다.','api.h3':'이중 채널 REST API',
-  'api.p2':'브라우저용 <b>/api/v1</b> 과 머신용 <b>/agent/v1</b> 은 완전히 독립되어 토큰과 권한이 분리됩니다. MCP 지원으로 AI 에이전트가 직접 호출할 수 있습니다.',
-  'api.l1':'JWT 인증 + 리프레시 토큰, 에이전트 장기 자격증명 독립 관리','api.l2':'컨테이너·파일·모니터링·알림·보안·크론 전 모듈 커버','api.l3':'네이티브 MCP 로 외부 AI 어시스턴트가 서버를 직접 조작','api.l4':'OpenAPI 스타일 라우트, curl 만으로 완전 자동화',
+  'qs.s1t':'원클릭 설치','qs.s1d':'한 줄 명령으로 바이너리 다운로드·설정 생성·systemd 등록까지 완료','qs.s2t':'열고 로그인','qs.s2d':'http://<IP>:8888 접속, 계정 opsmini, 비밀번호는 스크립트 출력 또는 .init_passwd','qs.s3t':'강화 및 연동','qs.s3d':'MFA 와 방화벽을 켜고, 외부 AI 도구는 /mcp 로 연결하며 여러 호스트는 gRPC 로 OpsMini Server 에 통합',
+  'api.tag':'Developer API','api.h2':'자동화를 위해','api.p':'패널이 할 수 있는 일은 API 도 할 수 있습니다. 사람은 브라우저, 프로그램은 API 를 사용합니다.','api.h3':'UI API + 도구 API',
+  'api.p2':'UI 용 <b>/api/v1</b> 과 AI 용 <b>/mcp</b> 는 독립적이며 토큰과 권한이 분리됩니다. Claude, Cursor 등에서 패널 기능을 직접 호출할 수 있습니다.',
+  'api.l1':'JWT 인증 + 리프레시 토큰, MCP 는 별도 장기 토큰 사용','api.l2':'컨테이너·파일·모니터링·알림·보안·크론 전 모듈 커버','api.l3':'네이티브 MCP 로 외부 AI 어시스턴트가 서버를 직접 조작','api.l4':'OpenAPI 스타일 라우트, curl 만으로 완전 자동화',
   'api.code.title':'curl 예시',
-  'st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'REST API',
+  'st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'외부 인터페이스',
   'faq.tag':'FAQ','faq.h2':'자주 묻는 질문',
   'faq.q1':'OpsMini 와 바오타·1Panel 의 차이는?','faq.a1':'OpsMini 는 상주형 AI 운영 에이전트이며 전통적인 패널이 아닙니다. 화면은 관측 창일 뿐이며, 스스로 진단하고 실행하고 MCP 와 머신 간 API 를 제공합니다. Go + SQLite 단일 바이너리로 배포됩니다.',
   'faq.q2':'어떤 시스템 / 아키텍처를 지원하나요?','faq.a2':'Linux amd64 와 arm64(라즈베리파이, 국산 서버 포함). 패널은 정적 컴파일된 Go 바이너리라 커널이 너무 오래되지 않았다면 실행됩니다.',
@@ -1273,6 +1382,21 @@ const I18N = {
   'faq.a7':'모델 호출을 제외하면 모두 로컬에서 처리됩니다. 지표·감사·보고서는 호스트 디스크에 남습니다. 자체 OpenAI 호환 엔드포인트나 로컬 Ollama 를 쓰면 데이터는 전혀 나가지 않습니다.',
   'faq.q8':'바오타, 1Panel 과 무엇이 다른가요?',
   'faq.a8':'그것들은 당신이 조작하는 도구이고 OpsMini 는 대신 조작하는 동료입니다. 화면은 관측 창과 승인 데스크에 가깝고, 아무것도 클릭하지 않아도 매일 작업을 끝내고 보고서를 남깁니다.',
+  'nav.compare':'비교',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'다른 선택지와 나란히 보기',
+  'cmp.p':'기능 개수가 아니라, 누가 움직이는지, 누가 지시를 기다리는지, 데이터가 누구 손에 있는지입니다.',
+  'cmp.c0':'항목',
+  'cmp.c2':'기존 패널',
+  'cmp.c3':'SaaS 모니터링 에이전트',
+  'cmp.c4':'구성 관리',
+  'cmp.r1':'스스로 실행한다',
+  'cmp.r2':'사람이 규칙을 쓰지 않아도 판단',
+  'cmp.r3':'데이터가 외부로 나가지 않음',
+  'cmp.r4':'중앙 서버 불필요',
+  'cmp.r5':'단일 파일, 몇 분 만에 배포',
+  'cmp.r6':'오픈소스, 상용판 없음',
+  'cmp.legend':'✓ 지원　~ 부분 지원　✗ 미지원',
 },
 'th': {
   'title':'OpsMini — AI Ops Agent ที่อยู่บนเซิร์ฟเวอร์ของคุณ','foot.faq':'คำถามที่พบบ่อย',
@@ -1306,16 +1430,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'ออกแบบมาเพื่อ "ส่งมอบเป็นไฟล์เดียว"','arch.p':'ไม่มีฐานข้อมูลภายนอก ไม่มี message queue ไม่มี runtime dependency คัดลอกไฟล์เดียว chmod +x แล้วรันได้เลย',
   'arch.c1':'เบราว์เซอร์','arch.c2':'บริการ OpsMini','arch.c3':'โฮสต์',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'ฝังในไบนารีด้วย go:embed รองรับ 7 ภาษา','arch.b2t':'ECharts','arch.b2s':'แดชบอร์ด / แนวโน้ม / การแจ้งเตือน','arch.b3t':'เทอร์มินัล xterm.js','arch.b3s':'WebSocket แบบ full-duplex',
-  'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) + /agent/v1 (M2M)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'middleware แบบ chain',
+  'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) · /mcp (เครื่องมือ) · gRPC (จัดการหมู่)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'middleware แบบ chain',
   'arch.b7t':'SQLite (pure-Go)','arch.b7s':'เก็บไฟล์เดียว ไม่ต้องติดตั้ง DB','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'เข้าถึงระบบและคอนเทนเนอร์โดยตรง','arch.b9t':'pty / crontab / ไฟร์วอลล์','arch.b9s':'wrapper ความสามารถระบบดั้งเดิม',
   'arch.note':'คอมไพล์ข้ามแพลตฟอร์ม Linux amd64 / arm64 —— ใช้ได้กับ Raspberry Pi และเซิร์ฟเวอร์ในประเทศ',
   'qs.tag':'Quick Start','qs.h2':'ใช้งานได้ในไม่กี่นาที','qs.p':'ดาวน์โหลด รัน เปิดเบราว์เซอร์——ไม่มี wizard ติดตั้ง ไม่มี dependency ที่วุ่นวาย',
-  'qs.s1t':'ติดตั้งคลิกเดียว','qs.s1d':'หนึ่งคำสั่งดาวน์โหลดไบนารี สร้างคอนฟิก และลงทะเบียน systemd ให้อัตโนมัติ','qs.s2t':'เปิดและเข้าสู่ระบบ','qs.s2d':'เข้า http://<IP>:8888 ผู้ใช้ opsmini รหัสผ่านจากเอาต์พุตสคริปต์หรือ .init_passwd','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิด MFA ตั้งไฟร์วอลล์; เชื่อมระบบภายนอกผ่าน /agent/v1 API',
-  'api.tag':'Developer API','api.h2':'สร้างมาเพื่อ automation','api.p':'สิ่งที่แผงทำได้ API ก็ทำได้ คนใช้เบราว์เซอร์ โปรแกรมใช้ API','api.h3':'REST API สองช่องทาง',
-  'api.p2':'<b>/api/v1</b> สำหรับเบราว์เซอร์ และ <b>/agent/v1</b> สำหรับเครื่อง แยกเป็นอิสระโดยสิ้นเชิง แยก token และสิทธิ์ พร้อมรองรับ MCP ให้ AI agent เรียกใช้ได้โดยตรง',
-  'api.l1':'JWT + refresh token แยกจัดการ credential ระยะยาวของ agent','api.l2':'ครอบคลุมคอนเทนเนอร์ ไฟล์ มอนิเตอร์ แจ้งเตือน ความปลอดภัย และ cron','api.l3':'MCP ดั้งเดิม ให้ผู้ช่วย AI ภายนอกสั่งการเซิร์ฟเวอร์ได้','api.l4':'เส้นทางแบบ OpenAPI ใช้ curl ก็ทำ automation ได้ครบ',
+  'qs.s1t':'ติดตั้งคลิกเดียว','qs.s1d':'หนึ่งคำสั่งดาวน์โหลดไบนารี สร้างคอนฟิก และลงทะเบียน systemd ให้อัตโนมัติ','qs.s2t':'เปิดและเข้าสู่ระบบ','qs.s2d':'เข้า http://<IP>:8888 ผู้ใช้ opsmini รหัสผ่านจากเอาต์พุตสคริปต์หรือ .init_passwd','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิด MFA และไฟร์วอลล์ เชื่อมเครื่องมือ AI ภายนอกผ่าน /mcp และรวมหลายโฮสต์เข้า OpsMini Server ด้วย gRPC',
+  'api.tag':'Developer API','api.h2':'สร้างมาเพื่อ automation','api.p':'สิ่งที่แผงทำได้ API ก็ทำได้ คนใช้เบราว์เซอร์ โปรแกรมใช้ API','api.h3':'API สำหรับ UI + เครื่องมือ',
+  'api.p2':'<b>/api/v1</b> สำหรับ UI และ <b>/mcp</b> สำหรับ AI แยกจากกันโดยสิ้นเชิง ทั้ง token และสิทธิ์ Claude หรือ Cursor เรียกใช้ความสามารถของแผงได้โดยตรง',
+  'api.l1':'JWT + refresh token ส่วน MCP ใช้ token อายุยาวแยกต่างหาก','api.l2':'ครอบคลุมคอนเทนเนอร์ ไฟล์ มอนิเตอร์ แจ้งเตือน ความปลอดภัย และ cron','api.l3':'MCP ดั้งเดิม ให้ผู้ช่วย AI ภายนอกสั่งการเซิร์ฟเวอร์ได้','api.l4':'เส้นทางแบบ OpenAPI ใช้ curl ก็ทำ automation ได้ครบ',
   'api.code.title':'ตัวอย่าง curl',
-  'st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'REST API',
+  'st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'อินเทอร์เฟซภายนอก',
   'faq.tag':'FAQ','faq.h2':'คำถามที่พบบ่อย',
   'faq.q1':'OpsMini ต่างจาก BaoTa หรือ 1Panel อย่างไร?','faq.a1':'OpsMini เป็น AI ops agent ที่ประจำบนโฮสต์ ไม่ใช่แผงควบคุมแบบเดิม หน้าเว็บเป็นเพียงหน้าต่างสำหรับมองดู มันวินิจฉัยและลงมือเอง รองรับ MCP และ API ระหว่างเครื่อง และแพ็กเป็นไบนารี Go + SQLite ตัวเดียว',
   'faq.q2':'รองรับระบบ / สถาปัตยกรรมใดบ้าง?','faq.a2':'Linux amd64 และ arm64 (รวม Raspberry Pi และเซิร์ฟเวอร์ในประเทศ) แผงเป็น Go binary แบบ static compile จึงรันได้ตราบใดที่ kernel ไม่เก่าเกินไป',
@@ -1366,6 +1490,21 @@ const I18N = {
   'faq.a7':'ทุกอย่างทำในเครื่อง ยกเว้นการเรียกโมเดล ค่าตัวชี้วัด audit และรายงานเก็บอยู่บนดิสก์ของโฮสต์ หากใช้ OpenAI-compatible endpoint ของคุณเองหรือ Ollama ในเครื่อง ข้อมูลจะไม่ออกไปเลย',
   'faq.q8':'ต่างจาก BaoTa หรือ 1Panel อย่างไร',
   'faq.a8':'นั่นคือเครื่องมือที่คุณต้องลงมือเอง ส่วน OpsMini คือเพื่อนร่วมงานที่ลงมือให้ หน้าเว็บของมันใกล้เคียงหน้าต่างสำหรับมองดูและโต๊ะอนุมัติ คุณไม่ต้องคลิกอะไรเลย มันก็ทำงานเสร็จและทิ้งรายงานไว้',
+  'nav.compare':'เทียบ',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'เทียบกับทางเลือกอื่น',
+  'cmp.p':'ไม่ได้เทียบจำนวนฟีเจอร์ แต่เทียบว่าใครลงมือ ใครรอคำสั่ง และข้อมูลอยู่กับใคร',
+  'cmp.c0':'หัวข้อ',
+  'cmp.c2':'แผงควบคุมเดิม',
+  'cmp.c3':'SaaS monitoring agent',
+  'cmp.c4':'Configuration management',
+  'cmp.r1':'ลงมือทำเองได้',
+  'cmp.r2':'ตัดสินเองโดยไม่ต้องมีคนเขียนกฎ',
+  'cmp.r3':'ข้อมูลไม่ออกจากเครื่อง',
+  'cmp.r4':'ไม่ต้องมีศูนย์กลาง',
+  'cmp.r5':'ไฟล์เดียว ติดตั้งไม่กี่นาที',
+  'cmp.r6':'โอเพนซอร์ส ไม่มีรุ่นเชิงพาณิชย์',
+  'cmp.legend':'✓ รองรับ　~ รองรับบางส่วน　✗ ไม่รองรับ',
 },
 'de': {
   'title':'OpsMini — Der KI-Betriebsagent auf Ihrem Server','foot.faq':'FAQ',
@@ -1399,16 +1538,16 @@ const I18N = {
   'arch.tag':'Architecture','arch.h2':'Gebaut für Single-Binary-Auslieferung','arch.p':'Keine externe Datenbank, keine Message-Queue, keine Laufzeit-Abhängigkeiten. Eine Datei kopieren, chmod +x, fertig.',
   'arch.c1':'Browser','arch.c2':'OpsMini-Dienst','arch.c3':'Host',
   'arch.b1t':'Vue-3-SPA','arch.b1s':'per go:embed eingebettet, 7 Sprachen i18n','arch.b2t':'ECharts-Visualisierung','arch.b2s':'Dashboard / Trends / Alarme','arch.b3t':'xterm.js-Terminal','arch.b3s':'Vollduplex-WebSocket',
-  'arch.b4t':'Go · Gin-Router','arch.b4s':'/api/v1 (UI) + /agent/v1 (M2M)','arch.b5t':'Service-Schicht','arch.b5s':'KI / Sicherheit / Docker / Monitoring / Dateien / Cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'verkettete Middleware',
+  'arch.b4t':'Go · Gin-Router','arch.b4s':'/api/v1 (UI) · /mcp (Werkzeuge) · gRPC (Flotte)','arch.b5t':'Service-Schicht','arch.b5s':'KI / Sicherheit / Docker / Monitoring / Dateien / Cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'verkettete Middleware',
   'arch.b7t':'SQLite (pure Go)','arch.b7s':'Einzeldatei-Speicher, keine DB-Installation','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direkter System- & Container-Zugriff','arch.b9t':'pty / crontab / Firewall','arch.b9s':'native System-Wrapper',
   'arch.note':'Cross-Compile für Linux amd64 / arm64 — läuft auf Raspberry Pi ebenso wie auf heimischen Servern',
   'qs.tag':'Quick Start','qs.h2':'In Minuten einsatzbereit','qs.p':'Herunterladen, ausführen, Browser öffnen — kein Installationsassistent, kein Abhängigkeits-Albtraum.',
-  'qs.s1t':'Ein-Klick-Installation','qs.s1d':'Ein Befehl lädt die Binärdatei, erzeugt die Konfiguration und registriert den systemd-Dienst','qs.s2t':'Öffnen & anmelden','qs.s2d':'http://<IP>:8888 aufrufen, Benutzer opsmini, Passwort aus der Skriptausgabe oder .init_passwd','qs.s3t':'Absichern & integrieren','qs.s3d':'MFA aktivieren, Firewall konfigurieren; externe Systeme über /agent/v1 integrieren',
-  'api.tag':'Developer API','api.h2':'Gebaut für Automatisierung','api.p':'Was das Panel kann, kann auch die API. Menschen nutzen den Browser, Programme die API.','api.h3':'Zweikanal-REST-API',
-  'api.p2':'Das browserorientierte <b>/api/v1</b> und das maschinenorientierte <b>/agent/v1</b> sind vollständig getrennt — eigene Tokens, eigene Berechtigungen. Mit MCP-Unterstützung direkt von KI-Agenten aufrufbar.',
-  'api.l1':'JWT-Auth + Refresh-Tokens, unabhängige Langzeit-Zugangsdaten für Agenten','api.l2':'Deckt Container, Dateien, Monitoring, Alarme, Sicherheit und Cron ab','api.l3':'Natives MCP, damit externe KI-Assistenten deinen Server bedienen können','api.l4':'OpenAPI-artige Routen — vollständige Automatisierung mit reinem curl',
+  'qs.s1t':'Ein-Klick-Installation','qs.s1d':'Ein Befehl lädt die Binärdatei, erzeugt die Konfiguration und registriert den systemd-Dienst','qs.s2t':'Öffnen & anmelden','qs.s2d':'http://<IP>:8888 aufrufen, Benutzer opsmini, Passwort aus der Skriptausgabe oder .init_passwd','qs.s3t':'Absichern & integrieren','qs.s3d':'MFA und Firewall aktivieren; externe KI-Werkzeuge über /mcp anbinden, Hosts per gRPC in den OpsMini Server aufnehmen',
+  'api.tag':'Developer API','api.h2':'Gebaut für Automatisierung','api.p':'Was das Panel kann, kann auch die API. Menschen nutzen den Browser, Programme die API.','api.h3':'UI-API + Werkzeug-API',
+  'api.p2':'Die UI-API <b>/api/v1</b> und die KI-API <b>/mcp</b> sind getrennt — eigene Tokens, eigene Rechte. Claude, Cursor und andere steuern das Panel direkt.',
+  'api.l1':'JWT-Auth + Refresh-Tokens; MCP nutzt ein eigenes langlebiges Token','api.l2':'Deckt Container, Dateien, Monitoring, Alarme, Sicherheit und Cron ab','api.l3':'Natives MCP, damit externe KI-Assistenten deinen Server bedienen können','api.l4':'OpenAPI-artige Routen — vollständige Automatisierung mit reinem curl',
   'api.code.title':'curl-Beispiel',
-  'st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'REST-APIs',
+  'st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'Schnittstellen',
   'faq.tag':'FAQ','faq.h2':'Häufig gestellte Fragen',
   'faq.q1':'Wie unterscheidet sich OpsMini von BaoTa oder 1Panel?','faq.a1':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent, kein klassisches Panel. Die Oberfläche ist sein Fenster: Er diagnostiziert und handelt selbst, spricht MCP und eine Maschine-zu-Maschine-API und kommt als eine Go-und-SQLite-Binary.',
   'faq.q2':'Welche Systeme / Architekturen werden unterstützt?','faq.a2':'Linux amd64 und arm64 (inkl. Raspberry Pi und heimischer Server). Das Panel ist eine statisch kompilierte Go-Binary und läuft, solange der Kernel nicht zu alt ist.',
@@ -1459,6 +1598,21 @@ const I18N = {
   'faq.a7':'Alles außer Modellaufrufen bleibt lokal: Messwerte, Audit und Berichte liegen auf der Host-Disk. Mit eigenem OpenAI-kompatiblem Endpoint oder lokalem Ollama verlässt kein Datum die Maschine.',
   'faq.q8':'Was ist der Unterschied zu BaoTa oder 1Panel?',
   'faq.a8':'Das sind Werkzeuge, die Sie bedienen; OpsMini ist ein Kollege, der für Sie bedient. Seine Oberfläche ist eher Beobachtungsfenster und Freigabe-Tresen — Sie können gar nichts klicken, und die Arbeit ist trotzdem erledigt und dokumentiert.',
+  'nav.compare':'Vergleich',
+  'cmp.tag':'Comparison',
+  'cmp.h2':'Im Vergleich mit den Alternativen',
+  'cmp.p':'Nicht die Zahl der Funktionen zählt, sondern: wer handelt, wer auf Befehle wartet, und wer die Daten hat.',
+  'cmp.c0':'Kriterium',
+  'cmp.c2':'Klassisches Panel',
+  'cmp.c3':'SaaS-Monitoring-Agent',
+  'cmp.c4':'Konfigurationsmanagement',
+  'cmp.r1':'Handelt selbstständig',
+  'cmp.r2':'Urteilt ohne handgeschriebene Regeln',
+  'cmp.r3':'Daten bleiben auf dem Host',
+  'cmp.r4':'Kein zentraler Dienst nötig',
+  'cmp.r5':'Eine Binary, in Minuten deployt',
+  'cmp.r6':'Open Source, keine Kaufedition',
+  'cmp.legend':'✓ ja　~ teils　✗ nein',
 }
 };
 

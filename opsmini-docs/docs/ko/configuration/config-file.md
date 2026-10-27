@@ -80,7 +80,7 @@ agent:
 
 | 파라미터 | 설명 | 기본값 |
 |------|------|------|
-| `allowed_commands` | `/agent/v1/commands`에서 실행할 수 있는 명령 프리픽스 화이트리스트 | 위 참조 |
+| ~~`allowed_commands`~~ | v1.2.1 에서 `/agent/v1` REST API 와 함께 제거 | — |
 
 > `agent.token`은 폐기되었습니다. Agent API의 인증 토큰은 패널「설정 → API Token」페이지에서 생성·관리하며, 비워 두면 Agent API가 비활성화됩니다.
 

@@ -2,7 +2,7 @@
 
 # OpsMini
 
-**AI 駆動のサーバー管理パネル**
+**サーバー上で動く AI 運用エージェント**
 
 [English](README.en.md) · [简体中文](../README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Deutsch](README.de.md)
 
@@ -12,7 +12,7 @@
 
 ## 日本語
 
-OpsMini は AI 駆動のサーバー管理パネル（BaoTa / 1Panel に相当）で、内蔵の AI 運用支援と外部統合のための標準 REST API が特長です。
+OpsMini は Linux ホストに常駐する AI 運用エージェントです。指標を集め、異常を判断し、自分で対処します。危険な操作の前には必ず止まって確認を求めます。Web UI は観測窓にすぎず、何もクリックしなくても毎日の作業を終えてレポートを残します。数十 MB の静的バイナリ 1 つで、データはすべて端末内に残ります。
 
 ### 機能
 

@@ -80,7 +80,7 @@ agent:
 
 | パラメータ | 説明 | デフォルト |
 |------|------|------|
-| `allowed_commands` | `/agent/v1/commands` で実行を許可するコマンドプレフィックスのホワイトリスト | 上記参照 |
+| ~~`allowed_commands`~~ | v1.2.1 で `/agent/v1` REST API とともに削除 | — |
 
 > `agent.token` は廃止されました。Agent API の認証トークンはパネルの「設定 → API Token」ページで生成・管理します。空にすると Agent API は無効化されます。
 

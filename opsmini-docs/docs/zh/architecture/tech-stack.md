@@ -39,6 +39,6 @@
 │                                                          │
 │   对外两套 REST API：                                      │
 │   · /api/v1   面板 API（JWT + RBAC）                       │
-│   · /agent/v1 Agent API（Token + 命令白名单）              │
+│   · /mcp Agent API（Token + 命令白名单）              │
 └──────────────────────────────────────────────────────────┘
 ```

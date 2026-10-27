@@ -2,7 +2,7 @@
 
 # OpsMini
 
-**KI-gesteuertes Server-Verwaltungspanel**
+**Der KI-Betriebsagent auf Ihrem Server**
 
 [English](README.en.md) · [简体中文](../README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [ไทย](README.th.md) · [Deutsch](README.de.md)
 
@@ -12,7 +12,7 @@
 
 ## Deutsch
 
-OpsMini ist ein KI-gesteuertes Server-Verwaltungspanel (vergleichbar mit BaoTa / 1Panel), das sich durch integrierten KI-Betrieb und eine standardisierte REST API für externe Integration auszeichnet.
+OpsMini ist ein dauerhaft laufender KI-Betriebsagent auf Ihrem Linux-Host: Er sammelt Messwerte, erkennt Auffälligkeiten und handelt selbst — vor riskanten Schritten hält er an und fragt Sie. Die Web-Oberfläche ist nur sein Fenster: Sie können gar nichts klicken, und die Arbeit ist trotzdem erledigt und dokumentiert. Der ganze Agent ist eine statische Binary von wenigen Dutzend MB, alle Daten bleiben auf der Maschine.
 
 ### Funktionen
 

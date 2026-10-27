@@ -1,68 +1,40 @@
-# Agent-API (/agent/v1)
+# Agent-Anbindung (gRPC)
 
-Die Agent-API ist eine standardmäßige REST-Schnittstelle für **Maschinen / Drittsysteme** und dient der Integration durch Monitoring-Plattformen, Automatisierungsskripte und Orchestrierungstools.
+Im OpsMini-Prozess steckt ein **Agent-Client**: Er baut von sich aus einen langlebigen gRPC-Bidirektionalstream auf, registriert sich, sendet Heartbeats, empfängt Aufgaben und überträgt Dateien in beide Richtungen. **Weder SSH noch eingehende Ports sind nötig** — ideal hinter NAT, im internen Netz oder ohne öffentliche IP.
 
-## Unterschiede zur Panel-API
+!!! warning "Zur alten /agent/v1 REST-API"
+    Die `/agent/v1` REST-API und die Seite "Einstellungen → API Token" wurden **mit v1.2.1 entfernt**. Für Steuerung von außen **MCP** nutzen (`/mcp`, siehe [Panel-API](browser-api.md)); für Flottenverwaltung den hier beschriebenen gRPC-Agent.
 
-| Dimension | Panel-API `/api/v1` | Agent-API `/agent/v1` |
-|------|-------------------|----------------------|
-| Nutzer | Browser (Mensch) | Externe Systeme (Maschine) |
-| Authentifizierung | Benutzersitzungs-JWT + RBAC | Agent-Token (Bearer) |
-| Umfang | Sämtliche UI-Funktionen + Terminal-WS | Ressourcenabfrage + Befehlsausführung (keine UI / kein Terminal) |
-| Design | Interaktionsorientiert | Automatisierungsorientiert (idempotent, wiederholbar) |
+## Kommunikationsmodell
 
-## Authentifizierung
+| Richtung | |
+|------|------|
+| Agent → Server | `Register` · `Heartbeat` · `TaskResult` · `FileChunkAck` |
+| Server → Agent | `RegisterAck` · `ExecuteTask` · `PushFileTask` · `Ping` |
 
-1. Auf der Seite „Einstellungen → API-Token" des Panels ein Zugriffstoken erzeugen (das Token wird in der Datenbank persistiert, nicht mehr in `config.yaml` geschrieben)
-2. Anfrage mit `Authorization: Bearer <token>` senden
-3. Die Middleware prüft das Token in konstanter Zeit; ein leeres Token deaktiviert die Agent-API
+- Ein Port genügt: HTTP/2-Multiplexing statt SaltStack-Doppelport
+- Reconnect mit exponentiellem Backoff, regelmäßige Heartbeats
+- Meldet sich derselbe Hostname neu, wird die alte Verbindung verworfen
 
-## Endpunkt-Übersicht
-
-| Methode | Pfad | Beschreibung |
-|------|------|------|
-| GET | `/agent/v1/health` | Health-Check (Liveness-Probe) |
-| GET | `/agent/v1/version` | Versionsinformation |
-| GET | `/agent/v1/status` | Statuszusammenfassung: cpu / mem / Festplatte / Online-Dienste |
-| GET | `/agent/v1/system/info` | Host-Informationen (hostname / os / Kernel) |
-| GET | `/agent/v1/system/processes` | Prozessliste |
-| GET | `/agent/v1/system/ports` | Lauschstatus der Ports |
-| GET | `/agent/v1/system/disks` | Festplatte / Einhängepunkte |
-| GET | `/agent/v1/websites` | Website-Liste |
-| GET | `/agent/v1/databases` | Datenbankliste |
-| GET | `/agent/v1/cron-jobs` | Geplante Aufgaben |
-| GET | `/agent/v1/containers` | Container-Liste |
-| POST | `/agent/v1/commands` | Befehl ausführen (Whitelist) |
-| POST | `/agent/v1/script/run` | Skript ausführen |
-| POST | `/agent/v1/file/upload` | Datei hochladen |
-
-## Befehlsausführung & Whitelist
-
-`/commands` erlaubt ausschließlich die Ausführung explizit autorisierter Befehlspräfixe; alles wird auditiert. Die Whitelist wird in `agent.allowed_commands` in `config.yaml` gepflegt:
+## Konfiguration
 
 ```yaml
 agent:
-  allowed_commands:
-    - ps
-    - df
-    - free
-    - uptime
-    - docker
-    - systemctl
-    - nginx
-    - who
+  server_addr: "47.104.172.52:4507"
+  server_token: "<token from server>"
+  heartbeat_seconds: 30
 ```
 
-## Aufrufbeispiel
+Bleibt `server_addr` leer, ist der Agent-Modus aus; das Panel läuft weiter eigenständig.
 
-```bash
-curl -H "Authorization: Bearer <token>" \
-     https://<host>:8888/agent/v1/status
-```
+## Fähigkeiten
 
-## Sicherheitsempfehlungen
+| Fähigkeit | Hinweis |
+|------|------|
+| Befehle / Skripte | `ExecuteTask` unterscheidet per oneof command und script |
+| Dateien verteilen | `PushFileTask` streamt Chunks mit `resume_offset` und md5-Prüfung |
+| Dateien abholen | Der Agent liest und schickt die Datei zurück |
+| Metriken | Nicht über gRPC — weiterhin `/metrics` für Prometheus |
 
-- HTTPS für die Übertragung verwenden
-- In Hochsicherheitsszenarien die Quelle per IP-Whitelist einschränken
-- Befehls-Whitelist minimieren, nur notwendige Befehle autorisieren
-- Nach einem Token-Leck sofort auf der Seite „Einstellungen → API-Token" neu erzeugen
+!!! note "Wo der Server liegt"
+    OpsMini Server liegt im OpsAnt-Projekt (`github.com/opsany/opsmini-server`); dieses Repository enthält nur die Agent-Seite (`internal/agent/client.go`).

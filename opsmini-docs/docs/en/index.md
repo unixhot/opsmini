@@ -1,5 +1,4 @@
 ---
-title: OpsMini — Lightweight Linux Server Panel
 hide:
   - navigation
   - toc
@@ -9,7 +8,7 @@ hide:
 
 # OpsMini
 
-**Lightweight Linux server panel** — built-in AI-powered operations and a standard REST API for external integration
+**An AI ops agent on your Linux host** — diagnoses and acts on its own, L0–L3 graded autonomy, single binary, data stays local
 
 A lean, smarter, more integrable alternative to BaoTa / 1Panel.
 
@@ -37,7 +36,7 @@ A lean, smarter, more integrable alternative to BaoTa / 1Panel.
 
     ---
 
-    Built-in `/api/v1` (panel API) and `/agent/v1` (machine-to-machine), ready for monitoring, automation, and orchestration tools.
+    Built-in `/api/v1` (panel API) and `/mcp` (machine-to-machine), ready for monitoring, automation, and orchestration tools.
 
 </div>
 

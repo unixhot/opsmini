@@ -13,7 +13,7 @@ OpsMini ist ein leichtgewichtiges Linux-Server-Verwaltungspanel (vergleichbar mi
 ## Kernfunktionen
 
 - **AI-LLM-Betriebsführung**: Fehler in natürlicher Sprache diagnostizieren, Logs analysieren, Betriebsbefehle ausführen, Anbindung an OpenAI / DeepSeek / Qwen / Ollama
-- **Standard-REST-API**: `/api/v1` (Browser-UI) und `/agent/v1` (Machine-to-Machine) für die Integration durch Monitoring-Plattformen, Automatisierungsskripte und Orchestrierungstools
+- **Standard-REST-API**: `/api/v1` (Browser-UI) und `/mcp` (Machine-to-Machine) für die Integration durch Monitoring-Plattformen, Automatisierungsskripte und Orchestrierungstools
 - **Docker-Verwaltung**: die vier Ressourcenarten Container, Images, Volumes und Netzwerke
 - **Web-Terminal**: SSH-ähnliches interaktives Terminal auf Basis von WebSocket + pty
 - **Host-Sicherheit**: Baseline-Prüfung, File-Integrity-Monitoring (FIM), Bedrohungserkennung, Firewall, Anmeldesicherheit
@@ -29,7 +29,7 @@ Go 1.25 · Gin · GORM · SQLite (reines Go) · Vue 3 · ECharts
 | Fähigkeit | 宝塔 / 1Panel | OpsMini |
 |------|--------------|---------|
 | Betriebsart | Grafische manuelle Bedienung | Grafisch + AI-Betrieb in natürlicher Sprache |
-| Externe Integration | Keine Standard-API | Standard-REST-API (`/agent/v1`) |
+| Externe Integration | Keine Standard-API | Standard-REST-API (`/mcp`) |
 | Monitoring-Integration | Erfordert zusätzliche node_exporter-Installation | Integriertes `/metrics` (node_exporter-kompatibel) |
 | Auslieferungsform | Installationsskript + mehrere Komponenten | Einzelnes statisch gelinktes Binary |
 

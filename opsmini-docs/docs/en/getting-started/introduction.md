@@ -13,7 +13,7 @@ OpsMini is a lightweight Linux host operations panel (benchmarked against BaoTa 
 ## Core Features
 
 - **AI large-model operations**: diagnose faults in natural language, analyze logs, execute operations commands, integrating OpenAI / DeepSeek / Qwen / Ollama
-- **Standard REST API**: `/api/v1` (browser UI) and `/agent/v1` (machine-to-machine), for integration by monitoring platforms, automation scripts, and orchestration tools
+- **Standard REST API**: `/api/v1` (browser UI) and `/mcp` (machine-to-machine), for integration by monitoring platforms, automation scripts, and orchestration tools
 - **Docker management**: containers, images, volumes, and networks — four types of resources
 - **Web terminal**: an SSH-like interactive terminal built with WebSocket + pty
 - **Host security**: baseline checks, File Integrity Monitoring (FIM), threat detection, firewall, login security
@@ -29,7 +29,7 @@ Go 1.25 · Gin · GORM · SQLite (pure Go) · Vue 3 · ECharts
 | Capability | BaoTa / 1Panel | OpsMini |
 |------|--------------|---------|
 | Operations method | Graphical manual operation | Graphical + AI natural-language operations |
-| External integration | No standard API | Standard REST API (`/agent/v1`) |
+| External integration | No standard API | Standard REST API (`/mcp`) |
 | Monitoring integration | Requires installing node_exporter separately | Built-in `/metrics` (node_exporter compatible) |
 | Delivery form | Install script + multiple components | Single statically linked binary |
 

@@ -1,68 +1,40 @@
-# Agent API (/agent/v1)
+# การเชื่อมต่อ Agent (gRPC)
 
-Agent API เป็นอินเทอร์เฟซ REST มาตรฐานสำหรับ **เครื่อง / ระบบของบุคคลที่สาม** สำหรับแพลตฟอร์มมอนิเตอร์ สคริปต์อัตโนมัติ และเครื่องมือออร์เคสเตรชันเพื่อผสานรวมและเรียกใช้งาน
+โปรเซสของ OpsMini มี **Agent client** อยู่ในตัว มันจะเปิด gRPC แบบสองทางหนึ่งเส้นออกไปเอง เพื่อลงทะเบียน ส่ง heartbeat รับงาน และรับส่งไฟล์ **ไม่ต้องให้ปลายทาง SSH ได้หรือเปิดพอร์ตขาเข้า** จึงเหมาะกับเครื่องที่อยู่หลัง NAT เครือข่ายภายใน หรือไม่มี IP สาธารณะ
 
-## ความแตกต่างจาก Panel API
+!!! warning "เกี่ยวกับ REST API เดิม /agent/v1"
+    `/agent/v1` REST API และหน้า "ตั้งค่า → API Token" ถูก**นำออกตั้งแต่ v1.2.1** หากต้องการสั่งงานจากระบบภายนอกให้ใช้ **MCP** (`/mcp` ดู [Panel API](browser-api.md)) หากต้องการจัดการหลายโฮสต์ให้ใช้ gRPC Agent ในหน้านี้
 
-| มิติ | Panel API `/api/v1` | Agent API `/agent/v1` |
-|------|-------------------|----------------------|
-| ผู้ใช้งาน | เบราว์เซอร์ (คน) | ระบบภายนอก (เครื่อง) |
-| การยืนยันตัวตน | เซสชันผู้ใช้ JWT + RBAC | Agent Token (Bearer) |
-| ขอบเขต | ฟังก์ชัน UI ทั้งหมด + เทอร์มินัล WS | การสอบถามทรัพยากร + การรันคำสั่ง (ไม่มี UI / เทอร์มินัล) |
-| การออกแบบ | เน้นการโต้ตอบ | เน้นระบบอัตโนมัติ (idempotent, retry ได้) |
+## รูปแบบการสื่อสาร
 
-## การยืนยันตัวตน
+| ทิศทาง | |
+|------|------|
+| Agent → Server | `Register` · `Heartbeat` · `TaskResult` · `FileChunkAck` |
+| Server → Agent | `RegisterAck` · `ExecuteTask` · `PushFileTask` · `Ping` |
 
-1. สร้าง access token ในหน้า "การตั้งค่า → API Token" ของพาเนล (token จะถูกเก็บถาวรในฐานข้อมูล ไม่ได้เขียนใน `config.yaml` อีกต่อไป)
-2. คำขอจะต้องแนบ `Authorization: Bearer <token>`
-3. มิดเดิลแวร์จะตรวจสอบ token ด้วยการเปรียบเทียบแบบ constant-time; หากปล่อย token ว่างไว้หมายถึงปิดใช้งาน Agent API
+- พอร์ตเดียวพอ: HTTP/2 multiplexing ไม่ต้องใช้สองพอร์ตแบบ SaltStack
+- หลุดแล้ว reconnect แบบ exponential backoff พร้อม heartbeat สม่ำเสมอ
+- หากชื่อโฮสต์เดิมเชื่อมต่อใหม่ ระบบจะตัดการเชื่อมต่อเก่าทิ้ง
 
-## รายการเอนด์พอยต์
-
-| เมธอด | พาธ | คำอธิบาย |
-|------|------|------|
-| GET | `/agent/v1/health` | การตรวจสุขภาพ (health check) |
-| GET | `/agent/v1/version` | ข้อมูลเวอร์ชัน |
-| GET | `/agent/v1/status` | สรุปสถานะ: cpu / mem / ดิสก์ / บริการออนไลน์ |
-| GET | `/agent/v1/system/info` | ข้อมูลโฮสต์ (hostname / os / เคอร์เนล) |
-| GET | `/agent/v1/system/processes` | รายการโปรเซส |
-| GET | `/agent/v1/system/ports` | พอร์ตที่กำลัง listen |
-| GET | `/agent/v1/system/disks` | ดิสก์ / จุด mount |
-| GET | `/agent/v1/websites` | รายการเว็บไซต์ |
-| GET | `/agent/v1/databases` | รายการฐานข้อมูล |
-| GET | `/agent/v1/cron-jobs` | งานตามกำหนดเวลา |
-| GET | `/agent/v1/containers` | รายการคอนเทนเนอร์ |
-| POST | `/agent/v1/commands` | รันคำสั่ง (ไวท์ลิสต์) |
-| POST | `/agent/v1/script/run` | รันสคริปต์ |
-| POST | `/agent/v1/file/upload` | อัปโหลดไฟล์ |
-
-## การรันคำสั่งและไวท์ลิสต์
-
-`/commands` อนุญาตให้รันเฉพาะคำนำหน้าคำสั่งที่ได้รับอนุญาตอย่างชัดเจนเท่านั้น และทั้งหมดจะถูกบันทึกการตรวจสอบ (audit) ไวท์ลิสต์ถูกดูแลใน `agent.allowed_commands` ของ `config.yaml`:
+## การตั้งค่า
 
 ```yaml
 agent:
-  allowed_commands:
-    - ps
-    - df
-    - free
-    - uptime
-    - docker
-    - systemctl
-    - nginx
-    - who
+  server_addr: "47.104.172.52:4507"
+  server_token: "<token from server>"
+  heartbeat_seconds: 30
 ```
 
-## ตัวอย่างการเรียกใช้งาน
+หากเว้น `server_addr` ว่าง จะปิดโหมด Agent และแผงยังทำงานแบบเครื่องเดียวได้ตามปกติ
 
-```bash
-curl -H "Authorization: Bearer <token>" \
-     https://<host>:8888/agent/v1/status
-```
+## ขอบเขตความสามารถ
 
-## คำแนะนำด้านความปลอดภัย
+| ความสามารถ | รายละเอียด |
+|------|------|
+| รันคำสั่ง / สคริปต์ | `ExecuteTask` ใช้ oneof แยก command กับ script |
+| ส่งไฟล์ลง | `PushFileTask` ส่งแบบ chunk ต่อเนื่อง รองรับ `resume_offset` และตรวจ md5 |
+| ดึงไฟล์ขึ้น | Agent อ่านไฟล์แล้วส่งกลับ |
+| เก็บค่าตัวชี้วัด | ไม่ผ่าน gRPC แต่เปิดที่ `/metrics` ให้ Prometheus ดึง |
 
-- ใช้การส่งข้อมูลผ่าน HTTPS
-- ในสถานการณ์ที่มีความปลอดภัยสูงสามารถเพิ่ม IP ไวท์ลิสต์เพื่อจำกัดแหล่งที่มา
-- ลดไวท์ลิสต์คำสั่งให้เหลือน้อยที่สุด อนุญาตเฉพาะคำสั่งที่จำเป็น
-- หาก token รั่วไหล ให้สร้างใหม่ทันทีในหน้า "การตั้งค่า → API Token" ของพาเนล
+!!! note "ตำแหน่งโค้ดฝั่งเซิร์ฟเวอร์"
+    OpsMini Server อยู่ในโปรเจกต์ OpsAnt (`github.com/opsany/opsmini-server`) รีโปนี้มีเฉพาะฝั่ง Agent (`internal/agent/client.go`)

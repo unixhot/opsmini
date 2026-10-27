@@ -1,68 +1,40 @@
-# Agent API（/agent/v1）
+# Agent 接続（gRPC）
 
-Agent API は**マシン / サードパーティシステム**向けの標準 REST インターフェースで、監視プラットフォーム、自動化スクリプト、オーケストレーションツールが連携・呼び出しできるようにするものです。
+OpsMini のプロセスには **Agent クライアント**が組み込まれています。自ら外向きに gRPC の双方向ストリームを 1 本張り、登録・ハートビート・タスク受信・ファイル転送を行います。**相手側に SSH も受信ポートも不要**なため、NAT 配下や社内ネットワーク、グローバル IP のないホストでも使えます。
 
-## パネル API との違い
+!!! warning "旧 /agent/v1 REST API について"
+    `/agent/v1` REST API と「設定 → API Token」画面は **v1.2.1 で削除**しました。外部システムから操作する場合は **MCP**（`/mcp`、[パネル API](browser-api.md) 参照）を、複数ホストの統合管理には本記事の gRPC Agent を使用してください。
 
-| 観点 | パネル API `/api/v1` | Agent API `/agent/v1` |
-|------|-------------------|----------------------|
-| 利用者 | ブラウザ（人） | 外部システム（マシン） |
-| 認証 | ユーザーセッション JWT + RBAC | Agent Token（Bearer） |
-| 範囲 | 全 UI 機能 + ターミナル WS | リソース照会 + コマンド実行（UI / ターミナルなし） |
-| 設計 | 対話向け | 自動化向け（冪等・再試行可能） |
+## 通信モデル
 
-## 認証
+| 方向 | |
+|------|------|
+| Agent → Server | `Register` · `Heartbeat` · `TaskResult` · `FileChunkAck` |
+| Server → Agent | `RegisterAck` · `ExecuteTask` · `PushFileTask` · `Ping` |
 
-1. パネルの「設定 → API Token」ページでアクセストークンを生成（トークンはデータベースに永続化され、`config.yaml` には記載されません）
-2. リクエストに `Authorization: Bearer <token>` を付与
-3. ミドルウェアが定数時間比較でトークンを検証。トークンを空にすると Agent API は無効化されます
+- ポートは 1 つで十分：HTTP/2 多重化により SaltStack のような 2 ポート構成は不要
+- 切断時は指数バックオフで再接続し、定期的なハートビートで維持
+- 同名ホストが再接続した場合、古い接続は切断されます
 
-## エンドポイント一覧
-
-| メソッド | パス | 説明 |
-|------|------|------|
-| GET | `/agent/v1/health` | ヘルスチェック（死活監視） |
-| GET | `/agent/v1/version` | バージョン情報 |
-| GET | `/agent/v1/status` | ステータスサマリー：cpu / mem / ディスク / 稼働中サービス |
-| GET | `/agent/v1/system/info` | ホスト情報（hostname / os / カーネル） |
-| GET | `/agent/v1/system/processes` | プロセス一覧 |
-| GET | `/agent/v1/system/ports` | ポート監視 |
-| GET | `/agent/v1/system/disks` | ディスク / マウントポイント |
-| GET | `/agent/v1/websites` | ウェブサイト一覧 |
-| GET | `/agent/v1/databases` | データベース一覧 |
-| GET | `/agent/v1/cron-jobs` | スケジュールタスク |
-| GET | `/agent/v1/containers` | コンテナ一覧 |
-| POST | `/agent/v1/commands` | コマンド実行（ホワイトリスト） |
-| POST | `/agent/v1/script/run` | スクリプト実行 |
-| POST | `/agent/v1/file/upload` | ファイルアップロード |
-
-## コマンド実行とホワイトリスト
-
-`/commands` は明示的に許可されたコマンドプレフィックスのみ実行でき、すべて監査に記録されます。ホワイトリストは `config.yaml` の `agent.allowed_commands` で管理します：
+## 設定
 
 ```yaml
 agent:
-  allowed_commands:
-    - ps
-    - df
-    - free
-    - uptime
-    - docker
-    - systemctl
-    - nginx
-    - who
+  server_addr: "47.104.172.52:4507"
+  server_token: "<token from server>"
+  heartbeat_seconds: 30
 ```
 
-## 呼び出し例
+`server_addr` を空にすると Agent モードは無効になり、単体のパネルとして動作します。
 
-```bash
-curl -H "Authorization: Bearer <token>" \
-     https://<host>:8888/agent/v1/status
-```
+## できること
 
-## セキュリティ推奨事項
+| 機能 | 説明 |
+|------|------|
+| コマンド / スクリプト実行 | `ExecuteTask` の oneof で command と script を区別 |
+| ファイル配布 | `PushFileTask` がチャンクをストリーム配信、`resume_offset` と md5 検証に対応 |
+| ファイル取得 | Agent 側で読み取り、そのまま返送 |
+| メトリクス収集 | gRPC ではなく `/metrics` を Prometheus が取得 |
 
-- HTTPS 転送を使用する
-- 高セキュリティが求められる場面では IP ホワイトリストで送信元を制限する
-- コマンドホワイトリストを最小化し、必要なコマンドのみ許可する
-- トークンが漏洩したら、直ちにパネルの「設定 → API Token」で再生成する
+!!! note "サーバー側のコード"
+    OpsMini Server は OpsAnt プロジェクト（`github.com/opsany/opsmini-server`）にあり、本リポジトリは Agent 側（`internal/agent/client.go`）のみを含みます。

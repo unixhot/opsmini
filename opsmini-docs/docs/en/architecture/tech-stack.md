@@ -41,6 +41,6 @@
 │                                                          │
 │   Two external REST APIs:                                 │
 │   · /api/v1   Panel API (JWT + RBAC)                      │
-│   · /agent/v1 Agent API (Token + command allowlist)       │
+│   · /mcp Agent API (Token + command allowlist)       │
 └──────────────────────────────────────────────────────────┘
 ```

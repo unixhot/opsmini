@@ -1,5 +1,4 @@
 ---
-title: OpsMini — Leichtgewichtiges Linux-Server-Verwaltungspanel
 hide:
   - navigation
   - toc
@@ -9,7 +8,7 @@ hide:
 
 # OpsMini
 
-**Leichtgewichtiges Linux-Server-Verwaltungspanel** — integrierte AI-LLM-Betriebsführung, standardmäßige REST API für externe Integration
+**Ein KI-Betriebsagent auf Ihrem Linux-Host** — diagnostiziert und handelt selbst, L0–L3 abgestufte Rechte, eine Binary, Daten bleiben lokal
 
 Vergleichbar mit 宝塔 / 1Panel — macht die Einzel-Server-Verwaltung einfacher, intelligenter und besser integrierbar.
 
@@ -37,7 +36,7 @@ Vergleichbar mit 宝塔 / 1Panel — macht die Einzel-Server-Verwaltung einfache
 
     ---
 
-    Integrierte `/api/v1` (Panel-API) und `/agent/v1` (Machine-to-Machine-API), die von jeder Monitoring-Plattform, jedem Automatisierungsskript und jedem Orchestrierungstool direkt integriert und aufgerufen werden können.
+    Integrierte `/api/v1` (Panel-API) und `/mcp` (Machine-to-Machine-API), die von jeder Monitoring-Plattform, jedem Automatisierungsskript und jedem Orchestrierungstool direkt integriert und aufgerufen werden können.
 
 </div>
 

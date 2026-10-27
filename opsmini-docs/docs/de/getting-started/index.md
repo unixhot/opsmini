@@ -32,7 +32,7 @@ Willkommen bei OpsMini — einem leichtgewichtigen Linux-Server-Verwaltungspanel
 |------|------|
 | **Einzel-Server-Panel** | Jeder Host betreibt eine unabhängige OpsMini-Instanz, ohne zentralen Knoten |
 | **Einzel-Binary-Auslieferung** | Frontend-UI per `go:embed` eingebettet; Deployment bedeutet lediglich das Kopieren einer ausführbaren Datei |
-| **Doppelte API** | `/api/v1` für die Browser-UI (JWT + RBAC), `/agent/v1` für Maschinen/Drittanbieter-Integration (Token + Befehls-Whitelist) |
+| **Doppelte API** | `/api/v1` für die Browser-UI (JWT + RBAC), `/mcp` für Maschinen/Drittanbieter-Integration (Token + Befehls-Whitelist) |
 | **AI-LLM-Betriebsführung** | Diagnose in natürlicher Sprache, Log-Analyse, Befehlsausführung, Anbindung an OpenAI / DeepSeek / Qwen / Ollama |
 
 ## Nächste Schritte

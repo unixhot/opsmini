@@ -7,7 +7,7 @@ OpsMini เปิดเผย REST API มาตรฐานสองชุด�
 | API | คำนำหน้า (Prefix) | ผู้ใช้งาน | การยืนยันตัวตน |
 |-----|------|--------|------|
 | Panel API | `/api/v1` | เบราว์เซอร์ (คน) | เซสชันผู้ใช้ JWT + RBAC |
-| Agent API | `/agent/v1` | ระบบภายนอก (เครื่อง) | Agent Token + ไวท์ลิสต์คำสั่ง |
+| การเชื่อมต่อ Agent | gRPC (Agent ต่อไปข้างนอก) | จัดการหลายโฮสต์ | Server token + สตรีมสองทาง |
 | Prometheus metrics | `/metrics` | ระบบมอนิเตอร์ | Basic authentication (ทางเลือก) |
 
 รูปแบบการตอบกลับมาตรฐาน: `{ "code": 0, "message": "ok", "data": ... }` โดย `code` ที่ไม่ใช่ 0 หมายถึงข้อผิดพลาดทางธุรกิจ
@@ -20,7 +20,7 @@ OpsMini เปิดเผย REST API มาตรฐานสองชุด�
 
     ความสามารถ UI ทั้งหมด ได้แก่ การยืนยันตัวตน ผู้ใช้ การมอนิเตอร์ เว็บไซต์ คอนเทนเนอร์ ไฟล์ AI เป็นต้น
 
--   :material-api: **[Agent API (/agent/v1)](agent-api.md)**
+-   :material-api: **[การเชื่อมต่อ Agent (gRPC)](agent-api.md](agent-api.md)**
 
     ---
 

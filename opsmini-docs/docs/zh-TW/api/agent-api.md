@@ -1,68 +1,40 @@
-# Agent API（/agent/v1）
+# Agent 接入（gRPC）
 
-Agent API 是面向**機器 / 第三方系統**的標準 REST 介面，供監控平臺、自動化指令碼、編排工具整合呼叫。
+OpsMini 面板程序內建 **Agent 用戶端**：它主動向外建立一條 gRPC 雙向流長連線，註冊自己、上報心跳、接收執行任務、雙向傳輸檔案。**不需要對方能 SSH 或能存取本機的入站埠**，適合 NAT、內網、無公網 IP 的主機。
 
-## 與面板 API 的區別
+!!! warning "關於舊的 /agent/v1 REST 介面"
+    **v1.2.1 起已移除** `/agent/v1` REST 介面與「設定 → API Token」頁面。需要從外部系統驅動面板，請使用 **MCP**（`/mcp`，見 [面板 API](browser-api.md)）；需要多機納管，請使用本文的 gRPC Agent。
 
-| 維度 | 面板 API `/api/v1` | Agent API `/agent/v1` |
-|------|-------------------|----------------------|
-| 使用者 | 瀏覽器（人） | 外部系統（機器） |
-| 認證 | 使用者會話 JWT + RBAC | Agent Token（Bearer） |
-| 範圍 | 全部 UI 功能 + 終端 WS | 資源查詢 + 命令執行（無 UI / 終端） |
-| 設計 | 面向互動 | 面向自動化（冪等、可重試） |
+## 通訊模型
 
-## 認證
+| 方向 | |
+|------|------|
+| Agent → Server | `Register` · `Heartbeat` · `TaskResult` · `FileChunkAck` |
+| Server → Agent | `RegisterAck` · `ExecuteTask` · `PushFileTask` · `Ping` |
 
-1. 在面板「設定 → API Token」頁生成訪問令牌（令牌持久化在資料庫，不再寫在 `config.yaml`）
-2. 請求攜帶 `Authorization: Bearer <token>`
-3. 中介軟體以恆定時間比較校驗 token；令牌留空即禁用 Agent API
+- 單一埠即可：HTTP/2 多工，不需要 SaltStack 那樣的雙埠
+- 斷線指數退避重連，週期心跳保活
+- Server 端同名主機重連時踢掉舊連線，避免殭屍工作階段
 
-## 端點一覽
-
-| 方法 | 路徑 | 說明 |
-|------|------|------|
-| GET | `/agent/v1/health` | 健康檢查（探活） |
-| GET | `/agent/v1/version` | 版本資訊 |
-| GET | `/agent/v1/status` | 狀態摘要：cpu / mem / 磁碟 / 線上服務 |
-| GET | `/agent/v1/system/info` | 主機資訊（hostname / os / 核心） |
-| GET | `/agent/v1/system/processes` | 程序列表 |
-| GET | `/agent/v1/system/ports` | 埠監聽 |
-| GET | `/agent/v1/system/disks` | 磁碟 / 掛載點 |
-| GET | `/agent/v1/websites` | 網站列表 |
-| GET | `/agent/v1/databases` | 資料庫列表 |
-| GET | `/agent/v1/cron-jobs` | 計劃任務 |
-| GET | `/agent/v1/containers` | 容器列表 |
-| POST | `/agent/v1/commands` | 執行命令（白名單） |
-| POST | `/agent/v1/script/run` | 執行指令碼 |
-| POST | `/agent/v1/file/upload` | 上傳檔案 |
-
-## 命令執行與白名單
-
-`/commands` 僅允許執行顯式授權的命令字首，全部記審計。白名單在 `config.yaml` 的 `agent.allowed_commands` 中維護：
+## 設定
 
 ```yaml
 agent:
-  allowed_commands:
-    - ps
-    - df
-    - free
-    - uptime
-    - docker
-    - systemctl
-    - nginx
-    - who
+  server_addr: "47.104.172.52:4507"
+  server_token: "<token from server>"
+  heartbeat_seconds: 30
 ```
 
-## 呼叫示例
+`server_addr` 留空即停用 Agent 模式，面板仍可正常單機使用。
 
-```bash
-curl -H "Authorization: Bearer <token>" \
-     https://<host>:8888/agent/v1/status
-```
+## 能力邊界
 
-## 安全建議
+| 能力 | 說明 |
+|------|------|
+| 指令 / 腳本執行 | `ExecuteTask` 的 oneof 區分 command 與 script |
+| 檔案下發 | `PushFileTask` 伺服器端串流分片，支援 `resume_offset` 與 md5 校验 |
+| 檔案拉取 | Agent 端讀取後回傳 |
+| 指標採集 | 不走 gRPC，仍由 `/metrics` 暴露給 Prometheus 抓取 |
 
-- 使用 HTTPS 傳輸
-- 高安全場景可加 IP 白名單限制來源
-- 命令白名單最小化，僅授權必要命令
-- 令牌洩露後立即在面板「設定 → API Token」重新生成
+!!! note "Server 端程式碼位置"
+    OpsMini Server 位於 OpsAnt 專案（`github.com/opsany/opsmini-server`），本倉庫只包含 Agent 端實作（`internal/agent/client.go`）。

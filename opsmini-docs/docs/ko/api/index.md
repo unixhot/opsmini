@@ -7,7 +7,7 @@ OpsMini는 브라우저 UI와 외부 시스템 통합 호출을 위해 두 가�
 | API | 프리픽스 | 사용자 | 인증 |
 |-----|------|--------|------|
 | 패널 API | `/api/v1` | 브라우저（사람） | 사용자 세션 JWT + RBAC |
-| Agent API | `/agent/v1` | 외부 시스템（머신） | Agent Token + 명령 화이트리스트 |
+| Agent 연결 | gRPC(Agent 가 외부로 연결) | 여러 호스트 관리 | Server 토큰 + 양방향 스트림 |
 | Prometheus 지표 | `/metrics` | 모니터링 시스템 | 선택적 Basic 인증 |
 
 통일된 응답 형식: `{ "code": 0, "message": "ok", "data": ... }`, `code`가 0이 아니면 비즈니스 오류입니다.
@@ -20,7 +20,7 @@ OpsMini는 브라우저 UI와 외부 시스템 통합 호출을 위해 두 가�
 
     인증, 사용자, 모니터링, 웹사이트, 컨테이너, 파일, AI 등 모든 UI 기능.
 
--   :material-api: **[Agent API（/agent/v1）](agent-api.md)**
+-   :material-api: **[Agent 연결(gRPC)](agent-api.md](agent-api.md)**
 
     ---
 

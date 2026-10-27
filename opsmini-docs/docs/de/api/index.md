@@ -7,7 +7,7 @@ OpsMini stellt nach außen zwei standardmäßige REST-APIs bereit, die für die 
 | API | Präfix | Nutzer | Authentifizierung |
 |-----|------|--------|------|
 | Panel-API | `/api/v1` | Browser (Mensch) | Benutzersitzungs-JWT + RBAC |
-| Agent-API | `/agent/v1` | Externe Systeme (Maschine) | Agent-Token + Befehls-Whitelist |
+| Agent-Anbindung | gRPC (Agent wählt aus) | Flottenverwaltung | Server-Token + Bidirektionalstream |
 | Prometheus-Metriken | `/metrics` | Monitoring-Systeme | Optionale Basic-Authentifizierung |
 
 Einheitliches Antwortformat: `{ "code": 0, "message": "ok", "data": ... }`; `code` ungleich 0 bedeutet einen Geschäftsfehler.
@@ -20,7 +20,7 @@ Einheitliches Antwortformat: `{ "code": 0, "message": "ok", "data": ... }`; `cod
 
     Sämtliche UI-Fähigkeiten: Authentifizierung, Benutzer, Monitoring, Websites, Container, Dateien, AI u. a.
 
--   :material-api: **[Agent-API (/agent/v1)](agent-api.md)**
+-   :material-api: **[Agent-Anbindung (gRPC)](agent-api.md](agent-api.md)**
 
     ---
 

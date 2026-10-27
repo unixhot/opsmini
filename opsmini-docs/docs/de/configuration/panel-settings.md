@@ -42,7 +42,7 @@ Hier wird zentral die Modellanbindung des integrierten AI-Assistenten konfigurie
 
 Zugriffstoken für externe Systeme erzeugen (Monitoring-Plattformen, Automatisierungsskripte, Orchestrierungstools von Drittanbietern):
 
-- Das erzeugte Token dient zum Aufruf der `/agent/v1`-Schnittstelle; der Anfrage-Header trägt `Authorization: Bearer <token>`
+- Die alte `/agent/v1`-API-Token-Seite wurde mit v1.2.1 entfernt; für Steuerung von außen MCP nutzen (siehe [Panel-API](../api/browser-api.md))
 - Leer bedeutet **Deaktivierung** der Agent-API
 - „Zufällig erzeugen" unterstützt die Ein-Klick-Erzeugung eines starken Zufallstokens; nach dem Speichern wirksam
 - Nach einem Leck sofort neu erzeugen

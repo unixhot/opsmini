@@ -40,7 +40,7 @@ Configure the built-in AI assistant's model access here, replacing the former `c
 
 Generate an access token for external systems (monitoring platforms, automation scripts, orchestration tools):
 
-- The token is used to call `/agent/v1`, sent as `Authorization: Bearer <token>`
+- The old `/agent/v1` API Token page was removed in v1.2.1; to drive the panel from outside use MCP (see [Panel API](../api/browser-api.md))
 - Leaving it empty **disables** the Agent API
 - "Generate" creates a strong random token; it takes effect after saving
 - Regenerate immediately if leaked

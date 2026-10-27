@@ -28,5 +28,5 @@ Technische Architektur und Designentscheidungen von OpsMini.
 
 - **Einzel-Server-Monolith**: keine Microservices, Auslieferung als einzelner Prozess und einzelnes Binary
 - **SQLite**: eingebettet und wartungsfrei, für das geringe Geschäftsdatenvolumen vollkommen ausreichend
-- **Doppelte API**: `/api/v1` für die UI, `/agent/v1` für Integration, getrennte Authentifizierung und Berechtigungen
+- **Doppelte API**: `/api/v1` für die UI, `/mcp` für Integration, getrennte Authentifizierung und Berechtigungen
 - **Reines Go ohne CGO**: plattformübergreifendes Cross-Kompilieren statisch gelinkter Binaries mit einem Klick

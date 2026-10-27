@@ -2,7 +2,7 @@
 
 # OpsMini
 
-**AI 驱动的主机运维面板**
+**主机上的 AI 运维 Agent**
 
 [English](docs/README.en.md) · [简体中文](README.md) · [繁體中文](docs/README.zh-TW.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md) · [ไทย](docs/README.th.md) · [Deutsch](docs/README.de.md)
 
@@ -10,7 +10,7 @@
 
 ---
 
-OpsMini 是一款 AI 驱动的主机运维面板（对标宝塔 / 1Panel），以内置 AI 大模型运维与对外标准 REST API 为核心差异化。
+OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent：自己采集指标、自己判断异常、自己动手处理，遇到高危动作停下来等你点头。Web 界面只是它的观察窗——你可以什么都不点，它照样每天把活干完并留下报告。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。
 
 ### 特性
 

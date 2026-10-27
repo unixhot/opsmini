@@ -7,7 +7,7 @@ OpsMini は外部に 2 セットの標準 REST API を公開し、ブラウザ U
 | API | プレフィックス | 利用者 | 認証 |
 |-----|------|--------|------|
 | パネル API | `/api/v1` | ブラウザ（人） | ユーザーセッション JWT + RBAC |
-| Agent API | `/agent/v1` | 外部システム（マシン） | Agent Token + コマンドホワイトリスト |
+| Agent 接続 | gRPC（Agent から発信） | 複数ホスト統合 | Server トークン + 双方向ストリーム |
 | Prometheus 指標 | `/metrics` | 監視システム | 任意の Basic 認証 |
 
 統一レスポンス形式：`{ "code": 0, "message": "ok", "data": ... }`。`code` が 0 以外の場合はビジネスエラーです。
@@ -20,7 +20,7 @@ OpsMini は外部に 2 セットの標準 REST API を公開し、ブラウザ U
 
     認証、ユーザー、監視、ウェブサイト、コンテナ、ファイル、AI など全 UI 機能。
 
--   :material-api: **[Agent API（/agent/v1）](agent-api.md)**
+-   :material-api: **[Agent 接続（gRPC）](agent-api.md](agent-api.md)**
 
     ---
 
