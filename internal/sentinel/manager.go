@@ -62,6 +62,10 @@ type Manager struct {
 	stop      chan struct{}
 	wg        sync.WaitGroup
 	startedAt time.Time
+
+	// Retention controls how long records are kept (see retention.go). It is
+	// persisted by the panel, not by this package.
+	Retention RetentionPolicy
 }
 
 // collector is one perception source.
@@ -74,7 +78,8 @@ type collector interface {
 func New(cfg Config, db *gorm.DB) *Manager {
 	bus := NewBus(db, 30*time.Minute)
 	agg := NewAggregator(db, 10*time.Minute)
-	m := &Manager{cfg: cfg, db: db, Bus: bus, Agg: agg, stop: make(chan struct{})}
+	m := &Manager{cfg: cfg, db: db, Bus: bus, Agg: agg, stop: make(chan struct{}),
+		Retention: DefaultRetention()}
 
 	// Wire the fan-out: bus -> aggregator.
 	bus.Subscribe(func(s model.Signal) {
@@ -95,6 +100,12 @@ func New(cfg Config, db *gorm.DB) *Manager {
 // collector is fed by the existing alert engine instead of polling on its own.
 func (m *Manager) NewWithMetricHook(fire chan model.Signal) {
 	m.collectors = append(m.collectors, &metricCollector{in: fire})
+}
+
+// SetRetention replaces the retention policy (already-normalized).
+func (m *Manager) SetRetention(p RetentionPolicy) {
+	p.normalize()
+	m.Retention = p
 }
 
 // Config returns the active configuration.
@@ -120,8 +131,11 @@ func (m *Manager) Start(ctx context.Context) {
 			c.Run(ctx, func(sig Signal) { m.Bus.Publish(sig.Signal) })
 		}()
 	}
-	log.Printf("sentinel: perception layer up (log_paths=%v web_roots=%v learning=%v)",
-		m.cfg.LogPaths, m.cfg.WebRoots, m.cfg.Learning)
+	// Data retention: signals expire fast, audits are kept long, live incidents
+	// are never touched.
+	m.startRetention(ctx)
+	log.Printf("sentinel: perception layer up (log_paths=%v web_roots=%v learning=%v retention=%+v)",
+		m.cfg.LogPaths, m.cfg.WebRoots, m.cfg.Learning, m.Retention)
 }
 
 // Stop waits for the collectors to return (ctx cancellation drives them).

@@ -143,6 +143,27 @@
   .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid-23{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}
   .grid-32{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+/* ---------- event center (autonomous agent) ---------- */
+.st-tbl{table-layout:fixed;width:100%}
+.st-tbl th,.st-tbl td{white-space:normal;word-break:break-word;vertical-align:top}
+.st-tbl th{white-space:nowrap}
+.st-tbl td .tag{white-space:nowrap}
+.st-tbl td.prewrap{white-space:pre-wrap;word-break:break-word;line-height:1.6;font-size:12.5px}
+.st-help-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6}
+.st-detail-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
+.st-detail-sec{font-size:12.5px;font-weight:600;color:var(--t2);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.st-detail-row{display:flex;gap:8px;padding:6px 0;font-size:12.5px;line-height:1.6;border-bottom:1px dashed var(--border);word-break:break-word}
+.st-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.st-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.st-field label{font-size:12.5px;color:var(--t2);font-weight:500}
+.st-field .input{width:100%}
+.st-help{font-size:11.5px;color:var(--t3);line-height:1.55}
+.st-chip{display:inline-block;padding:3px 9px;border:1px solid var(--border);border-radius:20px;font-size:11.5px;font-family:var(--mono);cursor:pointer;color:var(--t3);background:var(--bg2);user-select:none}
+.st-chip.on{background:rgba(37,99,235,.1);border-color:var(--primary);color:var(--primary)}
+.st-chip.warn.on{background:rgba(245,158,11,.12);border-color:var(--warning);color:var(--warning)}
+.st-err{color:var(--danger);font-size:12.5px;padding:8px 0}
+@media(max-width:760px){.st-form-grid{grid-template-columns:1fr}}
+
   @media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
   .card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
@@ -1541,111 +1562,265 @@
         </div>
 
         <div class="grid grid-4" style="margin-bottom:16px">
-          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.signals24') }}</span></div><div class="stat-value" style="color:var(--info)">{{ sentinelStats.signals_24h || 0 }}</div></div>
-          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.openIncidents') }}</span></div><div class="stat-value" style="color:var(--warning)">{{ sentinelStats.incidents_open || 0 }}</div></div>
-          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.incidents24') }}</span></div><div class="stat-value" style="color:var(--primary)">{{ sentinelStats.incidents_24h || 0 }}</div></div>
-          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('sentinel.actions24') }}</span></div><div class="stat-value" style="color:var(--success)">{{ sentinelStats.actions_24h || 0 }}</div></div>
+          <div class="card stat" @click="gotoSignals()" style="cursor:pointer">
+            <div class="stat-top"><span class="stat-label">{{ t('sentinel.signals24') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
+            <div class="stat-value" style="color:var(--info)">{{ sentinelStats.signals_24h || 0 }}</div>
+          </div>
+          <div class="card stat" @click="gotoIncidents('unresolved')" style="cursor:pointer">
+            <div class="stat-top"><span class="stat-label">{{ t('sentinel.openIncidents') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
+            <div class="stat-value" style="color:var(--warning)">{{ sentinelStats.incidents_unresolved || 0 }}</div>
+          </div>
+          <div class="card stat" @click="gotoIncidents('all')" style="cursor:pointer">
+            <div class="stat-top"><span class="stat-label">{{ t('sentinel.incidents24') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
+            <div class="stat-value" style="color:var(--primary)">{{ sentinelStats.incidents_24h || 0 }}</div>
+          </div>
+          <div class="card stat" @click="gototab('actions')" style="cursor:pointer">
+            <div class="stat-top"><span class="stat-label">{{ t('sentinel.actions24') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
+            <div class="stat-value" style="color:var(--success)">{{ sentinelStats.actions_24h || 0 }}</div>
+          </div>
         </div>
 
         <div class="page-tabs" style="margin-bottom:16px">
-          <span :class="{active: sentinelTab==='incidents'}" @click="sentinelTab='incidents'">{{ t('sentinel.tab.incidents') }}</span>
-          <span :class="{active: sentinelTab==='policies'}" @click="sentinelTab='policies';loadSentinelTab()">{{ t('sentinel.tab.policies') }}</span>
-          <span :class="{active: sentinelTab==='actions'}" @click="sentinelTab='actions';loadSentinelTab()">{{ t('sentinel.tab.actions') }}</span>
-          <span :class="{active: sentinelTab==='safety'}" @click="sentinelTab='safety';loadSentinelTab()">{{ t('sentinel.tab.safety') }}</span>
-          <span :class="{active: sentinelTab==='signals'}" @click="sentinelTab='signals';loadSentinelTab()">{{ t('sentinel.tab.signals') }}</span>
+          <span :class="{active: sentinelTab==='incidents'}" @click="gototab('incidents')">{{ t('sentinel.tab.incidents') }}</span>
+          <span :class="{active: sentinelTab==='policies'}" @click="gototab('policies')">{{ t('sentinel.tab.policies') }}</span>
+          <span :class="{active: sentinelTab==='actions'}" @click="gototab('actions')">{{ t('sentinel.tab.actions') }}</span>
+          <span :class="{active: sentinelTab==='safety'}" @click="gototab('safety')">{{ t('sentinel.tab.safety') }}</span>
+          <span :class="{active: sentinelTab==='signals'}" @click="gototab('signals')">{{ t('sentinel.tab.signals') }}</span>
         </div>
 
+        <!-- ================= 事件 ================= -->
         <div class="card" v-if="sentinelTab==='incidents'">
+          <div class="card-head" style="flex-wrap:wrap;gap:10px">
+            <div class="page-tabs" style="margin:0">
+              <span :class="{active: incFilter.status==='unresolved'}" @click="setIncStatus('unresolved')">
+                {{ t('sentinel.filter.unresolved') }}
+                <span class="tag warn" style="margin-left:5px;font-size:10px">{{ sentinelStats.incidents_unresolved || 0 }}</span>
+              </span>
+              <span :class="{active: incFilter.status==='open'}" @click="setIncStatus('open')">
+                {{ t('sentinel.filter.pending') }}
+                <span class="tag info" style="margin-left:5px;font-size:10px">{{ (sentinelStats.by_status||{}).open || 0 }}</span>
+              </span>
+              <span :class="{active: incFilter.status==='all'}" @click="setIncStatus('all')">{{ t('sentinel.filter.all') }}</span>
+              <span :class="{active: incFilter.status==='resolved'}" @click="setIncStatus('resolved')">{{ t('sentinel.filter.resolved') }}</span>
+              <span :class="{active: incFilter.status==='failed'}" @click="setIncStatus('failed')">{{ t('sentinel.filter.failed') }}</span>
+              <span :class="{active: incFilter.status==='ignored'}" @click="setIncStatus('ignored')">{{ t('sentinel.filter.ignored') }}</span>
+            </div>
+          </div>
+          <div class="row" style="gap:8px;padding:0 16px 12px;flex-wrap:wrap">
+            <select class="input" style="width:auto;min-width:150px" v-model="incFilter.family" @change="loadIncidents(1)">
+              <option value="">{{ t('sentinel.filter.allFamily') }}</option>
+              <option v-for="f in sentinelFacets.families" :key="f.key" :value="f.key">{{ famName(f.key) }} ({{ f.total }})</option>
+            </select>
+            <select class="input" style="width:auto;min-width:130px" v-model="incFilter.severity" @change="loadIncidents(1)">
+              <option value="">{{ t('sentinel.filter.allSeverity') }}</option>
+              <option value="critical">critical</option>
+              <option value="high">high</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+              <option value="info">info</option>
+            </select>
+            <input class="input" style="flex:1;min-width:180px" v-model="incFilter.q" @keyup.enter="loadIncidents(1)"
+                   :placeholder="t('sentinel.searchPh')">
+            <button class="btn ghost" @click="loadIncidents(1)">{{ t('sentinel.search') }}</button>
+            <button class="btn ghost" @click="resetIncFilter()">{{ t('sentinel.reset') }}</button>
+          </div>
           <div class="table-wrap">
-            <table>
+            <table class="st-tbl">
+              <colgroup>
+                <col style="width:130px"><col style="width:124px"><col style="width:auto">
+                <col style="width:88px"><col style="width:92px"><col style="width:86px"><col style="width:146px">
+              </colgroup>
               <thead><tr>
-                <th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.event') }}</th>
-                <th>{{ t('sentinel.col.severity') }}</th><th>{{ t('sentinel.col.status') }}</th>
-                <th>{{ t('sentinel.col.mode') }}</th><th>{{ t('sentinel.col.summary') }}</th>
+                <th>{{ t('sentinel.col.time') }}</th>
+                <th>{{ t('sentinel.col.category') }}</th>
+                <th>{{ t('sentinel.col.event') }}</th>
+                <th>{{ t('sentinel.col.severity') }}</th>
+                <th>{{ t('sentinel.col.status') }}</th>
+                <th>{{ t('sentinel.col.mode') }}</th>
                 <th>{{ t('common.actions') }}</th>
               </tr></thead>
               <tbody>
                 <tr v-for="i in sentinelIncidents" :key="i.id">
                   <td class="mono">{{ fmtDT(i.last_seen) }}</td>
-                  <td>{{ i.title }}</td>
-                  <td><span class="tag" :class="sevTag(i.severity)">{{ i.severity }}</span></td>
-                  <td><span class="tag" :class="stTag(i.status)">{{ i.status }}</span></td>
-                  <td>{{ i.mode || '-' }}</td>
-                  <td style="max-width:420px;white-space:normal">{{ (i.summary || '-').slice(0,180) }}</td>
+                  <td><span class="tag mute">{{ famName(i.family) }}</span></td>
                   <td>
-                    <a class="link" v-if="i.report_rel" @click="openSentinelReport(i)">{{ t('sentinel.report') }}</a>
-                    <a class="link" @click="ignoreIncident(i)" style="margin-left:10px">{{ t('sentinel.ignore') }}</a>
-                    <a class="link" @click="takeoverIncident(i)" style="margin-left:10px">{{ t('sentinel.takeover') }}</a>
+                    <div style="font-weight:500">{{ i.title }}</div>
+                    <div class="mute" style="font-size:11.5px;line-height:1.5">{{ incHint(i) }}</div>
+                  </td>
+                  <td><span class="tag" :class="sevTag(i.severity)">{{ i.severity }}</span></td>
+                  <td><span class="tag" :class="stTag(i.status)">{{ stName(i.status) }}</span></td>
+                  <td>{{ i.mode || '-' }}</td>
+                  <td style="white-space:nowrap">
+                    <a class="link" @click="openIncident(i)">{{ t('sentinel.detail') }}</a>
+                    <a class="link" v-if="i.report_rel" @click="openSentinelReport(i)" style="margin-left:8px">{{ t('sentinel.report') }}</a>
+                    <a class="link" v-if="incActive(i)" @click="ignoreIncident(i)" style="margin-left:8px">{{ t('sentinel.ignore') }}</a>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div v-if="!sentinelIncidents.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
-        </div>
-
-        <div class="card" v-if="sentinelTab==='policies'">
-          <div class="table-wrap">
-            <table>
-              <thead><tr>
-                <th>{{ t('sentinel.col.policy') }}</th><th>{{ t('sentinel.col.scene') }}</th>
-                <th>{{ t('sentinel.col.threshold') }}</th><th>{{ t('sentinel.col.mode') }}</th>
-                <th>{{ t('sentinel.col.budget') }}</th><th>{{ t('sentinel.col.enabled') }}</th>
-              </tr></thead>
-              <tbody>
-                <tr v-for="p in sentinelPolicies" :key="p.id">
-                  <td class="mono">{{ p.name }}</td>
-                  <td>{{ p.family }}</td>
-                  <td>{{ p.min_severity }}</td>
-                  <td>
-                    <select class="input" style="width:auto" :value="p.mode" @change="setPolicyMode(p, $event.target.value)">
-                      <option value="shadow">{{ t('sentinel.mode.shadow') }}</option>
-                      <option value="assist">{{ t('sentinel.mode.assist') }}</option>
-                      <option value="auto">{{ t('sentinel.mode.auto') }}</option>
-                    </select>
-                  </td>
-                  <td class="mono">{{ p.max_writes }} / {{ p.max_steps }} / {{ p.cooldown_sec }}s</td>
-                  <td><span class="switch" :class="{on: p.enabled}" @click="togglePolicy(p)"></span></td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="row" style="justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)">
+            <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ incTotal }}</span>
+            <div class="row" style="gap:8px">
+              <button class="btn sm ghost" :disabled="incFilter.page<=1" @click="loadIncidents(incFilter.page-1)">‹ {{ t('pager.prev') }}</button>
+              <span class="mute" style="font-size:12px;line-height:28px">{{ incFilter.page }} / {{ incPages }}</span>
+              <button class="btn sm ghost" :disabled="incFilter.page>=incPages" @click="loadIncidents(incFilter.page+1)">{{ t('pager.next') }} ›</button>
+            </div>
           </div>
-          <div style="padding:12px 16px;color:var(--t3);font-size:12.5px">{{ t('sentinel.policyHint') }}</div>
         </div>
 
+        <!-- ================= 策略 ================= -->
+        <div v-if="sentinelTab==='policies'">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head">
+              <div class="card-title">{{ t('sentinel.policy.helpTitle') }}</div>
+              <div class="row" style="gap:8px">
+                <button class="btn ghost sm" @click="policyHelp=!policyHelp">{{ policyHelp ? t('sentinel.policy.collapse') : t('sentinel.policy.expand') }}</button>
+                <button class="btn primary sm" @click="openPolicy(null)" v-if="hasPerm('settings.edit')">+ {{ t('sentinel.policy.new') }}</button>
+              </div>
+            </div>
+            <div v-if="policyHelp" style="padding:0 16px 16px;font-size:13px;line-height:1.75;color:var(--t2)">
+              <p style="margin:6px 0"><b>{{ t('sentinel.policy.what') }}</b>{{ t('sentinel.policy.whatTip') }}</p>
+              <p style="margin:6px 0"><b>{{ t('sentinel.policy.how') }}</b>{{ t('sentinel.policy.howTip') }}</p>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 14px">
+                <div class="st-help-box">
+                  <div style="font-weight:600;margin-bottom:4px">{{ t('sentinel.mode.shadow') }} <span class="tag mute">shadow</span></div>
+                  <div>{{ t('sentinel.modeHelp.shadow') }}</div>
+                </div>
+                <div class="st-help-box">
+                  <div style="font-weight:600;margin-bottom:4px">{{ t('sentinel.mode.assist') }} <span class="tag info">assist</span></div>
+                  <div>{{ t('sentinel.modeHelp.assist') }}</div>
+                </div>
+                <div class="st-help-box">
+                  <div style="font-weight:600;margin-bottom:4px">{{ t('sentinel.mode.auto') }} <span class="tag warn">auto</span></div>
+                  <div>{{ t('sentinel.modeHelp.auto') }}</div>
+                </div>
+              </div>
+              <p style="margin:6px 0"><b>{{ t('sentinel.policy.fieldHelp') }}</b></p>
+              <ul style="margin:4px 0 0;padding-left:20px">
+                <li><b>{{ t('sentinel.col.scene') }}</b>：{{ t('sentinel.policy.help.family') }}</li>
+                <li><b>{{ t('sentinel.col.threshold') }}</b>：{{ t('sentinel.policy.help.severity') }}</li>
+                <li><b>{{ t('sentinel.policy.cooldown') }}</b>：{{ t('sentinel.policy.help.cooldown') }}</li>
+                <li><b>{{ t('sentinel.policy.budget') }}</b>：{{ t('sentinel.policy.help.budget') }}</li>
+                <li><b>{{ t('sentinel.policy.tools') }}</b>：{{ t('sentinel.policy.help.tools') }}</li>
+                <li><b>{{ t('sentinel.policy.verify') }}</b>：{{ t('sentinel.policy.help.verify') }}</li>
+                <li><b>{{ t('sentinel.policy.prompt') }}</b>：{{ t('sentinel.policy.help.prompt') }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-wrap">
+              <table class="st-tbl">
+                <colgroup>
+                  <col style="width:164px"><col style="width:auto"><col style="width:112px">
+                  <col style="width:118px"><col style="width:92px"><col style="width:88px"><col style="width:124px">
+                </colgroup>
+                <thead><tr>
+                  <th>{{ t('sentinel.col.policy') }}</th>
+                  <th>{{ t('sentinel.col.summary') }}</th>
+                  <th>{{ t('sentinel.col.scene') }}</th>
+                  <th>{{ t('sentinel.col.threshold') }}</th>
+                  <th>{{ t('sentinel.col.mode') }}</th>
+                  <th>{{ t('sentinel.col.enabled') }}</th>
+                  <th>{{ t('common.actions') }}</th>
+                </tr></thead>
+                <tbody>
+                  <tr v-for="p in sentinelPolicies" :key="p.id">
+                    <td class="mono">{{ p.name }}</td>
+                    <td>{{ p.description || '-' }}</td>
+                    <td><span class="tag mute">{{ p.family }}</span></td>
+                    <td>{{ p.min_severity }}</td>
+                    <td><span class="tag" :class="modeTag(p.mode)">{{ p.mode }}</span></td>
+                    <td><span class="switch" :class="{on: p.enabled}" @click="togglePolicy(p)"></span></td>
+                    <td style="white-space:nowrap">
+                      <a class="link" v-if="hasPerm('settings.edit')" @click="openPolicy(p)">{{ t('sentinel.policy.edit') }}</a>
+                      <a class="link" v-if="hasPerm('settings.edit')" @click="delPolicy(p)" style="margin-left:8px;color:var(--danger)">{{ t('sentinel.policy.del') }}</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="padding:12px 16px;color:var(--t3);font-size:12.5px">{{ t('sentinel.policyHint') }}</div>
+          </div>
+        </div>
+
+        <!-- ================= 动作审计 ================= -->
         <div class="card" v-if="sentinelTab==='actions'">
+          <div class="row" style="gap:8px;padding:14px 16px 12px;flex-wrap:wrap">
+            <select class="input" style="width:auto;min-width:150px" v-model="actFilter.tool" @change="loadActions(1)">
+              <option value="">{{ t('sentinel.filter.allTool') }}</option>
+              <option value="quarantine_file">quarantine_file</option>
+              <option value="freeze_process">freeze_process</option>
+              <option value="block_ip">block_ip</option>
+              <option value="truncate_log">truncate_log</option>
+              <option value="snapshot_path">snapshot_path</option>
+              <option value="exec_command">exec_command</option>
+              <option value="read_file">read_file</option>
+              <option value="search_logs">search_logs</option>
+              <option value="list_processes">list_processes</option>
+            </select>
+            <select class="input" style="width:auto;min-width:130px" v-model="actFilter.verdict" @change="loadActions(1)">
+              <option value="">{{ t('sentinel.filter.allVerdict') }}</option>
+              <option value="allow">allow</option>
+              <option value="deny">deny</option>
+              <option value="shadow">shadow</option>
+              <option value="confirm">confirm</option>
+            </select>
+            <input class="input" style="flex:1;min-width:180px" v-model="actFilter.q" @keyup.enter="loadActions(1)" :placeholder="t('sentinel.searchActionPh')">
+            <button class="btn ghost" @click="loadActions(1)">{{ t('sentinel.search') }}</button>
+            <button class="btn ghost" @click="actFilter={tool:'',verdict:'',q:'',page:1};loadActions(1)">{{ t('sentinel.reset') }}</button>
+          </div>
           <div class="table-wrap">
-            <table>
+            <table class="st-tbl">
+              <colgroup>
+                <col style="width:132px"><col style="width:150px"><col style="width:92px">
+                <col style="width:88px"><col style="width:80px"><col style="width:auto">
+              </colgroup>
               <thead><tr>
                 <th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.tool') }}</th>
                 <th>{{ t('sentinel.col.risk') }}</th><th>{{ t('sentinel.col.verdict') }}</th>
-                <th>{{ t('sentinel.col.result') }}</th>
+                <th>{{ t('sentinel.col.duration') }}</th><th>{{ t('sentinel.col.result') }}</th>
               </tr></thead>
               <tbody>
                 <tr v-for="a in sentinelActions" :key="a.id">
                   <td class="mono">{{ fmtDT(a.created_at) }}</td>
                   <td class="mono">{{ a.tool }}</td>
-                  <td>{{ a.risk }}</td>
+                  <td><span class="tag" :class="a.risk==='readonly'?'mute':'warn'">{{ a.risk }}</span></td>
                   <td><span class="tag" :class="verdictTag(a.verdict)">{{ a.verdict }}</span></td>
-                  <td style="max-width:520px;white-space:normal">{{ (a.result || '-').slice(0,200) }}</td>
+                  <td class="mono">{{ a.duration_ms ? a.duration_ms+'ms' : '-' }}</td>
+                  <td class="prewrap">{{ (a.result || '-').slice(0,400) }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div v-if="!sentinelActions.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+          <div class="row" style="justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)">
+            <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ actTotal }}</span>
+            <div class="row" style="gap:8px">
+              <button class="btn sm ghost" :disabled="actFilter.page<=1" @click="loadActions(actFilter.page-1)">‹ {{ t('pager.prev') }}</button>
+              <span class="mute" style="font-size:12px;line-height:28px">{{ actFilter.page }} / {{ actPages }}</span>
+              <button class="btn sm ghost" :disabled="actFilter.page>=actPages" @click="loadActions(actFilter.page+1)">{{ t('pager.next') }} ›</button>
+            </div>
+          </div>
         </div>
 
+        <!-- ================= 隔离与封禁 ================= -->
         <div v-if="sentinelTab==='safety'">
           <div class="card" style="margin-bottom:16px">
-            <div class="card-head"><div class="card-title">{{ t('sentinel.quarantine') }}</div></div>
+            <div class="card-head"><div class="card-title">{{ t('sentinel.quarantine') }}</div>
+              <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ queTotal }}</span>
+            </div>
             <div class="table-wrap">
-              <table>
+              <table class="st-tbl">
+                <colgroup><col style="width:132px"><col style="width:auto"><col style="width:auto"><col style="width:96px"></colgroup>
                 <thead><tr><th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.file') }}</th><th>{{ t('sentinel.col.reason') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
                 <tbody>
                   <tr v-for="q in sentinelQuarantine" :key="q.id">
                     <td class="mono">{{ fmtDT(q.created_at) }}</td>
-                    <td class="mono" style="max-width:360px;white-space:normal">{{ q.original_path }}</td>
-                    <td>{{ q.reason }}</td>
+                    <td class="mono prewrap">{{ q.original_path }}</td>
+                    <td class="prewrap">{{ q.reason }}</td>
                     <td>
                       <a class="link" v-if="!q.restored_at" @click="restoreQuarantine(q)">{{ t('sentinel.restore') }}</a>
                       <span v-else style="color:var(--t3)">{{ t('sentinel.restored') }}</span>
@@ -1655,30 +1830,100 @@
               </table>
             </div>
             <div v-if="!sentinelQuarantine.length" style="padding:30px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+            <div class="row" style="justify-content:center;gap:8px;padding:10px 0;border-top:1px solid var(--border)" v-if="quePages>1">
+              <button class="btn sm ghost" :disabled="quePage<=1" @click="loadQuarantine(quePage-1)">‹ {{ t('pager.prev') }}</button>
+              <span class="mute" style="font-size:12px;line-height:28px">{{ quePage }} / {{ quePages }}</span>
+              <button class="btn sm ghost" :disabled="quePage>=quePages" @click="loadQuarantine(quePage+1)">{{ t('pager.next') }} ›</button>
+            </div>
           </div>
-          <div class="card">
-            <div class="card-head"><div class="card-title">{{ t('sentinel.blocked') }}</div></div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><div class="card-title">{{ t('sentinel.blocked') }}</div>
+              <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ blkTotal }}</span>
+            </div>
             <div class="table-wrap">
-              <table>
+              <table class="st-tbl">
+                <colgroup><col style="width:132px"><col style="width:150px"><col style="width:auto"><col style="width:132px"><col style="width:88px"></colgroup>
                 <thead><tr><th>{{ t('sentinel.col.time') }}</th><th>IP</th><th>{{ t('sentinel.col.reason') }}</th><th>{{ t('sentinel.col.expires') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
                 <tbody>
                   <tr v-for="b in sentinelBlocks" :key="b.id">
                     <td class="mono">{{ fmtDT(b.created_at) }}</td>
                     <td class="mono">{{ b.ip }}</td>
-                    <td>{{ b.reason }}</td>
+                    <td class="prewrap">{{ b.reason }}</td>
                     <td class="mono">{{ fmtDT(b.expires_at) }}</td>
-                    <td><a class="link" v-if="!b.released_at" @click="unblockIp(b)">{{ t('sentinel.unblock') }}</a></td>
+                    <td><a class="link" v-if="!b.released_at" @click="unblockIp(b)">{{ t('sentinel.unblock') }}</a>
+                        <span v-else style="color:var(--t3)">{{ t('sentinel.released') }}</span></td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div v-if="!sentinelBlocks.length" style="padding:30px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+            <div class="row" style="justify-content:center;gap:8px;padding:10px 0;border-top:1px solid var(--border)" v-if="blkPages>1">
+              <button class="btn sm ghost" :disabled="blkPage<=1" @click="loadBlocks(blkPage-1)">‹ {{ t('pager.prev') }}</button>
+              <span class="mute" style="font-size:12px;line-height:28px">{{ blkPage }} / {{ blkPages }}</span>
+              <button class="btn sm ghost" :disabled="blkPage>=blkPages" @click="loadBlocks(blkPage+1)">{{ t('pager.next') }} ›</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">{{ t('sentinel.retention.title') }}</div>
+              <div class="row" style="gap:8px">
+                <button class="btn ghost sm" @click="purgeRetention(true)">{{ t('sentinel.retention.preview') }}</button>
+                <button class="btn ghost sm" @click="purgeRetention(false)" v-if="hasPerm('settings.edit')">{{ t('sentinel.retention.purge') }}</button>
+              </div>
+            </div>
+            <div style="padding:0 16px 10px;font-size:12.5px;color:var(--t3);line-height:1.7">{{ t('sentinel.retention.hint') }}</div>
+            <div class="table-wrap">
+              <table class="st-tbl">
+                <colgroup><col style="width:auto"><col style="width:110px"><col style="width:150px"><col style="width:170px"></colgroup>
+                <thead><tr>
+                  <th>{{ t('sentinel.retention.table') }}</th><th>{{ t('sentinel.retention.rows') }}</th>
+                  <th>{{ t('sentinel.retention.days') }}</th><th>{{ t('sentinel.retention.oldest') }}</th>
+                </tr></thead>
+                <tbody>
+                  <tr v-for="s in retentionStats" :key="s.table">
+                    <td>{{ retName(s.table) }}</td>
+                    <td class="mono">{{ s.rows }}</td>
+                    <td>
+                      <div class="row" style="gap:4px;align-items:center;white-space:nowrap">
+                        <input class="input" style="width:76px" type="number" min="0"
+                               :value="retDays(s.table)" @change="setRetDays(s.table, $event.target.value)">
+                        <span class="mute" style="font-size:11px">{{ t('sentinel.retention.dayUnit') }}</span>
+                      </div>
+                    </td>
+                    <td class="mono">{{ s.oldest ? fmtDT(s.oldest) : '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="purgeMsg" style="padding:10px 16px;font-size:12.5px;color:var(--t2)">{{ purgeMsg }}</div>
           </div>
         </div>
 
+        <!-- ================= 信号流 ================= -->
         <div class="card" v-if="sentinelTab==='signals'">
+          <div class="row" style="gap:8px;padding:14px 16px 12px;flex-wrap:wrap">
+            <select class="input" style="width:auto;min-width:140px" v-model="sigFilter.kind" @change="loadSignals(1)">
+              <option value="">{{ t('sentinel.filter.allKind') }}</option>
+              <option value="log">log</option><option value="auth">auth</option><option value="file">file</option>
+              <option value="proc">proc</option><option value="net">net</option><option value="metric">metric</option>
+            </select>
+            <select class="input" style="width:auto;min-width:130px" v-model="sigFilter.severity" @change="loadSignals(1)">
+              <option value="">{{ t('sentinel.filter.allSeverity') }}</option>
+              <option value="critical">critical</option><option value="high">high</option>
+              <option value="medium">medium</option><option value="low">low</option><option value="info">info</option>
+            </select>
+            <input class="input" style="flex:1;min-width:180px" v-model="sigFilter.q" @keyup.enter="loadSignals(1)" :placeholder="t('sentinel.searchSignalPh')">
+            <button class="btn ghost" @click="loadSignals(1)">{{ t('sentinel.search') }}</button>
+            <button class="btn ghost" @click="sigFilter={kind:'',severity:'',q:'',page:1};loadSignals(1)">{{ t('sentinel.reset') }}</button>
+          </div>
           <div class="table-wrap">
-            <table>
+            <table class="st-tbl">
+              <colgroup>
+                <col style="width:132px"><col style="width:76px"><col style="width:88px">
+                <col style="width:auto"><col style="width:auto">
+              </colgroup>
               <thead><tr>
                 <th>{{ t('sentinel.col.time') }}</th><th>{{ t('sentinel.col.kind') }}</th>
                 <th>{{ t('sentinel.col.severity') }}</th><th>{{ t('sentinel.col.subject') }}</th>
@@ -1689,13 +1934,172 @@
                   <td class="mono">{{ fmtDT(g.observed_at) }}</td>
                   <td>{{ g.kind }}</td>
                   <td><span class="tag" :class="sevTag(g.severity)">{{ g.severity }}</span></td>
-                  <td class="mono" style="max-width:280px;white-space:normal">{{ g.subject }}</td>
-                  <td style="max-width:520px;white-space:normal">{{ g.message }}</td>
+                  <td class="mono prewrap">{{ g.subject }}</td>
+                  <td class="prewrap">{{ g.message }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div v-if="!sentinelSignals.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+          <div class="row" style="justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)">
+            <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ sigTotal }} · {{ t('sentinel.retention.signalNote') }}</span>
+            <div class="row" style="gap:8px">
+              <button class="btn sm ghost" :disabled="sigFilter.page<=1" @click="loadSignals(sigFilter.page-1)">‹ {{ t('pager.prev') }}</button>
+              <span class="mute" style="font-size:12px;line-height:28px">{{ sigFilter.page }} / {{ sigPages }}</span>
+              <button class="btn sm ghost" :disabled="sigFilter.page>=sigPages" @click="loadSignals(sigFilter.page+1)">{{ t('pager.next') }} ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 事件详情弹窗 ============ -->
+      <div v-if="incDetail" class="modal-mask" @click.self="incDetail=null">
+        <div class="modal-card" style="max-width:860px">
+          <div class="modal-head">
+            <div class="modal-title">{{ t('sentinel.detailTitle') }}</div>
+            <button class="btn ghost sm" @click="incDetail=null">✕</button>
+          </div>
+          <div style="padding:0 20px 18px;max-height:70vh;overflow:auto">
+            <div style="font-size:15px;font-weight:600;margin:6px 0 10px">{{ incDetail.incident.title }}</div>
+            <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <span class="tag mute">{{ famName(incDetail.incident.family) }}</span>
+              <span class="tag" :class="sevTag(incDetail.incident.severity)">{{ incDetail.incident.severity }}</span>
+              <span class="tag" :class="stTag(incDetail.incident.status)">{{ stName(incDetail.incident.status) }}</span>
+              <span class="tag info" v-if="incDetail.incident.mode">{{ incDetail.incident.mode }}</span>
+              <span class="mute" style="font-size:12px">{{ fmtDT(incDetail.incident.first_seen) }} → {{ fmtDT(incDetail.incident.last_seen) }} · {{ incDetail.incident.count }} {{ t('sentinel.signalsUnit') }}</span>
+            </div>
+            <div v-if="incDetail.incident.summary" class="st-detail-box">{{ incDetail.incident.summary }}</div>
+            <div class="st-detail-sec">{{ t('sentinel.detail.signals') }} ({{ (incDetail.signals||[]).length }})</div>
+            <div v-for="s in incDetail.signals" :key="s.id" class="st-detail-row">
+              <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(s.observed_at) }}</span>
+              <span class="tag" :class="sevTag(s.severity)" style="margin-right:6px">{{ s.severity }}</span>
+              <span>{{ s.message }}</span>
+            </div>
+            <div class="st-detail-sec">{{ t('sentinel.detail.runs') }} ({{ (incDetail.runs||[]).length }})</div>
+            <div v-for="r in incDetail.runs" :key="r.id" class="st-detail-row">
+              <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(r.started_at) }}</span>
+              <span>{{ r.mode }} · {{ r.status }} · {{ r.steps }} {{ t('sentinel.stepsUnit') }} · {{ r.tools }} {{ t('sentinel.toolsUnit') }} · {{ r.writes }} {{ t('sentinel.writesUnit') }}</span>
+            </div>
+            <div class="st-detail-sec">{{ t('sentinel.detail.actions') }} ({{ (incDetail.actions||[]).length }})</div>
+            <div v-for="a in incDetail.actions" :key="a.id" class="st-detail-row">
+              <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(a.created_at) }}</span>
+              <span class="mono" style="min-width:150px">{{ a.tool }}</span>
+              <span class="tag" :class="verdictTag(a.verdict)" style="margin-right:6px">{{ a.verdict }}</span>
+              <span class="prewrap" style="flex:1">{{ (a.result||'').slice(0,240) }}</span>
+            </div>
+            <div v-if="!(incDetail.signals||[]).length && !(incDetail.actions||[]).length" class="mute" style="padding:10px 0">{{ t('sentinel.detail.none') }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 策略编辑弹窗 ============ -->
+      <div v-if="policyForm" class="modal-mask" @click.self="policyForm=null">
+        <div class="modal-card" style="max-width:820px">
+          <div class="modal-head">
+            <div class="modal-title">{{ policyForm.id ? t('sentinel.policy.edit') : t('sentinel.policy.new') }}</div>
+            <button class="btn ghost sm" @click="policyForm=null">✕</button>
+          </div>
+          <div style="padding:0 20px 18px;max-height:72vh;overflow:auto">
+            <div class="st-form-grid">
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.name') }}</label>
+                <input class="input" v-model="policyForm.name" :placeholder="t('sentinel.policy.f.namePh')" :disabled="!!policyForm.id">
+                <span class="st-help">{{ t('sentinel.policy.f.nameHelp') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.family') }}</label>
+                <select class="input" v-model="policyForm.family">
+                  <option v-for="f in sentinelFacets.known_families" :key="f" :value="f">{{ famName(f) }} ({{ f }})</option>
+                </select>
+                <span class="st-help">{{ t('sentinel.policy.help.family') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.severity') }}</label>
+                <select class="input" v-model="policyForm.min_severity">
+                  <option value="critical">critical</option><option value="high">high</option>
+                  <option value="medium">medium</option><option value="low">low</option><option value="info">info</option>
+                </select>
+                <span class="st-help">{{ t('sentinel.policy.help.severity') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.mode') }}</label>
+                <select class="input" v-model="policyForm.mode">
+                  <option value="shadow">{{ t('sentinel.mode.shadow') }} (shadow)</option>
+                  <option value="assist">{{ t('sentinel.mode.assist') }} (assist)</option>
+                  <option value="auto">{{ t('sentinel.mode.auto') }} (auto)</option>
+                </select>
+                <span class="st-help">{{ modeHelp(policyForm.mode) }}</span>
+              </div>
+            </div>
+            <div class="st-detail-sec">{{ t('sentinel.policy.sec.trigger') }}</div>
+            <div class="st-form-grid">
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.cooldown') }}</label>
+                <input class="input" type="number" v-model.number="policyForm.cooldown_sec">
+                <span class="st-help">{{ t('sentinel.policy.help.cooldown') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.description') }}</label>
+                <input class="input" v-model="policyForm.description" :placeholder="t('sentinel.policy.f.descriptionPh')">
+                <span class="st-help">{{ t('sentinel.policy.f.descriptionHelp') }}</span>
+              </div>
+            </div>
+            <div class="st-detail-sec">{{ t('sentinel.policy.sec.budget') }}</div>
+            <div class="st-form-grid">
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.maxWrites') }}</label>
+                <input class="input" type="number" v-model.number="policyForm.max_writes">
+                <span class="st-help">{{ t('sentinel.policy.help.maxWrites') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.maxSteps') }}</label>
+                <input class="input" type="number" v-model.number="policyForm.max_steps">
+                <span class="st-help">{{ t('sentinel.policy.help.maxSteps') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.maxSeconds') }}</label>
+                <input class="input" type="number" v-model.number="policyForm.max_seconds">
+                <span class="st-help">{{ t('sentinel.policy.help.maxSeconds') }}</span>
+              </div>
+              <div class="st-field">
+                <label>{{ t('sentinel.policy.f.maxTokens') }}</label>
+                <input class="input" type="number" v-model.number="policyForm.max_tokens">
+                <span class="st-help">{{ t('sentinel.policy.help.maxTokens') }}</span>
+              </div>
+            </div>
+            <div class="st-detail-sec">{{ t('sentinel.policy.sec.tools') }}</div>
+            <div class="st-field">
+              <label>{{ t('sentinel.policy.tools') }}</label>
+              <div class="row" style="gap:6px;flex-wrap:wrap;margin:4px 0 6px">
+                <span v-for="tool in sentinelFacets.response_tools" :key="tool"
+                      class="st-chip" :class="{on: policyToolOn(tool)}" @click="togglePolicyTool(tool)">{{ tool }}</span>
+              </div>
+              <span class="st-help">{{ t('sentinel.policy.help.tools') }}</span>
+            </div>
+            <div class="st-field">
+              <label>{{ t('sentinel.policy.f.autoTools') }}</label>
+              <div class="row" style="gap:6px;flex-wrap:wrap;margin:4px 0 6px">
+                <span v-for="tool in sentinelFacets.response_tools" :key="'a'+tool"
+                      class="st-chip warn" :class="{on: policyAutoToolOn(tool)}" @click="toggleAutoTool(tool)">{{ tool }}</span>
+              </div>
+              <span class="st-help">{{ t('sentinel.policy.help.autoTools') }}</span>
+            </div>
+            <div class="st-field">
+              <label>{{ t('sentinel.policy.verify') }}</label>
+              <textarea class="input" rows="2" v-model="policyForm.verify" :placeholder='[{"type":"no_new_signal","family":"webshell","window":"30m"}]'></textarea>
+              <span class="st-help">{{ t('sentinel.policy.help.verify') }}</span>
+            </div>
+            <div class="st-field">
+              <label>{{ t('sentinel.policy.prompt') }}</label>
+              <textarea class="input" rows="6" v-model="policyForm.prompt"></textarea>
+              <span class="st-help">{{ t('sentinel.policy.help.prompt') }}</span>
+            </div>
+            <div v-if="policyErr" class="st-err">{{ policyErr }}</div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" @click="policyForm=null">{{ t('common.cancel') }}</button>
+            <button class="btn primary" @click="savePolicy()">{{ t('btn.save') }}</button>
+          </div>
         </div>
       </div>
 
@@ -3636,6 +4040,16 @@ const I18N9 = {
   'de': { 'menu.sentinel':'Ereigniszentrale','sentinel.desc':'Collectors bündeln Host-Signale, Richtlinien entscheiden über den Agent-Lauf. Jede Aktion ist prüfbar und umkehrbar.','sentinel.running':'Autonom aktiv','sentinel.paused':'Pausiert (nur Lesen)','sentinel.pause':'Pausieren','sentinel.resumeAll':'Fortsetzen','sentinel.signals24':'Signale 24h','sentinel.openIncidents':'Offen','sentinel.incidents24':'Vorfälle 24h','sentinel.actions24':'Aktionen 24h','sentinel.tab.incidents':'Vorfälle','sentinel.tab.policies':'Richtlinien','sentinel.tab.actions':'Aktionsprotokoll','sentinel.tab.safety':'Quarantäne & Sperren','sentinel.tab.signals':'Signale','sentinel.col.time':'Zeit','sentinel.col.event':'Ereignis','sentinel.col.severity':'Stufe','sentinel.col.status':'Status','sentinel.col.mode':'Modus','sentinel.col.summary':'Zusammenfassung','sentinel.col.policy':'Richtlinie','sentinel.col.scene':'Szenario','sentinel.col.threshold':'Schwelle','sentinel.col.budget':'Schreib-/Schritt-/Cooldown','sentinel.col.enabled':'Aktiv','sentinel.col.tool':'Werkzeug','sentinel.col.risk':'Risiko','sentinel.col.verdict':'Urteil','sentinel.col.result':'Ergebnis','sentinel.col.file':'Datei','sentinel.col.reason':'Grund','sentinel.col.expires':'Ablauf','sentinel.col.kind':'Art','sentinel.col.subject':'Objekt','sentinel.col.message':'Meldung','sentinel.report':'Bericht','sentinel.ignore':'Ignorieren','sentinel.takeover':'Übernehmen','sentinel.empty':'Noch keine Daten','sentinel.quarantine':'Quarantänierte Dateien (wiederherstellbar)','sentinel.blocked':'Temporär gesperrte IPs','sentinel.restore':'Wiederherstellen','sentinel.restored':'Wiederhergestellt','sentinel.unblock':'Entsperren','sentinel.unblocked':'Entsperrt','sentinel.mode.shadow':'Schatten','sentinel.mode.assist':'Assistenz','sentinel.mode.auto':'Autonom','sentinel.policyHint':'Schatten = nur beobachten; Assistenz = Lesen automatisch, Schreiben mit Freigabe; Autonom = nur freigegebene risikoarme Aktionen.' },
 };
 
+const I18N10 = {
+  'zh-CN': { 'sentinel.clickToView':'→','sentinel.openIncidents':'待处置','sentinel.filter.unresolved':'待处置','sentinel.filter.pending':'待唤醒','sentinel.filter.all':'全部','sentinel.filter.resolved':'已处置','sentinel.filter.failed':'失败','sentinel.filter.ignored':'已忽略','sentinel.filter.allFamily':'全部分类','sentinel.filter.allSeverity':'全部等级','sentinel.filter.allTool':'全部工具','sentinel.filter.allVerdict':'全部裁决','sentinel.filter.allKind':'全部类型','sentinel.searchPh':'搜索事件标题、对象或结论','sentinel.searchActionPh':'搜索工具或结果内容','sentinel.searchSignalPh':'搜索对象或信号内容','sentinel.search':'搜索','sentinel.reset':'重置','sentinel.total':'共','sentinel.col.category':'分类','sentinel.col.duration':'耗时','sentinel.col.threshold':'触发等级','sentinel.detail':'详情','sentinel.detailTitle':'事件详情','sentinel.detail.signals':'关联信号','sentinel.detail.runs':'运行记录','sentinel.detail.actions':'动作链','sentinel.detail.none':'暂无关联记录','sentinel.signalsUnit':'条信号','sentinel.stepsUnit':'步','sentinel.toolsUnit':'次工具','sentinel.writesUnit':'次写','sentinel.st.open':'待处置','sentinel.st.triggered':'已触发','sentinel.st.running':'执行中','sentinel.st.resolved':'已处置','sentinel.st.ignored':'已忽略','sentinel.st.taken_over':'已接管','sentinel.st.failed':'失败','sentinel.verify.passed':'验证通过','sentinel.verify.failed':'验证未通过','sentinel.verify.empty':'报告为空','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'登录异常','sentinel.fam.proc.anomaly':'可疑进程','sentinel.fam.net.anomaly':'异常外联','sentinel.fam.log_growth':'日志暴涨','sentinel.fam.metric':'指标告警','sentinel.released':'已解封','sentinel.policy.helpTitle':'这些策略怎么理解','sentinel.policy.collapse':'收起','sentinel.policy.expand':'展开说明','sentinel.policy.new':'新建策略','sentinel.policy.edit':'编辑','sentinel.policy.del':'删除','sentinel.policy.delConfirm':'确认删除该策略？已产生的事件记录会保留，只是不再自动唤醒 Agent。','sentinel.policy.what':'策略是什么：','sentinel.policy.whatTip':'一段配置，回答「遇到某类事件时，要不要叫醒 Agent、叫醒后它最多能做什么」。它不写死在代码里，可以随时改、随时加。','sentinel.policy.how':'什么时候唤醒：','sentinel.policy.howTip':'三个条件同时满足才会跑：事件分类匹配、等级达到阈值、且不在冷却期内。不满足就只记录事件，不消耗模型额度。','sentinel.policy.fieldHelp':'字段含义：','sentinel.policy.help.family':'采集器产出的场景名。只有这六种：webshell、auth.anomaly（登录）、proc.anomaly（进程）、net.anomaly（外联）、log_growth（日志暴涨）、metric（指标告警）。填错的值永远匹配不上事件。','sentinel.policy.help.severity':'事件等级达到该值才唤醒。调低会更敏感但更耗额度：critical 只处理最严重的，medium 连扫描探测也会处理。','sentinel.policy.help.cooldown':'同一策略两次运行之间的最小间隔（秒）。用来防止同一类事件在一小时内反复唤醒 Agent。1800 = 30 分钟。','sentinel.policy.help.budget':'一次运行最多允许多大的动作量：写操作次数、模型步数、总时长、token 上限。任一超限即停止，防止一次故障把额度烧光或把机器改乱。','sentinel.policy.help.tools':'允许 Agent 使用的工具。只读工具（读文件、查进程、搜日志）可以放心全给；处置工具挑必要的给。事件触发时通用命令执行默认不下发，避免它顺手跑一条危险命令。','sentinel.policy.help.verify':'动作做完后用什么断言判断「真的修好了」。例如 no_new_signal 表示 N 分钟内不再出现同类信号，port_listen 表示端口重新监听。验证不通过的事件会被标为失败，提醒人接手。','sentinel.policy.help.prompt':'交给模型的处置剧本（playbook）。写清先取证、再判断、最后用哪些工具；用 {title} 引用事件标题。这是决定 Agent 判断质量最关键的一栏。','sentinel.policy.help.autoTools':'只有 auto 模式下生效：这里面列出的工具无需人工确认就会执行。assist 和 shadow 模式下这一栏被忽略。只放低危且可回滚的动作。','sentinel.policy.help.maxWrites':'一次运行最多几次写操作（隔离/冻结/封禁/截断）。','sentinel.policy.help.maxSteps':'模型最多走几步（每步一次推理 + 若干工具调用）。','sentinel.policy.help.maxSeconds':'单次运行的最长墙钟时间，超时强制结束。','sentinel.policy.help.maxTokens':'单次运行的 token 上限，防止上下文膨胀烧额度。','sentinel.policy.sec.trigger':'触发条件','sentinel.policy.sec.budget':'运行预算','sentinel.policy.sec.tools':'工具与验证','sentinel.policy.f.name':'策略名','sentinel.policy.f.namePh':'例如 webshell-respond','sentinel.policy.f.nameHelp':'唯一标识，创建后不可修改。建议用英文短横线格式。','sentinel.policy.f.family':'适用场景','sentinel.policy.f.severity':'触发等级','sentinel.policy.f.mode':'运行模式','sentinel.policy.f.description':'一句话说明','sentinel.policy.f.descriptionPh':'这个策略管什么','sentinel.policy.f.descriptionHelp':'显示在列表里，帮你自己和别人快速认出它。','sentinel.policy.f.maxWrites':'写操作上限','sentinel.policy.f.maxSteps':'最大步数','sentinel.policy.f.maxSeconds':'最长时长（秒）','sentinel.policy.f.maxTokens':'Token 上限','sentinel.policy.f.autoTools':'auto 模式免确认工具','sentinel.policy.cooldown':'冷却（秒）','sentinel.policy.budget':'预算','sentinel.policy.tools':'允许的工具','sentinel.policy.verify':'验证断言','sentinel.policy.prompt':'处置提示词','sentinel.policyHint':'策略是数据不是代码：改模式、调阈值、加新策略都不用重启。auto 只对白名单里的低危动作自动执行，L2 以上永远需要人工确认。','sentinel.modeHelp.shadow':'只观察：照常排查取证、写结论和打算怎么做，但一个写操作都不执行。适合先跑几天看判断准不准。','sentinel.modeHelp.assist':'协助：只读动作自动执行，任何写动作都停下来等人确认。日常最稳的选择。','sentinel.modeHelp.auto':'自主：白名单里的低危动作直接执行，其余照旧要确认。只建议给可回滚的动作。','sentinel.retention.title':'数据保留与清理','sentinel.retention.hint':'采集器每小时会自动清理一次过期数据。规则：只清理已处置事件的记录，待处置事件（含信号与动作链）永不自动删除；隔离文件在还原前不动，封禁记录在解封后才可能被清掉。设为 0 表示永久保留。','sentinel.retention.preview':'预览可清理量','sentinel.retention.purge':'立即清理','sentinel.retention.table':'数据表','sentinel.retention.rows':'行数','sentinel.retention.days':'保留天数','sentinel.retention.dayUnit':'天','sentinel.retention.oldest':'最早记录','sentinel.retention.previewResult':'按当前保留策略，预计可清理 {n} 条记录（未删除）。','sentinel.retention.purged':'已清理 {n} 条记录。','sentinel.retention.noRows':'没有需要清理的数据。','sentinel.retention.signalNote':'信号按保留天数自动清理，待处置事件不受影响','sentinel.retention.tbl.signals':'信号 signals','sentinel.retention.tbl.incidents':'事件 incidents','sentinel.retention.tbl.actions':'动作审计 actions','sentinel.retention.tbl.runs':'运行记录 runs','sentinel.retention.tbl.quarantine':'隔离项 quarantine','sentinel.retention.tbl.blocks':'封禁记录 blocks' },
+  'zh-TW': { 'sentinel.clickToView':'→','sentinel.openIncidents':'待處置','sentinel.filter.unresolved':'待處置','sentinel.filter.pending':'待喚醒','sentinel.filter.all':'全部','sentinel.filter.resolved':'已處置','sentinel.filter.failed':'失敗','sentinel.filter.ignored':'已忽略','sentinel.filter.allFamily':'全部分類','sentinel.filter.allSeverity':'全部等級','sentinel.filter.allTool':'全部工具','sentinel.filter.allVerdict':'全部裁決','sentinel.filter.allKind':'全部類型','sentinel.searchPh':'搜尋事件標題、對象或結論','sentinel.searchActionPh':'搜尋工具或結果內容','sentinel.searchSignalPh':'搜尋對象或訊號內容','sentinel.search':'搜尋','sentinel.reset':'重設','sentinel.total':'共','sentinel.col.category':'分類','sentinel.col.duration':'耗時','sentinel.col.threshold':'觸發等級','sentinel.detail':'詳情','sentinel.detailTitle':'事件詳情','sentinel.detail.signals':'關聯訊號','sentinel.detail.runs':'執行記錄','sentinel.detail.actions':'動作鏈','sentinel.detail.none':'暫無關聯記錄','sentinel.signalsUnit':'條訊號','sentinel.stepsUnit':'步','sentinel.toolsUnit':'次工具','sentinel.writesUnit':'次寫','sentinel.st.open':'待處置','sentinel.st.triggered':'已觸發','sentinel.st.running':'執行中','sentinel.st.resolved':'已處置','sentinel.st.ignored':'已忽略','sentinel.st.taken_over':'已接管','sentinel.st.failed':'失敗','sentinel.verify.passed':'驗證通過','sentinel.verify.failed':'驗證未通過','sentinel.verify.empty':'報告為空','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'登入異常','sentinel.fam.proc.anomaly':'可疑行程','sentinel.fam.net.anomaly':'異常外聯','sentinel.fam.log_growth':'日誌暴漲','sentinel.fam.metric':'指標告警','sentinel.released':'已解封','sentinel.policy.helpTitle':'這些原則怎麼理解','sentinel.policy.collapse':'收合','sentinel.policy.expand':'展開說明','sentinel.policy.new':'新增原則','sentinel.policy.edit':'編輯','sentinel.policy.del':'刪除','sentinel.policy.delConfirm':'確認刪除該原則？已產生的事件記錄會保留，只是不再自動喚醒 Agent。','sentinel.policy.what':'原則是什麼：','sentinel.policy.whatTip':'一段設定，回答「遇到某類事件時，要不要喚醒 Agent、喚醒後它最多能做什麼」。它不寫死在程式裡，可以隨時改、隨時加。','sentinel.policy.how':'什麼時候喚醒：','sentinel.policy.howTip':'三個條件同時滿足才會跑：事件分類符合、等級達到閾值、且不在冷卻期內。不滿足就只記錄事件，不消耗模型額度。','sentinel.policy.fieldHelp':'欄位含義：','sentinel.policy.help.family':'採集器產出的場景名。只有這六種：webshell、auth.anomaly（登入）、proc.anomaly（行程）、net.anomaly（外聯）、log_growth（日誌暴漲）、metric（指標告警）。填錯的值永遠匹配不上事件。','sentinel.policy.help.severity':'事件等級達到該值才喚醒。調低會更敏感但更耗額度：critical 只處理最嚴重的，medium 連掃描探測也會處理。','sentinel.policy.help.cooldown':'同一原則兩次執行之間的最小間隔（秒）。用來防止同一類事件在一小時內反覆喚醒 Agent。1800 = 30 分鐘。','sentinel.policy.help.budget':'一次執行最多允許多大的動作量：寫操作次數、模型步數、總時長、token 上限。任一超限即停止，防止一次故障把額度燒光或把機器改亂。','sentinel.policy.help.tools':'允許 Agent 使用的工具。唯讀工具（讀檔案、查行程、搜日誌）可以放心全給；處置工具挑必要的給。事件觸發時通用命令執行預設不下發，避免它順手跑一條危險命令。','sentinel.policy.help.verify':'動作做完後用什麼斷言判斷「真的修好了」。例如 no_new_signal 表示 N 分鐘內不再出現同類訊號，port_listen 表示埠重新監聽。驗證不通過的事件會被標為失敗，提醒人接手。','sentinel.policy.help.prompt':'交給模型的處置劇本（playbook）。寫清先取證、再判斷、最後用哪些工具；用 {title} 引用事件標題。這是決定 Agent 判斷品質最關鍵的一欄。','sentinel.policy.help.autoTools':'只有 auto 模式下生效：這裡面列出的工具無需人工確認就會執行。assist 和 shadow 模式下這一欄被忽略。只放低危且可回滾的動作。','sentinel.policy.help.maxWrites':'一次執行最多幾次寫操作（隔離/凍結/封鎖/截斷）。','sentinel.policy.help.maxSteps':'模型最多走幾步（每步一次推理 + 若干工具呼叫）。','sentinel.policy.help.maxSeconds':'單次執行的最長牆鐘時間，逾時強制結束。','sentinel.policy.help.maxTokens':'單次執行的 token 上限，防止上下文膨脹燒額度。','sentinel.policy.sec.trigger':'觸發條件','sentinel.policy.sec.budget':'執行預算','sentinel.policy.sec.tools':'工具與驗證','sentinel.policy.f.name':'原則名稱','sentinel.policy.f.namePh':'例如 webshell-respond','sentinel.policy.f.nameHelp':'唯一識別，建立後不可修改。建議用英文短橫線格式。','sentinel.policy.f.family':'適用場景','sentinel.policy.f.severity':'觸發等級','sentinel.policy.f.mode':'執行模式','sentinel.policy.f.description':'一句話說明','sentinel.policy.f.descriptionPh':'這個原則管什麼','sentinel.policy.f.descriptionHelp':'顯示在列表裡，幫你自己和別人快速認出它。','sentinel.policy.f.maxWrites':'寫操作上限','sentinel.policy.f.maxSteps':'最大步數','sentinel.policy.f.maxSeconds':'最長時長（秒）','sentinel.policy.f.maxTokens':'Token 上限','sentinel.policy.f.autoTools':'auto 模式免確認工具','sentinel.policy.cooldown':'冷卻（秒）','sentinel.policy.budget':'預算','sentinel.policy.tools':'允許的工具','sentinel.policy.verify':'驗證斷言','sentinel.policy.prompt':'處置提示詞','sentinel.policyHint':'原則是資料不是程式：改模式、調閾值、加新原則都不用重啟。auto 只對白名單裡的低風險動作自動執行，L2 以上永遠需要人工確認。','sentinel.modeHelp.shadow':'只觀察：照常排查取證、寫結論和打算怎麼做，但一個寫操作都不執行。適合先跑幾天看判斷準不準。','sentinel.modeHelp.assist':'協助：唯讀動作自動執行，任何寫動作都停下來等人確認。日常最穩的選擇。','sentinel.modeHelp.auto':'自主：白名單裡的低風險動作直接執行，其餘照舊要確認。只建議給可回滾的動作。','sentinel.retention.title':'資料保留與清理','sentinel.retention.hint':'採集器每小時會自動清理一次過期資料。規則：只清理已處置事件的記錄，待處置事件（含訊號與動作鏈）永不自動刪除；隔離檔案在還原前不動，封鎖記錄在解封後才可能被清掉。設為 0 表示永久保留。','sentinel.retention.preview':'預覽可清理量','sentinel.retention.purge':'立即清理','sentinel.retention.table':'資料表','sentinel.retention.rows':'列數','sentinel.retention.days':'保留天數','sentinel.retention.dayUnit':'天','sentinel.retention.oldest':'最早記錄','sentinel.retention.previewResult':'依目前保留原則，預計可清理 {n} 條記錄（未刪除）。','sentinel.retention.purged':'已清理 {n} 條記錄。','sentinel.retention.noRows':'沒有需要清理的資料。','sentinel.retention.signalNote':'訊號依保留天數自動清理，待處置事件不受影響','sentinel.retention.tbl.signals':'訊號 signals','sentinel.retention.tbl.incidents':'事件 incidents','sentinel.retention.tbl.actions':'動作稽核 actions','sentinel.retention.tbl.runs':'執行記錄 runs','sentinel.retention.tbl.quarantine':'隔離項 quarantine','sentinel.retention.tbl.blocks':'封鎖記錄 blocks' },
+  'en': { 'sentinel.clickToView':'→','sentinel.openIncidents':'Needs attention','sentinel.filter.unresolved':'To handle','sentinel.filter.pending':'Pending','sentinel.filter.all':'All','sentinel.filter.resolved':'Handled','sentinel.filter.failed':'Failed','sentinel.filter.ignored':'Ignored','sentinel.filter.allFamily':'All categories','sentinel.filter.allSeverity':'All levels','sentinel.filter.allTool':'All tools','sentinel.filter.allVerdict':'All verdicts','sentinel.filter.allKind':'All types','sentinel.searchPh':'Search title, subject or conclusion','sentinel.searchActionPh':'Search tool or result','sentinel.searchSignalPh':'Search subject or message','sentinel.search':'Search','sentinel.reset':'Reset','sentinel.total':'Total','sentinel.col.category':'Category','sentinel.col.duration':'Duration','sentinel.col.threshold':'Trigger level','sentinel.detail':'Details','sentinel.detailTitle':'Incident detail','sentinel.detail.signals':'Related signals','sentinel.detail.runs':'Agent runs','sentinel.detail.actions':'Action chain','sentinel.detail.none':'No related records yet','sentinel.signalsUnit':'signals','sentinel.stepsUnit':'steps','sentinel.toolsUnit':'tool calls','sentinel.writesUnit':'writes','sentinel.st.open':'Open','sentinel.st.triggered':'Triggered','sentinel.st.running':'Running','sentinel.st.resolved':'Resolved','sentinel.st.ignored':'Ignored','sentinel.st.taken_over':'Taken over','sentinel.st.failed':'Failed','sentinel.verify.passed':'verified','sentinel.verify.failed':'verification failed','sentinel.verify.empty':'empty report','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'Login anomaly','sentinel.fam.proc.anomaly':'Suspicious process','sentinel.fam.net.anomaly':'Abnormal outbound','sentinel.fam.log_growth':'Log growth','sentinel.fam.metric':'Metric alert','sentinel.released':'Released','sentinel.policy.helpTitle':'How to read these policies','sentinel.policy.collapse':'Collapse','sentinel.policy.expand':'Explain','sentinel.policy.new':'New policy','sentinel.policy.edit':'Edit','sentinel.policy.del':'Delete','sentinel.policy.delConfirm':'Delete this policy? Past incidents stay; it just stops waking the agent.','sentinel.policy.what':'What a policy is: ','sentinel.policy.whatTip':'a piece of configuration answering "for this kind of event, should the agent wake up, and what is it allowed to do". It is data, not code — change or add one anytime.','sentinel.policy.how':'When it fires: ','sentinel.policy.howTip':'all three must hold: matching category, severity at or above the threshold, and outside the cooldown window. Otherwise the incident is recorded but no model tokens are spent.','sentinel.policy.fieldHelp':'Field meanings: ','sentinel.policy.help.family':'the scenario key produced by a collector. Only six exist: webshell, auth.anomaly, proc.anomaly, net.anomaly, log_growth, metric. A wrong value never matches.','sentinel.policy.help.severity':'the minimum severity that wakes the agent. Lower is more sensitive and more expensive: critical only handles the worst, medium even handles scanning noise.','sentinel.policy.help.cooldown':'minimum seconds between two runs of the same policy, so one class of event cannot wake the agent repeatedly. 1800 = 30 minutes.','sentinel.policy.help.budget':'the ceiling for one run: write actions, model steps, wall-clock and tokens. Hitting any limit stops the run — it protects both your budget and the machine.','sentinel.policy.help.tools':'which tools the agent may use. Read-only tools are safe to grant broadly; grant response tools only as needed. Generic command execution is not offered on event-triggered runs.','sentinel.policy.help.verify':'the assertions that decide whether the fix really worked, e.g. no_new_signal (no repeat within N minutes) or port_listen (port is listening again). A failed assertion marks the incident failed for a human.','sentinel.policy.help.prompt':'the playbook handed to the model: gather evidence first, then judge, then act with specific tools. Use {title} for the incident title. This column decides the quality of the agent judgement.','sentinel.policy.help.autoTools':'only used in auto mode: tools listed here run without confirmation. Ignored in assist and shadow. Keep only low-risk, reversible actions here.','sentinel.policy.help.maxWrites':'max write actions per run (quarantine, freeze, block, truncate).','sentinel.policy.help.maxSteps':'max model steps (one step = one reasoning round plus its tool calls).','sentinel.policy.help.maxSeconds':'wall-clock limit for one run; it is cut off when exceeded.','sentinel.policy.help.maxTokens':'token ceiling per run, so context growth cannot burn your quota.','sentinel.policy.sec.trigger':'Trigger','sentinel.policy.sec.budget':'Run budget','sentinel.policy.sec.tools':'Tools and verification','sentinel.policy.f.name':'Policy name','sentinel.policy.f.namePh':'e.g. webshell-respond','sentinel.policy.f.nameHelp':'unique id, fixed after creation. Lowercase with hyphens works best.','sentinel.policy.f.family':'Scenario','sentinel.policy.f.severity':'Trigger level','sentinel.policy.f.mode':'Mode','sentinel.policy.f.description':'Summary','sentinel.policy.f.descriptionPh':'what this policy covers','sentinel.policy.f.descriptionHelp':'Shown in the list so you and your teammates recognise it quickly.','sentinel.policy.f.maxWrites':'Max writes','sentinel.policy.f.maxSteps':'Max steps','sentinel.policy.f.maxSeconds':'Max seconds','sentinel.policy.f.maxTokens':'Max tokens','sentinel.policy.f.autoTools':'Auto-mode tools','sentinel.policy.cooldown':'Cooldown (s)','sentinel.policy.budget':'Budget','sentinel.policy.tools':'Allowed tools','sentinel.policy.verify':'Verification','sentinel.policy.prompt':'Playbook','sentinel.policyHint':'Policies are data: change the mode, tune thresholds or add new ones without restarting. auto only runs whitelisted low-risk actions; anything above L2 always needs a human.','sentinel.modeHelp.shadow':'observe only: investigate and write the conclusion plus what it would do, but execute no writes. Good for a few days of calibration.','sentinel.modeHelp.assist':'assist: reads run automatically, every write waits for a human. The safest everyday setting.','sentinel.modeHelp.auto':'auto: whitelisted low-risk actions run directly, everything else still asks. Only for reversible actions.','sentinel.retention.title':'Retention and cleanup','sentinel.retention.hint':'Cleanup runs once an hour. Only records of handled incidents are removed; open incidents (with their signals and action chain) are never deleted; quarantined files stay until restored; bans are removed only after release. Set 0 to keep forever.','sentinel.retention.preview':'Preview','sentinel.retention.purge':'Clean now','sentinel.retention.table':'Table','sentinel.retention.rows':'Rows','sentinel.retention.days':'Keep for','sentinel.retention.dayUnit':'d','sentinel.retention.oldest':'Oldest','sentinel.retention.previewResult':'With the current policy {n} records would be removed (nothing deleted yet).','sentinel.retention.purged':'{n} records removed.','sentinel.retention.noRows':'Nothing to clean up.','sentinel.retention.signalNote':'signals expire per retention; open incidents are untouched','sentinel.retention.tbl.signals':'Signals','sentinel.retention.tbl.incidents':'Incidents','sentinel.retention.tbl.actions':'Action log','sentinel.retention.tbl.runs':'Agent runs','sentinel.retention.tbl.quarantine':'Quarantine','sentinel.retention.tbl.blocks':'IP bans' },
+  'ja': { 'sentinel.clickToView':'→','sentinel.openIncidents':'未処理','sentinel.filter.unresolved':'未処理','sentinel.filter.pending':'未起動','sentinel.filter.all':'すべて','sentinel.filter.resolved':'処理済み','sentinel.filter.failed':'失敗','sentinel.filter.ignored':'無視','sentinel.filter.allFamily':'すべての分類','sentinel.filter.allSeverity':'すべての重要度','sentinel.filter.allTool':'すべてのツール','sentinel.filter.allVerdict':'すべての判定','sentinel.filter.allKind':'すべての種類','sentinel.searchPh':'タイトル・対象・結論を検索','sentinel.searchActionPh':'ツール・結果を検索','sentinel.searchSignalPh':'対象・内容を検索','sentinel.search':'検索','sentinel.reset':'リセット','sentinel.total':'合計','sentinel.col.category':'分類','sentinel.col.duration':'所要時間','sentinel.col.threshold':'起動レベル','sentinel.detail':'詳細','sentinel.detailTitle':'インシデント詳細','sentinel.detail.signals':'関連シグナル','sentinel.detail.runs':'実行記録','sentinel.detail.actions':'アクション履歴','sentinel.detail.none':'関連レコードはありません','sentinel.signalsUnit':'件のシグナル','sentinel.stepsUnit':'ステップ','sentinel.toolsUnit':'ツール呼出','sentinel.writesUnit':'書込','sentinel.st.open':'未処理','sentinel.st.triggered':'起動済み','sentinel.st.running':'実行中','sentinel.st.resolved':'処理済み','sentinel.st.ignored':'無視','sentinel.st.taken_over':'引継ぎ済み','sentinel.st.failed':'失敗','sentinel.verify.passed':'検証済み','sentinel.verify.failed':'検証失敗','sentinel.verify.empty':'レポートが空','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'ログイン異常','sentinel.fam.proc.anomaly':'不審なプロセス','sentinel.fam.net.anomaly':'異常な外部通信','sentinel.fam.log_growth':'ログ急増','sentinel.fam.metric':'メトリクス警告','sentinel.released':'解除済み','sentinel.policy.helpTitle':'ポリシーの読み方','sentinel.policy.collapse':'閉じる','sentinel.policy.expand':'説明を開く','sentinel.policy.new':'新規ポリシー','sentinel.policy.edit':'編集','sentinel.policy.del':'削除','sentinel.policy.delConfirm':'このポリシーを削除しますか？過去の記録は残り、自動起動だけが止まります。','sentinel.policy.what':'ポリシーとは：','sentinel.policy.whatTip':'「この種のイベントでエージェントを起動するか、起動後に何を許すか」を決める設定です。コードではなくデータなので、いつでも変更・追加できます。','sentinel.policy.how':'いつ起動するか：','sentinel.policy.howTip':'3 条件すべてを満たす必要があります：分類の一致、しきい値以上の重要度、クールダウン外。満たさなければ記録のみでトークンは消費しません。','sentinel.policy.fieldHelp':'各項目の意味：','sentinel.policy.help.family':'コレクタが出すシナリオ名。webshell、auth.anomaly、proc.anomaly、net.anomaly、log_growth、metric の 6 種類のみ。誤った値は決して一致しません。','sentinel.policy.help.severity':'この重要度以上で起動します。低くすると敏感になりますがコストも増えます。','sentinel.policy.help.cooldown':'同じポリシーの実行間隔の最小値（秒）。1800 = 30 分。','sentinel.policy.help.budget':'1 回の上限：書き込み回数、ステップ数、実行時間、トークン。いずれかを超えると停止します。','sentinel.policy.help.tools':'使用を許すツール。読み取り系は広く許可してよく、処置系は必要な分だけ。イベント起動時は汎用コマンド実行を渡しません。','sentinel.policy.help.verify':'処置が本当に効いたかを判定する条件。no_new_signal は N 分以内に同種シグナルが出ないこと。失敗するとインシデントは失敗扱いになります。','sentinel.policy.help.prompt':'モデルに渡すプレイブック。まず証拠収集、次に判断、最後に使うツールを明示します。{title} でタイトルを参照。','sentinel.policy.help.autoTools':'auto モードのみ有効：ここに挙げたツールは確認なしで実行されます。assist と shadow では無視されます。低リスクで戻せる操作だけを。','sentinel.policy.help.maxWrites':'1 回の書き込み操作の上限。','sentinel.policy.help.maxSteps':'モデルの最大ステップ数。','sentinel.policy.help.maxSeconds':'1 回の実行時間の上限。','sentinel.policy.help.maxTokens':'1 回のトークン上限。','sentinel.policy.sec.trigger':'起動条件','sentinel.policy.sec.budget':'実行予算','sentinel.policy.sec.tools':'ツールと検証','sentinel.policy.f.name':'ポリシー名','sentinel.policy.f.namePh':'例：webshell-respond','sentinel.policy.f.nameHelp':'作成後は変更できません。英小文字とハイフンを推奨。','sentinel.policy.f.family':'対象シナリオ','sentinel.policy.f.severity':'起動レベル','sentinel.policy.f.mode':'実行モード','sentinel.policy.f.description':'ひとこと説明','sentinel.policy.f.descriptionPh':'このポリシーの役割','sentinel.policy.f.descriptionHelp':'一覧に表示されます。','sentinel.policy.f.maxWrites':'書込上限','sentinel.policy.f.maxSteps':'最大ステップ','sentinel.policy.f.maxSeconds':'最大秒数','sentinel.policy.f.maxTokens':'トークン上限','sentinel.policy.f.autoTools':'auto モードの自動実行ツール','sentinel.policy.cooldown':'クールダウン（秒）','sentinel.policy.budget':'予算','sentinel.policy.tools':'許可ツール','sentinel.policy.verify':'検証条件','sentinel.policy.prompt':'処置プロンプト','sentinel.policyHint':'ポリシーはデータです。モード変更・しきい値調整・追加に再起動は不要。auto は許可済みの低リスク操作のみ。','sentinel.modeHelp.shadow':'観察のみ：調査と結論は書きますが書き込みは一切しません。判断精度の確認に向きます。','sentinel.modeHelp.assist':'支援：読み取りは自動、書き込みは必ず人の確認を待ちます。','sentinel.modeHelp.auto':'自律：許可済みの低リスク操作は直接実行、それ以外は確認します。','sentinel.retention.title':'データ保持と削除','sentinel.retention.hint':'1 時間ごとに自動削除します。処理済みインシデントの記録のみ対象で、未処理のインシデントは削除しません。隔離ファイルは復元まで残します。0 は永久保持。','sentinel.retention.preview':'削除見込み','sentinel.retention.purge':'今すぐ削除','sentinel.retention.table':'テーブル','sentinel.retention.rows':'行数','sentinel.retention.days':'保持日数','sentinel.retention.dayUnit':'日','sentinel.retention.oldest':'最古','sentinel.retention.previewResult':'現在の設定では {n} 件が削除対象です（まだ削除していません）。','sentinel.retention.purged':'{n} 件を削除しました。','sentinel.retention.noRows':'削除対象はありません。','sentinel.retention.signalNote':'シグナルは保持日数で消えます（未処理インシデントは除く）','sentinel.retention.tbl.signals':'シグナル','sentinel.retention.tbl.incidents':'インシデント','sentinel.retention.tbl.actions':'操作ログ','sentinel.retention.tbl.runs':'実行記録','sentinel.retention.tbl.quarantine':'隔離項目','sentinel.retention.tbl.blocks':'遮断記録' },
+  'ko': { 'sentinel.clickToView':'→','sentinel.openIncidents':'처리 필요','sentinel.filter.unresolved':'처리 필요','sentinel.filter.pending':'대기','sentinel.filter.all':'전체','sentinel.filter.resolved':'처리됨','sentinel.filter.failed':'실패','sentinel.filter.ignored':'무시됨','sentinel.filter.allFamily':'전체 분류','sentinel.filter.allSeverity':'전체 등급','sentinel.filter.allTool':'전체 도구','sentinel.filter.allVerdict':'전체 판정','sentinel.filter.allKind':'전체 유형','sentinel.searchPh':'제목·대상·결론 검색','sentinel.searchActionPh':'도구·결과 검색','sentinel.searchSignalPh':'대상·내용 검색','sentinel.search':'검색','sentinel.reset':'초기화','sentinel.total':'전체','sentinel.col.category':'분류','sentinel.col.duration':'소요','sentinel.col.threshold':'발동 등급','sentinel.detail':'상세','sentinel.detailTitle':'인시던트 상세','sentinel.detail.signals':'관련 신호','sentinel.detail.runs':'실행 기록','sentinel.detail.actions':'동작 체인','sentinel.detail.none':'관련 기록이 없습니다','sentinel.signalsUnit':'개 신호','sentinel.stepsUnit':'단계','sentinel.toolsUnit':'도구 호출','sentinel.writesUnit':'쓰기','sentinel.st.open':'대기','sentinel.st.triggered':'발동됨','sentinel.st.running':'실행 중','sentinel.st.resolved':'처리됨','sentinel.st.ignored':'무시됨','sentinel.st.taken_over':'인계됨','sentinel.st.failed':'실패','sentinel.verify.passed':'검증 통과','sentinel.verify.failed':'검증 실패','sentinel.verify.empty':'보고서 비어 있음','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'로그인 이상','sentinel.fam.proc.anomaly':'의심스러운 프로세스','sentinel.fam.net.anomaly':'비정상 외부 연결','sentinel.fam.log_growth':'로그 급증','sentinel.fam.metric':'지표 경보','sentinel.released':'해제됨','sentinel.policy.helpTitle':'정책 이해하기','sentinel.policy.collapse':'접기','sentinel.policy.expand':'설명 펼치기','sentinel.policy.new':'새 정책','sentinel.policy.edit':'편집','sentinel.policy.del':'삭제','sentinel.policy.delConfirm':'이 정책을 삭제할까요? 지난 기록은 남고 자동 실행만 중지됩니다.','sentinel.policy.what':'정책이란: ','sentinel.policy.whatTip':'"이런 이벤트에서 에이전트를 깨울지, 깨운 뒤 무엇까지 허용할지"를 정하는 설정입니다. 코드가 아니라 데이터라 언제든 바꾸고 추가할 수 있습니다.','sentinel.policy.how':'언제 깨우나: ','sentinel.policy.howTip':'세 조건이 모두 맞아야 실행됩니다: 분류 일치, 등급이 임계값 이상, 쿨다운 밖. 아니면 기록만 하고 토큰을 쓰지 않습니다.','sentinel.policy.fieldHelp':'필드 의미: ','sentinel.policy.help.family':'수집기가 내보내는 시나리오 키입니다. webshell, auth.anomaly, proc.anomaly, net.anomaly, log_growth, metric 여섯 가지뿐이며 잘못된 값은 절대 일치하지 않습니다.','sentinel.policy.help.severity':'이 등급 이상이면 깨웁니다. 낮추면 민감해지지만 비용이 늘어납니다.','sentinel.policy.help.cooldown':'같은 정책의 실행 간 최소 간격(초). 1800 = 30분.','sentinel.policy.help.budget':'한 번 실행의 상한: 쓰기 횟수, 단계, 시간, 토큰. 하나라도 넘으면 중지합니다.','sentinel.policy.help.tools':'허용할 도구. 읽기 전용은 넓게 줘도 되고 처치 도구는 필요한 만큼만. 이벤트 실행 시 일반 명령 실행은 제공되지 않습니다.','sentinel.policy.help.verify':'조치가 실제로 효과가 있었는지 판정하는 단언. no_new_signal 은 N 분 내 같은 신호가 없음. 실패하면 인시던트는 실패로 표시됩니다.','sentinel.policy.help.prompt':'모델에 전달할 플레이북. 먼저 증거 수집, 다음 판단, 마지막에 사용할 도구를 명시합니다. {title} 은 제목 참조.','sentinel.policy.help.autoTools':'auto 모드에서만 유효: 여기 나열된 도구는 확인 없이 실행됩니다. assist/shadow 에서는 무시됩니다. 저위험·복구 가능한 동작만 넣으세요.','sentinel.policy.help.maxWrites':'한 번 실행의 쓰기 최대 횟수.','sentinel.policy.help.maxSteps':'모델 최대 단계 수.','sentinel.policy.help.maxSeconds':'한 번 실행의 최대 시간.','sentinel.policy.help.maxTokens':'한 번 실행의 토큰 상한.','sentinel.policy.sec.trigger':'발동 조건','sentinel.policy.sec.budget':'실행 예산','sentinel.policy.sec.tools':'도구와 검증','sentinel.policy.f.name':'정책 이름','sentinel.policy.f.namePh':'예: webshell-respond','sentinel.policy.f.nameHelp':'생성 후 변경 불가. 영문 소문자와 하이픈 권장.','sentinel.policy.f.family':'적용 시나리오','sentinel.policy.f.severity':'발동 등급','sentinel.policy.f.mode':'실행 모드','sentinel.policy.f.description':'한 줄 설명','sentinel.policy.f.descriptionPh':'이 정책의 역할','sentinel.policy.f.descriptionHelp':'목록에 표시됩니다.','sentinel.policy.f.maxWrites':'쓰기 상한','sentinel.policy.f.maxSteps':'최대 단계','sentinel.policy.f.maxSeconds':'최대 초','sentinel.policy.f.maxTokens':'토큰 상한','sentinel.policy.f.autoTools':'auto 모드 자동 실행 도구','sentinel.policy.cooldown':'쿨다운(초)','sentinel.policy.budget':'예산','sentinel.policy.tools':'허용 도구','sentinel.policy.verify':'검증 조건','sentinel.policy.prompt':'처치 프롬프트','sentinel.policyHint':'정책은 데이터입니다. 모드 변경·임계값 조정·추가에 재시작이 필요 없습니다. auto 는 허용된 저위험 동작만.','sentinel.modeHelp.shadow':'관찰만: 조사와 결론은 쓰지만 쓰기 동작은 실행하지 않습니다.','sentinel.modeHelp.assist':'지원: 읽기는 자동, 쓰기는 사람 확인을 기다립니다.','sentinel.modeHelp.auto':'자율: 허용된 저위험 동작은 바로 실행, 나머지는 확인합니다.','sentinel.retention.title':'데이터 보존과 정리','sentinel.retention.hint':'한 시간마다 자동 정리합니다. 처리된 인시던트 기록만 삭제하고 미처리 인시던트는 삭제하지 않습니다. 0 은 영구 보존.','sentinel.retention.preview':'예상 정리량','sentinel.retention.purge':'지금 정리','sentinel.retention.table':'테이블','sentinel.retention.rows':'행 수','sentinel.retention.days':'보존 일수','sentinel.retention.dayUnit':'일','sentinel.retention.oldest':'가장 오래된','sentinel.retention.previewResult':'현재 정책으로 {n} 건이 정리 대상입니다(아직 삭제 안 함).','sentinel.retention.purged':'{n} 건을 정리했습니다.','sentinel.retention.noRows':'정리할 데이터가 없습니다.','sentinel.retention.signalNote':'신호는 보존 기간 후 삭제됩니다(미처리 인시던트 제외)','sentinel.retention.tbl.signals':'신호','sentinel.retention.tbl.incidents':'인시던트','sentinel.retention.tbl.actions':'동작 감사','sentinel.retention.tbl.runs':'실행 기록','sentinel.retention.tbl.quarantine':'격리 항목','sentinel.retention.tbl.blocks':'차단 기록' },
+  'th': { 'sentinel.clickToView':'→','sentinel.openIncidents':'รอจัดการ','sentinel.filter.unresolved':'รอจัดการ','sentinel.filter.pending':'รอปลุก','sentinel.filter.all':'ทั้งหมด','sentinel.filter.resolved':'จัดการแล้ว','sentinel.filter.failed':'ล้มเหลว','sentinel.filter.ignored':'เพิกเฉย','sentinel.filter.allFamily':'ทุกหมวด','sentinel.filter.allSeverity':'ทุกระดับ','sentinel.filter.allTool':'ทุกเครื่องมือ','sentinel.filter.allVerdict':'ทุกคำตัดสิน','sentinel.filter.allKind':'ทุกชนิด','sentinel.searchPh':'ค้นหาหัวข้อ วัตถุ หรือบทสรุป','sentinel.searchActionPh':'ค้นหาเครื่องมือหรือผลลัพธ์','sentinel.searchSignalPh':'ค้นหาวัตถุหรือข้อความ','sentinel.search':'ค้นหา','sentinel.reset':'รีเซ็ต','sentinel.total':'ทั้งหมด','sentinel.col.category':'หมวด','sentinel.col.duration':'เวลา','sentinel.col.threshold':'ระดับที่ปลุก','sentinel.detail':'รายละเอียด','sentinel.detailTitle':'รายละเอียดเหตุการณ์','sentinel.detail.signals':'สัญญาณที่เกี่ยวข้อง','sentinel.detail.runs':'บันทึกการรัน','sentinel.detail.actions':'ลำดับการกระทำ','sentinel.detail.none':'ยังไม่มีบันทึกที่เกี่ยวข้อง','sentinel.signalsUnit':'สัญญาณ','sentinel.stepsUnit':'ขั้น','sentinel.toolsUnit':'การเรียกเครื่องมือ','sentinel.writesUnit':'การเขียน','sentinel.st.open':'รอจัดการ','sentinel.st.triggered':'ถูกปลุกแล้ว','sentinel.st.running':'กำลังทำงาน','sentinel.st.resolved':'จัดการแล้ว','sentinel.st.ignored':'เพิกเฉย','sentinel.st.taken_over':'รับช่วงแล้ว','sentinel.st.failed':'ล้มเหลว','sentinel.verify.passed':'ตรวจสอบผ่าน','sentinel.verify.failed':'ตรวจสอบไม่ผ่าน','sentinel.verify.empty':'รายงานว่าง','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'การเข้าสู่ระบบผิดปกติ','sentinel.fam.proc.anomaly':'โปรเซสที่น่าสงสัย','sentinel.fam.net.anomaly':'การเชื่อมต่อออกผิดปกติ','sentinel.fam.log_growth':'บันทึกโตผิดปกติ','sentinel.fam.metric':'แจ้งเตือนเมตริก','sentinel.released':'ปลดบล็อกแล้ว','sentinel.policy.helpTitle':'ทำความเข้าใจนโยบาย','sentinel.policy.collapse':'ย่อ','sentinel.policy.expand':'อธิบาย','sentinel.policy.new':'นโยบายใหม่','sentinel.policy.edit':'แก้ไข','sentinel.policy.del':'ลบ','sentinel.policy.delConfirm':'ลบนโยบายนี้หรือไม่? เหตุการณ์ที่ผ่านมาจะยังอยู่ แต่จะไม่ปลุก Agent อีก','sentinel.policy.what':'นโยบายคืออะไร: ','sentinel.policy.whatTip':'การตั้งค่าที่ตอบว่า "เหตุการณ์แบบนี้จะปลุก Agent หรือไม่ และปลุกแล้วทำอะไรได้บ้าง" เป็นข้อมูลไม่ใช่โค้ด แก้หรือเพิ่มได้ตลอด','sentinel.policy.how':'เมื่อไรจึงทำงาน: ','sentinel.policy.howTip':'ต้องครบสามข้อ: หมวดตรง ระดับถึงเกณฑ์ และอยู่นอกช่วงคูลดาวน์ ไม่ครบก็เพียงบันทึก ไม่เปลืองโทเค็น','sentinel.policy.fieldHelp':'ความหมายของฟิลด์: ','sentinel.policy.help.family':'คีย์สถานการณ์จากตัวเก็บสัญญาณ มีเพียงหกค่า: webshell, auth.anomaly, proc.anomaly, net.anomaly, log_growth, metric ค่าที่ผิดจะไม่ตรงกับเหตุการณ์เลย','sentinel.policy.help.severity':'ระดับขั้นต่ำที่จะปลุก agent ยิ่งต่ำยิ่งไวแต่เปลืองกว่า','sentinel.policy.help.cooldown':'ระยะห่างน้อยสุดระหว่างการรันสองครั้ง (วินาที) 1800 = 30 นาที','sentinel.policy.help.budget':'เพดานของการรันหนึ่งครั้ง: จำนวนการเขียน ขั้น เวลา และโทเค็น เกินข้อใดก็หยุด','sentinel.policy.help.tools':'เครื่องมือที่ agent ใช้ได้ เครื่องมืออ่านปลอดภัยให้ได้กว้าง ส่วนเครื่องมือจัดการให้เท่าที่จำเป็น','sentinel.policy.help.verify':'เงื่อนไขที่ตัดสินว่าซ่อมจริงหรือไม่ เช่น no_new_signal คือไม่มีสัญญาณซ้ำใน N นาที ถ้าไม่ผ่านจะถูกทำเครื่องหมายว่าล้มเหลว','sentinel.policy.help.prompt':'เพลย์บุ๊กที่ส่งให้โมเดล: เก็บหลักฐานก่อน ตัดสิน แล้วลงมือด้วยเครื่องมือที่ระบุ ใช้ {title} อ้างชื่อเหตุการณ์','sentinel.policy.help.autoTools':'ใช้เฉพาะโหมด auto: เครื่องมือที่ระบุจะทำงานโดยไม่ต้องยืนยัน ใน assist และ shadow จะถูกเพิกเฉย','sentinel.policy.help.maxWrites':'จำนวนการเขียนสูงสุดต่อการรัน','sentinel.policy.help.maxSteps':'จำนวนขั้นสูงสุดของโมเดล','sentinel.policy.help.maxSeconds':'เวลาสูงสุดต่อการรัน','sentinel.policy.help.maxTokens':'เพดานโทเค็นต่อการรัน','sentinel.policy.sec.trigger':'เงื่อนไขปลุก','sentinel.policy.sec.budget':'งบการรัน','sentinel.policy.sec.tools':'เครื่องมือและการตรวจสอบ','sentinel.policy.f.name':'ชื่อนโยบาย','sentinel.policy.f.namePh':'เช่น webshell-respond','sentinel.policy.f.nameHelp':'ระบุไม่ซ้ำ แก้ไม่ได้หลังสร้าง แนะนำตัวพิมพ์เล็กและขีดกลาง','sentinel.policy.f.family':'สถานการณ์','sentinel.policy.f.severity':'ระดับที่ปลุก','sentinel.policy.f.mode':'โหมด','sentinel.policy.f.description':'คำอธิบายสั้น','sentinel.policy.f.descriptionPh':'นโยบายนี้ดูแลอะไร','sentinel.policy.f.descriptionHelp':'แสดงในรายการเพื่อให้จำได้ง่าย','sentinel.policy.f.maxWrites':'จำนวนเขียนสูงสุด','sentinel.policy.f.maxSteps':'จำนวนขั้นสูงสุด','sentinel.policy.f.maxSeconds':'วินาทีสูงสุด','sentinel.policy.f.maxTokens':'โทเค็นสูงสุด','sentinel.policy.f.autoTools':'เครื่องมือโหมด auto','sentinel.policy.cooldown':'คูลดาวน์ (วินาที)','sentinel.policy.budget':'งบ','sentinel.policy.tools':'เครื่องมือที่อนุญาต','sentinel.policy.verify':'การตรวจสอบ','sentinel.policy.prompt':'พรอมต์จัดการ','sentinel.policyHint':'นโยบายคือข้อมูล เปลี่ยนโหมด ปรับเกณฑ์ หรือเพิ่มใหม่ได้โดยไม่ต้องรีสตาร์ท','sentinel.modeHelp.shadow':'ดูอย่างเดียว: สืบสวนและสรุปว่าจะทำอะไร แต่ไม่ลงมือเขียน','sentinel.modeHelp.assist':'ช่วยเหลือ: การอ่านทำเอง การเขียนรอคนยืนยัน','sentinel.modeHelp.auto':'อัตโนมัติ: งานเสี่ยงต่ำที่อนุญาตทำทันที นอกนั้นยังต้องยืนยัน','sentinel.retention.title':'การเก็บรักษาและล้างข้อมูล','sentinel.retention.hint':'ล้างอัตโนมัติชั่วโมงละครั้ง เฉพาะเหตุการณ์ที่จัดการแล้ว สถานะรอจัดการจะไม่ถูกลบ ตั้ง 0 = เก็บถาวร','sentinel.retention.preview':'ดูตัวอย่าง','sentinel.retention.purge':'ล้างเลย','sentinel.retention.table':'ตาราง','sentinel.retention.rows':'จำนวนแถว','sentinel.retention.days':'เก็บไว้ (วัน)','sentinel.retention.dayUnit':'วัน','sentinel.retention.oldest':'เก่าสุด','sentinel.retention.previewResult':'ตามนโยบายปัจจุบันจะลบได้ {n} รายการ (ยังไม่ลบ)','sentinel.retention.purged':'ลบแล้ว {n} รายการ','sentinel.retention.noRows':'ไม่มีข้อมูลให้ล้าง','sentinel.retention.signalNote':'สัญญาณจะถูกลบตามระยะเก็บรักษา ส่วนเหตุการณ์รอจัดการไม่ถูกลบ','sentinel.retention.tbl.signals':'สัญญาณ','sentinel.retention.tbl.incidents':'เหตุการณ์','sentinel.retention.tbl.actions':'บันทึกการกระทำ','sentinel.retention.tbl.runs':'บันทึกการรัน','sentinel.retention.tbl.quarantine':'รายการกักกัน','sentinel.retention.tbl.blocks':'บันทึกการบล็อก' },
+  'de': { 'sentinel.clickToView':'→','sentinel.openIncidents':'Zu erledigen','sentinel.filter.unresolved':'Offen','sentinel.filter.pending':'Wartend','sentinel.filter.all':'Alle','sentinel.filter.resolved':'Erledigt','sentinel.filter.failed':'Fehlgeschlagen','sentinel.filter.ignored':'Ignoriert','sentinel.filter.allFamily':'Alle Kategorien','sentinel.filter.allSeverity':'Alle Stufen','sentinel.filter.allTool':'Alle Werkzeuge','sentinel.filter.allVerdict':'Alle Urteile','sentinel.filter.allKind':'Alle Typen','sentinel.searchPh':'Titel, Objekt oder Fazit suchen','sentinel.searchActionPh':'Werkzeug oder Ergebnis suchen','sentinel.searchSignalPh':'Objekt oder Meldung suchen','sentinel.search':'Suchen','sentinel.reset':'Zurücksetzen','sentinel.total':'Gesamt','sentinel.col.category':'Kategorie','sentinel.col.duration':'Dauer','sentinel.col.threshold':'Auslösestufe','sentinel.detail':'Details','sentinel.detailTitle':'Vorfall-Details','sentinel.detail.signals':'Zugehörige Signale','sentinel.detail.runs':'Agent-Läufe','sentinel.detail.actions':'Aktionskette','sentinel.detail.none':'Noch keine Datensätze','sentinel.signalsUnit':'Signale','sentinel.stepsUnit':'Schritte','sentinel.toolsUnit':'Werkzeugaufrufe','sentinel.writesUnit':'Schreibzugriffe','sentinel.st.open':'Offen','sentinel.st.triggered':'Ausgelöst','sentinel.st.running':'Läuft','sentinel.st.resolved':'Erledigt','sentinel.st.ignored':'Ignoriert','sentinel.st.taken_over':'Übernommen','sentinel.st.failed':'Fehlgeschlagen','sentinel.verify.passed':'verifiziert','sentinel.verify.failed':'Verifikation fehlgeschlagen','sentinel.verify.empty':'leerer Bericht','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'Login-Anomalie','sentinel.fam.proc.anomaly':'Verdächtiger Prozess','sentinel.fam.net.anomaly':'Auffälliger Abfluss','sentinel.fam.log_growth':'Log-Wachstum','sentinel.fam.metric':'Metrik-Alarm','sentinel.released':'Entsperrt','sentinel.policy.helpTitle':'So sind die Richtlinien zu lesen','sentinel.policy.collapse':'Einklappen','sentinel.policy.expand':'Erklären','sentinel.policy.new':'Neue Richtlinie','sentinel.policy.edit':'Bearbeiten','sentinel.policy.del':'Löschen','sentinel.policy.delConfirm':'Richtlinie löschen? Vergangene Vorfälle bleiben, nur das automatische Auslösen endet.','sentinel.policy.what':'Was eine Richtlinie ist: ','sentinel.policy.whatTip':'eine Konfiguration, die beantwortet: Bei dieser Art Ereignis den Agent wecken, und was darf er dann? Daten, kein Code — jederzeit änderbar.','sentinel.policy.how':'Wann ausgelöst wird: ','sentinel.policy.howTip':'alle drei müssen zutreffen: passende Kategorie, Stufe über der Schwelle und außerhalb der Abklingzeit. Sonst wird nur protokolliert.','sentinel.policy.fieldHelp':'Bedeutung der Felder: ','sentinel.policy.help.family':'der Szenarioschlüssel aus einem Collector. Es gibt nur sechs: webshell, auth.anomaly, proc.anomaly, net.anomaly, log_growth, metric. Falsche Werte treffen nie.','sentinel.policy.help.severity':'Mindeststufe zum Auslösen. Niedriger = empfindlicher und teurer.','sentinel.policy.help.cooldown':'Mindestabstand zwischen zwei Läufen in Sekunden. 1800 = 30 Minuten.','sentinel.policy.help.budget':'Obergrenze pro Lauf: Schreibzugriffe, Schritte, Dauer, Tokens. Jede Grenze stoppt den Lauf.','sentinel.policy.help.tools':'Werkzeuge des Agent. Lesende Werkzeuge sind unbedenklich, Eingriffswerkzeuge nur so viele wie nötig.','sentinel.policy.help.verify':'Bedingungen, die prüfen, ob die Behebung wirklich griff, z. B. no_new_signal. Schlägt sie fehl, gilt der Vorfall als fehlgeschlagen.','sentinel.policy.help.prompt':'das Playbook für das Modell: erst Beweise, dann Urteil, dann konkrete Werkzeuge. {title} ist der Vorfalltitel.','sentinel.policy.help.autoTools':'nur im auto-Modus: diese Werkzeuge laufen ohne Bestätigung. In assist und shadow ignoriert. Nur risikoarme, umkehrbare Aktionen.','sentinel.policy.help.maxWrites':'max. Schreibaktionen pro Lauf.','sentinel.policy.help.maxSteps':'max. Modellschritte.','sentinel.policy.help.maxSeconds':'Zeitlimit pro Lauf.','sentinel.policy.help.maxTokens':'Token-Obergrenze pro Lauf.','sentinel.policy.sec.trigger':'Auslösung','sentinel.policy.sec.budget':'Laufbudget','sentinel.policy.sec.tools':'Werkzeuge und Verifikation','sentinel.policy.f.name':'Name','sentinel.policy.f.namePh':'z. B. webshell-respond','sentinel.policy.f.nameHelp':'eindeutig, nach dem Anlegen fest. Kleinbuchstaben mit Bindestrich.','sentinel.policy.f.family':'Szenario','sentinel.policy.f.severity':'Auslösestufe','sentinel.policy.f.mode':'Modus','sentinel.policy.f.description':'Kurzbeschreibung','sentinel.policy.f.descriptionPh':'Was diese Richtlinie abdeckt','sentinel.policy.f.descriptionHelp':'Erscheint in der Liste.','sentinel.policy.f.maxWrites':'Max. Schreibzugriffe','sentinel.policy.f.maxSteps':'Max. Schritte','sentinel.policy.f.maxSeconds':'Max. Sekunden','sentinel.policy.f.maxTokens':'Max. Tokens','sentinel.policy.f.autoTools':'Werkzeuge im auto-Modus','sentinel.policy.cooldown':'Abklingzeit (s)','sentinel.policy.budget':'Budget','sentinel.policy.tools':'Erlaubte Werkzeuge','sentinel.policy.verify':'Verifikation','sentinel.policy.prompt':'Playbook','sentinel.policyHint':'Richtlinien sind Daten: Modus ändern, Schwellen anpassen, neue anlegen — ohne Neustart.','sentinel.modeHelp.shadow':'nur beobachten: untersuchen und Fazit schreiben, aber nichts ändern.','sentinel.modeHelp.assist':'Assistenz: Lesen automatisch, Schreiben nur mit Freigabe.','sentinel.modeHelp.auto':'Autonom: freigegebene risikoarme Aktionen direkt, alles andere mit Freigabe.','sentinel.retention.title':'Aufbewahrung und Bereinigung','sentinel.retention.hint':'Stündliche Bereinigung. Nur erledigte Vorfälle werden entfernt; offene nie. Quarantänedateien bleiben bis zur Wiederherstellung. 0 = dauerhaft.','sentinel.retention.preview':'Vorschau','sentinel.retention.purge':'Jetzt bereinigen','sentinel.retention.table':'Tabelle','sentinel.retention.rows':'Zeilen','sentinel.retention.days':'Aufbewahrung','sentinel.retention.dayUnit':'T','sentinel.retention.oldest':'Ältestes','sentinel.retention.previewResult':'Mit aktueller Richtlinie würden {n} Datensätze entfernt (noch nichts gelöscht).','sentinel.retention.purged':'{n} Datensätze entfernt.','sentinel.retention.noRows':'Nichts zu bereinigen.','sentinel.retention.signalNote':'Signale laufen ab, offene Vorfälle bleiben.','sentinel.retention.tbl.signals':'Signale','sentinel.retention.tbl.incidents':'Vorfälle','sentinel.retention.tbl.actions':'Aktionsprotokoll','sentinel.retention.tbl.runs':'Agent-Läufe','sentinel.retention.tbl.quarantine':'Quarantäne','sentinel.retention.tbl.blocks':'IP-Sperren' },
+};
+
 const I18N2 = {
   'zh-CN': { 'brand.tagline':'AI 驱动的主机运维面板','login.userPh':'请输入用户名','login.passPh':'请输入密码',
     'misc.uptime':'已运行','misc.cores':'核','misc.load':'负载','misc.todayTotal':'今日累计','misc.menu':'菜单','misc.collapse':'收起菜单','misc.expand':'展开菜单','misc.goDashboard':'回到仪表盘',
@@ -4207,12 +4621,20 @@ createApp({
       ],
       sentinelTab:'incidents',
       sentinelStats:{},
+      sentinelFacets:{families:[],severities:[],known_families:[],response_tools:[]},
       sentinelIncidents:[],
       sentinelPolicies:[],
       sentinelActions:[],
       sentinelSignals:[],
       sentinelQuarantine:[],
       sentinelBlocks:[],
+      incFilter:{status:'unresolved',family:'',severity:'',q:'',page:1}, incPageSize:20, incTotal:0,
+      actFilter:{tool:'',verdict:'',q:'',page:1}, actPageSize:20, actTotal:0,
+      sigFilter:{kind:'',severity:'',q:'',page:1}, sigPageSize:20, sigTotal:0,
+      quePage:1, quePageSize:10, queTotal:0,
+      blkPage:1, blkPageSize:10, blkTotal:0,
+      retentionPolicy:{}, retentionStats:[], purgeMsg:'',
+      incDetail:null, policyForm:null, policyErr:'', policyHelp:false,
       menu: [
         { title:'group.overview', items:[
           { id:'dashboard', label:'menu.dashboard', icon:'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z' },
@@ -4297,6 +4719,11 @@ createApp({
     systemLogSources(){ return (this.logSources||[]).filter(s => s.type==='system'); },
     filteredProcesses(){ return this.processes.filter(p => this.procFilter==='all' || p.kind===this.procFilter); },
     procPages(){ return Math.max(1, Math.ceil(this.filteredProcesses.length / 20)); },
+    incPages(){ return Math.max(1, Math.ceil(this.incTotal / this.incPageSize)); },
+    actPages(){ return Math.max(1, Math.ceil(this.actTotal / this.actPageSize)); },
+    sigPages(){ return Math.max(1, Math.ceil(this.sigTotal / this.sigPageSize)); },
+    quePages(){ return Math.max(1, Math.ceil(this.queTotal / this.quePageSize)); },
+    blkPages(){ return Math.max(1, Math.ceil(this.blkTotal / this.blkPageSize)); },
     procPaged(){ const s = (this.procPage - 1) * 20; return this.filteredProcesses.slice(s, s + 20); },
     procAllCount(){ return this.processes.length; },
     procSystemCount(){ return this.processes.filter(p => p.kind==='system').length; },
@@ -4343,58 +4770,244 @@ createApp({
     sevTag(s){ return s==='critical'||s==='high' ? 'err' : (s==='medium' ? 'warn' : 'info'); },
     stTag(s){ return s==='resolved' ? 'ok' : (s==='failed' ? 'err' : (s==='running' ? 'warn' : 'info')); },
     verdictTag(v){ return v==='deny' ? 'err' : (v==='shadow' ? 'warn' : (v==='confirm' ? 'warn' : 'ok')); },
+    // ---------- 事件中心（自主 Agent） ----------
+    famName(k){ const m={'webshell':'WebShell','auth.anomaly':'登录异常','proc.anomaly':'可疑进程','net.anomaly':'异常外联','log_growth':'日志暴涨','metric':'指标告警'}; return this.t('sentinel.fam.'+k) === 'sentinel.fam.'+k ? (m[k]||k||'-') : this.t('sentinel.fam.'+k); },
+    stName(s){ return this.t('sentinel.st.'+s) === 'sentinel.st.'+s ? s : this.t('sentinel.st.'+s); },
+    incActive(i){ return ['open','triggered','running','failed'].indexOf(i.status) >= 0; },
+    incHint(i){
+      const parts=[];
+      if(i.policy_name) parts.push(i.policy_name);
+      if(i.count>1) parts.push(i.count+' x');
+      if(i.verify_state==='passed') parts.push(this.t('sentinel.verify.passed'));
+      else if(i.verify_state==='failed') parts.push(this.t('sentinel.verify.failed'));
+      else if(i.verify_state==='empty-report') parts.push(this.t('sentinel.verify.empty'));
+      if(i.ignored_by) parts.push(i.ignored_by);
+      return parts.join(' · ');
+    },
+    modeTag(m){ return m==='auto' ? 'warn' : (m==='assist' ? 'info' : 'mute'); },
+    modeHelp(m){ return this.t('sentinel.modeHelp.'+(m||'shadow')); },
+    retName(tb){ return this.t('sentinel.retention.tbl.'+tb); },
+    retField(tb){ return {signals:'signal_days',incidents:'incident_days',actions:'action_days',runs:'run_days',quarantine:'quarantine_days',blocks:'block_days'}[tb] || tb+'_days'; },
+    retDays(tb){ const p=this.retentionPolicy||{}; const v=p[this.retField(tb)]; return (v===undefined||v===null)?'':v; },
+    gototab(tab){
+      this.sentinelTab = tab;
+      if(tab==='incidents') this.loadIncidents(this.incFilter.page);
+      else if(tab==='policies') this.loadPolicies();
+      else if(tab==='actions') this.loadActions(this.actFilter.page);
+      else if(tab==='signals') this.loadSignals(this.sigFilter.page);
+      else if(tab==='safety'){ this.loadQuarantine(1); this.loadBlocks(1); this.loadRetention(); }
+    },
+    gotoIncidents(status){
+      this.sentinelTab='incidents';
+      this.incFilter.status=status||'unresolved';
+      this.incFilter.page=1;
+      this.loadIncidents(1);
+    },
+    gotoSignals(){ this.sentinelTab='signals'; this.loadSignals(1); },
+    setIncStatus(s){ this.incFilter.status=s; this.loadIncidents(1); },
+    resetIncFilter(){ this.incFilter={status:'unresolved',family:'',severity:'',q:'',page:1}; this.loadIncidents(1); },
     async loadSentinel(){
       try{
-        const h = { 'Authorization':'Bearer ' + this.token };
-        const [st, inc, pol] = await Promise.all([
-          fetch('/api/v1/sentinel/stats', {headers:h}).then(r=>r.json()),
-          fetch('/api/v1/sentinel/incidents?limit=100', {headers:h}).then(r=>r.json()),
-          fetch('/api/v1/sentinel/policies', {headers:h}).then(r=>r.json()),
-        ]);
-        this.sentinelStats = (st && st.data) || {};
-        this.sentinelIncidents = (inc && inc.data) || [];
-        this.sentinelPolicies = (pol && pol.data) || [];
-        this.loadSentinelTab();
-      }catch(e){ /* panel stays usable when perception is disabled */ }
-    },
-    async loadSentinelTab(){
-      const h = { 'Authorization':'Bearer ' + this.token };
-      try{
-        if(this.sentinelTab==='actions'){
-          const r = await fetch('/api/v1/sentinel/actions?limit=100', {headers:h}).then(x=>x.json());
-          this.sentinelActions = (r && r.data) || [];
-        } else if(this.sentinelTab==='signals'){
-          const r = await fetch('/api/v1/sentinel/signals?limit=100', {headers:h}).then(x=>x.json());
-          this.sentinelSignals = (r && r.data) || [];
-        } else if(this.sentinelTab==='safety'){
-          const [q, b] = await Promise.all([
-            fetch('/api/v1/sentinel/quarantine', {headers:h}).then(x=>x.json()),
-            fetch('/api/v1/sentinel/blocks', {headers:h}).then(x=>x.json()),
-          ]);
-          this.sentinelQuarantine = (q && q.data) || [];
-          this.sentinelBlocks = (b && b.data) || [];
-        }
+        const st = await this.api('/sentinel/stats');
+        this.sentinelStats = st || {};
+        const fac = await this.api('/sentinel/facets');
+        const fd = fac || {};
+        this.sentinelFacets = { families: fd.families||[], severities: fd.severities||[], known_families: fd.known_families||[], response_tools: fd.response_tools||[] };
+        this.gototab(this.sentinelTab||'incidents');
       }catch(e){}
     },
-    async pauseSentinel(on){
-      const r = await fetch('/api/v1/sentinel/pause', {method:'POST', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({paused: !!on})}).then(x=>x.json());
-      if(r && r.code===0){ this.sentinelStats.paused = !!on; this.toast(this.t('btn.saved')); }
+    async loadIncidents(page){
+      const p = Math.max(1, page||1);
+      this.incFilter.page = p;
+      const f = this.incFilter;
+      let qs = '?page='+p+'&page_size='+this.incPageSize+'&status='+encodeURIComponent(f.status||'unresolved');
+      if(f.family) qs += '&family='+encodeURIComponent(f.family);
+      if(f.severity) qs += '&severity='+encodeURIComponent(f.severity);
+      if(f.q) qs += '&q='+encodeURIComponent(f.q);
+      try{
+        const d = await this.api('/sentinel/incidents'+qs);
+        this.sentinelIncidents = (d && d.list) || [];
+        this.incTotal = (d && d.total) || 0;
+      }catch(e){}
     },
-    async setPolicyMode(p, mode){
-      const r = await fetch('/api/v1/sentinel/policies/'+p.id, {method:'PUT', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({mode: mode, enabled: p.enabled})}).then(x=>x.json());
-      if(r && r.code===0){ p.mode = mode; this.toast(this.t('btn.saved')); } else { this.toast((r&&r.message)||this.t('btn.saveFail')); }
+    async loadPolicies(){
+      try{ this.sentinelPolicies = (await this.api('/sentinel/policies')) || []; }catch(e){}
+    },
+    async loadActions(page){
+      const p = Math.max(1, page||1);
+      this.actFilter.page = p;
+      const f = this.actFilter;
+      let qs = '?page='+p+'&page_size='+this.actPageSize;
+      if(f.tool) qs += '&tool='+encodeURIComponent(f.tool);
+      if(f.verdict) qs += '&verdict='+encodeURIComponent(f.verdict);
+      if(f.q) qs += '&q='+encodeURIComponent(f.q);
+      try{
+        const d = await this.api('/sentinel/actions'+qs);
+        this.sentinelActions = (d && d.list) || [];
+        this.actTotal = (d && d.total) || 0;
+      }catch(e){}
+    },
+    async loadSignals(page){
+      const p = Math.max(1, page||1);
+      this.sigFilter.page = p;
+      const f = this.sigFilter;
+      let qs = '?page='+p+'&page_size='+this.sigPageSize;
+      if(f.kind) qs += '&kind='+encodeURIComponent(f.kind);
+      if(f.severity) qs += '&severity='+encodeURIComponent(f.severity);
+      if(f.q) qs += '&q='+encodeURIComponent(f.q);
+      try{
+        const d = await this.api('/sentinel/signals'+qs);
+        this.sentinelSignals = (d && d.list) || [];
+        this.sigTotal = (d && d.total) || 0;
+      }catch(e){}
+    },
+    async loadQuarantine(page){
+      const p = Math.max(1, page||1);
+      this.quePage = p;
+      try{
+        const d = await this.api('/sentinel/quarantine?page='+p+'&page_size='+this.quePageSize);
+        this.sentinelQuarantine = (d && d.list) || [];
+        this.queTotal = (d && d.total) || 0;
+      }catch(e){}
+    },
+    async loadBlocks(page){
+      const p = Math.max(1, page||1);
+      this.blkPage = p;
+      try{
+        const d = await this.api('/sentinel/blocks?page='+p+'&page_size='+this.blkPageSize);
+        this.sentinelBlocks = (d && d.list) || [];
+        this.blkTotal = (d && d.total) || 0;
+      }catch(e){}
+    },
+    async loadRetention(){
+      try{
+        const d = await this.api('/sentinel/retention');
+        this.retentionPolicy = (d && d.policy) || {};
+        this.retentionStats = (d && d.stats) || [];
+      }catch(e){}
+    },
+    async setRetDays(table, val){
+      const days = Math.max(0, parseInt(val||'0', 10) || 0);
+      const next = Object.assign({}, this.retentionPolicy);
+      next[this.retField(table)] = days;
+      try{
+        const d = await this.api('/sentinel/retention', {method:'PUT', body: JSON.stringify(next)});
+        this.retentionPolicy = (d && d.policy) || next;
+        this.loadRetention();
+        this.toast(this.t('common.saved'));
+      }catch(e){ this.toast(e.message || this.t('set.saveFail')); }
+    },
+    async purgeRetention(dry){
+      try{
+        const d = await this.api('/sentinel/retention/purge', {method:'POST', body: JSON.stringify({what:'all', dry_run:!!dry})});
+        const n = (d && d.total) || 0;
+        if(dry){ this.purgeMsg = this.t('sentinel.retention.previewResult').replace('{n}', n); return; }
+        if(n===0){ this.purgeMsg = this.t('sentinel.retention.noRows'); return; }
+        this.purgeMsg = this.t('sentinel.retention.purged').replace('{n}', n);
+        this.loadRetention();
+        this.loadSentinel();
+      }catch(e){ this.toast(e.message||''); }
+    },
+    async pauseSentinel(on){
+      try{
+        await this.api('/sentinel/pause', {method:'POST', body: JSON.stringify({paused: !!on})});
+        this.sentinelStats.paused = !!on;
+        this.toast(this.t('common.saved'));
+      }catch(e){ this.toast(e.message||''); }
     },
     async togglePolicy(p){
-      const r = await fetch('/api/v1/sentinel/policies/'+p.id, {method:'PUT', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({mode: p.mode, enabled: !p.enabled})}).then(x=>x.json());
-      if(r && r.code===0){ p.enabled = !p.enabled; }
+      try{
+        await this.api('/sentinel/policies/'+p.id, {method:'PUT', body: JSON.stringify({
+          mode: p.mode, enabled: !p.enabled, family: p.family, min_severity: p.min_severity})});
+        p.enabled = !p.enabled;
+        this.toast(this.t('common.saved'));
+      }catch(e){ this.toast(e.message||this.t('set.saveFail')); }
+    },
+    openPolicy(p){
+      this.policyErr='';
+      this.policyHelp = false;
+      if(p){
+        this.policyForm = {
+          id: p.id, name: p.name, family: p.family, min_severity: p.min_severity, mode: p.mode,
+          cooldown_sec: p.cooldown_sec, max_writes: p.max_writes, max_steps: p.max_steps,
+          max_seconds: p.max_seconds, max_tokens: p.max_tokens, description: p.description,
+          verify: p.verify||'', prompt: p.prompt||'', enabled: p.enabled,
+          _allow: this.safeJSON(p.allow_tools), _auto: this.safeJSON(p.auto_tools),
+        };
+      } else {
+        this.policyForm = {
+          id: 0, name:'', family:'webshell', min_severity:'high', mode:'assist',
+          cooldown_sec:1800, max_writes:2, max_steps:12, max_seconds:300, max_tokens:150000,
+          description:'', verify:'', prompt:'', enabled:true,
+          _allow: ['sys_overview','list_processes','list_ports','list_disks','list_services','dir_usage','read_file','search_logs','list_network'],
+          _auto: [],
+        };
+      }
+    },
+    safeJSON(s){ try{ const v=JSON.parse(s||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } },
+    policyToolOn(tool){ return !!this.policyForm && (this.policyForm._allow||[]).indexOf(tool) >= 0; },
+    policyAutoToolOn(tool){ return !!this.policyForm && (this.policyForm._auto||[]).indexOf(tool) >= 0; },
+    togglePolicyTool(tool){
+      const f=this.policyForm; if(!f) return;
+      const i=f._allow.indexOf(tool);
+      if(i>=0){ f._allow.splice(i,1); const j=f._auto.indexOf(tool); if(j>=0) f._auto.splice(j,1); }
+      else f._allow.push(tool);
+    },
+    toggleAutoTool(tool){
+      const f=this.policyForm; if(!f) return;
+      const i=f._auto.indexOf(tool);
+      if(i>=0) f._auto.splice(i,1);
+      else { f._auto.push(tool); if(f._allow.indexOf(tool)<0) f._allow.push(tool); }
+    },
+    async savePolicy(){
+      const f=this.policyForm; if(!f) return;
+      this.policyErr='';
+      const body = {
+        name: f.name, family: f.family, min_severity: f.min_severity, mode: f.mode,
+        cooldown_sec: f.cooldown_sec, max_writes: f.max_writes, max_steps: f.max_steps,
+        max_seconds: f.max_seconds, max_tokens: f.max_tokens, description: f.description,
+        verify: f.verify||'', prompt: f.prompt||'', enabled: !!f.enabled,
+        allow_tools: JSON.stringify(f._allow), auto_tools: JSON.stringify(f._auto),
+      };
+      try{
+        if(f.id) await this.api('/sentinel/policies/'+f.id, {method:'PUT', body: JSON.stringify(body)});
+        else await this.api('/sentinel/policies', {method:'POST', body: JSON.stringify(body)});
+        this.policyForm=null;
+        this.toast(this.t('common.saved'));
+        this.loadPolicies();
+      }catch(e){ this.policyErr = e.message || this.t('set.saveFail'); }
+    },
+    async delPolicy(p){
+      if(!confirm(this.t('sentinel.policy.delConfirm'))) return;
+      try{
+        await this.api('/sentinel/policies/'+p.id, {method:'DELETE'});
+        this.toast(this.t('common.saved'));
+        this.loadPolicies();
+      }catch(e){ this.toast(e.message||''); }
+    },
+    async openIncident(i){
+      this.incDetail = { incident: i, signals: [], actions: [], runs: [] };
+      try{
+        const d = await this.api('/sentinel/incidents/'+i.id);
+        if(d) this.incDetail = d;
+      }catch(e){}
     },
     async ignoreIncident(i){
-      await fetch('/api/v1/sentinel/incidents/'+i.id+'/ignore', {method:'POST', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({by: this.user && this.user.username, note:'人工忽略'})});
-      this.toast(this.t('btn.saved')); this.loadSentinel();
+      try{
+        await this.api('/sentinel/incidents/'+i.id+'/ignore', {method:'POST', body: JSON.stringify({
+          by:(this.profile&&this.profile.username)||'', note:'manual ignore'})});
+        this.toast(this.t('common.saved'));
+        this.loadIncidents(this.incFilter.page);
+        this.loadSentinel();
+      }catch(e){ this.toast(e.message||''); }
     },
     async takeoverIncident(i){
-      await fetch('/api/v1/sentinel/incidents/'+i.id+'/takeover', {method:'POST', headers:{'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}, body: JSON.stringify({by: this.user && this.user.username})});
-      this.toast(this.t('btn.saved')); this.loadSentinel();
+      try{
+        await this.api('/sentinel/incidents/'+i.id+'/takeover', {method:'POST', body: JSON.stringify({
+          by:(this.profile&&this.profile.username)||''})});
+        this.toast(this.t('common.saved'));
+        this.loadIncidents(this.incFilter.page);
+      }catch(e){ this.toast(e.message||''); }
     },
     openSentinelReport(i){
       const url = this.reportURL({lastReport: i.report_rel, lastSession: i.session_id}, 'view');
@@ -4402,12 +5015,18 @@ createApp({
       window.open(url + '&token=' + encodeURIComponent(this.token), '_blank', 'noopener');
     },
     async restoreQuarantine(q){
-      const r = await fetch('/api/v1/sentinel/quarantine/'+q.id+'/restore', {method:'POST', headers:{'Authorization':'Bearer '+this.token}}).then(x=>x.json());
-      if(r && r.code===0){ this.toast(this.t('sentinel.restored')); this.loadSentinelTab(); } else { this.toast((r&&r.message)||''); }
+      try{
+        await this.api('/sentinel/quarantine/'+q.id+'/restore', {method:'POST'});
+        this.toast(this.t('sentinel.restored'));
+        this.loadQuarantine(this.quePage);
+      }catch(e){ this.toast(e.message||''); }
     },
     async unblockIp(b){
-      const r = await fetch('/api/v1/sentinel/blocks/'+encodeURIComponent(b.ip), {method:'DELETE', headers:{'Authorization':'Bearer '+this.token}}).then(x=>x.json());
-      if(r && r.code===0){ this.toast(this.t('sentinel.unblocked')); this.loadSentinelTab(); }
+      try{
+        await this.api('/sentinel/blocks/'+encodeURIComponent(b.ip), {method:'DELETE'});
+        this.toast(this.t('sentinel.unblocked'));
+        this.loadBlocks(this.blkPage);
+      }catch(e){ this.toast(e.message||''); }
     },
     go(id){
       this.page=id; this.mobileNavOpen=false;
@@ -4454,7 +5073,7 @@ createApp({
       else if(p==='terminal') this.connectTerminal();
     },
     // ===== 多语言 =====
-    t(key){ const dicts=[I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
+    t(key){ const dicts=[I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
     setLang(code){ this.lang = code; this.langOpen = false; this.persistLang(); },
     persistLang(){ try{ localStorage.setItem('opsmini-lang', this.lang); }catch(e){} },
     loadLang(){ try{ const l=localStorage.getItem('opsmini-lang'); if(l && I18N[l]){ this.lang = l; return; } }catch(e){} this.lang = this.detectLang(); },

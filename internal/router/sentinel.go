@@ -96,8 +96,21 @@ func buildSentinel(
 
 	mgr.Agg.OnIncident(eng.OnIncident)
 
+	handler := v1.NewSentinelHandler(db, mgr, eng, sm)
+	handler.Setting = func(key, value string) error { return settingSvc.Set(map[string]string{key: value}) }
+
+	// Retention windows survive restarts via the panel settings table.
+	if raw, err := settingSvc.Get("sentinel_retention"); err == nil && strings.TrimSpace(raw) != "" {
+		var rp sentinel.RetentionPolicy
+		if err := json.Unmarshal([]byte(raw), &rp); err == nil {
+			mgr.SetRetention(rp)
+		} else {
+			log.Printf("sentinel: invalid stored retention policy: %v", err)
+		}
+	}
+
 	bundle := &sentinelBundle{
-		handler: v1.NewSentinelHandler(db, mgr, eng, sm),
+		handler: handler,
 		manager: mgr,
 		engine:  eng,
 		safety:  sm,

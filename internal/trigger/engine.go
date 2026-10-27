@@ -122,15 +122,34 @@ func (e *Engine) Update(id uint, in model.TriggerPolicy) (*model.TriggerPolicy, 
 		return nil, err
 	}
 	if in.Mode != "" {
-		switch in.Mode {
-		case model.ModeShadow, model.ModeAssist, model.ModeAuto:
-			p.Mode = in.Mode
-		default:
-			return nil, fmt.Errorf("非法的运行模式 %q", in.Mode)
-		}
+		p.Mode = in.Mode
 	}
 	if in.MinSeverity != "" {
 		p.MinSeverity = in.MinSeverity
+	}
+	if in.Family != "" {
+		p.Family = in.Family
+	}
+	if in.Description != "" {
+		p.Description = in.Description
+	}
+	if in.Prompt != "" {
+		p.Prompt = in.Prompt
+	}
+	if in.Verify != "" {
+		p.Verify = in.Verify
+	}
+	if in.AllowTools != "" {
+		p.AllowTools = in.AllowTools
+	}
+	if in.DenyTools != "" {
+		p.DenyTools = in.DenyTools
+	}
+	if in.AutoTools != "" {
+		p.AutoTools = in.AutoTools
+	}
+	if in.Notify != "" {
+		p.Notify = in.Notify
 	}
 	p.Enabled = in.Enabled
 	if in.CooldownSec > 0 {
@@ -139,17 +158,144 @@ func (e *Engine) Update(id uint, in model.TriggerPolicy) (*model.TriggerPolicy, 
 	if in.MaxWrites > 0 {
 		p.MaxWrites = in.MaxWrites
 	}
-	if in.AllowTools != "" {
-		p.AllowTools = in.AllowTools
+	if in.MaxSteps > 0 {
+		p.MaxSteps = in.MaxSteps
 	}
-	if in.DenyTools != "" {
-		p.DenyTools = in.DenyTools
+	if in.MaxSeconds > 0 {
+		p.MaxSeconds = in.MaxSeconds
+	}
+	if in.MaxTokens > 0 {
+		p.MaxTokens = in.MaxTokens
+	}
+	if err := ValidatePolicy(&p); err != nil {
+		return nil, err
 	}
 	p.UpdatedAt = time.Now()
 	if err := e.DB.Save(&p).Error; err != nil {
 		return nil, err
 	}
 	return &p, nil
+}
+
+// Create adds a new policy from the UI.
+func (e *Engine) Create(in model.TriggerPolicy) (*model.TriggerPolicy, error) {
+	p := in
+	if p.CooldownSec == 0 {
+		p.CooldownSec = 1800
+	}
+	if p.MaxWrites == 0 {
+		p.MaxWrites = 1
+	}
+	if p.MaxSteps == 0 {
+		p.MaxSteps = 12
+	}
+	if p.MaxSeconds == 0 {
+		p.MaxSeconds = 300
+	}
+	if p.MaxTokens == 0 {
+		p.MaxTokens = 150000
+	}
+	if p.MinSeverity == "" {
+		p.MinSeverity = model.SeverityHigh
+	}
+	if p.Mode == "" {
+		p.Mode = model.ModeShadow
+	}
+	if err := ValidatePolicy(&p); err != nil {
+		return nil, err
+	}
+	var n int64
+	e.DB.Model(&model.TriggerPolicy{}).Where("name = ?", p.Name).Count(&n)
+	if n > 0 {
+		return nil, fmt.Errorf("策略名 %q 已存在", p.Name)
+	}
+	if err := e.DB.Create(&p).Error; err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// Delete removes a policy. Incidents already produced by it keep their policy
+// name for the record.
+func (e *Engine) Delete(id uint) error {
+	var p model.TriggerPolicy
+	if err := e.DB.First(&p, id).Error; err != nil {
+		return err
+	}
+	return e.DB.Delete(&model.TriggerPolicy{}, id).Error
+}
+
+// knownFamilies are the scenario keys collectors actually emit. A policy on any
+// other family would never match, so the UI only offers these.
+var knownFamilies = []string{
+	"webshell", "auth.anomaly", "proc.anomaly", "net.anomaly", "log_growth", "metric",
+}
+
+// KnownFamilies returns the scenario keys a policy can target.
+func KnownFamilies() []string { return append([]string(nil), knownFamilies...) }
+
+// ValidatePolicy rejects configurations that would silently do nothing or that
+// would hand the agent more power than the mode allows.
+func ValidatePolicy(p *model.TriggerPolicy) error {
+	if strings.TrimSpace(p.Name) == "" {
+		return fmt.Errorf("策略名不能为空")
+	}
+	if len(p.Name) > 96 {
+		return fmt.Errorf("策略名过长（最多 96 字符）")
+	}
+	if strings.TrimSpace(p.Family) == "" {
+		return fmt.Errorf("必须选择适用场景（family）")
+	}
+	ok := false
+	for _, f := range knownFamilies {
+		if f == p.Family {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return fmt.Errorf("未知场景 %q，可选：%s", p.Family, strings.Join(knownFamilies, " / "))
+	}
+	switch p.Mode {
+	case model.ModeShadow, model.ModeAssist, model.ModeAuto:
+	default:
+		return fmt.Errorf("非法的运行模式 %q（可选 shadow / assist / auto）", p.Mode)
+	}
+	switch p.MinSeverity {
+	case model.SeverityInfo, model.SeverityLow, model.SeverityMedium, model.SeverityHigh, model.SeverityCritical:
+	default:
+		return fmt.Errorf("非法的等级 %q", p.MinSeverity)
+	}
+	if p.CooldownSec < 0 || p.CooldownSec > 86400 {
+		return fmt.Errorf("冷却时间需在 0~86400 秒之间")
+	}
+	if p.MaxWrites < 0 || p.MaxWrites > 20 {
+		return fmt.Errorf("写动作上限需在 0~20 之间")
+	}
+	if p.MaxSteps < 1 || p.MaxSteps > 50 {
+		return fmt.Errorf("最大步数需在 1~50 之间")
+	}
+	if p.MaxSeconds < 30 || p.MaxSeconds > 3600 {
+		return fmt.Errorf("最长运行时间需在 30~3600 秒之间")
+	}
+	for _, f := range []struct {
+		name string
+		val  string
+	}{{"allow_tools", p.AllowTools}, {"deny_tools", p.DenyTools},
+		{"auto_tools", p.AutoTools}, {"verify", p.Verify}} {
+		if strings.TrimSpace(f.val) == "" {
+			continue
+		}
+		var arr []json.RawMessage
+		if err := json.Unmarshal([]byte(f.val), &arr); err != nil {
+			return fmt.Errorf("%s 必须是 JSON 数组，例如 [\"quarantine_file\"]", f.name)
+		}
+	}
+	// A verify block that cannot be parsed would silently disable verification.
+	if strings.TrimSpace(p.Verify) != "" && !strings.HasPrefix(strings.TrimSpace(p.Verify), "[") {
+		return fmt.Errorf("verify 必须是 JSON 数组")
+	}
+	return nil
 }
 
 // --- dispatch ----------------------------------------------------------------

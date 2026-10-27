@@ -4,6 +4,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"math"
 	"io/fs"
 	"log"
 	"net/http"
@@ -187,7 +188,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			Fingerprint: "metric." + rule.Metric,
 			DedupKey:    fmt.Sprintf("metric.%s|%d|%s", rule.Metric, rule.ID, now.Format("2006010215")),
 			Severity:    sev,
-			Message:     fmt.Sprintf("%s 当前 %v %s 阈值 %v（规则 %s）", rule.Metric, val, op, threshold, rule.Name),
+			Message:     fmt.Sprintf("%s 当前 %s %s 阈值 %s（规则 %s）", rule.Metric, trimNum(val), op, trimNum(threshold), rule.Name),
 			ObservedAt:  now,
 			CreatedAt:   now,
 		}
@@ -425,8 +426,14 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/sentinel/incidents/:id", permMw("ai.agent"), sentinelHandler.Incident)
 			authed.POST("/sentinel/incidents/:id/ignore", permMw("ai.agent"), sentinelHandler.Ignore)
 			authed.POST("/sentinel/incidents/:id/takeover", permMw("ai.agent"), sentinelHandler.Takeover)
+			authed.GET("/sentinel/facets", permMw("ai.agent"), sentinelHandler.Facets)
 			authed.GET("/sentinel/policies", permMw("ai.agent"), sentinelHandler.Policies)
+			authed.POST("/sentinel/policies", permMw("settings.edit"), sentinelHandler.CreatePolicy)
 			authed.PUT("/sentinel/policies/:id", permMw("settings.edit"), sentinelHandler.UpdatePolicy)
+			authed.DELETE("/sentinel/policies/:id", permMw("settings.edit"), sentinelHandler.DeletePolicy)
+			authed.GET("/sentinel/retention", permMw("ai.agent"), sentinelHandler.Retention)
+			authed.PUT("/sentinel/retention", permMw("settings.edit"), sentinelHandler.UpdateRetention)
+			authed.POST("/sentinel/retention/purge", permMw("settings.edit"), sentinelHandler.PurgeRetention)
 			authed.POST("/sentinel/pause", permMw("settings.edit"), sentinelHandler.Pause)
 			authed.GET("/sentinel/actions", permMw("ai.agent"), sentinelHandler.Actions)
 			authed.GET("/sentinel/quarantine", permMw("ai.agent"), sentinelHandler.Quarantine)
@@ -610,4 +617,13 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		serveIndex(c)
 	})
 	return r
+}
+
+// trimNum formats a metric value with at most one decimal place, so an alert
+// message reads "92.1 > 90" instead of "92.08852334160152 > 90".
+func trimNum(v float64) string {
+	if v == math.Trunc(v) {
+		return strconv.FormatInt(int64(v), 10)
+	}
+	return strconv.FormatFloat(v, 'f', 1, 64)
 }
