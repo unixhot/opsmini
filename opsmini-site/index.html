@@ -3,8 +3,15 @@
 <head data-page-node-id="eIcMC2maFRTLtMjzCyHdVP">
 <meta charset="UTF-8" data-page-node-id="rEJRkBqvEf88yhepX2nbkP">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="YXOz3jsjjgG4mhrWGSHaRR">
-<title>OpsMini — AI 驱动的轻量服务器运维面板</title>
-<meta name="description" content="OpsMini 是一个 AI 驱动的单机服务器运维面板：自然语言诊断、Docker 管理、Web 终端、安全中心、监控告警，单个二进制文件零依赖交付。" data-page-node-id="iztsJJeRYNY4mymSkwiDZa">
+<title>OpsMini — 主机上的 AI 运维 Agent</title>
+<meta name="description" content="OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent：自己采集指标、自己判断异常、自己动手处理，高危动作停下来等你点头。几十 MB 单二进制，数据不出本机。" data-page-node-id="iztsJJeRYNY4mymSkwiDZa">
+<meta name="keywords" content="AI Agent,主机运维,运维 Agent,自动化运维,Linux,服务器管理,开源,单二进制">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpsMini">
+<meta property="og:title" content="OpsMini — 主机上的 AI 运维 Agent">
+<meta property="og:description" content="常驻主机、自主诊断、按你的边界动手。几十 MB 单二进制，数据不出本机。">
+<meta property="og:url" content="https://opsmini.com/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="assets/ico.png" data-page-node-id="W9LDCx37C3O7SnAweMxzVK">
 <link rel="apple-touch-icon" href="assets/ico.png" data-page-node-id="kHAj6S8RtnfcUY5FqHaluy">
 <style>
@@ -59,8 +66,8 @@ nav{
 .hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}
 .hamburger.open span:nth-child(2){opacity:0}
 .hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
-.nav-links{display:flex;gap:26px;margin-left:auto;font-size:14.5px;color:var(--text-dim)}
-.nav-links a{transition:color .2s}
+.nav-links{display:flex;gap:20px;margin-left:auto;font-size:14px;color:var(--text-dim)}
+.nav-links a{transition:color .2s;white-space:nowrap}
 .nav-links a:hover{color:var(--accent)}
 .nav-right{display:flex;align-items:center;gap:12px}
 .btn{
@@ -80,7 +87,7 @@ nav{
 /* lang switcher */
 .lang{position:relative}
 .lang-btn{
-  display:inline-flex;align-items:center;gap:7px;
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
   padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;
   color:var(--text-dim);font-size:13.5px;cursor:pointer;transition:all .2s;
 }
@@ -139,7 +146,7 @@ nav{
 .mockup-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:#f8fbff}
 .mockup-bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
 .mockup-bar i:nth-child(1){background:#ff5f57}.mockup-bar i:nth-child(2){background:#febc2e}.mockup-bar i:nth-child(3){background:#28c840}
-.mockup-bar .url{margin-left:12px;font-size:12px;color:var(--text-faint);font-family:var(--mono);background:#eef4ff;padding:3px 12px;border-radius:6px}
+.mockup-bar .url{margin-left:12px;font-size:12px;color:var(--text-faint);font-family:var(--mono);background:#eef4ff;padding:3px 12px;border-radius:6px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mockup-body{display:flex;min-height:340px;font-size:12.5px}
 .mock-side{width:118px;border-right:1px solid var(--border);padding:14px 0;background:#f8fbff}
 .mock-side div{padding:7px 16px;color:var(--text-faint)}
@@ -162,6 +169,7 @@ nav{
 /* ---------- sections ---------- */
 section{padding:64px 0}
 .sec-head{text-align:center;max-width:640px;margin:0 auto 44px}
+.sec-head.wide{max-width:880px}
 .sec-tag{font-size:13px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
 .sec-head h2{font-size:36px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
 .sec-head p{margin-top:14px;color:var(--text-dim);font-size:16px}
@@ -231,7 +239,7 @@ section{padding:64px 0}
 /* architecture */
 .arch{
   border:1px solid var(--border);border-radius:22px;background:#fff;
-  padding:44px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px;
+  padding:44px;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:22px;
   box-shadow:0 10px 40px rgba(37,99,235,.05);
 }
 .arch-col{display:grid;gap:14px;align-content:start}
@@ -346,6 +354,56 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 .foot-bottom a.beian{color:var(--text-faint);transition:color .2s}
 .foot-bottom a.beian:hover{color:var(--accent)}
 
+/* ---------- agent run mockup (hero) ---------- */
+.flow{padding:16px}
+.flow-head{display:flex;align-items:center;gap:9px;padding-bottom:13px;border-bottom:1px dashed var(--border)}
+.flow-head .live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(22,163,74,.5);flex:none}
+.flow-head b{font-size:13.5px;color:var(--text);font-weight:700}
+.flow-chip{margin-left:auto;font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.flow-list{display:grid;padding:15px 0 2px}
+.flow-item{display:grid;grid-template-columns:24px 1fr;gap:11px;padding-bottom:14px;position:relative}
+.flow-item::before{content:"";position:absolute;left:11.5px;top:26px;bottom:0;width:1px;background:var(--border)}
+.flow-item:last-child{padding-bottom:0}
+.flow-item:last-child::before{display:none}
+.flow-ic{width:24px;height:24px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--mono);background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.flow-txt{font-size:12.5px;color:var(--text-dim);line-height:1.62;overflow-wrap:anywhere}
+.flow-txt b{display:block;font-size:12px;font-weight:800;color:var(--text);letter-spacing:.4px;margin-bottom:1px}
+.flow-foot{margin-top:13px;padding-top:11px;border-top:1px dashed var(--border);font-size:11.5px;color:var(--text-faint);font-family:var(--mono)}
+.flow .agent-confirm{margin-top:0;margin-bottom:12px}
+
+/* ---------- not-a-panel vs agent ---------- */
+.vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:940px;margin:0 auto}
+.vs-col{border:1px solid var(--border);border-radius:18px;padding:26px 26px 22px;background:#fff}
+.vs-col.old{background:#f8fafc;border-color:#e2e8f0}
+.vs-col.new{background:linear-gradient(180deg,#f4f9ff,#fff);border-color:rgba(37,99,235,.3);box-shadow:0 12px 40px rgba(37,99,235,.08)}
+.vs-col h4{font-size:15px;font-weight:800;margin-bottom:16px}
+.vs-col.old h4{color:var(--text-faint)}
+.vs-col.new h4{color:var(--accent)}
+.vs-col ul{list-style:none;display:grid;gap:11px}
+.vs-col li{font-size:14px;color:var(--text-dim);padding-left:22px;position:relative;line-height:1.6}
+.vs-col.old li::before{content:"–";position:absolute;left:4px;color:#94a3b8}
+.vs-col.new li::before{content:"✓";position:absolute;left:2px;color:var(--green);font-weight:800}
+.proof{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px}
+.proof div{background:var(--bg-soft);border:1px solid var(--border);border-radius:14px;padding:18px}
+.proof b{display:block;font-size:14px;color:var(--text);margin-bottom:6px}
+.proof span{font-size:12.5px;color:var(--text-dim);line-height:1.6}
+
+/* ---------- guardrails ---------- */
+.guard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.guard-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--border);border-radius:14px;padding:22px 20px;box-shadow:0 4px 18px rgba(37,99,235,.04)}
+.guard-card .lv{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--text-faint)}
+.guard-card b{display:block;font-size:14.5px;color:var(--text);margin:6px 0 8px}
+.guard-card span{font-size:13px;color:var(--text-dim);line-height:1.65}
+.guard-card.l0{border-top-color:#16a34a}.guard-card.l0 .lv{color:#15803d}
+.guard-card.l1{border-top-color:#0ea5e9}.guard-card.l1 .lv{color:#0369a1}
+.guard-card.l2{border-top-color:#f59e0b}.guard-card.l2 .lv{color:#b45309}
+.guard-card.l3{border-top-color:#dc2626}.guard-card.l3 .lv{color:#b91c1c}
+.guard-note{margin-top:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;font-size:13.5px;color:#92400e;display:flex;gap:10px;align-items:flex-start}
+
+@media (max-width:1240px){
+  .nav-logo .tagline{display:none}
+  .nav-links{gap:14px}
+}
 @media (max-width:960px){
   .hero-grid,.ai-band,.qs-grid,.api-wrap{grid-template-columns:1fr}
   .feat-grid{grid-template-columns:repeat(2,1fr)}
@@ -353,6 +411,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   .arch-arrow{transform:rotate(90deg)}
   .stats-band{grid-template-columns:repeat(2,1fr)}
   .agent-caps{grid-template-columns:repeat(2,1fr)}
+  .vs-grid,.proof,.guard-grid{grid-template-columns:1fr 1fr}
   .hero h1{font-size:38px}
   .hero{padding:120px 0 70px}
   section{padding:60px 0}
@@ -370,6 +429,7 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   .feat-grid{grid-template-columns:1fr}
   .stats-band{grid-template-columns:1fr 1fr}
   .agent-caps{grid-template-columns:1fr}
+  .vs-grid,.proof,.guard-grid{grid-template-columns:1fr}
   .hero h1{font-size:30px}
   .hero p.lead{font-size:16px}
   .hero{padding:110px 0 56px}
@@ -391,11 +451,12 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 
 <nav data-page-node-id="q9ytoHusI4xWCIpUcFfDtI">
   <div class="container nav-inner" data-page-node-id="xZFL6iEz2Sl8lNB8BIWilI">
-    <a class="nav-logo" href="#top" data-page-node-id="oBj2tACC2ROVe0OwRgj8nS"><img src="assets/logo.png" alt="OpsMini" data-page-node-id="sev8Ra6vTMeR9RzH0uDTUq"><span class="tagline" data-i18n="nav.tagline" data-page-node-id="f62HStQV2LYpsTsQkr6QWZ">AI 驱动的主机运维面板</span></a>
+    <a class="nav-logo" href="#top" data-page-node-id="oBj2tACC2ROVe0OwRgj8nS"><img src="assets/logo.png" alt="OpsMini" data-page-node-id="sev8Ra6vTMeR9RzH0uDTUq"><span class="tagline" data-i18n="nav.tagline" data-page-node-id="f62HStQV2LYpsTsQkr6QWZ">主机上的 AI 运维 Agent</span></a>
     <button class="hamburger" id="hamburger" aria-label="Menu" data-page-node-id="fTP3X5w4hDPAf8L3lAoQl9"><span data-page-node-id="LYZssgS4TwpOY9LOz1t1qv"></span><span data-page-node-id="7hMAt2m5SnAZfk4AJyb9zQ"></span><span data-page-node-id="89JNAjrPGaX8lil4vqq8CM"></span></button>
     <div class="nav-links" id="navLinks" data-page-node-id="38WBZ5nhZFaU9RsxcK2R6j">
-      <a href="#features" data-i18n="nav.features" data-page-node-id="KaysrPsSxzLuoz5uWDLH3R">功能</a>
-      <a href="#ai" data-i18n="nav.ai" data-page-node-id="IkFJ6oDLz9Zvk6tNEG0Out">AI 运维</a>
+      <a href="#features" data-i18n="nav.features" data-page-node-id="KaysrPsSxzLuoz5uWDLH3R">工具</a>
+      <a href="#agent" data-i18n="nav.ai" data-page-node-id="IkFJ6oDLz9Zvk6tNEG0Out">Agent</a>
+      <a href="#guard" data-i18n="nav.guard" data-page-node-id="newNavGuard0001">边界</a>
       <a href="#arch" data-i18n="nav.arch" data-page-node-id="TpVFAjHinpZXW4lnGoXWW6">架构</a>
       <a href="#quickstart" data-i18n="nav.quickstart" data-page-node-id="5SoDGldlVgHQVrU48RSgtL">快速开始</a>
       <a href="#faq" data-i18n="nav.faq" data-page-node-id="ffcJO6ARn7qFBXye6tkZVJ">FAQ</a>
@@ -420,48 +481,33 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 <header class="hero" id="top" data-page-node-id="XdjwEZZd6XryKMfrzZbsLf">
   <div class="container hero-grid" data-page-node-id="e23h8Im8naH3kiomrEydbs">
     <div data-page-node-id="PZjmMln0xN21bI3lF8TF07">
-      <div class="hero-badge" data-page-node-id="1EvgubBdyE6ITH2OqMs9Iu"><span class="dot" data-page-node-id="BvOKczBoQDgHuyxeNl6ay2"></span><span data-i18n="hero.badge" data-page-node-id="gexgJXwMxSQj7Ckd6QCDGX">AI-Powered · 单二进制交付 · 零依赖运行</span></div>
-      <h1 data-i18n-html="hero.title" data-page-node-id="rASJGQCLm57NmSfaNmnLIz">一个文件，<br data-page-node-id="BwVlMzhgFeFxuWj0T8FEqR">管好一台<span class="grad" data-page-node-id="bRBdqn4FWCm23vZoDDocHl">服务器</span></h1>
-      <p class="lead" data-i18n="hero.lead" data-page-node-id="XE7D4tEcFpAWSDPeXi7y9j">OpsMini 是 AI 驱动的轻量单机运维面板。自然语言诊断、Docker 管理、Web 终端、安全中心、监控告警——全部装进一个不到几十 MB 的二进制文件。</p>
+      <div class="hero-badge" data-page-node-id="1EvgubBdyE6ITH2OqMs9Iu"><span class="dot" data-page-node-id="BvOKczBoQDgHuyxeNl6ay2"></span><span data-i18n="hero.badge" data-page-node-id="gexgJXwMxSQj7Ckd6QCDGX">常驻主机 · 自主执行 · 数据不出本机</span></div>
+      <h1 data-i18n-html="hero.title" data-page-node-id="rASJGQCLm57NmSfaNmnLIz">把 AI 装进服务器，<br data-page-node-id="BwVlMzhgFeFxuWj0T8FEqR">让它<span class="grad" data-page-node-id="bRBdqn4FWCm23vZoDDocHl">自己运维自己</span></h1>
+      <p class="lead" data-i18n="hero.lead" data-page-node-id="XE7D4tEcFpAWSDPeXi7y9j">OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。</p>
       <div class="hero-cta" data-page-node-id="T8UDPa9MdwFlliwzChdk2j">
         <a class="btn btn-primary" href="#quickstart" data-i18n="hero.ctaPrimary" data-page-node-id="HWadfqjarUOTc3WbLyhzNi">快速开始 →</a>
-        <a class="btn btn-ghost" href="#features" data-i18n="hero.ctaGhost" data-page-node-id="NdL87NCxFW09CCuN14sngh">了解功能</a>
+        <a class="btn btn-ghost" href="#agent" data-i18n="hero.ctaGhost" data-page-node-id="NdL87NCxFW09CCuN14sngh">看它怎么干活</a>
       </div>
       <div class="hero-meta" data-page-node-id="BPSsaxDem9bPRDVYisN8yE">
-        <span data-i18n-html="hero.meta1" data-page-node-id="5NTTZFgyn0mj2gXStC2jNp"><b data-page-node-id="iR8qgy3DkqmnDcsdnVsQTh">Go</b> + Vue 3</span>
-        <span data-i18n-html="hero.meta2" data-page-node-id="L0fyplOaDQ7kweyaafQUuk"><b data-page-node-id="DgQpDe7agxzNkhZASTeimD">SQLite</b> 纯 Go 驱动</span>
-        <span data-i18n-html="hero.meta3" data-page-node-id="STApmPGkbnqtDztph8TAgf"><b data-page-node-id="fxhLykwcWyuLeuBCwWqw8j">7</b> 种界面语言</span>
-        <span data-i18n-html="hero.meta4" data-page-node-id="0NEdhwrDRO4gZO70QFwEqf"><b data-page-node-id="XMYCXRL1Ed2X4wYbJk1JJR">REST</b> 双 API</span>
+        <span data-i18n-html="hero.meta1" data-page-node-id="5NTTZFgyn0mj2gXStC2jNp"><b data-page-node-id="iR8qgy3DkqmnDcsdnVsQTh">Go</b> 静态单文件</span>
+        <span data-i18n-html="hero.meta2" data-page-node-id="L0fyplOaDQ7kweyaafQUuk"><b data-page-node-id="DgQpDe7agxzNkhZASTeimD">systemd</b> 常驻托管</span>
+        <span data-i18n-html="hero.meta3" data-page-node-id="STApmPGkbnqtDztph8TAgf"><b data-page-node-id="fxhLykwcWyuLeuBCwWqw8j">29</b> 个运维工具</span>
+        <span data-i18n-html="hero.meta4" data-page-node-id="0NEdhwrDRO4gZO70QFwEqf"><b data-page-node-id="XMYCXRL1Ed2X4wYbJk1JJR">L0–L3</b> 分级放权</span>
       </div>
     </div>
 
-    <div class="mockup" data-page-node-id="1E3J6qdQnPfR4XXemuzI6H">
-      <div class="mockup-bar" data-page-node-id="rFNEWK1R5KGIBRa85kuVzt"><i data-page-node-id="ep41PutxQdcjF9XPHvKeE5"></i><i data-page-node-id="W8VwEln33HHg6YLpla8o5G"></i><i data-page-node-id="I99NqYej3H6UYUGfsxm5Yd"></i><span class="url" data-page-node-id="uHHjBg0FJx92DsGCvmiDID">http://your-server:8888</span></div>
-      <div class="mockup-body" data-page-node-id="4eYhCi16AHnwEkaYIpD0x4">
-        <div class="mock-side" data-page-node-id="9S9A3LVJkMYHritrrAh3Mo">
-          <div class="on" data-i18n="hero.side.dash" data-page-node-id="qFH2CBRDwUuDaTuxzGpH5C">📊 仪表盘</div>
-          <div data-i18n="hero.side.ai" data-page-node-id="qorHuqPVwMXwjoiHVLu8qZ">🤖 AI 助手</div>
-          <div data-i18n="hero.side.sec" data-page-node-id="HElOKXmrd6RCfxTfek85pD">🛡️ 安全中心</div>
-          <div data-i18n="hero.side.docker" data-page-node-id="lE0ZCbSvtMEdC6JzAgQboL">🐳 容器</div>
-          <div data-i18n="hero.side.term" data-page-node-id="CVVZxByENEMz8aDd5Ovs2J">⌨️ 终端</div>
-          <div data-i18n="hero.side.file" data-page-node-id="9Y1fexpqu5xG9jNwGx7XUs">📁 文件</div>
+    <div class="mockup">
+      <div class="mockup-bar"><i></i><i></i><i></i><span class="url">opsmini agent · daily-inspection · run #128</span></div>
+      <div class="flow">
+        <div class="flow-head"><span class="live"></span><b data-i18n="flow.title">每日主机巡检</b><span class="flow-chip" data-i18n="flow.chip">已完成 · 38s</span></div>
+        <div class="flow-list">
+          <div class="flow-item"><span class="flow-ic">1</span><div class="flow-txt" data-i18n-html="flow.s1"><b>感知</b>采集 48 项指标：CPU 12% · 内存 61% · 磁盘 /var 91%</div></div>
+          <div class="flow-item"><span class="flow-ic">2</span><div class="flow-txt" data-i18n-html="flow.s2"><b>判断</b>定位到 /var/log 有 6.8 GB 日志未轮转</div></div>
+          <div class="flow-item"><span class="flow-ic">3</span><div class="flow-txt" data-i18n-html="flow.s3"><b>行动</b>执行 journalctl --vacuum-size=500M，释放 6.3 GB</div></div>
+          <div class="flow-item"><span class="flow-ic">4</span><div class="flow-txt" data-i18n-html="flow.s4"><b>报告</b>生成单文件 HTML，归档到本机数据目录</div></div>
         </div>
-        <div class="mock-main" data-page-node-id="x2BNC3JDAV9ZaU51B1a6Pw">
-          <div class="mock-stats" data-page-node-id="9sPXorvTSMBkVHH6ra2EYv">
-            <div class="mock-stat" data-page-node-id="acCis1slYBBqL8aYQ3WGgb"><div class="k" data-page-node-id="KNjxTc6HrL9A1kEF32zvRW">CPU</div><div class="v" data-page-node-id="9Rzpz709kOdElYBU99yCil">12%</div></div>
-            <div class="mock-stat" data-page-node-id="SEFfPhRS9xF6qswTAqLE0D"><div class="k" data-i18n="hero.stat.mem" data-page-node-id="BDsBDzAO2iOwPRHHA4SDB4">内存</div><div class="v" data-page-node-id="3GZ46n9YLXRtCcwQmALK1l">3.2G</div></div>
-            <div class="mock-stat" data-page-node-id="DYqke5EiBJxpLpKFTjz0lD"><div class="k" data-i18n="hero.stat.disk" data-page-node-id="D1M6Z8sFasGkqO22swLOx3">磁盘</div><div class="v" data-page-node-id="FIL8UvGF5wKF8wPd7Kb6AI">41%</div></div>
-          </div>
-          <div class="mock-chart" data-page-node-id="1xNWot0DOUvPTzq3EgTFg0">
-            <b style="height:34%" data-page-node-id="pt4FMmWfWBDAhSdzkCnLLU"></b><b style="height:52%" data-page-node-id="BhQRnHxEuy5wvgIM8rtp1L"></b><b style="height:41%" data-page-node-id="NDzoYtpipfp4zdGZwiSen5"></b><b style="height:66%" data-page-node-id="i6C12lvFOi9bMK1CyXUtsa"></b>
-            <b style="height:48%" data-page-node-id="v2DrU2f7h87wfg22ryThDb"></b><b style="height:72%" data-page-node-id="cZtXFFFahVtFX1UNn7HAnJ"></b><b style="height:58%" data-page-node-id="VX2IfXoV9ihq1w44WLZHGG"></b><b style="height:84%" data-page-node-id="PavOUmkIEIE2bFLPYGi2XY"></b>
-            <b style="height:62%" data-page-node-id="kT49Jg8pkfakCxHGtbCVDu"></b><b style="height:47%" data-page-node-id="fk7LDLjvG3NnXNMxJWPw4k"></b><b style="height:69%" data-page-node-id="7Iyg2p1GteK7o6h7FeVQVi"></b><b style="height:55%" data-page-node-id="mGfErjVCt2L3XyOl8Lj1Ve"></b>
-          </div>
-          <div class="mock-ai" data-page-node-id="qxrWTdAo7c3OWhUCJpkT3k">
-            <div class="q" data-i18n="hero.aiq" data-page-node-id="OVuIfTMDG17SE01Ns88Vtx">🤖 用户：磁盘占用突然涨了，帮我看看</div>
-            <div class="a" data-i18n-html="hero.aia" data-page-node-id="opXisBC7YuFSMGTv0Qr0oP">分析 /var/log：journal 日志未轮转，占 <em data-page-node-id="Y41H2MrfAaGmDw4sAdlfMO">6.8 GB</em>。建议执行 journalctl --vacuum-size=500M，预计释放 <em data-page-node-id="qOQMCIAdoTXOaC0QysVrFC">6.3 GB</em> ✅</div>
-          </div>
-        </div>
+        <div class="agent-confirm"><span class="cf-i">!</span><span data-i18n="flow.warn">清理 app.log 属高危 · 已挂起等你批准</span></div>
+        <div class="flow-foot" data-i18n="flow.foot">5 次工具调用 · 0 次越权 · 全程可审计</div>
       </div>
     </div>
   </div>
@@ -492,6 +538,33 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   </div>
 </section>
 
+<!-- ================= NOT A PANEL, AN AGENT ================= -->
+<section id="agent">
+  <div class="container">
+    <div class="sec-head wide">
+      <div class="sec-tag" data-i18n="vs.tag">Positioning</div>
+      <h2 data-i18n="vs.h2">它不是面板，是装在你服务器上的 Agent</h2>
+      <p data-i18n="vs.p">面板等你来点，Agent 自己动手。OpsMini 常驻在主机上，用一整套运维工具自行环视、判断、处理，只在需要你拍板时停下。</p>
+    </div>
+    <div class="vs-grid">
+      <div class="vs-col old">
+        <h4 data-i18n="vs.oldT">以前：运维面板</h4>
+        <ul data-i18n-html="vs.old"><li>你发现问题，你打开页面</li><li>你逐项点开菜单去查</li><li>你决定改什么、怎么改</li><li>关掉页面后，它什么也不知道</li></ul>
+      </div>
+      <div class="vs-col new">
+        <h4 data-i18n="vs.newT">现在：主机上的 Agent</h4>
+        <ul data-i18n-html="vs.new"><li>它自己定时、或按事件去看</li><li>它自己连着查几层，直到定位到原因</li><li>它自己动手，高危的先问你</li><li>你不在，它也在盯，还留下报告</li></ul>
+      </div>
+    </div>
+    <div class="proof">
+      <div><b data-i18n="ag.e1t">常驻</b><span data-i18n="ag.e1d">systemd 托管，开机自启、崩溃自恢复</span></div>
+      <div><b data-i18n="ag.e2t">感知</b><span data-i18n="ag.e2d">指标、进程、端口、磁盘、服务、日志、文件</span></div>
+      <div><b data-i18n="ag.e3t">决策</b><span data-i18n="ag.e3d">自研 ReAct 循环，自己决定下一步查什么</span></div>
+      <div><b data-i18n="ag.e4t">行动</b><span data-i18n="ag.e4d">执行命令与脚本、改配置、管容器、发报告</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= AI AGENT BAND ================= -->
 <section id="ai" data-page-node-id="HFUF8IYwUvqDEOBABneV1G">
   <div class="container" data-page-node-id="Qa7HkIRbpvvvP35NbwFrpF">
@@ -502,10 +575,10 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
         <p data-i18n="ai.p" data-page-node-id="1ZY6XhwsiQDF6hPXQDHTb3">OpsMini 内置自研 ReAct 智能体。接到问题后自主规划、连续调用运维工具查证，把每一步的工具、参数和原始输出都摊在你面前；按危险程度分级放权——该自己动手的自己动手，该问你的必须先问。</p>
         <ul class="ai-points" data-page-node-id="FEaBhV7W44RSbqUHP1TGzy">
           <li data-i18n="ai.l1" data-page-node-id="sy0HX7Omb157Ij9Yq6tDdK">自主多步排查：一次提问连查磁盘、进程、日志，直到定位到原因</li>
-          <li data-i18n="ai.l2" data-page-node-id="lvE0keXRICr5ux6gxlqZup">33 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全</li>
+          <li data-i18n="ai.l2" data-page-node-id="lvE0keXRICr5ux6gxlqZup">29 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全</li>
           <li data-i18n="ai.l3" data-page-node-id="F0HfGIYVLufffbO6VTDAnR">四级护栏：L0 自主、L1 可配置、L2 必须确认、L3 直接禁止（如 rm -rf /）</li>
           <li data-i18n="ai.l4" data-page-node-id="31GKEnqjbgUlJrcIyyLipf">定时巡检：排进计划任务，每天早上自动体检并归档单文件 HTML 报告</li>
-          <li data-i18n="ai.l5" data-page-node-id="uxKU4xpfefDq4FBwuChY0P">双向 MCP：能调用外部 MCP 工具，也能把自身 33 个工具发布给 Claude / Cursor</li>
+          <li data-i18n="ai.l5" data-page-node-id="uxKU4xpfefDq4FBwuChY0P">双向 MCP：能调用外部 MCP 工具，也能把自身 29 个工具发布给 Claude / Cursor</li>
         </ul>
       </div>
       <div class="chat-demo" data-page-node-id="2rY8u36vxS0R6Ehc8prXus">
@@ -528,13 +601,31 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
   </div>
 </section>
 
+<!-- ================= GUARDRAILS ================= -->
+<section id="guard">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-tag" data-i18n="guard.tag">Guardrails</div>
+      <h2 data-i18n="guard.h2">它能动手，但你划得住线</h2>
+      <p data-i18n="guard.p">每个工具按危险程度定级。只读的它自己看，破坏性的必须你点头，致命的直接禁止。无人值守时，凡需确认的一律拒绝，不猜你的意思。</p>
+    </div>
+    <div class="guard-grid">
+      <div class="guard-card l0"><div class="lv">L0</div><b data-i18n="guard.l0t">只读自主</b><span data-i18n="guard.l0d">查指标、进程、端口、磁盘、日志。看什么都不会改变系统状态。</span></div>
+      <div class="guard-card l1"><div class="lv">L1</div><b data-i18n="guard.l1t">低危需确认</b><span data-i18n="guard.l1d">重启服务、清理临时文件。默认要你点一下，可按需放开。</span></div>
+      <div class="guard-card l2"><div class="lv">L2</div><b data-i18n="guard.l2t">必须确认</b><span data-i18n="guard.l2d">改配置、删数据、动网络。确认不可关闭，无人值守直接拒绝。</span></div>
+      <div class="guard-card l3"><div class="lv">L3</div><b data-i18n="guard.l3t">直接禁止</b><span data-i18n="guard.l3d">正则硬拦截致命命令（如 rm -rf /），并禁止它把自己关掉。</span></div>
+    </div>
+    <div class="guard-note"><span style="font-weight:800">!</span><span data-i18n="guard.note">每一次调用都进审计日志：谁触发的、调了什么工具、传了什么参数、返回了什么。想复盘随时查。</span></div>
+  </div>
+</section>
+
 <!-- ================= FEATURES ================= -->
 <section id="features" data-page-node-id="eRofGyWAcP6mUUb6HeBwc6">
   <div class="container" data-page-node-id="NAeJCCK90tZtgHFLG0kjUn">
     <div class="sec-head" data-page-node-id="FiyN6EQ9PxgM1ma9EE9SXA">
-      <div class="sec-tag" data-i18n="feat.tag" data-page-node-id="6ztMGOTU97eZWPMmoaasfC">Features</div>
-      <h2 data-i18n="feat.h2" data-page-node-id="YMp45eTLtEkth5RgvFe6fq">单机运维，一站配齐</h2>
-      <p data-i18n="feat.p" data-page-node-id="PNpcraI5sPNrFWKrXPuhS4">从监控到安全，从容器到计划任务，覆盖一台服务器日常运维的全部高频场景。</p>
+      <div class="sec-tag" data-i18n="feat.tag" data-page-node-id="6ztMGOTU97eZWPMmoaasfC">Tools</div>
+      <h2 data-i18n="feat.h2" data-page-node-id="YMp45eTLtEkth5RgvFe6fq">它手上的工具</h2>
+      <p data-i18n="feat.p" data-page-node-id="PNpcraI5sPNrFWKrXPuhS4">下面这些是它真正能用的东西。你也可以在界面里手动点，只是它比你快——而且它能自己决定下一个点哪里。</p>
     </div>
     <div class="feat-grid" data-page-node-id="helTML9ZRjOEyYn5TLaWHB">
       <div class="feat" data-page-node-id="VYEM5MLH4dobMeMvNSlj4Y"><div class="icon" data-page-node-id="kHR1qg6oeh0qaQJ3UPSMIC">📊</div><h4 data-i18n="f1.t" data-page-node-id="oNGqb0HTMhaWwlKOoKPpjk">实时监控与趋势</h4><p data-i18n="f1.d" data-page-node-id="QEQnViUAADWYQRzHJ8C88s">CPU / 内存 / 磁盘 / 网络实时指标，ECharts 可视化，数据持久化 SQLite 保留 30 天，24h / 7d 趋势一目了然。</p><div class="tags" data-i18n-html="f1.tags" data-page-node-id="qhgKcNI9kG9YjYOqt0cgFu"><span data-page-node-id="g5v3fTBiXnQWsDi4jbpR2N">仪表盘</span><span data-page-node-id="ahLod9R4dLwOcambj7bZI9">历史趋势</span><span data-page-node-id="UCfC3oNEJqgTMHWqSljvJV">Prometheus 指标</span></div></div>
@@ -654,6 +745,18 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
         <summary data-i18n="faq.q5" data-page-node-id="2BV3aaI1sPADkcp5qZtr8U">如何保证安全？</summary>
         <p data-i18n="faq.a5" data-page-node-id="l3cchHPDllGMka7BsvzmDM">JWT 鉴权 + TOTP 两步验证（MFA）+ RBAC 角色权限 + 全量操作审计日志；登录安全分析会识别暴力破解与异常登录。建议公网部署时配合防火墙限制来源 IP。</p>
       </details>
+      <details>
+        <summary data-i18n="faq.q6">它真的会自己改动我的系统吗？</summary>
+        <p data-i18n="faq.a6">会，但只在边界内：只读操作自主执行；低危写操作默认要你确认；改配置、删数据等高危动作必须逐次批准；致命命令执行前直接被拦截。每一次调用都写进审计日志。</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q7">需要连外网吗？数据会不会传出去？</summary>
+        <p data-i18n="faq.a7">除模型调用外全部本地完成：指标、审计、报告都留在主机本地磁盘。模型可以接你自建的 OpenAI 兼容接口或本地 Ollama，这种情况下数据完全不出机器。</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q8">和宝塔、1Panel 比，到底差在哪？</summary>
+        <p data-i18n="faq.a8">那些是「你操作的工具」，OpsMini 是「替你操作的同事」。它的页面更像观察窗和审批台——你可以什么都不点，它照样每天把活干完并留下报告。</p>
+      </details>
     </div>
   </div>
 </section>
@@ -662,8 +765,8 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 <section data-page-node-id="CxQc5LqjoBa25bXF6zW77v">
   <div class="container" data-page-node-id="3P0GijKqa9OayxSFetvn9W">
     <div class="cta" data-page-node-id="NHAAuEveAHTVTTbJNghHQH">
-      <h2 data-i18n="cta.h2" data-page-node-id="eLzHDevIWQCUVjrdoPCSDt">让运维回归简单</h2>
-      <p data-i18n="cta.p" data-page-node-id="AUmaR1WS7gmA3OCbYhfIAH">一个文件、一次拷贝、打开浏览器，你的服务器就有了 AI 运维专家。</p>
+      <h2 data-i18n="cta.h2" data-page-node-id="eLzHDevIWQCUVjrdoPCSDt">装上去，剩下的交给它</h2>
+      <p data-i18n="cta.p" data-page-node-id="AUmaR1WS7gmA3OCbYhfIAH">一条命令，你的服务器上就多了一个会自己干活、也听你话的运维 Agent。</p>
       <a class="btn btn-primary" href="#quickstart" data-i18n="cta.btn" data-page-node-id="C2vGI1IYHuauKUSkEq5Nmq">下载 OpsMini →</a>
     </div>
   </div>
@@ -707,25 +810,25 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 <script>
 const I18N = {
 'zh-CN': {
-  'title':'OpsMini — AI 驱动的轻量服务器运维面板','foot.faq':'常见问题',
-  'hl1.t':'内置 AI 运维助手','hl1.d':'自然语言诊断、日志分析、命令执行，让运维经验真正落地','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力','install.label':'一键安装','install.copy':'复制','install.copied':'已复制',
-  'nav.features':'功能','nav.ai':'AI 运维','nav.arch':'架构','nav.quickstart':'快速开始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即体验','nav.tagline':'AI 驱动的主机运维面板','nav.docs':'文档',
-  'hero.badge':'AI-Powered · 单二进制交付 · 零依赖运行',
-  'hero.title':'一个文件，<br>管好一台<span class="grad">服务器</span>',
-  'hero.lead':'OpsMini 是 AI 驱动的轻量单机运维面板。自然语言诊断、Docker 管理、Web 终端、安全中心、监控告警——全部装进一个不到几十 MB 的二进制文件。',
-  'hero.ctaPrimary':'快速开始 →','hero.ctaGhost':'了解功能',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 纯 Go 驱动','hero.meta3':'<b>7</b> 种界面语言','hero.meta4':'<b>REST</b> 双 API',
+  'title':'OpsMini — 主机上的 AI 运维 Agent','foot.faq':'常见问题',
+  'hl1.t':'会自己动手的 AI','hl1.d':'不只诊断，还能执行——按危险程度分级放权','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力','install.label':'一键安装','install.copy':'复制','install.copied':'已复制',
+  'nav.features':'工具','nav.ai':'Agent','nav.arch':'架构','nav.quickstart':'快速开始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即体验','nav.tagline':'主机上的 AI 运维 Agent','nav.docs':'文档',
+  'hero.badge':'常驻主机 · 自主执行 · 数据不出本机',
+  'hero.title':'把 AI 装进服务器，<br>让它<span class="grad">自己运维自己</span>',
+  'hero.lead':'OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。',
+  'hero.ctaPrimary':'快速开始 →','hero.ctaGhost':'看它怎么干活',
+  'hero.meta1':'<b>Go</b> 静态单文件','hero.meta2':'<b>systemd</b> 常驻托管','hero.meta3':'<b>29</b> 个运维工具','hero.meta4':'<b>L0–L3</b> 分级放权',
   'hero.side.dash':'📊 仪表盘','hero.side.ai':'🤖 AI 助手','hero.side.sec':'🛡️ 安全中心','hero.side.docker':'🐳 容器','hero.side.term':'⌨️ 终端','hero.side.file':'📁 文件',
   'hero.stat.mem':'内存','hero.stat.disk':'磁盘',
   'hero.aiq':'🤖 用户：磁盘占用突然涨了，帮我看看',
   'hero.aia':'分析 /var/log：journal 日志未轮转，占 <em>6.8 GB</em>。建议执行 journalctl --vacuum-size=500M，预计释放 <em>6.3 GB</em> ✅',
   'ai.tag':'AI Agent','ai.h3':'它不只是聊天，它会动手','ai.p':'OpsMini 内置自研 ReAct 智能体。接到问题后自主规划、连续调用运维工具查证，把每一步的工具、参数和原始输出都摊在你面前；按危险程度分级放权——该自己动手的自己动手，该问你的必须先问。',
-  'ai.l1':'自主多步排查：一次提问连查磁盘、进程、日志，直到定位到原因','ai.l2':'33 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全','ai.l3':'四级护栏：L0 自主、L1 可配置、L2 必须确认、L3 直接禁止（如 rm -rf /）','ai.l4':'定时巡检：排进计划任务，每天早上自动体检并归档单文件 HTML 报告','ai.l5':'双向 MCP：能调用外部 MCP 工具，也能把自身 33 个工具发布给 Claude / Cursor',
+  'ai.l1':'自主多步排查：一次提问连查磁盘、进程、日志，直到定位到原因','ai.l2':'29 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全','ai.l3':'四级护栏：L0 自主、L1 可配置、L2 必须确认、L3 直接禁止（如 rm -rf /）','ai.l4':'定时巡检：排进计划任务，每天早上自动体检并归档单文件 HTML 报告','ai.l5':'双向 MCP：能调用外部 MCP 工具，也能把自身 29 个工具发布给 Claude / Cursor',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'磁盘告警了，帮我查一下是什么占的','ai.b1a':'定位到 <span class="hl">/var/log/app.log</span> 单文件 2.1 GB，30 天未轮转。<br>只读排查已自动完成；清空该文件需要 root 权限，已挂起等你确认。',
   'ai.confirm':'高危操作已挂起 · 等待你批准',
   'ai.cap1.t':'自主执行','ai.cap1.d':'不预设工作流，按现场情况决定下一步查什么','ai.cap2.t':'分级授权','ai.cap2.d':'破坏性操作在执行前被拦截，要你点一下才放行','ai.cap3.t':'定时巡检','ai.cap3.d':'无人值守跑完，产出可打开可下载的 HTML 报告','ai.cap4.t':'双向 MCP','ai.cap4.d':'既是客户端也是服务端，与外部 AI 生态互通',
-  'feat.tag':'Features','feat.h2':'单机运维，一站配齐','feat.p':'从监控到安全，从容器到计划任务，覆盖一台服务器日常运维的全部高频场景。',
+  'feat.tag':'Tools','feat.h2':'它手上的工具','feat.p':'下面这些是它真正能用的东西。你也可以在界面里手动点，只是它比你快——而且它能自己决定下一个点哪里。',
   'f1.t':'实时监控与趋势','f1.d':'CPU / 内存 / 磁盘 / 网络实时指标，ECharts 可视化，数据持久化 SQLite 保留 30 天，24h / 7d 趋势一目了然。','f1.tags':'<span>仪表盘</span><span>历史趋势</span><span>Prometheus 指标</span>',
   'f2.t':'告警与通知','f2.d':'自定义告警规则（CPU、内存、磁盘、端口存活等），事件中心集中管理，未读通知角标实时提醒。','f2.tags':'<span>告警规则</span><span>事件中心</span><span>站内通知</span>',
   'f3.t':'安全中心','f3.d':'安全基线扫描、文件完整性监控（FIM）、威胁检测、防火墙端口管理、登录与 SSH 安全分析，主机加固一个入口搞定。','f3.tags':'<span>基线扫描</span><span>FIM</span><span>防火墙</span><span>威胁检测</span>',
@@ -749,34 +852,76 @@ const I18N = {
   'api.code.title':'curl 示例',
   'st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'套 REST API',
   'faq.tag':'FAQ','faq.h2':'常见问题',
-  'faq.q1':'OpsMini 和宝塔、1Panel 有什么区别？','faq.a1':'定位类似，都是单机运维面板。OpsMini 的差异点在于：① 内置 AI 运维助手，自然语言即可诊断和执行；② 提供 /agent/v1 机器对机器 API 与 MCP 支持，便于接入你自己的自动化体系；③ 纯 Go + SQLite 单文件交付，极简部署、无运行时依赖。',
+  'faq.q1':'OpsMini 和宝塔、1Panel 有什么区别？','faq.a1':'OpsMini 是常驻主机的 AI 运维 Agent，不是传统面板。页面只是它的观察窗：它能自主诊断并执行，提供 MCP 与机器对机器接口，纯 Go + SQLite 单文件交付。',
   'faq.q2':'支持哪些系统 / 架构？','faq.a2':'Linux amd64 与 arm64（含树莓派、国产化服务器）。面板本身是静态编译的 Go 二进制，只要内核版本不是特别古老即可运行。',
   'faq.q3':'数据存在哪里？会丢吗？','faq.a3':'所有配置、用户、审计、监控数据都存于同目录下的 SQLite 单文件（默认 opsmini.db），备份就是复制这个文件。监控指标持久化保留 30 天，重启不丢失。',
   'faq.q4':'AI 功能需要外接大模型吗？','faq.a4':'AI 助手对接外部大模型服务，在「设置」中填入你的模型地址与密钥即可启用；不配置也不影响面板其他功能正常使用。',
   'faq.q5':'如何保证安全？','faq.a5':'JWT 鉴权 + TOTP 两步验证（MFA）+ RBAC 角色权限 + 全量操作审计日志；登录安全分析会识别暴力破解与异常登录。建议公网部署时配合防火墙限制来源 IP。',
-  'cta.h2':'让运维回归简单','cta.p':'一个文件、一次拷贝、打开浏览器，你的服务器就有了 AI 运维专家。','cta.btn':'下载 OpsMini →',
-  'foot.brand':'AI 驱动的轻量服务器运维面板','foot.c1t':'产品','foot.c1a':'功能特性','foot.c1b':'AI 运维','foot.c1c':'快速开始','foot.c2t':'开发者','foot.c2a':'REST API','foot.c2b':'架构说明','foot.c2c':'FAQ','foot.c3t':'社区','foot.c3b':'问题反馈','foot.bottom':'OpsMini © 2026 北京速云科技有限公司（opsmini.com）'
+  'cta.h2':'装上去，剩下的交给它','cta.p':'一条命令，你的服务器上就多了一个会自己干活、也听你话的运维 Agent。','cta.btn':'下载 OpsMini →',
+  'foot.brand':'主机上的 AI 运维 Agent','foot.c1t':'产品','foot.c1a':'工具清单','foot.c1b':'AI Agent','foot.c1c':'快速开始','foot.c2t':'开发者','foot.c2a':'REST API','foot.c2b':'架构说明','foot.c2c':'FAQ','foot.c3t':'社区','foot.c3b':'问题反馈','foot.bottom':'OpsMini © 2026 北京速云科技有限公司（opsmini.com）',
+  'nav.guard':'边界',
+  'flow.title':'每日主机巡检',
+  'flow.chip':'已完成 · 38s',
+  'flow.s1':'<b>感知</b>采集 48 项指标：CPU 12% · 内存 61% · 磁盘 /var 91%',
+  'flow.s2':'<b>判断</b>定位到 /var/log 有 6.8 GB 日志未轮转',
+  'flow.s3':'<b>行动</b>执行 journalctl --vacuum-size=500M，释放 6.3 GB',
+  'flow.s4':'<b>报告</b>生成单文件 HTML，归档到本机数据目录',
+  'flow.warn':'清理 app.log 属高危 · 已挂起等你批准',
+  'flow.foot':'5 次工具调用 · 0 次越权 · 全程可审计',
+  'vs.tag':'Positioning',
+  'vs.h2':'它不是面板，是装在你服务器上的 Agent',
+  'vs.p':'面板等你来点，Agent 自己动手。OpsMini 常驻在主机上，用一整套运维工具自行环视、判断、处理，只在需要你拍板时停下。',
+  'vs.oldT':'以前：运维面板',
+  'vs.old':'<li>你发现问题，你打开页面</li><li>你逐项点开菜单去查</li><li>你决定改什么、怎么改</li><li>关掉页面后，它什么也不知道</li>',
+  'vs.newT':'现在：主机上的 Agent',
+  'vs.new':'<li>它自己定时、或按事件去看</li><li>它自己连着查几层，直到定位到原因</li><li>它自己动手，高危的先问你</li><li>你不在，它也在盯，还留下报告</li>',
+  'ag.e1t':'常驻',
+  'ag.e1d':'systemd 托管，开机自启、崩溃自恢复',
+  'ag.e2t':'感知',
+  'ag.e2d':'指标、进程、端口、磁盘、服务、日志、文件',
+  'ag.e3t':'决策',
+  'ag.e3d':'自研 ReAct 循环，自己决定下一步查什么',
+  'ag.e4t':'行动',
+  'ag.e4d':'执行命令与脚本、改配置、管容器、发报告',
+  'guard.tag':'Guardrails',
+  'guard.h2':'它能动手，但你划得住线',
+  'guard.p':'每个工具按危险程度定级。只读的它自己看，破坏性的必须你点头，致命的直接禁止。无人值守时，凡需确认的一律拒绝，不猜你的意思。',
+  'guard.l0t':'只读自主',
+  'guard.l0d':'查指标、进程、端口、磁盘、日志。看什么都不会改变系统状态。',
+  'guard.l1t':'低危需确认',
+  'guard.l1d':'重启服务、清理临时文件。默认要你点一下，可按需放开。',
+  'guard.l2t':'必须确认',
+  'guard.l2d':'改配置、删数据、动网络。确认不可关闭，无人值守直接拒绝。',
+  'guard.l3t':'直接禁止',
+  'guard.l3d':'正则硬拦截致命命令（如 rm -rf /），并禁止它把自己关掉。',
+  'guard.note':'每一次调用都进审计日志：谁触发的、调了什么工具、传了什么参数、返回了什么。想复盘随时查。',
+  'faq.q6':'它真的会自己改动我的系统吗？',
+  'faq.a6':'会，但只在边界内：只读操作自主执行；低危写操作默认要你确认；改配置、删数据等高危动作必须逐次批准；致命命令执行前直接被拦截。每一次调用都写进审计日志。',
+  'faq.q7':'需要连外网吗？数据会不会传出去？',
+  'faq.a7':'除模型调用外全部本地完成：指标、审计、报告都留在主机本地磁盘。模型可以接你自建的 OpenAI 兼容接口或本地 Ollama，这种情况下数据完全不出机器。',
+  'faq.q8':'和宝塔、1Panel 比，到底差在哪？',
+  'faq.a8':'那些是「你操作的工具」，OpsMini 是「替你操作的同事」。它的页面更像观察窗和审批台——你可以什么都不点，它照样每天把活干完并留下报告。',
 },
 'en': {
-  'title':'OpsMini — AI-Powered Lightweight Server Panel','foot.faq':'FAQ',
-  'hl1.t':'Built-in AI Ops Assistant','hl1.d':'Natural-language diagnosis, log analysis, and command execution — real ops expertise in your panel','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities','install.label':'One-click install','install.copy':'Copy','install.copied':'Copied',
-  'nav.features':'Features','nav.ai':'AI Ops','nav.arch':'Architecture','nav.quickstart':'Quick Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Get Started','nav.tagline':'AI-Powered Server Operations Panel','nav.docs':'Docs',
-  'hero.badge':'AI-Powered · Single Binary · Zero Dependencies',
-  'hero.title':'One file to run a<br>whole <span class="grad">server</span>',
-  'hero.lead':'OpsMini is an AI-powered lightweight server panel. Natural-language diagnosis, Docker management, web terminal, security center and alerting — all inside a single binary of just a few dozen MB.',
-  'hero.ctaPrimary':'Quick Start →','hero.ctaGhost':'See Features',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> pure-Go driver','hero.meta3':'<b>7</b> UI languages','hero.meta4':'<b>REST</b> dual APIs',
+  'title':'OpsMini — The AI Ops Agent That Lives on Your Server','foot.faq':'FAQ',
+  'hl1.t':'An AI that actually acts','hl1.d':'Not just diagnosis — execution with risk-graded approval','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities','install.label':'One-click install','install.copy':'Copy','install.copied':'Copied',
+  'nav.features':'Tools','nav.ai':'Agent','nav.arch':'Architecture','nav.quickstart':'Quick Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Get Started','nav.tagline':'AI ops agent on your host','nav.docs':'Docs',
+  'hero.badge':'Always on · Acts on its own · Data stays local',
+  'hero.title':'The AI agent that<br><span class="grad">runs your server</span>',
+  'hero.lead':'OpsMini is a resident AI ops agent on your Linux host. It collects metrics, judges what is wrong and acts — pausing for your approval before anything risky. The whole agent is a single static binary of a few dozen MB, and all data stays on the machine.',
+  'hero.ctaPrimary':'Quick Start →','hero.ctaGhost':'See how it works',
+  'hero.meta1':'<b>Go</b> single static binary','hero.meta2':'<b>systemd</b> managed','hero.meta3':'<b>29</b> ops tools','hero.meta4':'<b>L0–L3</b> graded autonomy',
   'hero.side.dash':'📊 Dashboard','hero.side.ai':'🤖 AI Assistant','hero.side.sec':'🛡️ Security','hero.side.docker':'🐳 Containers','hero.side.term':'⌨️ Terminal','hero.side.file':'📁 Files',
   'hero.stat.mem':'Memory','hero.stat.disk':'Disk',
   'hero.aiq':'🤖 User: disk usage suddenly spiked, can you check?',
   'hero.aia':'Analyzing /var/log: journal logs are not rotated, taking up <em>6.8 GB</em>. Suggest running journalctl --vacuum-size=500M to free <em>6.3 GB</em> ✅',
   'ai.tag':'AI Agent','ai.h3':'It does not just chat — it acts','ai.p':'OpsMini ships a self-built ReAct agent. Given a question it plans, calls operations tools in sequence, and lays out every tool, argument and raw output for you. Authority is granted by risk tier: what it may do alone, it does; what needs you, waits for you.',
-  'ai.l1':'Multi-step investigation: one question, chained checks across disk, processes and logs until the cause is found','ai.l2':'33 built-in tools, tiered read-only / low-risk write / high-risk write, covering system, containers, services and security','ai.l3':'Four guard rails: L0 autonomous, L1 configurable, L2 always asks, L3 hard-blocked (e.g. rm -rf /)','ai.l4':'Scheduled inspection: put it on the task scheduler and get a single-file HTML report every morning','ai.l5':'Bidirectional MCP: call external MCP tools, and publish its own 33 tools to Claude / Cursor',
+  'ai.l1':'Multi-step investigation: one question, chained checks across disk, processes and logs until the cause is found','ai.l2':'29 built-in tools graded read-only / low-risk write / high-risk write, covering system, containers, services and security','ai.l3':'Four guard rails: L0 autonomous, L1 configurable, L2 always asks, L3 hard-blocked (e.g. rm -rf /)','ai.l4':'Scheduled inspection: put it on the task scheduler and get a single-file HTML report every morning','ai.l5':'Two-way MCP: calls external MCP tools and exposes its own 29 tools to Claude / Cursor',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'Disk alert fired — find out what is filling it up','ai.b1a':'Traced it to <span class="hl">/var/log/app.log</span>: 2.1 GB in a single file, no rotation for 30 days.<br>The read-only investigation finished on its own; truncating it needs root, so the step is parked until you approve.',
   'ai.confirm':'High-risk step parked · waiting for your approval',
   'ai.cap1.t':'Autonomous','ai.cap1.d':'No fixed workflow — it decides the next check from what it finds','ai.cap2.t':'Tiered authority','ai.cap2.d':'Destructive steps are stopped before execution and need your click','ai.cap3.t':'Scheduled runs','ai.cap3.d':'Runs unattended and archives a report you can open or download','ai.cap4.t':'MCP both ways','ai.cap4.d':'Client and server at once — interoperates with the wider AI ecosystem',
-  'feat.tag':'Features','feat.h2':'Everything for one server','feat.p':'From monitoring to security, containers to cron jobs — every high-frequency task for a single server.',
+  'feat.tag':'Tools','feat.h2':'The tools on its belt','feat.p':'These are the things it can really do. You can still click them yourself — it is just faster, and it decides where to click next.',
   'f1.t':'Realtime Monitoring','f1.d':'Live CPU / memory / disk / network metrics with ECharts visualization, persisted in SQLite for 30 days with 24h / 7d trends.','f1.tags':'<span>Dashboard</span><span>Trends</span><span>Prometheus metrics</span>',
   'f2.t':'Alerts & Notifications','f2.d':'Custom alert rules (CPU, memory, disk, port liveness), a central event center, and unread notification badges.','f2.tags':'<span>Alert rules</span><span>Events</span><span>In-app notices</span>',
   'f3.t':'Security Center','f3.d':'Security baseline scans, file integrity monitoring (FIM), threat detection, firewall port management, and login/SSH security analysis — all in one place.','f3.tags':'<span>Baseline</span><span>FIM</span><span>Firewall</span><span>Threats</span>',
@@ -800,34 +945,76 @@ const I18N = {
   'api.code.title':'curl example',
   'st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'REST APIs',
   'faq.tag':'FAQ','faq.h2':'Frequently Asked Questions',
-  'faq.q1':'How is OpsMini different from BaoTa or 1Panel?','faq.a1':'Similar positioning — all are single-server panels. OpsMini differs by: ① a built-in AI assistant for natural-language diagnosis and execution; ② an /agent/v1 machine-to-machine API plus MCP support to plug into your own automation; ③ pure Go + SQLite single-file delivery with minimal deployment and no runtime dependencies.',
+  'faq.q1':'How is OpsMini different from BaoTa or 1Panel?','faq.a1':'OpsMini is a resident AI ops agent, not a classic panel. The web UI is its window: the agent diagnoses and executes on its own, speaks MCP and a machine-to-machine API, and ships as one Go + SQLite binary.',
   'faq.q2':'Which systems / architectures are supported?','faq.a2':'Linux amd64 and arm64 (including Raspberry Pi and domestic servers). The panel is a statically compiled Go binary, so it runs as long as the kernel is not too old.',
   'faq.q3':'Where is data stored? Can it be lost?','faq.a3':'All config, users, audit and monitoring data live in a single SQLite file in the same directory (default opsmini.db) — backing up is just copying that file. Metrics are persisted for 30 days and survive restarts.',
   'faq.q4':'Does the AI feature need an external LLM?','faq.a4':'The AI assistant connects to an external LLM service; fill in your model endpoint and key under Settings to enable it. The rest of the panel works normally without it.',
   'faq.q5':'How is security ensured?','faq.a5':'JWT auth + TOTP two-factor (MFA) + RBAC role permissions + full audit logging; login security analysis detects brute force and anomalous logins. For public deployments, restrict source IPs with the firewall.',
-  'cta.h2':'Make operations simple again','cta.p':'One file, one copy, open the browser — and your server gets an AI ops expert.','cta.btn':'Download OpsMini →',
-  'foot.brand':'AI-powered lightweight server management panel','foot.c1t':'Product','foot.c1a':'Features','foot.c1b':'AI Ops','foot.c1c':'Quick Start','foot.c2t':'Developers','foot.c2a':'REST API','foot.c2b':'Architecture','foot.c2c':'FAQ','foot.c3t':'Community','foot.c3b':'Feedback','foot.bottom':'OpsMini © 2026 Beijing Suyun Technology Co., Ltd. (opsmini.com)'
+  'cta.h2':'Install it and hand over the chores','cta.p':'One command gives your server an ops agent that gets work done and still listens to you.','cta.btn':'Download OpsMini →',
+  'foot.brand':'AI ops agent on your host','foot.c1t':'Product','foot.c1a':'Tools','foot.c1b':'AI Agent','foot.c1c':'Quick Start','foot.c2t':'Developers','foot.c2a':'REST API','foot.c2b':'Architecture','foot.c2c':'FAQ','foot.c3t':'Community','foot.c3b':'Feedback','foot.bottom':'OpsMini © 2026 Beijing Suyun Technology Co., Ltd. (opsmini.com)',
+  'nav.guard':'Guardrails',
+  'flow.title':'Daily host inspection',
+  'flow.chip':'Done · 38s',
+  'flow.s1':'<b>Sense</b>48 metrics collected: CPU 12% · memory 61% · disk /var 91%',
+  'flow.s2':'<b>Judge</b>Found 6.8 GB of unrotated logs under /var/log',
+  'flow.s3':'<b>Act</b>Ran journalctl --vacuum-size=500M and freed 6.3 GB',
+  'flow.s4':'<b>Report</b>Wrote a single-file HTML report to local storage',
+  'flow.warn':'Cleaning app.log is high-risk · held for your approval',
+  'flow.foot':'5 tool calls · 0 policy violations · fully audited',
+  'vs.tag':'Positioning',
+  'vs.h2':'Not a panel — an agent inside your server',
+  'vs.p':'A panel waits for clicks; an agent acts. OpsMini lives on the host, looks around, judges and handles things with a full ops toolbox — and stops only when the decision is yours.',
+  'vs.oldT':'Before: an ops panel',
+  'vs.old':'<li>You spot the problem, you open the page</li><li>You click through menus to investigate</li><li>You decide what to change and how</li><li>Close the tab and it knows nothing</li>',
+  'vs.newT':'Now: an agent on the host',
+  'vs.new':'<li>It looks on a schedule or on an event</li><li>It digs through layers until it finds the cause</li><li>It acts, and asks you before anything risky</li><li>It keeps watching while you are away, and leaves a report</li>',
+  'ag.e1t':'Resident',
+  'ag.e1d':'systemd-managed, starts on boot, restarts on crash',
+  'ag.e2t':'Senses',
+  'ag.e2d':'metrics, processes, ports, disks, services, logs, files',
+  'ag.e3t':'Decides',
+  'ag.e3d':'its own ReAct loop chooses what to check next',
+  'ag.e4t':'Acts',
+  'ag.e4d':'runs commands and scripts, edits config, manages containers, files reports',
+  'guard.tag':'Guardrails',
+  'guard.h2':'It acts, but you draw the line',
+  'guard.p':'Every tool is graded by blast radius. Read-only work is free, destructive work needs your nod, lethal commands are blocked outright. Unattended, anything that needs confirmation is simply refused.',
+  'guard.l0t':'Read-only, autonomous',
+  'guard.l0d':'Metrics, processes, ports, disks, logs. Looking changes nothing.',
+  'guard.l1t':'Low-risk, confirm by default',
+  'guard.l1d':'Restarting services, clearing temp files. One click by default, relaxable.',
+  'guard.l2t':'Confirmation required',
+  'guard.l2d':'Config edits, data deletion, network changes. Cannot be switched off; refused when unattended.',
+  'guard.l3t':'Blocked outright',
+  'guard.l3d':'Regex blocks lethal commands such as rm -rf /, and it cannot shut itself down.',
+  'guard.note':'Every call is audited: who triggered it, which tool, which arguments, what came back.',
+  'faq.q6':'Will it really change my system on its own?',
+  'faq.a6':'Yes, but only inside the lines: read-only work runs autonomously, low-risk writes ask by default, config edits and data deletion need approval every single time, and lethal commands are blocked before execution. Every call is audited.',
+  'faq.q7':'Does it need the internet? Does data leave the host?',
+  'faq.a7':'Everything except model calls stays local: metrics, audit and reports live on the host disk. Point it at your own OpenAI-compatible endpoint or a local Ollama and no data leaves the machine at all.',
+  'faq.q8':'How is it different from BaoTa or 1Panel?',
+  'faq.a8':'Those are tools you operate; OpsMini is a colleague that operates for you. Its UI is closer to a viewing window and an approval desk — you can click nothing at all and it still finishes the work and leaves a report.',
 },
 'zh-TW': {
-  'title':'OpsMini — AI 驅動的輕量伺服器維運面板','foot.faq':'常見問題',
-  'hl1.t':'內建 AI 維運助手','hl1.d':'自然語言診斷、日誌分析、命令執行，讓維運經驗真正落地','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力','install.label':'一鍵安裝','install.copy':'複製','install.copied':'已複製',
-  'nav.features':'功能','nav.ai':'AI 維運','nav.arch':'架構','nav.quickstart':'快速開始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即體驗','nav.tagline':'AI 驅動的主機維運面板','nav.docs':'文件',
-  'hero.badge':'AI-Powered · 單一二進位交付 · 零依賴運行',
-  'hero.title':'一個檔案，<br>管好一台<span class="grad">伺服器</span>',
-  'hero.lead':'OpsMini 是 AI 驅動的輕量單機維運面板。自然語言診斷、Docker 管理、Web 終端、安全中心、監控告警——全部裝進一個不到幾十 MB 的二進位檔案。',
-  'hero.ctaPrimary':'快速開始 →','hero.ctaGhost':'了解功能',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 純 Go 驅動','hero.meta3':'<b>7</b> 種介面語言','hero.meta4':'<b>REST</b> 雙 API',
+  'title':'OpsMini — 主機上的 AI 維運 Agent','foot.faq':'常見問題',
+  'hl1.t':'會自己動手的 AI','hl1.d':'不只診斷，還能執行——依危險程度分級放權','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力','install.label':'一鍵安裝','install.copy':'複製','install.copied':'已複製',
+  'nav.features':'工具','nav.ai':'Agent','nav.arch':'架構','nav.quickstart':'快速開始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即體驗','nav.tagline':'主機上的 AI 維運 Agent','nav.docs':'文件',
+  'hero.badge':'常駐主機 · 自主執行 · 資料不出本機',
+  'hero.title':'把 AI 裝進伺服器，<br>讓它<span class="grad">自己維運自己</span>',
+  'hero.lead':'OpsMini 是一台 Linux 主機上的常駐 AI 維運 Agent。它自己採集指標、自己判斷異常、自己動手處理，遇到高風險動作會停下來等你點頭。整個 Agent 是一個數十 MB 的靜態二進位，資料全部留在本機。',
+  'hero.ctaPrimary':'快速開始 →','hero.ctaGhost':'看它怎麼幹活',
+  'hero.meta1':'<b>Go</b> 靜態單檔','hero.meta2':'<b>systemd</b> 常駐託管','hero.meta3':'<b>29</b> 個維運工具','hero.meta4':'<b>L0–L3</b> 分級放權',
   'hero.side.dash':'📊 儀表板','hero.side.ai':'🤖 AI 助手','hero.side.sec':'🛡️ 安全中心','hero.side.docker':'🐳 容器','hero.side.term':'⌨️ 終端','hero.side.file':'📁 檔案',
   'hero.stat.mem':'記憶體','hero.stat.disk':'磁碟',
   'hero.aiq':'🤖 使用者：磁碟占用突然變高，幫我看看',
   'hero.aia':'分析 /var/log：journal 日誌未輪轉，占 <em>6.8 GB</em>。建議執行 journalctl --vacuum-size=500M，預計釋放 <em>6.3 GB</em> ✅',
   'ai.tag':'AI Agent','ai.h3':'它不只是聊天，它會動手','ai.p':'OpsMini 內建自研 ReAct 智慧體。接到問題後自主規劃、連續呼叫維運工具查證，把每一步的工具、參數與原始輸出都攤在你面前；依危險程度分級授權——該自己動手的自己動手，該問你的必須先問。',
-  'ai.l1':'自主多步排查：一次提問連查磁碟、程序、日誌，直到定位到原因','ai.l2':'33 個內建工具：唯讀 / 低風險寫入 / 高風險寫入分級，涵蓋系統、容器、服務、安全','ai.l3':'四級護欄：L0 自主、L1 可設定、L2 必須確認、L3 直接禁止（如 rm -rf /）','ai.l4':'排程巡檢：排進計畫任務，每天早上自動健檢並歸檔單檔 HTML 報告','ai.l5':'雙向 MCP：能呼叫外部 MCP 工具，也能把自身 33 個工具發佈給 Claude / Cursor',
+  'ai.l1':'自主多步排查：一次提問連查磁碟、程序、日誌，直到定位到原因','ai.l2':'29 個內建工具：唯讀 / 低風險寫 / 高風險寫分級，涵蓋系統、容器、服務、安全','ai.l3':'四級護欄：L0 自主、L1 可設定、L2 必須確認、L3 直接禁止（如 rm -rf /）','ai.l4':'排程巡檢：排進計畫任務，每天早上自動健檢並歸檔單檔 HTML 報告','ai.l5':'雙向 MCP：能呼叫外部 MCP 工具，也能把自身 29 個工具發佈給 Claude / Cursor',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'磁碟告警了，幫我查一下是什麼佔的','ai.b1a':'定位到 <span class="hl">/var/log/app.log</span> 單檔 2.1 GB，30 天未輪替。<br>唯讀排查已自動完成；清空該檔需要 root 權限，已暫停等你確認。',
   'ai.confirm':'高風險操作已暫停 · 等待你核准',
   'ai.cap1.t':'自主執行','ai.cap1.d':'不預設工作流程，依現場情況決定下一步查什麼','ai.cap2.t':'分級授權','ai.cap2.d':'破壞性操作在執行前被攔截，要你點一下才放行','ai.cap3.t':'排程巡檢','ai.cap3.d':'無人值守跑完，產出可開啟可下載的 HTML 報告','ai.cap4.t':'雙向 MCP','ai.cap4.d':'既是用戶端也是伺服端，與外部 AI 生態互通',
-  'feat.tag':'Features','feat.h2':'單機維運，一站配齊','feat.p':'從監控到安全，從容器到排程任務，涵蓋一台伺服器日常維運的全部高頻場景。',
+  'feat.tag':'Tools','feat.h2':'它手上的工具','feat.p':'下面這些是它真正能用的東西。你也可以在介面裡手動點，只是它比你快——而且它能自己決定下一個點哪裡。',
   'f1.t':'即時監控與趨勢','f1.d':'CPU / 記憶體 / 磁碟 / 網路即時指標，ECharts 視覺化，資料持久化 SQLite 保留 30 天，24h / 7d 趨勢一目了然。','f1.tags':'<span>儀表板</span><span>歷史趨勢</span><span>Prometheus 指標</span>',
   'f2.t':'告警與通知','f2.d':'自訂告警規則（CPU、記憶體、磁碟、連接埠存活等），事件中心集中管理，未讀通知角標即時提醒。','f2.tags':'<span>告警規則</span><span>事件中心</span><span>站內通知</span>',
   'f3.t':'安全中心','f3.d':'安全基線掃描、檔案完整性監控（FIM）、威脅偵測、防火牆連接埠管理、登入與 SSH 安全分析，主機加固一個入口搞定。','f3.tags':'<span>基線掃描</span><span>FIM</span><span>防火牆</span><span>威脅偵測</span>',
@@ -851,34 +1038,76 @@ const I18N = {
   'api.code.title':'curl 範例',
   'st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'套 REST API',
   'faq.tag':'FAQ','faq.h2':'常見問題',
-  'faq.q1':'OpsMini 和寶塔、1Panel 有什麼區別？','faq.a1':'定位類似，都是單機維運面板。OpsMini 的差異點在於：① 內建 AI 維運助手，自然語言即可診斷和執行；② 提供 /agent/v1 機器對機器 API 與 MCP 支援，便於接入你自己的自動化體系；③ 純 Go + SQLite 單檔案交付，極簡部署、無執行時依賴。',
+  'faq.q1':'OpsMini 和寶塔、1Panel 有什麼區別？','faq.a1':'OpsMini 是常駐主機的 AI 維運 Agent，不是傳統面板。頁面只是它的觀察窗：它能自主診斷並執行，提供 MCP 與機器對機器介面，純 Go + SQLite 單檔交付。',
   'faq.q2':'支援哪些系統 / 架構？','faq.a2':'Linux amd64 與 arm64（含樹莓派、國產化伺服器）。面板本身是靜態編譯的 Go 二進位，只要核心版本不是特別古老即可執行。',
   'faq.q3':'資料存在哪裡？會丟嗎？','faq.a3':'所有配置、使用者、稽核、監控資料都存於同目錄下的 SQLite 單檔案（預設 opsmini.db），備份就是複製這個檔案。監控指標持久化保留 30 天，重啟不丟失。',
   'faq.q4':'AI 功能需要外接大模型嗎？','faq.a4':'AI 助手對接外部大模型服務，在「設定」中填入你的模型地址與金鑰即可啟用；不配置也不影響面板其他功能正常使用。',
   'faq.q5':'如何保證安全？','faq.a5':'JWT 鑑權 + TOTP 兩步驗證（MFA）+ RBAC 角色權限 + 全量操作稽核日誌；登入安全分析會識別暴力破解與異常登入。建議公網部署時配合防火牆限制來源 IP。',
-  'cta.h2':'讓維運回歸簡單','cta.p':'一個檔案、一次拷貝、開啟瀏覽器，你的伺服器就有了 AI 維運專家。','cta.btn':'下載 OpsMini →',
-  'foot.brand':'AI 驅動的輕量伺服器維運面板','foot.c1t':'產品','foot.c1a':'功能特性','foot.c1b':'AI 維運','foot.c1c':'快速開始','foot.c2t':'開發者','foot.c2a':'REST API','foot.c2b':'架構說明','foot.c2c':'FAQ','foot.c3t':'社群','foot.c3b':'問題回報','foot.bottom':'OpsMini © 2026 北京速雲科技有限公司（opsmini.com）'
+  'cta.h2':'裝上去，剩下的交給它','cta.p':'一條指令，你的伺服器上就多了一個會自己幹活、也聽你話的維運 Agent。','cta.btn':'下載 OpsMini →',
+  'foot.brand':'主機上的 AI 維運 Agent','foot.c1t':'產品','foot.c1a':'工具清單','foot.c1b':'AI Agent','foot.c1c':'快速開始','foot.c2t':'開發者','foot.c2a':'REST API','foot.c2b':'架構說明','foot.c2c':'FAQ','foot.c3t':'社群','foot.c3b':'問題回報','foot.bottom':'OpsMini © 2026 北京速雲科技有限公司（opsmini.com）',
+  'nav.guard':'邊界',
+  'flow.title':'每日主機巡檢',
+  'flow.chip':'已完成 · 38s',
+  'flow.s1':'<b>感知</b>採集 48 項指標：CPU 12% · 記憶體 61% · 磁碟 /var 91%',
+  'flow.s2':'<b>判斷</b>定位到 /var/log 有 6.8 GB 日誌未輪替',
+  'flow.s3':'<b>行動</b>執行 journalctl --vacuum-size=500M，釋放 6.3 GB',
+  'flow.s4':'<b>報告</b>產生單檔 HTML，歸檔到本機資料目錄',
+  'flow.warn':'清理 app.log 屬高風險 · 已掛起等你批准',
+  'flow.foot':'5 次工具呼叫 · 0 次越權 · 全程可稽核',
+  'vs.tag':'Positioning',
+  'vs.h2':'它不是面板，是裝在你伺服器上的 Agent',
+  'vs.p':'面板等你來點，Agent 自己動手。OpsMini 常駐在主機上，用一整套維運工具自行環視、判斷、處理，只在需要你拍板時停下。',
+  'vs.oldT':'以前：維運面板',
+  'vs.old':'<li>你發現問題，你打開頁面</li><li>你逐項點開選單去查</li><li>你決定改什麼、怎麼改</li><li>關掉頁面後，它什麼也不知道</li>',
+  'vs.newT':'現在：主機上的 Agent',
+  'vs.new':'<li>它自己定時、或依事件去看</li><li>它自己連著查幾層，直到定位到原因</li><li>它自己動手，高風險的先問你</li><li>你不在，它也在盯，還留下報告</li>',
+  'ag.e1t':'常駐',
+  'ag.e1d':'systemd 託管，開機自啟、崩潰自回復',
+  'ag.e2t':'感知',
+  'ag.e2d':'指標、程序、連接埠、磁碟、服務、日誌、檔案',
+  'ag.e3t':'決策',
+  'ag.e3d':'自研 ReAct 迴圈，自己決定下一步查什麼',
+  'ag.e4t':'行動',
+  'ag.e4d':'執行指令與腳本、改設定、管容器、發報告',
+  'guard.tag':'Guardrails',
+  'guard.h2':'它能動手，但你劃得住線',
+  'guard.p':'每個工具依危險程度定級。唯讀的它自己看，破壞性的必須你點頭，致命的直接禁止。無人值守時，凡需確認的一律拒絕，不猜你的意思。',
+  'guard.l0t':'唯讀自主',
+  'guard.l0d':'查指標、程序、連接埠、磁碟、日誌。看什麼都不會改變系統狀態。',
+  'guard.l1t':'低風險需確認',
+  'guard.l1d':'重啟服務、清理暫存檔。預設要你點一下，可依需放開。',
+  'guard.l2t':'必須確認',
+  'guard.l2d':'改設定、刪資料、動網路。確認不可關閉，無人值守直接拒絕。',
+  'guard.l3t':'直接禁止',
+  'guard.l3d':'以正規表達式硬攔致命指令（如 rm -rf /），並禁止它把自己關掉。',
+  'guard.note':'每一次呼叫都進稽核日誌：誰觸發的、呼叫了什麼工具、帶了什麼參數、回傳了什麼。想回溯隨時查。',
+  'faq.q6':'它真的會自己改動我的系統嗎？',
+  'faq.a6':'會，但只在邊界內：唯讀操作自主執行；低風險寫操作預設要你確認；改設定、刪資料等高風險動作必須逐次批准；致命指令執行前直接被攔截。每一次呼叫都寫進稽核日誌。',
+  'faq.q7':'需要連外網嗎？資料會不會傳出去？',
+  'faq.a7':'除模型呼叫外全部本地完成：指標、稽核、報告都留在主機本地磁碟。模型可以接你自建的 OpenAI 相容介面或本地 Ollama，這種情況下資料完全不出機器。',
+  'faq.q8':'和寶塔、1Panel 比，到底差在哪？',
+  'faq.a8':'那些是「你操作的工具」，OpsMini 是「替你操作的同事」。它的頁面更像觀察窗和審批台——你可以什麼都不點，它照樣每天把活幹完並留下報告。',
 },
 'ja': {
-  'title':'OpsMini — AI 駆動の軽量サーバー管理パネル','foot.faq':'よくある質問',
-  'hl1.t':'AI 運用アシスタント内蔵','hl1.d':'自然言語での診断・ログ分析・コマンド実行、運用ノウハウをパネルに','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張','install.label':'ワンクリックインストール','install.copy':'コピー','install.copied':'コピーしました',
-  'nav.features':'機能','nav.ai':'AI 運用','nav.arch':'アーキテクチャ','nav.quickstart':'クイックスタート','nav.api':'API','nav.faq':'FAQ','nav.cta':'はじめる','nav.tagline':'AI駆動のサーバー運用パネル','nav.docs':'ドキュメント',
-  'hero.badge':'AI-Powered · 単一バイナリ · 依存ゼロ',
-  'hero.title':'1つのファイルで、<br>1台をまるごと<span class="grad">管理</span>',
-  'hero.lead':'OpsMini は AI 駆動の軽量サーバー管理パネル。自然言語による診断、Docker 管理、Web ターミナル、セキュリティセンター、アラートまで——数十 MB の単一バイナリにすべて内包。',
-  'hero.ctaPrimary':'クイックスタート →','hero.ctaGhost':'機能を見る',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 純 Go ドライバ','hero.meta3':'<b>7</b> 言語対応','hero.meta4':'<b>REST</b> 二重 API',
+  'title':'OpsMini — サーバー上で動く AI 運用エージェント','foot.faq':'よくある質問',
+  'hl1.t':'自分で動く AI','hl1.d':'診断だけでなく実行まで——危険度に応じて権限を段階化','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張','install.label':'ワンクリックインストール','install.copy':'コピー','install.copied':'コピーしました',
+  'nav.features':'ツール','nav.ai':'Agent','nav.arch':'アーキテクチャ','nav.quickstart':'導入','nav.api':'API','nav.faq':'FAQ','nav.cta':'はじめる','nav.tagline':'ホスト上の AI 運用エージェント','nav.docs':'ドキュメント',
+  'hero.badge':'常駐 · 自律実行 · データは端末内',
+  'hero.title':'AI が自分で<br><span class="grad">サーバーを運用する</span>',
+  'hero.lead':'OpsMini は Linux ホストに常駐する AI 運用エージェントです。指標を集め、異常を判断し、自分で対処します。危険な操作の前には必ず止まって確認を求めます。数十 MB の静的バイナリ 1 つで、データはすべて端末内に残ります。',
+  'hero.ctaPrimary':'クイックスタート →','hero.ctaGhost':'動きを見る',
+  'hero.meta1':'<b>Go</b> 静的単一バイナリ','hero.meta2':'<b>systemd</b> 常駐管理','hero.meta3':'<b>29</b> 個の運用ツール','hero.meta4':'<b>L0–L3</b> 段階的な権限',
   'hero.side.dash':'📊 ダッシュボード','hero.side.ai':'🤖 AI アシスタント','hero.side.sec':'🛡️ セキュリティ','hero.side.docker':'🐳 コンテナ','hero.side.term':'⌨️ ターミナル','hero.side.file':'📁 ファイル',
   'hero.stat.mem':'メモリ','hero.stat.disk':'ディスク',
   'hero.aiq':'🤖 ユーザー：ディスク使用量が急に増えました。調べてください',
   'hero.aia':'/var/log を分析：journal ログがローテーションされておらず <em>6.8 GB</em> を占有。journalctl --vacuum-size=500M の実行を推奨、<em>6.3 GB</em> 解放見込み ✅',
   'ai.tag':'AI Agent','ai.h3':'会話だけでなく、実際に手を動かします','ai.p':'OpsMini には自作の ReAct エージェントを内蔵しています。質問を受けると自律的に計画を立て、運用ツールを連続して呼び出して裏付けを取り、各ステップのツール・引数・生の出力をすべて提示します。権限は危険度で段階的に付与し、自分で実行してよいものは実行し、人に確認すべきものは必ず確認します。',
-  'ai.l1':'自律的な多段調査：1 回の質問でディスク・プロセス・ログを連続して確認し、原因まで追跡','ai.l2':'組み込みツール 33 個：読み取り専用 / 低リスク書き込み / 高リスク書き込みの段階分け。システム・コンテナ・サービス・セキュリティを網羅','ai.l3':'4 段階のガードレール：L0 自律、L1 設定可、L2 必ず確認、L3 は強制禁止（rm -rf / など）','ai.l4':'定時点検：スケジュールタスクに登録すれば、毎朝自動で点検し単一ファイルの HTML レポートを保存','ai.l5':'双方向 MCP：外部 MCP ツールを呼び出せ、自身の 33 ツールを Claude / Cursor へ公開も可能',
+  'ai.l1':'自律的な多段調査：1 回の質問でディスク・プロセス・ログを連続して確認し、原因まで追跡','ai.l2':'内蔵ツール 29 個：読み取り専用 / 低リスク書き込み / 高リスク書き込みに分類、システム・コンテナ・サービス・セキュリティを網羅','ai.l3':'4 段階のガードレール：L0 自律、L1 設定可、L2 必ず確認、L3 は強制禁止（rm -rf / など）','ai.l4':'定時点検：スケジュールタスクに登録すれば、毎朝自動で点検し単一ファイルの HTML レポートを保存','ai.l5':'双方向 MCP：外部 MCP ツールを呼び出し、自身の 29 ツールを Claude / Cursor に公開',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'ディスク警告が出ました。何が圧迫しているか調べてください','ai.b1a':'<span class="hl">/var/log/app.log</span> が単一ファイルで 2.1 GB、30 日間ローテーションされていないことが判明しました。<br>読み取り専用の調査は自動で完了済み。ファイルのクリアには root 権限が必要なため、承認待ちで停止しています。',
   'ai.confirm':'高リスク操作を保留中 · 承認をお待ちしています',
   'ai.cap1.t':'自律実行','ai.cap1.d':'ワークフローを固定せず、その場の状況から次の確認を決める','ai.cap2.t':'段階的な権限','ai.cap2.d':'破壊的な操作は実行前に止められ、あなたの承認が必要','ai.cap3.t':'定時点検','ai.cap3.d':'無人で実行し、開くことも保存もできる HTML レポートを残す','ai.cap4.t':'双方向 MCP','ai.cap4.d':'クライアントでもサーバーでもあり、外部の AI 生態系とつながる',
-  'feat.tag':'Features','feat.h2':'1台のサーバーに必要なすべて','feat.p':'監視からセキュリティ、コンテナから cron まで、単一サーバー運用の高頻度タスクをすべてカバー。',
+  'feat.tag':'Tools','feat.h2':'手元にあるツール','feat.p':'実際に使えるものを並べています。手動で操作してもかまいませんが、次の一手を自分で決められる分、エージェントのほうが速いです。',
   'f1.t':'リアルタイム監視','f1.d':'CPU / メモリ / ディスク / ネットワークのリアルタイム指標を ECharts で可視化。SQLite に 30 日間保存され、24h / 7d のトレンドも一目瞭然。','f1.tags':'<span>ダッシュボード</span><span>トレンド</span><span>Prometheus 指標</span>',
   'f2.t':'アラートと通知','f2.d':'カスタムアラートルール（CPU・メモリ・ディスク・ポート死活など）、イベントセンター、未読通知バッジでリアルタイムに通知。','f2.tags':'<span>アラートルール</span><span>イベント</span><span>通知</span>',
   'f3.t':'セキュリティセンター','f3.d':'セキュリティベースラインスキャン、ファイル整合性監視（FIM）、脅威検出、ファイアウォールのポート管理、ログイン・SSH セキュリティ分析を一元化。','f3.tags':'<span>ベースライン</span><span>FIM</span><span>ファイアウォール</span><span>脅威検出</span>',
@@ -902,34 +1131,76 @@ const I18N = {
   'api.code.title':'curl の例',
   'st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'REST API',
   'faq.tag':'FAQ','faq.h2':'よくある質問',
-  'faq.q1':'OpsMini と宝塔・1Panel の違いは？','faq.a1':'位置づけは似ており、いずれも単一サーバー管理パネルです。OpsMini の違いは：① AI アシスタント内蔵で自然言語による診断と実行が可能；② /agent/v1 のマシン間 API と MCP 対応で自社の自動化に組み込み可能；③ 純 Go + SQLite の単一ファイル配布で、最小構成・ランタイム依存なし。',
+  'faq.q1':'OpsMini と宝塔・1Panel の違いは？','faq.a1':'OpsMini は常駐型の AI 運用エージェントであり、従来のパネルではありません。画面は観測窓です。自律的に診断・実行し、MCP とマシン間 API を備え、Go + SQLite の単一バイナリで動作します。',
   'faq.q2':'対応システム / アーキテクチャは？','faq.a2':'Linux amd64 と arm64（Raspberry Pi や国産サーバーを含む）。静的コンパイルされた Go バイナリなので、カーネルが古すぎなければ動作します。',
   'faq.q3':'データはどこに保存されますか？','faq.a3':'設定・ユーザー・監査・監視データはすべて同ディレクトリの SQLite 単一ファイル（デフォルト opsmini.db）に保存され、バックアップはそのファイルをコピーするだけ。監視指標は 30 日間保持され、再起動しても失われません。',
   'faq.q4':'AI 機能に外部 LLM は必要ですか？','faq.a4':'AI アシスタントは外部 LLM サービスに接続します。「設定」でモデルのエンドポイントとキーを入力すれば有効化できます。未設定でもパネルの他の機能は正常に動作します。',
   'faq.q5':'セキュリティはどう担保されますか？','faq.a5':'JWT 認証 + TOTP 二段階認証（MFA）+ RBAC 権限 + 全操作の監査ログ。ログインセキュリティ分析がブルートフォースや異常ログインを検出します。公開デプロイ時はファイアウォールで送信元 IP を制限することを推奨します。',
-  'cta.h2':'運用をシンプルに','cta.p':'ファイル1つ、コピー1回、ブラウザを開くだけ。あなたのサーバーに AI 運用エキスパートが加わります。','cta.btn':'OpsMini をダウンロード →',
-  'foot.brand':'AI 駆動の軽量サーバー管理パネル','foot.c1t':'製品','foot.c1a':'機能','foot.c1b':'AI 運用','foot.c1c':'クイックスタート','foot.c2t':'開発者','foot.c2a':'REST API','foot.c2b':'アーキテクチャ','foot.c2c':'FAQ','foot.c3t':'コミュニティ','foot.c3b':'フィードバック','foot.bottom':'OpsMini © 2026 北京速雲科技有限公司（opsmini.com）'
+  'cta.h2':'入れてしまえば、あとは任せられる','cta.p':'コマンド 1 行で、サーバーに自分で働き、指示も聞く運用エージェントが加わります。','cta.btn':'OpsMini をダウンロード →',
+  'foot.brand':'ホスト上の AI 運用エージェント','foot.c1t':'製品','foot.c1a':'ツール','foot.c1b':'AI Agent','foot.c1c':'クイックスタート','foot.c2t':'開発者','foot.c2a':'REST API','foot.c2b':'アーキテクチャ','foot.c2c':'FAQ','foot.c3t':'コミュニティ','foot.c3b':'フィードバック','foot.bottom':'OpsMini © 2026 北京速雲科技有限公司（opsmini.com）',
+  'nav.guard':'ガード',
+  'flow.title':'毎日のホスト点検',
+  'flow.chip':'完了 · 38s',
+  'flow.s1':'<b>感知</b>48 項目の指標を収集：CPU 12% · メモリ 61% · ディスク /var 91%',
+  'flow.s2':'<b>判断</b>/var/log に未ローテートのログ 6.8 GB を検出',
+  'flow.s3':'<b>行動</b>journalctl --vacuum-size=500M を実行し 6.3 GB を解放',
+  'flow.s4':'<b>報告</b>単一ファイル HTML を生成しローカルに保存',
+  'flow.warn':'app.log の削除は高リスク · 承認待ちで停止中',
+  'flow.foot':'ツール呼び出し 5 回 · 違反 0 回 · すべて監査対象',
+  'vs.tag':'Positioning',
+  'vs.h2':'パネルではなく、サーバーに住むエージェント',
+  'vs.p':'パネルはクリックを待ち、エージェントは動きます。OpsMini はホストに常駐し、運用ツール一式で見て、判断し、処理します。決めるべきことがあるときだけ止まります。',
+  'vs.oldT':'これまで：運用パネル',
+  'vs.old':'<li>問題を見つけるのはあなた</li><li>メニューを開いて調べるのもあなた</li><li>何をどう変えるか決めるのもあなた</li><li>画面を閉じれば何も覚えていない</li>',
+  'vs.newT':'これから：ホスト上のエージェント',
+  'vs.new':'<li>定時またはイベントで自分から見に行く</li><li>原因にたどり着くまで何段も調べる</li><li>自分で動き、危険な操作は先に確認する</li><li>不在でも見張り、レポートを残す</li>',
+  'ag.e1t':'常駐',
+  'ag.e1d':'systemd 管理、起動時に自動起動、異常時は自動再起動',
+  'ag.e2t':'感知',
+  'ag.e2d':'指標、プロセス、ポート、ディスク、サービス、ログ、ファイル',
+  'ag.e3t':'判断',
+  'ag.e3d':'独自 ReAct ループが次の一手を決める',
+  'ag.e4t':'行動',
+  'ag.e4d':'コマンドとスクリプト実行、設定変更、コンテナ操作、レポート出力',
+  'guard.tag':'Guardrails',
+  'guard.h2':'動くが、線はあなたが引く',
+  'guard.p':'ツールごとに危険度を設定しています。読み取りは自由、破壊的な操作は承認制、致命的なものは禁止。無人実行時は、承認が必要な操作をすべて拒否します。',
+  'guard.l0t':'読み取りは自律',
+  'guard.l0d':'指標、プロセス、ポート、ディスク、ログの確認。見るだけでは状態は変わりません。',
+  'guard.l1t':'低リスクは確認',
+  'guard.l1d':'サービスの再起動、一時ファイルの削除。既定は 1 クリック、必要なら自動許可も可。',
+  'guard.l2t':'承認必須',
+  'guard.l2d':'設定変更、データ削除、ネットワーク操作。確認は外せず、無人時は拒否します。',
+  'guard.l3t':'完全禁止',
+  'guard.l3d':'rm -rf / などの致命的コマンドを正規表現で遮断し、自身の停止も禁止します。',
+  'guard.note':'すべての呼び出しを監査ログに記録します。誰が、どのツールを、どの引数で、何が返ったかまで残ります。',
+  'faq.q6':'本当に勝手にシステムを変更するのですか？',
+  'faq.a6':'はい、ただし線の内側だけです。読み取りは自律実行、低リスク書き込みは既定で確認、設定変更やデータ削除は毎回承認、致命的コマンドは実行前に遮断されます。すべて監査ログに残ります。',
+  'faq.q7':'外部ネットワークは必要ですか？データは外に出ますか？',
+  'faq.a7':'モデル呼び出しを除きすべてローカルで完結します。指標・監査・レポートはホストのディスクに残ります。自前の OpenAI 互換 API やローカル Ollama を使えば、データは一切外に出ません。',
+  'faq.q8':'宝塔や 1Panel との違いは何ですか？',
+  'faq.a8':'それらは「あなたが操作する道具」、OpsMini は「代わりに操作する同僚」です。画面は観測窓と承認台に近く、何もクリックしなくても毎日の作業を終えてレポートを残します。',
 },
 'ko': {
-  'title':'OpsMini — AI 기반 경량 서버 관리 패널','foot.faq':'FAQ',
-  'hl1.t':'내장 AI 운영 어시스턴트','hl1.d':'자연어 진단·로그 분석·명령 실행으로 운영 경험을 패널에 담다','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장','install.label':'원클릭 설치','install.copy':'복사','install.copied':'복사됨',
-  'nav.features':'기능','nav.ai':'AI 운영','nav.arch':'아키텍처','nav.quickstart':'빠른 시작','nav.api':'API','nav.faq':'FAQ','nav.cta':'시작하기','nav.tagline':'AI 기반 서버 운영 패널','nav.docs':'문서',
-  'hero.badge':'AI 기반 · 단일 바이너리 · 의존성 없음',
-  'hero.title':'파일 하나로<br>서버 한 대를<span class="grad">완벽 관리</span>',
-  'hero.lead':'OpsMini 는 AI 기반의 경량 서버 관리 패널입니다. 자연어 진단, Docker 관리, 웹 터미널, 보안 센터, 알림까지——수십 MB 의 단일 바이너리에 모두 담았습니다.',
-  'hero.ctaPrimary':'빠른 시작 →','hero.ctaGhost':'기능 보기',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> 순수 Go 드라이버','hero.meta3':'<b>7</b>개 UI 언어','hero.meta4':'<b>REST</b> 이중 API',
+  'title':'OpsMini — 서버 위에서 사는 AI 운영 에이전트','foot.faq':'FAQ',
+  'hl1.t':'직접 움직이는 AI','hl1.d':'진단을 넘어 실행까지 — 위험도에 따른 단계적 권한','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장','install.label':'원클릭 설치','install.copy':'복사','install.copied':'복사됨',
+  'nav.features':'도구','nav.ai':'Agent','nav.arch':'아키텍처','nav.quickstart':'빠른 시작','nav.api':'API','nav.faq':'FAQ','nav.cta':'시작하기','nav.tagline':'호스트의 AI 운영 에이전트','nav.docs':'문서',
+  'hero.badge':'상주 실행 · 자율 판단 · 데이터는 로컬',
+  'hero.title':'서버에 AI를 심고<br><span class="grad">스스로 운영하게</span>',
+  'hero.lead':'OpsMini 는 Linux 호스트에 상주하는 AI 운영 에이전트입니다. 지표를 모으고, 이상을 판단하고, 직접 처리합니다. 위험한 작업 앞에서는 반드시 멈춰 승인을 요청합니다. 수십 MB 단일 정적 바이너리 하나로 동작하며 데이터는 모두 로컬에 남습니다.',
+  'hero.ctaPrimary':'빠른 시작 →','hero.ctaGhost':'동작 방식 보기',
+  'hero.meta1':'<b>Go</b> 단일 정적 바이너리','hero.meta2':'<b>systemd</b> 상주 관리','hero.meta3':'<b>29</b>개 운영 도구','hero.meta4':'<b>L0–L3</b> 단계적 권한',
   'hero.side.dash':'📊 대시보드','hero.side.ai':'🤖 AI 어시스턴트','hero.side.sec':'🛡️ 보안 센터','hero.side.docker':'🐳 컨테이너','hero.side.term':'⌨️ 터미널','hero.side.file':'📁 파일',
   'hero.stat.mem':'메모리','hero.stat.disk':'디스크',
   'hero.aiq':'🤖 사용자: 디스크 사용량이 갑자기 늘었어요. 확인해 주세요',
   'hero.aia':'/var/log 분석: journal 로그가 로테이션되지 않아 <em>6.8 GB</em> 차지. journalctl --vacuum-size=500M 실행 권장, <em>6.3 GB</em> 확보 예상 ✅',
   'ai.tag':'AI Agent','ai.h3':'대화만 하지 않고 직접 실행합니다','ai.p':'OpsMini 에는 자체 개발한 ReAct 에이전트가 내장되어 있습니다. 질문을 받으면 스스로 계획을 세우고 운영 도구를 연속으로 호출해 근거를 확인하며, 각 단계의 도구·인수·원본 출력을 모두 보여 줍니다. 권한은 위험도에 따라 등급을 나누어, 스스로 해도 되는 일은 실행하고 사람이 확인해야 할 일은 반드시 확인합니다.',
-  'ai.l1':'자율 다단계 조사: 한 번의 질문으로 디스크·프로세스·로그를 연속 확인해 원인까지 추적','ai.l2':'내장 도구 33개: 읽기 전용 / 저위험 쓰기 / 고위험 쓰기로 등급화, 시스템·컨테이너·서비스·보안 포함','ai.l3':'4단계 가드레일: L0 자율, L1 설정 가능, L2 반드시 확인, L3 강제 차단(rm -rf / 등)','ai.l4':'정기 점검: 예약 작업에 등록하면 매일 아침 자동 점검 후 단일 HTML 보고서 보관','ai.l5':'양방향 MCP: 외부 MCP 도구를 호출하고 자체 33개 도구를 Claude / Cursor 에 공개',
+  'ai.l1':'자율 다단계 조사: 한 번의 질문으로 디스크·프로세스·로그를 연속 확인해 원인까지 추적','ai.l2':'내장 도구 29개: 읽기 전용 / 저위험 쓰기 / 고위험 쓰기로 등급화, 시스템·컨테이너·서비스·보안 포함','ai.l3':'4단계 가드레일: L0 자율, L1 설정 가능, L2 반드시 확인, L3 강제 차단(rm -rf / 등)','ai.l4':'정기 점검: 예약 작업에 등록하면 매일 아침 자동 점검 후 단일 HTML 보고서 보관','ai.l5':'양방향 MCP: 외부 MCP 도구를 호출하고 자체 29개 도구를 Claude / Cursor 에 공개',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'디스크 경고가 떴어요. 무엇이 차지하는지 확인해 주세요','ai.b1a':'<span class="hl">/var/log/app.log</span> 단일 파일이 2.1 GB이며 30일간 로테이션되지 않은 것을 확인했습니다.<br>읽기 전용 조사는 자동으로 완료했고, 파일 비우기는 root 권한이 필요해 승인 대기로 멈춰 있습니다.',
   'ai.confirm':'고위험 작업 보류 중 · 승인을 기다립니다',
   'ai.cap1.t':'자율 실행','ai.cap1.d':'워크플로를 고정하지 않고 상황에 따라 다음 확인을 정합니다','ai.cap2.t':'단계별 권한','ai.cap2.d':'파괴적 작업은 실행 전에 차단되며 승인이 필요합니다','ai.cap3.t':'정기 점검','ai.cap3.d':'무인으로 실행하고 열거나 내려받을 수 있는 HTML 보고서를 남깁니다','ai.cap4.t':'양방향 MCP','ai.cap4.d':'클라이언트이자 서버로, 외부 AI 생태계와 연결됩니다',
-  'feat.tag':'Features','feat.h2':'서버 한 대에 필요한 모든 것','feat.p':'모니터링부터 보안, 컨테이너부터 크론까지 단일 서버 운영의 모든 고빈도 작업을 커버합니다.',
+  'feat.tag':'Tools','feat.h2':'에이전트의 도구함','feat.p':'실제로 쓸 수 있는 것들입니다. 직접 눌러도 되지만, 다음에 무엇을 볼지 스스로 정하는 에이전트가 더 빠릅니다.',
   'f1.t':'실시간 모니터링','f1.d':'CPU / 메모리 / 디스크 / 네트워크 실시간 지표를 ECharts 로 시각화하고 SQLite 에 30일 보관하여 24h / 7d 추이를 한눈에 확인합니다.','f1.tags':'<span>대시보드</span><span>추이</span><span>Prometheus 지표</span>',
   'f2.t':'알림','f2.d':'사용자 정의 알림 규칙(CPU·메모리·디스크·포트 생존 등), 이벤트 센터, 읽지 않은 알림 배지로 실시간 안내합니다.','f2.tags':'<span>알림 규칙</span><span>이벤트</span><span>알림</span>',
   'f3.t':'보안 센터','f3.d':'보안 베이스라인 스캔, 파일 무결성 모니터링(FIM), 위협 탐지, 방화벽 포트 관리, 로그인·SSH 보안 분석을 한곳에서 처리합니다.','f3.tags':'<span>베이스라인</span><span>FIM</span><span>방화벽</span><span>위협 탐지</span>',
@@ -953,34 +1224,76 @@ const I18N = {
   'api.code.title':'curl 예시',
   'st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'REST API',
   'faq.tag':'FAQ','faq.h2':'자주 묻는 질문',
-  'faq.q1':'OpsMini 와 바오타·1Panel 의 차이는?','faq.a1':'포지셔닝은 유사하며 모두 단일 서버 패널입니다. OpsMini 의 차별점은: ① AI 어시스턴트 내장으로 자연어 진단과 실행이 가능; ② /agent/v1 머신 간 API 와 MCP 지원으로 자체 자동화 체계에 연동 가능; ③ 순수 Go + SQLite 단일 파일 배포로 최소 구성·런타임 의존성 없음.',
+  'faq.q1':'OpsMini 와 바오타·1Panel 의 차이는?','faq.a1':'OpsMini 는 상주형 AI 운영 에이전트이며 전통적인 패널이 아닙니다. 화면은 관측 창일 뿐이며, 스스로 진단하고 실행하고 MCP 와 머신 간 API 를 제공합니다. Go + SQLite 단일 바이너리로 배포됩니다.',
   'faq.q2':'어떤 시스템 / 아키텍처를 지원하나요?','faq.a2':'Linux amd64 와 arm64(라즈베리파이, 국산 서버 포함). 패널은 정적 컴파일된 Go 바이너리라 커널이 너무 오래되지 않았다면 실행됩니다.',
   'faq.q3':'데이터는 어디에 저장되나요?','faq.a3':'설정·사용자·감사·모니터링 데이터는 모두 같은 디렉터리의 SQLite 단일 파일(기본 opsmini.db)에 저장되며, 백업은 그 파일을 복사하는 것뿐입니다. 모니터링 지표는 30일 보관되고 재시작해도 유지됩니다.',
   'faq.q4':'AI 기능에 외부 LLM 이 필요한가요?','faq.a4':'AI 어시스턴트는 외부 LLM 서비스에 연결됩니다. 설정에서 모델 엔드포인트와 키를 입력하면 활성화됩니다. 미설정해도 패널의 다른 기능은 정상 동작합니다.',
   'faq.q5':'보안은 어떻게 보장되나요?','faq.a5':'JWT 인증 + TOTP 2단계 인증(MFA) + RBAC 권한 + 전체 감사 로그. 로그인 보안 분석이 무차별 대입과 비정상 로그인을 탐지합니다. 공개 배포 시 방화벽으로 출발지 IP 를 제한하는 것을 권장합니다.',
-  'cta.h2':'운영을 다시 단순하게','cta.p':'파일 하나, 복사 한 번, 브라우저를 열면 서버에 AI 운영 전문가가 생깁니다.','cta.btn':'OpsMini 다운로드 →',
-  'foot.brand':'AI 기반 경량 서버 관리 패널','foot.c1t':'제품','foot.c1a':'기능','foot.c1b':'AI 운영','foot.c1c':'빠른 시작','foot.c2t':'개발자','foot.c2a':'REST API','foot.c2b':'아키텍처','foot.c2c':'FAQ','foot.c3t':'커뮤니티','foot.c3b':'피드백','foot.bottom':'OpsMini © 2026 베이징 쑤윈 테크놀로지 (opsmini.com)'
+  'cta.h2':'설치하고, 나머지는 맡기세요','cta.p':'명령 한 줄이면 서버에 스스로 일하고 지시도 따르는 운영 에이전트가 생깁니다.','cta.btn':'OpsMini 다운로드 →',
+  'foot.brand':'호스트의 AI 운영 에이전트','foot.c1t':'제품','foot.c1a':'도구','foot.c1b':'AI Agent','foot.c1c':'빠른 시작','foot.c2t':'개발자','foot.c2a':'REST API','foot.c2b':'아키텍처','foot.c2c':'FAQ','foot.c3t':'커뮤니티','foot.c3b':'피드백','foot.bottom':'OpsMini © 2026 베이징 쑤윈 테크놀로지 (opsmini.com)',
+  'nav.guard':'가드레일',
+  'flow.title':'매일 호스트 점검',
+  'flow.chip':'완료 · 38s',
+  'flow.s1':'<b>감지</b>지표 48개 수집: CPU 12% · 메모리 61% · 디스크 /var 91%',
+  'flow.s2':'<b>판단</b>/var/log 에 회전되지 않은 로그 6.8 GB 발견',
+  'flow.s3':'<b>조치</b>journalctl --vacuum-size=500M 실행, 6.3 GB 확보',
+  'flow.s4':'<b>보고</b>단일 파일 HTML 생성 후 로컬에 보관',
+  'flow.warn':'app.log 정리는 고위험 · 승인 대기 중',
+  'flow.foot':'도구 호출 5회 · 위반 0회 · 전 과정 감사',
+  'vs.tag':'Positioning',
+  'vs.h2':'패널이 아니라 서버 안의 에이전트',
+  'vs.p':'패널은 클릭을 기다리고, 에이전트는 움직입니다. OpsMini 는 호스트에 상주하며 운영 도구 일체로 살피고 판단하고 처리합니다. 결정이 필요한 순간에만 멈춥니다.',
+  'vs.oldT':'이전: 운영 패널',
+  'vs.old':'<li>문제를 찾는 것도 직접</li><li>메뉴를 열어 확인하는 것도 직접</li><li>무엇을 어떻게 바꿀지 결정도 직접</li><li>화면을 닫으면 아무것도 기억하지 못함</li>',
+  'vs.newT':'이제: 호스트의 에이전트',
+  'vs.new':'<li>정해진 시간이나 이벤트에 스스로 확인</li><li>원인을 찾을 때까지 여러 단계를 파고듦</li><li>직접 처리하고, 위험한 일은 먼저 물어봄</li><li>자리에 없어도 지켜보고 보고서를 남김</li>',
+  'ag.e1t':'상주',
+  'ag.e1d':'systemd 관리, 부팅 시 자동 시작, 비정상 종료 시 재시작',
+  'ag.e2t':'감지',
+  'ag.e2d':'지표, 프로세스, 포트, 디스크, 서비스, 로그, 파일',
+  'ag.e3t':'판단',
+  'ag.e3d':'자체 ReAct 루프가 다음 단계를 결정',
+  'ag.e4t':'조치',
+  'ag.e4d':'명령·스크립트 실행, 설정 변경, 컨테이너 관리, 보고서 생성',
+  'guard.tag':'Guardrails',
+  'guard.h2':'움직이되, 선은 당신이 긋습니다',
+  'guard.p':'모든 도구는 위험도로 등급이 매겨집니다. 읽기는 자유, 파괴적 작업은 승인, 치명적 명령은 차단. 무인 실행에서는 승인이 필요한 작업을 모두 거부합니다.',
+  'guard.l0t':'읽기 전용 자율',
+  'guard.l0d':'지표, 프로세스, 포트, 디스크, 로그 확인. 보는 것만으로는 상태가 바뀌지 않습니다.',
+  'guard.l1t':'저위험 확인',
+  'guard.l1d':'서비스 재시작, 임시 파일 정리. 기본은 한 번 확인, 필요하면 자동 허용.',
+  'guard.l2t':'승인 필수',
+  'guard.l2d':'설정 변경, 데이터 삭제, 네트워크 변경. 확인을 끌 수 없고 무인 시 거부됩니다.',
+  'guard.l3t':'완전 차단',
+  'guard.l3d':'rm -rf / 같은 치명 명령을 정규식으로 차단하고, 스스로 종료되는 것도 금지합니다.',
+  'guard.note':'모든 호출은 감사 로그에 남습니다. 누가, 어떤 도구를, 어떤 인자로 호출했고 무엇이 돌아왔는지까지 기록됩니다.',
+  'faq.q6':'정말 스스로 시스템을 바꾸나요?',
+  'faq.a6':'그렇습니다. 다만 선 안에서만입니다. 읽기는 자율, 저위험 쓰기는 기본 확인, 설정 변경·데이터 삭제는 매번 승인, 치명 명령은 실행 전 차단됩니다. 모든 호출은 감사 로그에 남습니다.',
+  'faq.q7':'외부 네트워크가 필요한가요? 데이터가 나가나요?',
+  'faq.a7':'모델 호출을 제외하면 모두 로컬에서 처리됩니다. 지표·감사·보고서는 호스트 디스크에 남습니다. 자체 OpenAI 호환 엔드포인트나 로컬 Ollama 를 쓰면 데이터는 전혀 나가지 않습니다.',
+  'faq.q8':'바오타, 1Panel 과 무엇이 다른가요?',
+  'faq.a8':'그것들은 당신이 조작하는 도구이고 OpsMini 는 대신 조작하는 동료입니다. 화면은 관측 창과 승인 데스크에 가깝고, 아무것도 클릭하지 않아도 매일 작업을 끝내고 보고서를 남깁니다.',
 },
 'th': {
-  'title':'OpsMini — แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.faq':'คำถามที่พบบ่อย',
-  'hl1.t':'ผู้ช่วย AI Ops ในตัว','hl1.d':'วินิจฉัยด้วยภาษาธรรมชาติ วิเคราะห์ล็อก และรันคำสั่ง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI','install.label':'ติดตั้งคลิกเดียว','install.copy':'คัดลอก','install.copied':'คัดลอกแล้ว',
-  'nav.features':'ฟีเจอร์','nav.ai':'AI Ops','nav.arch':'สถาปัตยกรรม','nav.quickstart':'เริ่มต้นใช้งาน','nav.api':'API','nav.faq':'FAQ','nav.cta':'เริ่มใช้งาน','nav.tagline':'แผงจัดการเซิร์ฟเวอร์ขับเคลื่อนด้วย AI','nav.docs':'เอกสาร',
-  'hero.badge':'ขับเคลื่อนด้วย AI · ไบนารีเดียว · ไม่มี Dependency',
-  'hero.title':'ไฟล์เดียว<br>จัดการทั้ง<span class="grad">เซิร์ฟเวอร์</span>',
-  'hero.lead':'OpsMini คือแผงจัดการเซิร์ฟเวอร์น้ำหนักเบาที่ขับเคลื่อนด้วย AI วินิจฉัยด้วยภาษาธรรมชาติ จัดการ Docker, เว็บเทอร์มินัล, ศูนย์ความปลอดภัย และการแจ้งเตือน——ทั้งหมดอยู่ในไบนารีไฟล์เดียวขนาดไม่กี่สิบ MB',
-  'hero.ctaPrimary':'เริ่มต้นใช้งาน →','hero.ctaGhost':'ดูฟีเจอร์',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> ไดรเวอร์ pure-Go','hero.meta3':'<b>7</b> ภาษา','hero.meta4':'<b>REST</b> สอง API',
+  'title':'OpsMini — AI Ops Agent ที่อยู่บนเซิร์ฟเวอร์ของคุณ','foot.faq':'คำถามที่พบบ่อย',
+  'hl1.t':'AI ที่ลงมือทำเอง','hl1.d':'ไม่ใช่แค่วินิจฉัย แต่ลงมือทำได้ ตามระดับความเสี่ยง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI','install.label':'ติดตั้งคลิกเดียว','install.copy':'คัดลอก','install.copied':'คัดลอกแล้ว',
+  'nav.features':'เครื่องมือ','nav.ai':'Agent','nav.arch':'สถาปัตยกรรม','nav.quickstart':'เริ่มต้นใช้งาน','nav.api':'API','nav.faq':'FAQ','nav.cta':'เริ่มใช้งาน','nav.tagline':'AI Ops Agent บนโฮสต์','nav.docs':'เอกสาร',
+  'hero.badge':'ทำงานตลอดเวลา · ลงมือเอง · ข้อมูลอยู่ในเครื่อง',
+  'hero.title':'ใส่ AI ลงในเซิร์ฟเวอร์<br>แล้วให้มัน<span class="grad">ดูแลตัวเอง</span>',
+  'hero.lead':'OpsMini คือ AI ops agent ที่ประจำอยู่บนโฮสต์ Linux ของคุณ มันเก็บค่าตัวชี้วัด ตัดสินว่าอะไรผิดปกติ และลงมือแก้ให้เอง โดยจะหยุดขออนุมัติก่อนทำสิ่งที่มีความเสี่ยง ทั้งหมดเป็นไบนารีเดียวขนาดไม่กี่สิบ MB และข้อมูลอยู่บนเครื่องทั้งหมด',
+  'hero.ctaPrimary':'เริ่มต้นใช้งาน →','hero.ctaGhost':'ดูว่ามันทำงานอย่างไร',
+  'hero.meta1':'<b>Go</b> ไบนารีเดียว','hero.meta2':'<b>systemd</b> จัดการเป็นบริการ','hero.meta3':'<b>29</b> เครื่องมือปฏิบัติการ','hero.meta4':'<b>L0–L3</b> แบ่งระดับสิทธิ์',
   'hero.side.dash':'📊 แดชบอร์ด','hero.side.ai':'🤖 ผู้ช่วย AI','hero.side.sec':'🛡️ ความปลอดภัย','hero.side.docker':'🐳 คอนเทนเนอร์','hero.side.term':'⌨️ เทอร์มินัล','hero.side.file':'📁 ไฟล์',
   'hero.stat.mem':'หน่วยความจำ','hero.stat.disk':'ดิสก์',
   'hero.aiq':'🤖 ผู้ใช้: ดิสก์ใช้พื้นที่เพิ่มขึ้นกะทันหัน ช่วยดูหน่อย',
   'hero.aia':'วิเคราะห์ /var/log: journal log ไม่ถูกหมุนเวียน ใช้ไป <em>6.8 GB</em> แนะนำให้รัน journalctl --vacuum-size=500M คาดว่าจะคืนพื้นที่ <em>6.3 GB</em> ✅',
   'ai.tag':'AI Agent','ai.h3':'ไม่ใช่แค่คุย แต่ลงมือทำ','ai.p':'OpsMini มีเอเจนต์ ReAct ที่พัฒนาขึ้นเอง เมื่อได้คำถามจะวางแผนเอง เรียกเครื่องมือปฏิบัติการต่อเนื่องเพื่อตรวจสอบ และแสดงเครื่องมือ อาร์กิวเมนต์ และผลลัพธ์ดิบของทุกขั้นตอนให้เห็นชัด ส่วนสิทธิ์แบ่งตามระดับความเสี่ยง สิ่งที่ทำเองได้ก็ทำ สิ่งที่ต้องให้คนยืนยันก็ต้องถามก่อน',
-  'ai.l1':'ตรวจสอบหลายขั้นด้วยตนเอง: ถามครั้งเดียวก็ไล่เช็กดิสก์ โปรเซส และล็อกจนเจอสาเหตุ','ai.l2':'เครื่องมือในตัว 33 ตัว แบ่งเป็นอ่านอย่างเดียว / เขียนความเสี่ยงต่ำ / เขียนความเสี่ยงสูง ครอบคลุมระบบ คอนเทนเนอร์ บริการ และความปลอดภัย','ai.l3':'การ์ด 4 ระดับ: L0 ทำได้เอง, L1 ตั้งค่าได้, L2 ต้องยืนยัน, L3 ห้ามโดยเด็ดขาด (เช่น rm -rf /)','ai.l4':'ตรวจสอบตามกำหนดเวลา: ใส่ในงานตั้งเวลา แล้วได้รายงาน HTML ไฟล์เดียวทุกเช้าโดยอัตโนมัติ','ai.l5':'MCP สองทิศทาง: เรียกเครื่องมือ MCP ภายนอกได้ และเผยแพร่เครื่องมือ 33 ตัวของตัวเองให้ Claude / Cursor',
+  'ai.l1':'ตรวจสอบหลายขั้นด้วยตนเอง: ถามครั้งเดียวก็ไล่เช็กดิสก์ โปรเซส และล็อกจนเจอสาเหตุ','ai.l2':'เครื่องมือในตัว 29 ตัว แบ่งเป็นอ่านอย่างเดียว / เขียนความเสี่ยงต่ำ / เขียนความเสี่ยงสูง ครอบคลุมระบบ คอนเทนเนอร์ บริการ และความปลอดภัย','ai.l3':'การ์ด 4 ระดับ: L0 ทำได้เอง, L1 ตั้งค่าได้, L2 ต้องยืนยัน, L3 ห้ามโดยเด็ดขาด (เช่น rm -rf /)','ai.l4':'ตรวจสอบตามกำหนดเวลา: ใส่ในงานตั้งเวลา แล้วได้รายงาน HTML ไฟล์เดียวทุกเช้าโดยอัตโนมัติ','ai.l5':'MCP สองทาง เรียกเครื่องมือ MCP ภายนอกได้ และเปิดเครื่องมือ 29 ตัวให้ Claude / Cursor ใช้',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'มีการแจ้งเตือนดิสก์ ช่วยดูหน่อยว่าอะไรกินพื้นที่','ai.b1a':'พบว่า <span class="hl">/var/log/app.log</span> ไฟล์เดียวใช้ 2.1 GB และไม่มีการหมุนไฟล์มา 30 วัน<br>การตรวจสอบแบบอ่านอย่างเดียวเสร็จอัตโนมัติแล้ว ส่วนการล้างไฟล์ต้องใช้สิทธิ์ root จึงหยุดรอการยืนยันจากคุณ',
   'ai.confirm':'การทำงานเสี่ยงสูงถูกพักไว้ · รอการอนุมัติจากคุณ',
   'ai.cap1.t':'ทำงานเอง','ai.cap1.d':'ไม่กำหนดลำดับตายตัว ตัดสินใจเองว่าจะตรวจอะไรต่อไป','ai.cap2.t':'สิทธิ์ตามระดับ','ai.cap2.d':'การทำงานที่ทำลายข้อมูลถูกหยุดก่อนลงมือ และรอให้คุณอนุมัติ','ai.cap3.t':'ตรวจตามกำหนด','ai.cap3.d':'ทำงานแบบไม่มีผู้ดูแล และเก็บรายงาน HTML ที่เปิดหรือดาวน์โหลดได้','ai.cap4.t':'MCP สองทาง','ai.cap4.d':'เป็นทั้งไคลเอนต์และเซิร์ฟเวอร์ เชื่อมกับระบบนิเวศ AI ภายนอก',
-  'feat.tag':'Features','feat.h2':'ครบทุกอย่างสำหรับหนึ่งเซิร์ฟเวอร์','feat.p':'จากการมอนิเตอร์ถึงความปลอดภัย จากคอนเทนเนอร์ถึง cron ครอบคลุมทุกงานที่ใช้บ่อยในการดูแลเซิร์ฟเวอร์เครื่องเดียว',
+  'feat.tag':'Tools','feat.h2':'เครื่องมือในมือของมัน','feat.p':'นี่คือสิ่งที่มันทำได้จริง คุณยังกดเองได้ แต่ถ้าให้มันเลือกก้าวต่อไปเองจะเร็วกว่า',
   'f1.t':'มอนิเตอร์เรียลไทม์','f1.d':'ตัวชี้วัด CPU / หน่วยความจำ / ดิสก์ / เครือข่ายแบบเรียลไทม์ แสดงผลด้วย ECharts เก็บใน SQLite นาน 30 วัน ดูแนวโน้ม 24h / 7d ได้ชัดเจน','f1.tags':'<span>แดชบอร์ด</span><span>แนวโน้ม</span><span>Prometheus metrics</span>',
   'f2.t':'การแจ้งเตือน','f2.d':'กฎแจ้งเตือนที่ปรับแต่งได้ (CPU, หน่วยความจำ, ดิสก์, port alive ฯลฯ), ศูนย์เหตุการณ์ และแจ้งเตือนที่ยังไม่ได้อ่าน','f2.tags':'<span>กฎแจ้งเตือน</span><span>เหตุการณ์</span><span>แจ้งเตือน</span>',
   'f3.t':'ศูนย์ความปลอดภัย','f3.d':'สแกน baseline, ตรวจความสมบูรณ์ของไฟล์ (FIM), ตรวจจับภัยคุกคาม, จัดการพอร์ตไฟร์วอลล์, วิเคราะห์ความปลอดภัยการล็อกอินและ SSH รวมไว้ที่เดียว','f3.tags':'<span>Baseline</span><span>FIM</span><span>ไฟร์วอลล์</span><span>ภัยคุกคาม</span>',
@@ -1004,34 +1317,76 @@ const I18N = {
   'api.code.title':'ตัวอย่าง curl',
   'st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'REST API',
   'faq.tag':'FAQ','faq.h2':'คำถามที่พบบ่อย',
-  'faq.q1':'OpsMini ต่างจาก BaoTa หรือ 1Panel อย่างไร?','faq.a1':'ตำแหน่งใกล้เคียงกัน ต่างเป็นแผงจัดการเซิร์ฟเวอร์เครื่องเดียว จุดต่างของ OpsMini: ① มีผู้ช่วย AI ในตัว วินิจฉัยและรันด้วยภาษาธรรมชาติ ② มี API แบบ machine-to-machine /agent/v1 และรองรับ MCP เพื่อเชื่อมกับระบบอัตโนมัติของคุณ ③ ส่งมอบเป็นไฟล์เดียวด้วย Go + SQLite ติดตั้งง่าย ไม่มี runtime dependency',
+  'faq.q1':'OpsMini ต่างจาก BaoTa หรือ 1Panel อย่างไร?','faq.a1':'OpsMini เป็น AI ops agent ที่ประจำบนโฮสต์ ไม่ใช่แผงควบคุมแบบเดิม หน้าเว็บเป็นเพียงหน้าต่างสำหรับมองดู มันวินิจฉัยและลงมือเอง รองรับ MCP และ API ระหว่างเครื่อง และแพ็กเป็นไบนารี Go + SQLite ตัวเดียว',
   'faq.q2':'รองรับระบบ / สถาปัตยกรรมใดบ้าง?','faq.a2':'Linux amd64 และ arm64 (รวม Raspberry Pi และเซิร์ฟเวอร์ในประเทศ) แผงเป็น Go binary แบบ static compile จึงรันได้ตราบใดที่ kernel ไม่เก่าเกินไป',
   'faq.q3':'ข้อมูลเก็บอยู่ที่ไหน? หายไหม?','faq.a3':'ข้อมูล config, ผู้ใช้, audit และ monitoring ทั้งหมดเก็บในไฟล์ SQLite เดียวในโฟลเดอร์เดียวกัน (ค่าเริ่มต้น opsmini.db) การ backup ก็แค่คัดลอกไฟล์นั้น ตัวชี้วัดถูกเก็บนาน 30 วัน ไม่หายหลังรีสตาร์ท',
   'faq.q4':'ฟีเจอร์ AI ต้องต่อ LLM ภายนอกไหม?','faq.a4':'ผู้ช่วย AI เชื่อมต่อกับบริการ LLM ภายนอก ใส่ endpoint และคีย์ใน "การตั้งค่า" ก็เปิดใช้ได้ หากไม่ตั้งค่าก็ไม่กระทบฟังก์ชันอื่นของแผง',
   'faq.q5':'มั่นใจเรื่องความปลอดภัยได้อย่างไร?','faq.a5':'JWT + TOTP สองขั้น (MFA) + RBAC สิทธิ์ตามบทบาท + audit log ครบถ้วน การวิเคราะห์ความปลอดภัยการล็อกอินจะตรวจจับ brute force และการล็อกอินผิดปกติ แนะนำให้จำกัด IP ต้นทางด้วยไฟร์วอลล์เมื่อเปิดสู่สาธารณะ',
-  'cta.h2':'ทำให้การดูแลระบบกลับมาง่ายอีกครั้ง','cta.p':'ไฟล์เดียว คัดลอกครั้งเดียว เปิดเบราว์เซอร์ เซิร์ฟเวอร์ของคุณก็มีผู้เชี่ยวชาญ AI แล้ว','cta.btn':'ดาวน์โหลด OpsMini →',
-  'foot.brand':'แผงจัดการเซิร์ฟเวอร์น้ำหนักเบาขับเคลื่อนด้วย AI','foot.c1t':'ผลิตภัณฑ์','foot.c1a':'ฟีเจอร์','foot.c1b':'AI Ops','foot.c1c':'เริ่มต้นใช้งาน','foot.c2t':'นักพัฒนา','foot.c2a':'REST API','foot.c2b':'สถาปัตยกรรม','foot.c2c':'FAQ','foot.c3t':'ชุมชน','foot.c3b':'ติชม','foot.bottom':'OpsMini © 2026 บริษัท ปักกิ่ง ซู่หยุน เทคโนโลยี จำกัด (opsmini.com)'
+  'cta.h2':'ติดตั้งแล้วปล่อยให้มันจัดการ','cta.p':'คำสั่งเดียว เซิร์ฟเวอร์ของคุณก็มี ops agent ที่ทำงานเองและยังฟังคุณ','cta.btn':'ดาวน์โหลด OpsMini →',
+  'foot.brand':'AI Ops Agent บนโฮสต์','foot.c1t':'ผลิตภัณฑ์','foot.c1a':'เครื่องมือ','foot.c1b':'AI Agent','foot.c1c':'เริ่มต้นใช้งาน','foot.c2t':'นักพัฒนา','foot.c2a':'REST API','foot.c2b':'สถาปัตยกรรม','foot.c2c':'FAQ','foot.c3t':'ชุมชน','foot.c3b':'ติชม','foot.bottom':'OpsMini © 2026 บริษัท ปักกิ่ง ซู่หยุน เทคโนโลยี จำกัด (opsmini.com)',
+  'nav.guard':'ขอบเขต',
+  'flow.title':'ตรวจโฮสต์ประจำวัน',
+  'flow.chip':'เสร็จสิ้น · 38s',
+  'flow.s1':'<b>รับรู้</b>เก็บ 48 ค่าตัวชี้วัด: CPU 12% · หน่วยความจำ 61% · ดิสก์ /var 91%',
+  'flow.s2':'<b>วินิจฉัย</b>พบ log 6.8 GB ที่ยังไม่หมุนเวียนใน /var/log',
+  'flow.s3':'<b>ลงมือ</b>รัน journalctl --vacuum-size=500M คืนพื้นที่ 6.3 GB',
+  'flow.s4':'<b>รายงาน</b>สร้าง HTML ไฟล์เดียวและเก็บไว้ในเครื่อง',
+  'flow.warn':'การล้าง app.log มีความเสี่ยงสูง · รอการอนุมัติ',
+  'flow.foot':'เรียกเครื่องมือ 5 ครั้ง · ละเมิด 0 ครั้ง · ตรวจสอบย้อนหลังได้',
+  'vs.tag':'Positioning',
+  'vs.h2':'ไม่ใช่แผงควบคุม แต่เป็น agent ในเซิร์ฟเวอร์',
+  'vs.p':'แผงควบคุมรอให้คุณกด ส่วน agent ลงมือเอง OpsMini ประจำบนโฮสต์ สำรวจ ตัดสิน และจัดการด้วยชุดเครื่องมือครบ และหยุดเฉพาะเมื่อถึงเวลาที่คุณต้องตัดสิน',
+  'vs.oldT':'เดิม: แผงควบคุม',
+  'vs.old':'<li>คุณหาเจอเอง แล้วเปิดหน้าเว็บ</li><li>คุณไล่กดเมนูเพื่อตรวจสอบ</li><li>คุณตัดสินใจว่าจะแก้อะไร</li><li>ปิดแท็บแล้วมันไม่รู้อะไรเลย</li>',
+  'vs.newT':'ตอนนี้: agent บนโฮสต์',
+  'vs.new':'<li>มันตรวจตามเวลา หรือเมื่อมีเหตุการณ์</li><li>มันไล่ตรวจหลายชั้นจนเจอต้นเหตุ</li><li>มันลงมือ และถามคุณก่อนทำสิ่งเสี่ยง</li><li>คุณไม่อยู่ มันก็เฝ้าและทิ้งรายงานไว้</li>',
+  'ag.e1t':'ประจำการ',
+  'ag.e1d':'จัดการด้วย systemd เริ่มตอนบูต และรีสตาร์ทเมื่อล้ม',
+  'ag.e2t':'รับรู้',
+  'ag.e2d':'ค่าตัวชี้วัด โปรเซส พอร์ต ดิสก์ บริการ log ไฟล์',
+  'ag.e3t':'ตัดสิน',
+  'ag.e3d':'ReAct loop ของเราเลือกเองว่าจะตรวจอะไรต่อ',
+  'ag.e4t':'ลงมือ',
+  'ag.e4d':'รันคำสั่งและสคริปต์ แก้คอนฟิก จัดการคอนเทนเนอร์ ออกรายงาน',
+  'guard.tag':'Guardrails',
+  'guard.h2':'มันลงมือได้ แต่คุณขีดเส้นเอง',
+  'guard.p':'เครื่องมือทุกตัวมีระดับความเสี่ยง งานอ่านอย่างเดียวทำได้เอง งานทำลายต้องรออนุมัติ คำสั่งอันตรายถูกบล็อกทันที เมื่อทำงานแบบไม่มีคนดูแล งานที่ต้องอนุมัติจะถูกปฏิเสธทั้งหมด',
+  'guard.l0t':'อ่านอย่างเดียว อัตโนมัติ',
+  'guard.l0d':'ดูค่าตัวชี้วัด โปรเซส พอร์ต ดิสก์ log การดูไม่เปลี่ยนสถานะระบบ',
+  'guard.l1t':'ความเสี่ยงต่ำ ขอยืนยัน',
+  'guard.l1d':'รีสตาร์ทบริการ ล้างไฟล์ชั่วคราว ค่าเริ่มต้นให้กดยืนยัน ปรับเป็นอัตโนมัติได้',
+  'guard.l2t':'ต้องยืนยันเสมอ',
+  'guard.l2d':'แก้คอนฟิก ลบข้อมูล เปลี่ยนเครือข่าย ปิดการยืนยันไม่ได้ และจะถูกปฏิเสธเมื่อไม่มีคนดูแล',
+  'guard.l3t':'ห้ามโดยเด็ดขาด',
+  'guard.l3d':'บล็อกคำสั่งอันตรายด้วย regex เช่น rm -rf / และห้ามมันปิดตัวเอง',
+  'guard.note':'ทุกการเรียกถูกบันทึกใน audit log: ใครสั่ง เครื่องมือไหน อาร์กิวเมนต์อะไร และได้ผลลัพธ์อะไร',
+  'faq.q6':'มันจะแก้ระบบของฉันเองจริงหรือ',
+  'faq.a6':'จริง แต่ภายในเส้นที่กำหนด งานอ่านอย่างเดียวทำเอง งานเขียนความเสี่ยงต่ำขอยืนยันก่อน งานแก้คอนฟิกหรือลบข้อมูลต้องอนุมัติทุกครั้ง คำสั่งอันตรายถูกบล็อกก่อนรัน และทุกการเรียกถูกบันทึก',
+  'faq.q7':'ต้องต่ออินเทอร์เน็ตไหม ข้อมูลออกนอกเครื่องหรือไม่',
+  'faq.a7':'ทุกอย่างทำในเครื่อง ยกเว้นการเรียกโมเดล ค่าตัวชี้วัด audit และรายงานเก็บอยู่บนดิสก์ของโฮสต์ หากใช้ OpenAI-compatible endpoint ของคุณเองหรือ Ollama ในเครื่อง ข้อมูลจะไม่ออกไปเลย',
+  'faq.q8':'ต่างจาก BaoTa หรือ 1Panel อย่างไร',
+  'faq.a8':'นั่นคือเครื่องมือที่คุณต้องลงมือเอง ส่วน OpsMini คือเพื่อนร่วมงานที่ลงมือให้ หน้าเว็บของมันใกล้เคียงหน้าต่างสำหรับมองดูและโต๊ะอนุมัติ คุณไม่ต้องคลิกอะไรเลย มันก็ทำงานเสร็จและทิ้งรายงานไว้',
 },
 'de': {
-  'title':'OpsMini — KI-gesteuertes Leichtgewichts-Serverpanel','foot.faq':'FAQ',
-  'hl1.t':'Integrierter AI-Ops-Assistent','hl1.d':'Diagnose in natürlicher Sprache, Log-Analyse und Befehlsausführung','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern','install.label':'Ein-Klick-Installation','install.copy':'Kopieren','install.copied':'Kopiert',
-  'nav.features':'Funktionen','nav.ai':'KI-Ops','nav.arch':'Architektur','nav.quickstart':'Schnellstart','nav.api':'API','nav.faq':'FAQ','nav.cta':'Loslegen','nav.tagline':'KI-gesteuertes Server-Betriebs-Panel','nav.docs':'Dokumentation',
-  'hero.badge':'KI-gesteuert · Einzelne Binary · Null Abhängigkeiten',
-  'hero.title':'Eine Datei,<br>der ganze<span class="grad">Server</span>',
-  'hero.lead':'OpsMini ist ein KI-gesteuertes Leichtgewichts-Serverpanel. Diagnose in natürlicher Sprache, Docker-Verwaltung, Web-Terminal, Sicherheitscenter und Alarming — alles in einer einzigen, nur wenige Dutzend MB großen Binary.',
-  'hero.ctaPrimary':'Schnellstart →','hero.ctaGhost':'Funktionen ansehen',
-  'hero.meta1':'<b>Go</b> + Vue 3','hero.meta2':'<b>SQLite</b> pure-Go-Treiber','hero.meta3':'<b>7</b> Sprachen','hero.meta4':'<b>REST</b> zwei APIs',
+  'title':'OpsMini — Der KI-Betriebsagent auf Ihrem Server','foot.faq':'FAQ',
+  'hl1.t':'Eine KI, die wirklich handelt','hl1.d':'Nicht nur Diagnose, sondern Ausführung — abgestuft nach Risiko','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern','install.label':'Ein-Klick-Installation','install.copy':'Kopieren','install.copied':'Kopiert',
+  'nav.features':'Tools','nav.ai':'Agent','nav.arch':'Architektur','nav.quickstart':'Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Loslegen','nav.tagline':'KI-Betriebsagent auf dem Host','nav.docs':'Docs',
+  'hero.badge':'Dauerhaft aktiv · Handelt selbst · Daten bleiben lokal',
+  'hero.title':'Ein KI-Agent im Server,<br>der ihn <span class="grad">selbst betreibt</span>',
+  'hero.lead':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent auf Ihrem Linux-Host. Er sammelt Messwerte, erkennt Auffälligkeiten und handelt selbst — vor riskanten Schritten hält er an und fragt Sie. Der ganze Agent ist eine statische Binary von wenigen Dutzend MB, alle Daten bleiben auf der Maschine.',
+  'hero.ctaPrimary':'Schnellstart →','hero.ctaGhost':'So arbeitet er',
+  'hero.meta1':'<b>Go</b> statische Binary','hero.meta2':'<b>systemd</b> verwaltet','hero.meta3':'<b>29</b> Betriebswerkzeuge','hero.meta4':'<b>L0–L3</b> abgestufte Rechte',
   'hero.side.dash':'📊 Dashboard','hero.side.ai':'🤖 KI-Assistent','hero.side.sec':'🛡️ Sicherheit','hero.side.docker':'🐳 Container','hero.side.term':'⌨️ Terminal','hero.side.file':'📁 Dateien',
   'hero.stat.mem':'Arbeitsspeicher','hero.stat.disk':'Festplatte',
   'hero.aiq':'🤖 Benutzer: Die Festplattennutzung ist plötzlich gestiegen, schau bitte nach',
   'hero.aia':'Analyse von /var/log: Journal-Logs nicht rotiert, belegen <em>6,8 GB</em>. Empfehlung: journalctl --vacuum-size=500M ausführen, gibt voraussichtlich <em>6,3 GB</em> frei ✅',
   'ai.tag':'AI Agent','ai.h3':'Es chattet nicht nur, es handelt','ai.p':'OpsMini enthält einen selbst entwickelten ReAct-Agenten. Auf eine Frage plant er selbstständig, ruft Betriebswerkzeuge nacheinander auf und legt Werkzeug, Argumente und Rohausgabe jedes Schritts offen. Rechte werden nach Risikostufe vergeben: Was er allein darf, tut er; was dich braucht, wartet auf dich.',
-  'ai.l1':'Mehrstufige Untersuchung: eine Frage, verkettete Prüfungen über Datenträger, Prozesse und Logs bis zur Ursache','ai.l2':'33 eingebaute Werkzeuge, gestuft in lesend / risikoarm schreibend / risikoreich schreibend, für System, Container, Dienste und Sicherheit','ai.l3':'Vier Schutzstufen: L0 autonom, L1 konfigurierbar, L2 immer nachfragen, L3 hart gesperrt (z. B. rm -rf /)','ai.l4':'Geplante Prüfung: in die Zeitplanung gelegt, liefert sie jeden Morgen automatisch einen HTML-Bericht als Einzeldatei','ai.l5':'MCP in beide Richtungen: externe MCP-Werkzeuge aufrufen und die eigenen 33 Werkzeuge für Claude / Cursor veröffentlichen',
+  'ai.l1':'Mehrstufige Untersuchung: eine Frage, verkettete Prüfungen über Datenträger, Prozesse und Logs bis zur Ursache','ai.l2':'29 eingebaute Werkzeuge, abgestuft in Nur-Lesen / Schreiben mit geringem Risiko / hohem Risiko, für System, Container, Dienste und Sicherheit','ai.l3':'Vier Schutzstufen: L0 autonom, L1 konfigurierbar, L2 immer nachfragen, L3 hart gesperrt (z. B. rm -rf /)','ai.l4':'Geplante Prüfung: in die Zeitplanung gelegt, liefert sie jeden Morgen automatisch einen HTML-Bericht als Einzeldatei','ai.l5':'MCP in beide Richtungen: ruft externe MCP-Werkzeuge auf und stellt seine 29 Werkzeuge Claude / Cursor bereit',
   'ai.step1':'/var/log','ai.step2':'/var','ai.step3':'No space left',
   'ai.b1q':'Datenträger-Warnung — finde heraus, was ihn füllt','ai.b1a':'Ursache gefunden: <span class="hl">/var/log/app.log</span> belegt allein 2.1 GB, seit 30 Tagen keine Rotation.<br>Die lesende Untersuchung lief automatisch; das Leeren braucht root und wartet daher auf deine Freigabe.',
   'ai.confirm':'Risikoreicher Schritt angehalten · wartet auf Freigabe',
   'ai.cap1.t':'Autonom','ai.cap1.d':'Kein festes Vorgehen — er entscheidet anhand der Befunde, was er als Nächstes prüft','ai.cap2.t':'Gestufte Rechte','ai.cap2.d':'Zerstörerische Schritte werden vor der Ausführung gestoppt und brauchen deinen Klick','ai.cap3.t':'Geplante Läufe','ai.cap3.d':'Läuft unbeaufsichtigt und legt einen Bericht zum Öffnen oder Herunterladen ab','ai.cap4.t':'MCP beidseitig','ai.cap4.d':'Client und Server zugleich — im Austausch mit dem weiteren KI-Ökosystem',
-  'feat.tag':'Features','feat.h2':'Alles für einen Server','feat.p':'Von Monitoring über Sicherheit bis hin zu Containern und Cron-Jobs — alle häufigen Aufgaben für einen einzelnen Server.',
+  'feat.tag':'Tools','feat.h2':'Was er in der Hand hat','feat.p':'Das sind die Dinge, die er wirklich kann. Sie können weiterhin selbst klicken — er ist nur schneller und entscheidet selbst, wo er als Nächstes nachsieht.',
   'f1.t':'Echtzeit-Monitoring','f1.d':'Live-Metriken für CPU / Speicher / Festplatte / Netzwerk mit ECharts-Visualisierung, 30 Tage in SQLite persistiert, 24h-/7d-Trends auf einen Blick.','f1.tags':'<span>Dashboard</span><span>Trends</span><span>Prometheus-Metriken</span>',
   'f2.t':'Alarme & Benachrichtigungen','f2.d':'Eigene Alarmregeln (CPU, Speicher, Festplatte, Port-Erreichbarkeit), zentrale Ereignisübersicht und Ungelesen-Badges.','f2.tags':'<span>Alarmregeln</span><span>Ereignisse</span><span>Benachrichtigungen</span>',
   'f3.t':'Sicherheitscenter','f3.d':'Sicherheits-Baseline-Scans, File-Integrity-Monitoring (FIM), Bedrohungserkennung, Firewall-Portverwaltung und Login-/SSH-Sicherheitsanalyse — alles an einem Ort.','f3.tags':'<span>Baseline</span><span>FIM</span><span>Firewall</span><span>Bedrohungen</span>',
@@ -1055,13 +1410,55 @@ const I18N = {
   'api.code.title':'curl-Beispiel',
   'st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'REST-APIs',
   'faq.tag':'FAQ','faq.h2':'Häufig gestellte Fragen',
-  'faq.q1':'Wie unterscheidet sich OpsMini von BaoTa oder 1Panel?','faq.a1':'Ähnliche Positionierung — alles Einzel-Server-Panels. OpsMini unterscheidet sich durch: ① einen eingebauten KI-Assistenten für Diagnose und Ausführung in natürlicher Sprache; ② eine /agent/v1-Machine-to-Machine-API plus MCP-Unterstützung für deine eigene Automatisierung; ③ pure Go + SQLite als Einzeldatei mit minimalem Deployment und ohne Laufzeit-Abhängigkeiten.',
+  'faq.q1':'Wie unterscheidet sich OpsMini von BaoTa oder 1Panel?','faq.a1':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent, kein klassisches Panel. Die Oberfläche ist sein Fenster: Er diagnostiziert und handelt selbst, spricht MCP und eine Maschine-zu-Maschine-API und kommt als eine Go-und-SQLite-Binary.',
   'faq.q2':'Welche Systeme / Architekturen werden unterstützt?','faq.a2':'Linux amd64 und arm64 (inkl. Raspberry Pi und heimischer Server). Das Panel ist eine statisch kompilierte Go-Binary und läuft, solange der Kernel nicht zu alt ist.',
   'faq.q3':'Wo werden die Daten gespeichert? Können sie verloren gehen?','faq.a3':'Alle Konfigurationen, Benutzer, Audit- und Monitoring-Daten liegen in einer einzigen SQLite-Datei im selben Verzeichnis (Standard opsmini.db) — Back-up ist einfach das Kopieren dieser Datei. Metriken werden 30 Tage persistiert und überstehen Neustarts.',
   'faq.q4':'Braucht die KI-Funktion ein externes LLM?','faq.a4':'Der KI-Assistent verbindet sich mit einem externen LLM-Dienst; Endpunkt und Schlüssel unter „Einstellungen" eintragen, um ihn zu aktivieren. Ohne Konfiguration funktioniert der Rest des Panels normal.',
   'faq.q5':'Wie wird die Sicherheit gewährleistet?','faq.a5':'JWT-Auth + TOTP-Zwei-Faktor (MFA) + RBAC-Berechtigungen + vollständige Audit-Logs; die Login-Sicherheitsanalyse erkennt Brute-Force und anomale Anmeldungen. Bei öffentlichem Betrieb Quell-IPs per Firewall einschränken.',
-  'cta.h2':'Betrieb wieder einfach machen','cta.p':'Eine Datei, ein Kopieren, Browser öffnen — und dein Server hat einen KI-Ops-Experten.','cta.btn':'OpsMini herunterladen →',
-  'foot.brand':'KI-gesteuertes Leichtgewichts-Serverpanel','foot.c1t':'Produkt','foot.c1a':'Funktionen','foot.c1b':'KI-Ops','foot.c1c':'Schnellstart','foot.c2t':'Entwickler','foot.c2a':'REST API','foot.c2b':'Architektur','foot.c2c':'FAQ','foot.c3t':'Community','foot.c3b':'Feedback','foot.bottom':'OpsMini © 2026 Beijing Suyun Technology Co., Ltd. (opsmini.com)'
+  'cta.h2':'Installieren und abgeben','cta.p':'Ein Befehl, und Ihr Server hat einen Betriebsagenten, der Arbeit erledigt und trotzdem auf Sie hört.','cta.btn':'OpsMini herunterladen →',
+  'foot.brand':'KI-Betriebsagent auf dem Host','foot.c1t':'Produkt','foot.c1a':'Werkzeuge','foot.c1b':'KI-Agent','foot.c1c':'Schnellstart','foot.c2t':'Entwickler','foot.c2a':'REST API','foot.c2b':'Architektur','foot.c2c':'FAQ','foot.c3t':'Community','foot.c3b':'Feedback','foot.bottom':'OpsMini © 2026 Beijing Suyun Technology Co., Ltd. (opsmini.com)',
+  'nav.guard':'Regeln',
+  'flow.title':'Tägliche Host-Prüfung',
+  'flow.chip':'Fertig · 38s',
+  'flow.s1':'<b>Wahrnehmen</b>48 Messwerte erfasst: CPU 12% · RAM 61% · Disk /var 91%',
+  'flow.s2':'<b>Urteilen</b>6,8 GB nicht rotierte Logs unter /var/log gefunden',
+  'flow.s3':'<b>Handeln</b>journalctl --vacuum-size=500M ausgeführt, 6,3 GB frei',
+  'flow.s4':'<b>Berichten</b>HTML-Report als einzelne Datei lokal abgelegt',
+  'flow.warn':'app.log zu löschen ist riskant · wartet auf Freigabe',
+  'flow.foot':'5 Werkzeugaufrufe · 0 Regelverstöße · vollständig protokolliert',
+  'vs.tag':'Positioning',
+  'vs.h2':'Kein Panel, sondern ein Agent im Server',
+  'vs.p':'Ein Panel wartet auf Klicks, ein Agent handelt. OpsMini lebt auf dem Host, schaut sich um, urteilt und erledigt Dinge mit einem vollen Werkzeugkasten — und hält nur an, wenn die Entscheidung Ihre ist.',
+  'vs.oldT':'Vorher: ein Panel',
+  'vs.old':'<li>Sie finden das Problem und öffnen die Seite</li><li>Sie klicken sich durch Menüs</li><li>Sie entscheiden, was geändert wird</li><li>Tab zu, und es weiß nichts mehr</li>',
+  'vs.newT':'Jetzt: ein Agent auf dem Host',
+  'vs.new':'<li>Er schaut nach Zeitplan oder bei Ereignissen</li><li>Er gräbt mehrere Ebenen tief, bis er die Ursache hat</li><li>Er handelt und fragt vorher bei Risiko</li><li>Er wacht auch in Ihrer Abwesenheit und hinterlässt einen Bericht</li>',
+  'ag.e1t':'Dauerhaft',
+  'ag.e1d':'von systemd verwaltet, Start beim Boot, Neustart nach Absturz',
+  'ag.e2t':'Wahrnehmen',
+  'ag.e2d':'Messwerte, Prozesse, Ports, Disks, Dienste, Logs, Dateien',
+  'ag.e3t':'Urteilen',
+  'ag.e3d':'eigener ReAct-Loop entscheidet den nächsten Schritt',
+  'ag.e4t':'Handeln',
+  'ag.e4d':'Befehle und Skripte, Konfiguration, Container, Berichte',
+  'guard.tag':'Guardrails',
+  'guard.h2':'Er handelt, Sie ziehen die Linie',
+  'guard.p':'Jedes Werkzeug ist nach Risiko eingestuft. Nur-Lesen läuft frei, Zerstörendes braucht Ihre Freigabe, Tödliches wird blockiert. Ohne Aufsicht wird alles abgelehnt, was eine Freigabe bräuchte.',
+  'guard.l0t':'Nur-Lesen, autonom',
+  'guard.l0d':'Messwerte, Prozesse, Ports, Disks, Logs ansehen. Ansehen ändert nichts.',
+  'guard.l1t':'Geringes Risiko, Bestätigung',
+  'guard.l1d':'Dienste neu starten, temporäre Dateien räumen. Standard ist ein Klick, Lockerung möglich.',
+  'guard.l2t':'Bestätigung Pflicht',
+  'guard.l2d':'Konfiguration, Datenlöschung, Netzwerk. Nicht abschaltbar, ohne Aufsicht abgelehnt.',
+  'guard.l3t':'Blockiert',
+  'guard.l3d':'Regex blockiert tödliche Befehle wie rm -rf / und das Abschalten seiner selbst.',
+  'guard.note':'Jeder Aufruf landet im Audit-Log: wer ihn ausgelöst hat, welches Werkzeug, welche Argumente, welches Ergebnis.',
+  'faq.q6':'Ändert er wirklich selbst mein System?',
+  'faq.a6':'Ja, aber nur innerhalb der Linien: Nur-Lesen läuft autonom, Schreiben mit geringem Risiko fragt standardmäßig, Konfiguration und Löschungen brauchen jedes Mal Freigabe, tödliche Befehle werden vorher blockiert. Alles wird protokolliert.',
+  'faq.q7':'Braucht es Internet? Verlassen Daten den Host?',
+  'faq.a7':'Alles außer Modellaufrufen bleibt lokal: Messwerte, Audit und Berichte liegen auf der Host-Disk. Mit eigenem OpenAI-kompatiblem Endpoint oder lokalem Ollama verlässt kein Datum die Maschine.',
+  'faq.q8':'Was ist der Unterschied zu BaoTa oder 1Panel?',
+  'faq.a8':'Das sind Werkzeuge, die Sie bedienen; OpsMini ist ein Kollege, der für Sie bedient. Seine Oberfläche ist eher Beobachtungsfenster und Freigabe-Tresen — Sie können gar nichts klicken, und die Arbeit ist trotzdem erledigt und dokumentiert.',
 }
 };
 
