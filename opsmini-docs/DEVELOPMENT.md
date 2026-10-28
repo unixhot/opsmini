@@ -29,7 +29,7 @@
 |---|---|
 | `docs/<locale>/architecture/backend.md` | `../docs/backend-architecture[-<locale>].md` |
 | `docs/<locale>/architecture/ai-agent.md` | `../docs/ai-agent[-<locale>].md` |
-| `docs/zh/architecture/host-security.md` | `../docs/host-security-design.md`（仅中文，其他语言走 i18n 回退） |
+| `docs/<locale>/architecture/host-security.md` | `../docs/host-security-design[-<locale>].md` （7 语言，机翻脚本 `scripts/translate_hostsec.py`） |
 
 **改哪边**：以产品仓库 `docs/` 为准，改完再同步到站点（去掉源文件顶部的居中语言切换块与重复 H1，标题换成对应语言）。两边同时手改一定会漂移。
 
