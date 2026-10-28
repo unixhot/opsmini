@@ -21,6 +21,18 @@
 3. **依赖必须锁上界**：material 9.7 起强制 `mkdocs<2`，`requirements.txt` 应写 `mkdocs>=1.6,<2.0`、`mkdocs-material<10`、`mkdocs-static-i18n<2`。**不要**升级到 mkdocs 2.0。
 4. **本机 pip 默认源可能卡死**：`uv pip install` 用默认 PyPI 源曾 14 分钟装 0 个包，改用清华镜像 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple` 秒级完成。
 
+## 二·五、架构手册与仓库 docs/ 的同步关系（2026-10-28）
+
+架构章节里的三页内容来自产品仓库的独立手册，站点侧是**副本**：
+
+| 站点页面 | 源文件 |
+|---|---|
+| `docs/<locale>/architecture/backend.md` | `../docs/backend-architecture[-<locale>].md` |
+| `docs/<locale>/architecture/ai-agent.md` | `../docs/ai-agent[-<locale>].md` |
+| `docs/zh/architecture/host-security.md` | `../docs/host-security-design.md`（仅中文，其他语言走 i18n 回退） |
+
+**改哪边**：以产品仓库 `docs/` 为准，改完再同步到站点（去掉源文件顶部的居中语言切换块与重复 H1，标题换成对应语言）。两边同时手改一定会漂移。
+
 ## 三、产品事实（供文档维护参考）
 
 - 品牌主色 `#4f6ef7`；公司「北京速云科技有限公司」；协议 Apache 2.0；GitHub `unixhot/opsmini`

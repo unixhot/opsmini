@@ -46,7 +46,6 @@ make build-all      # 交叉编译 Linux amd64/arm64
 - [AI 智能体设计 / AI Agent design](docs/ai-agent.md)（7 语言）
 - [构建与部署手册](docs/build-and-deploy.md)
 - [主机安全设计](docs/host-security-design.md)
-- [安全审查报告](docs/security-audit.md)
 
 ### 版权
 

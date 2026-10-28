@@ -108,6 +108,9 @@ plugins:
             本地开发环境: 本地開發環境
             贡献指南: 貢獻指南
             自主 Agent 运行时: 自主 Agent 執行環境
+            后端架构设计: 後端架構設計
+            AI 智能体设计: AI 智慧體設計
+            主机安全设计: 主機安全設計
         - locale: en
           name: English
           build: true
@@ -155,6 +158,9 @@ plugins:
             构建与部署: Build & Deploy
             本地开发环境: Dev Environment
             自主 Agent 运行时: Autonomous agent runtime
+            后端架构设计: Backend Architecture
+            AI 智能体设计: AI Agent Design
+            主机安全设计: Host Security Design
             贡献指南: Contributing
         - locale: ja
           name: 日本語
@@ -201,6 +207,9 @@ plugins:
             技术栈: 技術スタック
             目录结构: ディレクトリ構造
             自主 Agent 运行时: 自律エージェント実行環境
+            后端架构设计: バックエンド・アーキテクチャ設計
+            AI 智能体设计: AI エージェント設計
+            主机安全设计: ホストセキュリティ設計
             构建与部署: ビルドとデプロイ
             本地开发环境: ローカル開発環境
             贡献指南: 貢献ガイド
@@ -247,6 +256,9 @@ plugins:
             主机安全: 호스트 보안
             总体架构: 전체 아키텍처
             自主 Agent 运行时: 자율 에이전트 런타임
+            后端架构设计: 백엔드 아키텍처 설계
+            AI 智能体设计: AI 에이전트 설계
+            主机安全设计: 호스트 보안 설계
             技术栈: 기술 스택
             目录结构: 디렉터리 구조
             构建与部署: 빌드 및 배포
@@ -295,6 +307,9 @@ plugins:
             主机安全: ความปลอดภัยของโฮสต์
             总体架构: สถาปัตยกรรมโดยรวม
             自主 Agent 运行时: รันไทม์เอเจนต์อัตโนมัติ
+            后端架构设计: การออกแบบสถาปัตยกรรมแบ็กเอนด์
+            AI 智能体设计: การออกแบบ AI Agent
+            主机安全设计: การออกแบบความปลอดภัยโฮสต์
             技术栈: เทคโนโลยีสแต็ก
             目录结构: โครงสร้างไดเรกทอรี
             构建与部署: บิลด์และปรับใช้
@@ -342,6 +357,9 @@ plugins:
             用户与权限: Benutzer & RBAC
             主机安全: Host-Sicherheit
             自主 Agent 运行时: Autonome Agent-Laufzeit
+            后端架构设计: Backend-Architektur
+            AI 智能体设计: AI-Agent-Design
+            主机安全设计: Host-Sicherheitsdesign
             总体架构: Gesamtarchitektur
             技术栈: Tech-Stack
             目录结构: Verzeichnisstruktur
@@ -392,6 +410,11 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      # 默认 slugify 会把中文标题整段丢掉（生成 _1、2 这类锚点），
+      # 换成 uslugify 后中文标题才有可读、可链接的锚点
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
@@ -455,6 +478,9 @@ nav:
   - 架构设计:
       - 总体架构: architecture/index.md
       - 自主 Agent 运行时: architecture/agent-runtime.md
+      - 后端架构设计: architecture/backend.md
+      - AI 智能体设计: architecture/ai-agent.md
+      - 主机安全设计: architecture/host-security.md
       - 技术栈: architecture/tech-stack.md
       - 目录结构: architecture/directory.md
   - 开发指南:

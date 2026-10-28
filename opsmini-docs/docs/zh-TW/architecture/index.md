@@ -22,6 +22,24 @@ OpsMini 的技術架構與設計決策。
 
     分層架構（Controller → Service → Repository）與目錄組織。
 
+-   :material-server-network: **[後端架構設計](backend.md)**
+
+    ---
+
+    模組劃分、分層與目錄、資料模型、API 設計、關鍵流程與部署。
+
+-   :material-robot-outline: **[AI 智慧體設計](ai-agent.md)**
+
+    ---
+
+    自研 ReAct 內核、29 個工具與分級授權、上下文與預算控制。
+
+-   :material-shield-lock-outline: **[主機安全設計](host-security.md)**
+
+    ---
+
+    評分模型、五項檢測的判據與閾值、防鎖死設計與邊界。
+
 </div>
 
 ## 核心架構決策

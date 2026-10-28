@@ -43,7 +43,6 @@ make build-all      # 交叉編譯 Linux amd64/arm64
 - [後端架構設計](docs/backend-architecture.md)
 - [建置與部署手冊](docs/build-and-deploy.md)
 - [主機安全設計](host-security-design.md)
-- [安全審查報告](security-audit.md)
 
 ### 版權
 

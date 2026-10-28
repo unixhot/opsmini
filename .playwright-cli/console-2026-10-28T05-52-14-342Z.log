@@ -1,2 +1,0 @@
-[    5062ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://39.106.5.36:8888/:0
-[    5081ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://39.106.5.36:8888/api/v1/ai/agent/sessions:0

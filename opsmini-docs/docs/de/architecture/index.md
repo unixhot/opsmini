@@ -22,6 +22,24 @@ Technische Architektur und Designentscheidungen von OpsMini.
 
     Schichtarchitektur (Controller → Service → Repository) und Verzeichnisorganisation.
 
+-   :material-server-network: **[Backend-Architektur](backend.md)**
+
+    ---
+
+    Modulschnitt, Schichten und Verzeichnisse, Datenmodell, API-Design, Kernabläufe und Deployment.
+
+-   :material-robot-outline: **[AI-Agent-Design](ai-agent.md)**
+
+    ---
+
+    Selbstgebauter ReAct-Kern, 29 Werkzeuge mit gestufter Freigabe, Kontext- und Budgetkontrolle.
+
+-   :material-shield-lock-outline: **[Host-Sicherheitsdesign](host-security.md)**
+
+    ---
+
+    Bewertungsmodell, Kriterien und Schwellen der fünf Prüfungen, Aussperrschutz und Grenzen.
+
 </div>
 
 ## Zentrale Architekturentscheidungen

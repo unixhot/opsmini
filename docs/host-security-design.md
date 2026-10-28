@@ -2,8 +2,6 @@
 
 > 本文讲的是**「主机安全」这个功能是怎么设计和实现的**：每项检测看什么、判据是什么、分数怎么算、边界在哪、为什么这么选。
 >
-> 如果你想看的是「OpsMini 自身有没有漏洞」，那是另一份文档：[安全审查报告](security-audit.md)。
->
 > 对应代码：`internal/service/{security,baseline,loginsecurity,firewall,fim,threat,securitymonitor}.go`、`internal/api/v1/{security,baseline,fim,threat,firewall}.go`、`internal/router/router.go`。
 
 ---

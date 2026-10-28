@@ -22,6 +22,24 @@ OpsMini 的技术架构与设计决策。
 
     分层架构（Controller → Service → Repository）与目录组织。
 
+-   :material-server-network: **[后端架构设计](backend.md)**
+
+    ---
+
+    模块划分、分层与目录、数据模型、API 设计、关键流程与部署。
+
+-   :material-robot-outline: **[AI 智能体设计](ai-agent.md)**
+
+    ---
+
+    自研 ReAct 内核、29 个工具与分级授权、上下文与预算控制。
+
+-   :material-shield-lock-outline: **[主机安全设计](host-security.md)**
+
+    ---
+
+    评分模型、五项检测的判据与阈值、防锁死设计与边界。
+
 </div>
 
 ## 核心架构决策

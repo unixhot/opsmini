@@ -43,7 +43,6 @@ make build-all      # ครอสคอมไพล์สำหรับ Linux 
 - [สถาปัตยกรรมแบ็กเอนด์](docs/backend-architecture.md)
 - [การบิลด์และการปรับใช้](docs/build-and-deploy.md)
 - [การออกแบบความปลอดภัยโฮสต์](host-security-design.md)
-- [รายงานการตรวจสอบความปลอดภัย](security-audit.md)
 
 ### ลิขสิทธิ์
 

@@ -22,6 +22,24 @@ OpsMini의 기술 아키텍처와 설계 결정 사항.
 
     계층 아키텍처（Controller → Service → Repository）와 디렉터리 구성.
 
+-   :material-server-network: **[백엔드 아키텍처 설계](backend.md)**
+
+    ---
+
+    모듈 구성, 계층과 디렉터리, 데이터 모델, API 설계, 주요 흐름과 배포.
+
+-   :material-robot-outline: **[AI 에이전트 설계](ai-agent.md)**
+
+    ---
+
+    자체 ReAct 커널, 29개 도구와 단계별 권한, 컨텍스트와 예산 제어.
+
+-   :material-shield-lock-outline: **[호스트 보안 설계](host-security.md)**
+
+    ---
+
+    점수 모델, 다섯 검사의 판정 기준과 임계값, 잠금 방지 설계와 경계.
+
 </div>
 
 ## 핵심 아키텍처 결정

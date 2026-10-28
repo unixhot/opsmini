@@ -43,7 +43,6 @@ make build-all      # Cross-Compile für Linux amd64/arm64
 - [Backend-Architektur](docs/backend-architecture.md)
 - [Build & Deployment](docs/build-and-deploy.md)
 - [Host-Sicherheitsdesign](host-security-design.md)
-- [Sicherheitsaudit-Bericht](security-audit.md)
 
 ### Lizenz & Urheberrecht
 

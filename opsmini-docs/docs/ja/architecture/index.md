@@ -22,6 +22,24 @@ OpsMini の技術アーキテクチャと設計上の意思決定。
 
     レイヤードアーキテクチャ（Controller → Service → Repository）とディレクトリ編成。
 
+-   :material-server-network: **[バックエンド・アーキテクチャ設計](backend.md)**
+
+    ---
+
+    モジュール分割、レイヤとディレクトリ、データモデル、API 設計、主要フローとデプロイ。
+
+-   :material-robot-outline: **[AI エージェント設計](ai-agent.md)**
+
+    ---
+
+    自研 ReAct カーネル、29 のツールと段階的認可、コンテキストと予算の制御。
+
+-   :material-shield-lock-outline: **[ホストセキュリティ設計](host-security.md)**
+
+    ---
+
+    スコアモデル、5 つの検査の判定基準としきい値、ロックアウト防止と境界。
+
 </div>
 
 ## 主要なアーキテクチャ上の意思決定

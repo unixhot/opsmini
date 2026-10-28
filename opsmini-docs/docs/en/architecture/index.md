@@ -22,6 +22,24 @@ The technical architecture and design decisions of OpsMini.
 
     Layered architecture (Controller → Service → Repository) and directory organization.
 
+-   :material-server-network: **[Backend Architecture](backend.md)**
+
+    ---
+
+    Module breakdown, layering and directories, data model, API design, key flows and deployment.
+
+-   :material-robot-outline: **[AI Agent Design](ai-agent.md)**
+
+    ---
+
+    A hand-rolled ReAct kernel, 29 tools with tiered authorisation, context and budget control.
+
+-   :material-shield-lock-outline: **[Host Security Design](host-security.md)**
+
+    ---
+
+    Scoring model, criteria and thresholds of the five checks, anti-lockout design and boundaries.
+
 </div>
 
 ## Core Architecture Decisions
