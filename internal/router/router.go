@@ -434,6 +434,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/sentinel/retention", permMw("ai.agent"), sentinelHandler.Retention)
 			authed.PUT("/sentinel/retention", permMw("settings.edit"), sentinelHandler.UpdateRetention)
 			authed.POST("/sentinel/retention/purge", permMw("settings.edit"), sentinelHandler.PurgeRetention)
+			authed.POST("/sentinel/reset", permMw("settings.edit"), sentinelHandler.Reset)
 			authed.POST("/sentinel/pause", permMw("settings.edit"), sentinelHandler.Pause)
 			authed.GET("/sentinel/actions", permMw("ai.agent"), sentinelHandler.Actions)
 			authed.GET("/sentinel/quarantine", permMw("ai.agent"), sentinelHandler.Quarantine)

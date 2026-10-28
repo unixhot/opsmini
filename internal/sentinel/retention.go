@@ -3,6 +3,7 @@ package sentinel
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/model"
@@ -25,13 +26,15 @@ type RetentionPolicy struct {
 	BlockDays      int `json:"block_days"`
 }
 
-// DefaultRetention is what a fresh install uses.
+// DefaultRetention is what a fresh install uses. Events, signals and runs share
+// one 30 day window because that is the "how far back do I look" question an
+// operator actually asks; the action log is the audit trail and stays longer.
 func DefaultRetention() RetentionPolicy {
 	return RetentionPolicy{
-		SignalDays:     14,
-		IncidentDays:   90,
+		SignalDays:     30,
+		IncidentDays:   30,
 		ActionDays:     180,
-		RunDays:        90,
+		RunDays:        30,
 		QuarantineDays: 30,
 		BlockDays:      30,
 	}
@@ -77,6 +80,87 @@ type PurgeResult struct {
 	Blocks      int64 `json:"blocks"`
 	Total       int64 `json:"total"`
 	DryRun      bool  `json:"dry_run"`
+}
+
+// ResetResult reports what a full reset removed.
+type ResetResult struct {
+	Signals    int64 `json:"signals"`
+	Incidents  int64 `json:"incidents"`
+	Actions    int64 `json:"actions"`
+	Runs       int64 `json:"runs"`
+	Quarantine int64 `json:"quarantine"`
+	Blocks     int64 `json:"blocks"`
+	Files      int   `json:"files"`
+	Total      int64 `json:"total"`
+	DryRun     bool  `json:"dry_run"`
+}
+
+// Reset wipes the event history regardless of age or status.
+//
+// Purge deliberately protects anything still open, because an open incident is
+// live evidence. Reset is the opposite: the operator says "this history is
+// noise, give me a clean slate". Scope "events" keeps the action audit trail
+// (who touched the machine) and leaves bans alone; scope "all" drops the audit
+// log too, deletes the quarantined file copies and removes every ban record —
+// the caller is responsible for releasing the firewall rules first.
+func (m *Manager) Reset(scope string, dryRun bool) (ResetResult, error) {
+	res := ResetResult{DryRun: dryRun}
+	if m.db == nil {
+		return res, nil
+	}
+	all := scope == "" || scope == "all"
+
+	countOf := func(mdl any) int64 {
+		var n int64
+		m.db.Model(mdl).Count(&n)
+		return n
+	}
+	dropAll := func(mdl any) int64 {
+		return m.db.Where("1 = 1").Delete(mdl).RowsAffected
+	}
+
+	if dryRun {
+		res.Signals = countOf(&model.Signal{})
+		res.Incidents = countOf(&model.Incident{})
+		res.Runs = countOf(&model.AgentRun{})
+		if all {
+			res.Actions = countOf(&model.ActionLog{})
+			res.Quarantine = countOf(&model.QuarantineItem{})
+			res.Blocks = countOf(&model.BlockedIP{})
+		}
+		res.Total = res.Signals + res.Incidents + res.Runs + res.Actions + res.Quarantine + res.Blocks
+		return res, nil
+	}
+
+	// Delete the stored copies before the rows: dropping the row alone leaves an
+	// orphaned file inside the incident directory that nothing can reach again.
+	var items []model.QuarantineItem
+	m.db.Find(&items)
+	for _, it := range items {
+		if it.RestoredAt != nil || it.StoredPath == "" {
+			continue
+		}
+		if err := os.Remove(it.StoredPath); err == nil {
+			res.Files++
+		}
+	}
+
+	res.Signals = dropAll(&model.Signal{})
+	res.Incidents = dropAll(&model.Incident{})
+	res.Runs = dropAll(&model.AgentRun{})
+	res.Quarantine = dropAll(&model.QuarantineItem{})
+	if all {
+		res.Actions = dropAll(&model.ActionLog{})
+		res.Blocks = dropAll(&model.BlockedIP{})
+	}
+
+	// A reset means "start clean": clear the policy cooldowns too, otherwise the
+	// first real event afterwards is silently skipped because of a run that no
+	// longer exists in the history.
+	m.db.Model(&model.TriggerPolicy{}).Where("1 = 1").Update("last_run_at", nil)
+
+	res.Total = res.Signals + res.Incidents + res.Runs + res.Actions + res.Quarantine + res.Blocks
+	return res, nil
 }
 
 // closedStatuses are the incident states that are safe to age out. Open,

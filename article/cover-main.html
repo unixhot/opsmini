@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;}
+body{width:900px;height:383px;overflow:hidden;}
+.stage{position:relative;width:900px;height:383px;background:linear-gradient(120deg,#ffffff 0%,#eff6ff 55%,#dbeafe 100%);}
+.logo{position:absolute;left:44px;top:34px;width:190px;}
+.t1{position:absolute;left:44px;top:118px;font-size:56px;font-weight:800;color:#0f172a;letter-spacing:2px;}
+.t2{position:absolute;left:44px;top:192px;font-size:56px;font-weight:800;color:#2563eb;letter-spacing:2px;}
+.sub{position:absolute;left:46px;top:288px;font-size:20px;color:#475569;letter-spacing:1px;}
+.pill{position:absolute;left:46px;top:326px;background:#2563eb;color:#fff;font-size:15px;font-weight:600;padding:6px 16px;border-radius:999px;letter-spacing:1px;}
+.term{position:absolute;right:44px;top:56px;width:318px;height:250px;background:#0f172a;border-radius:14px;box-shadow:0 12px 32px rgba(37,99,235,0.18);}
+.bar{height:30px;background:#1e293b;border-radius:14px 14px 0 0;display:flex;align-items:center;padding-left:12px;gap:6px;}
+.dot{width:9px;height:9px;border-radius:50%;}
+.d1{background:#f87171;}.d2{background:#fbbf24;}.d3{background:#34d399;}
+.code{padding:16px 18px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:15px;line-height:1.9;color:#e2e8f0;}
+.p{color:#34d399;}.c{color:#94a3b8;}.b{color:#60a5fa;}
+.badge{position:absolute;right:44px;top:326px;font-size:14px;color:#94a3b8;letter-spacing:1px;}
+</style></head>
+<body>
+<div class="stage">
+  <img class="logo" src="../opsmini-site/assets/logo.png">
+  <div class="t1">把 AI 装进服务器</div>
+  <div class="t2">让它自己运维自己</div>
+  <div class="sub">主机上的 AI 运维 Agent · 单二进制 · 开源</div>
+  <div class="pill">会动手 · 划得住线 · 数据不出本机</div>
+
+  <div class="term">
+    <div class="bar"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span></div>
+    <div class="code">
+      <span class="p">$</span> opsmini status<br>
+      <span class="b">●</span> agent&nbsp;&nbsp;&nbsp;&nbsp;running<br>
+      <span class="b">●</span> signals&nbsp;&nbsp;119 / 24h<br>
+      <span class="b">●</span> actions&nbsp;&nbsp;6 auto, 1 pending<br>
+      <span class="c"># 高危动作 · 等你点头</span>
+    </div>
+  </div>
+  <div class="badge">opsmini.com</div>
+</div>
+</body>
+</html>

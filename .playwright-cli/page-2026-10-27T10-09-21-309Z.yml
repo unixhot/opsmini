@@ -1,0 +1,176 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e65]:
+    - complementary [ref=e66]:
+      - img "OpsMini" [ref=e68] [cursor=pointer]
+      - navigation [ref=e69]:
+        - generic [ref=e70]: 总览
+        - generic "仪表盘" [ref=e71] [cursor=pointer]
+        - generic "监控" [ref=e75] [cursor=pointer]
+        - generic "AI 助手" [ref=e79] [cursor=pointer]
+        - generic "事件中心" [ref=e83] [cursor=pointer]
+        - generic [ref=e87]: 安全
+        - generic "主机安全" [ref=e88] [cursor=pointer]
+        - generic "终端" [ref=e92] [cursor=pointer]
+        - generic "日志" [ref=e96] [cursor=pointer]
+        - generic [ref=e100]: 工具
+        - generic "容器管理" [ref=e101] [cursor=pointer]
+        - generic "系统管理" [ref=e105] [cursor=pointer]
+        - generic "计划任务" [ref=e109] [cursor=pointer]
+        - generic "文件" [ref=e113] [cursor=pointer]
+        - generic [ref=e117]: 系统
+        - generic "个人设置" [ref=e118] [cursor=pointer]
+        - generic "用户管理" [ref=e122] [cursor=pointer]
+        - generic "面板设置" [ref=e126] [cursor=pointer]
+      - generic [ref=e130]:
+        - generic "收起菜单" [ref=e131] [cursor=pointer]
+        - generic [ref=e135] [cursor=pointer]:
+          - generic [ref=e136]: OpsMini v1.2.1-14-gb462a8e
+          - generic [ref=e137]: ubuntu 22.04
+        - generic [ref=e138] [cursor=pointer]:
+          - generic "个人设置" [ref=e139]:
+            - generic [ref=e140]: O
+            - text: opsmini
+          - generic [ref=e141]: 退出
+    - generic [ref=e142]:
+      - banner [ref=e143]:
+        - generic [ref=e144]: 总览 / 仪表盘
+        - generic [ref=e145]:
+          - link "官方文档" [ref=e147] [cursor=pointer]:
+            - /url: https://www.opsmini.com/docs/
+          - link "GitHub" [ref=e151] [cursor=pointer]:
+            - /url: https://github.com/unixhot/opsmini/
+          - button "Language / 语言" [ref=e155] [cursor=pointer]
+          - button "主题配色" [ref=e160] [cursor=pointer]
+          - generic [ref=e164]: 运行正常
+          - button "30" [ref=e166] [cursor=pointer]
+          - button "AI 助手" [ref=e171] [cursor=pointer]
+      - generic [ref=e176]:
+        - generic [ref=e177]:
+          - generic [ref=e178]:
+            - generic [ref=e179]: 仪表盘
+            - generic [ref=e180]: demo-node4.opsany.com · 172.30.9.18, 172.17.0.1
+          - button "刷新" [ref=e182] [cursor=pointer]
+        - generic [ref=e185]:
+          - generic [ref=e186]:
+            - generic [ref=e187]: CPU 使用率
+            - generic [ref=e194]: 3%
+            - generic [ref=e197]: 2 核 · 负载 0.01 / 0.04 / 0.01
+          - generic [ref=e198]:
+            - generic [ref=e199]: 内存
+            - generic [ref=e204]: 0.6GB / 1.7GB
+            - generic [ref=e207]: 使用率 37%
+          - generic [ref=e208]:
+            - generic [ref=e209]: 磁盘
+            - generic [ref=e214]: 14.2GB / 39GB
+            - generic [ref=e217]: 使用率 38% · /
+          - generic [ref=e218]:
+            - generic [ref=e219]: 网络流量
+            - generic [ref=e225]:
+              - generic [ref=e226]: 4.3 KB/s↓
+              - generic [ref=e227]: ↑ 117 KB/s
+            - generic [ref=e228]: 今日累计 0 GB · all
+        - generic [ref=e229]:
+          - generic [ref=e231]:
+            - generic [ref=e232]: CPU / 内存 实时趋势
+            - generic [ref=e233]:
+              - generic [ref=e234] [cursor=pointer]: 30分钟
+              - generic [ref=e235] [cursor=pointer]: 1小时
+              - generic [ref=e236] [cursor=pointer]: 6小时
+              - generic [ref=e237] [cursor=pointer]: 24小时
+          - generic [ref=e242]:
+            - generic [ref=e243]: 系统信息
+            - generic [ref=e245]:
+              - generic [ref=e246]:
+                - generic [ref=e247]: 主机名称
+                - generic [ref=e248]: demo-node4.opsany.com
+              - generic [ref=e249]:
+                - generic [ref=e250]: 发行版本
+                - generic [ref=e251]: ubuntu 22.04
+              - generic [ref=e252]:
+                - generic [ref=e253]: 内核版本
+                - generic [ref=e254]: 5.15.0-94-generic
+              - generic [ref=e255]:
+                - generic [ref=e256]: 系统类型
+                - generic [ref=e257]: linux
+              - generic [ref=e258]:
+                - generic [ref=e259]: 主机地址
+                - generic [ref=e260]: 172.30.9.18, 172.17.0.1
+              - generic [ref=e261]:
+                - generic [ref=e262]: 启动时间
+                - generic [ref=e263]: 2025-04-02 10:37
+              - generic [ref=e264]:
+                - generic [ref=e265]: 运行时间
+                - generic [ref=e266]: 573 天 7 小时
+              - generic [ref=e267]:
+                - generic [ref=e268]: 当前时间
+                - generic [ref=e269]: 2026-10-27 星期二 18:09:20
+        - generic [ref=e270]:
+          - generic [ref=e271]:
+            - generic [ref=e272]: 快捷操作
+            - generic [ref=e274]:
+              - generic [ref=e278] [cursor=pointer]:
+                - generic [ref=e279]: AI 助手
+                - generic [ref=e280]: AI 智能运维
+              - generic [ref=e284] [cursor=pointer]:
+                - generic [ref=e285]: 容器管理
+                - generic [ref=e286]: Docker 容器
+              - generic [ref=e290] [cursor=pointer]:
+                - generic [ref=e291]: 文件
+                - generic [ref=e292]: 浏览服务器文件
+              - generic [ref=e296] [cursor=pointer]:
+                - generic [ref=e297]: 终端
+                - generic [ref=e298]: SSH 命令行
+          - generic [ref=e299]:
+            - generic [ref=e300]:
+              - generic [ref=e301]: 网络端口
+              - button "全部端口" [ref=e302] [cursor=pointer]
+            - generic [ref=e303]:
+              - generic [ref=e304]: TCP (3)
+              - generic [ref=e305]:
+                - generic [ref=e306]: "53"
+                - generic [ref=e307]: "8022"
+                - generic [ref=e308]: "8888"
+              - generic [ref=e309]: UDP (3)
+              - generic [ref=e310]:
+                - generic [ref=e311]: "53"
+                - generic [ref=e312]: "68"
+                - generic [ref=e313]: "323"
+        - generic [ref=e314]:
+          - generic [ref=e315]:
+            - generic [ref=e316]: 安全与运行日志
+            - button "全部日志" [ref=e317] [cursor=pointer]
+          - generic [ref=e318]:
+            - generic [ref=e319]:
+              - generic [ref=e320]: 10-27 18:09
+              - generic [ref=e321]: INFO
+              - generic [ref=e322]: opsmini login auth · login success (153.0.254.221)
+            - generic [ref=e323]:
+              - generic [ref=e324]: 10-27 15:18
+              - generic [ref=e325]: INFO
+              - generic [ref=e326]: opsmini login auth · login success (153.0.254.221)
+            - generic [ref=e327]:
+              - generic [ref=e328]: 10-27 15:12
+              - generic [ref=e329]: INFO
+              - generic [ref=e330]: "- logout auth · logout (153.0.254.221)"
+            - generic [ref=e331]:
+              - generic [ref=e332]: 10-27 15:07
+              - generic [ref=e333]: INFO
+              - generic [ref=e334]: opsmini login auth · login success (153.0.254.221)
+            - generic [ref=e335]:
+              - generic [ref=e336]: 10-27 15:06
+              - generic [ref=e337]: INFO
+              - generic [ref=e338]: "- logout auth · logout (153.0.254.221)"
+            - generic [ref=e339]:
+              - generic [ref=e340]: 10-27 15:05
+              - generic [ref=e341]: INFO
+              - generic [ref=e342]: opsmini login auth · login success (153.0.254.221)
+            - generic [ref=e343]:
+              - generic [ref=e344]: 10-27 14:59
+              - generic [ref=e345]: INFO
+              - generic [ref=e346]: opsmini login auth · login success (153.0.254.221)
+            - generic [ref=e347]:
+              - generic [ref=e348]: 10-27 14:57
+              - generic [ref=e349]: INFO
+              - generic [ref=e350]: opsmini login auth · login success (153.0.254.221)
+      - generic [ref=e351]: Copyright @ 2015-2026 速云科技（opsmini.com）
+  - generic [ref=e352]: 欢迎回来，opsmini

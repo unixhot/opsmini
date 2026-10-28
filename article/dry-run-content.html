@@ -1,0 +1,139 @@
+<div style="max-width:677px;margin:0 auto;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#2b2b2b;letter-spacing:0.5px;">
+
+  
+  <section style="margin-bottom:28px;padding:18px 20px;background:#f8fafc;border-left:4px solid #2563eb;border-radius:0 8px 8px 0;">
+    <p style="margin:0;font-size:15px;color:#475569;line-height:1.9;">凌晨三点，告警响了。<br>监控 Agent 做了它唯一会做的事：把告警转发到你的手机。<br>然后你起床，SSH 上去，tail 日志，top 看进程，查 crontab……<br><strong style="color:#1d4ed8;">如果机器上住着一个懂运维的 AI，这一切为什么不能它自己来？</strong></p>
+  </section>
+
+  <p style="margin:0 0 20px;">运维世界里一直有两种工具：</p>
+  <p style="margin:0 0 12px;"><strong>第一种是监控 Agent</strong>——Datadog、Zabbix、node_exporter。它们 7×24 盯着机器，但只会汇报。发现异常的方式是给你发一条消息，然后等一个可能正在睡觉的人。</p>
+  <p style="margin:0 0 24px;"><strong>第二种是运维面板</strong>——宝塔、1Panel、Webmin。它们功能齐全，但只会等人点。每一个按钮都在等你，AI 至多在旁边递个建议。</p>
+
+  <p style="margin:0 0 20px;">我们做了十年运维，反复问自己一个问题：<strong style="color:#1d4ed8;">为什么没有第三种？</strong>装上去就常驻，自己采集、自己发现、自己判断、自己动手修，遇到没把握的动作再停下来等主人点头——就像团队里多了一个不用睡觉的运维同事。</p>
+
+  <p style="margin:0 0 24px;">这个空位，就是今天要介绍的 <strong>OpsMini</strong>——一台 Linux 主机上的常驻 AI 运维 Agent。</p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:diagram-position.png>" alt="运维工具地图" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 32px;">▲ 会行动 + 单机自治 + 开源自托管，这一格几乎一直是空的</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">一、它不是「带 AI 的面板」</h2>
+
+  <p style="margin:0 0 20px;">先说清楚定位，因为这决定了你怎么用它。</p>
+
+  <p style="margin:0 0 20px;">OpsMini 的交付形态是<strong>一个几十 MB 的静态二进制</strong>（纯 Go、无 CGO），一条命令装到服务器上，由 systemd 拉起常驻运行。它自带一个 Web 界面，但界面不是全部——界面只是这具 Agent 的<strong>观察窗、审批台和调试台</strong>。真正的重心，是驻留在主机上的那个进程。</p>
+
+  <p style="margin:0 0 20px;">它每天早上 8 点自动巡检并产出 HTML 报告；出事的时候，它被事件唤醒；你登录进来的时候，可以直接用自然语言让它查任何东西。它手上有 <strong>29 个工具</strong>：执行命令和脚本、读写文件、管理服务、操作 Docker 容器、查网络、查指标、管定时任务……不是「给你建议」，是真的自己敲命令。</p>
+
+  <p style="margin:0 0 24px;">当然，普通面板该有的能力它一样不少——仪表盘、监控、终端、文件管理、容器管理、计划任务，全都还在。<strong>只是它现在会自己动手了。</strong></p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:01-dashboard.png>" alt="OpsMini 仪表盘" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(15,23,42,0.06);"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 32px;">▲ Web 界面：观察窗 + 审批台，原来的面板能力全部还在</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">二、感知：先让它「看见」</h2>
+
+  <p style="margin:0 0 20px;">自主的第一步不是行动，是感知。阈值告警只能看见「CPU 超了 90%」，看不见真正的异常。</p>
+
+  <p style="margin:0 0 20px;">OpsMini 内置了<strong>六类采集器</strong>，全部常驻、秒级轮询：指标、日志速率与模板指纹、登录行为、文件完整性（FIM + 站点目录）、进程链、出站连接基线。所有采集器输出统一的「信号（Signal）」，经事件总线去重、分级、聚合成事件簇。</p>
+
+  <p style="margin:0 0 24px;">效果如何？看真实数据。我们的测试主机是一台暴露在公网的服务器，事件中心上线后抓到的现场是这样的——</p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:03-events.png>" alt="事件中心" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(15,23,42,0.06);"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 12px;">▲ 事件中心：24 小时 119 条信号、94 条待处置，全部可审计、可回溯</p>
+
+  <p style="margin:0 0 8px;">24 小时内，<strong>739 个疑似暴力破解目标 IP</strong>、某个账号被尝试爆破 <strong>1911 次</strong>——这台机器自己全看见了：</p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:04-security.png>" alt="主机安全" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(15,23,42,0.06);"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 32px;">▲ 主机安全模块：登录安全 / 基线检查 / 防火墙 / 文件完整性 / 威胁检测</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">三、决策与行动：看见之后，它自己上</h2>
+
+  <p style="margin:0 0 20px;">光看见不够，关键在后面两步。<strong>决策平面</strong>里是策略引擎——策略不是写死的，你可以在界面上增删改，每条策略定义「哪类事件、什么等级、用哪种模式响应」。三种运行模式：</p>
+
+  <ul style="margin:0 0 20px;padding-left:22px;">
+    <li style="margin-bottom:10px;"><strong>shadow（影子）</strong>：只看不动手。Agent 对事件做完整诊断、给出处置建议，但不执行——这是推荐的上手姿势，先跑两周建立信任；</li>
+    <li style="margin-bottom:10px;"><strong>assist（辅助）</strong>：低危动作自己做，高危动作生成确认卡片等你点头；</li>
+    <li style="margin-bottom:0;"><strong>auto（自动）</strong>：在白名单边界内自主处置，每个动作照常留痕。</li>
+  </ul>
+
+  <p style="margin:0 0 24px;">下面是我们测试环境里真实的一次性能诊断——没有写任何预设脚本，Agent 自己规划步骤，连续调用了 6 个只读工具（系统概览、指标查询、进程、磁盘、网络、服务），最后给出结论和建议动作：</p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:05-ai-chat.png>" alt="AI 助手调用工具诊断" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(15,23,42,0.06);"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 32px;">▲ 不是聊天机器人：每一步工具调用都真实执行、真实返回</p>
+
+  <p style="margin:0 0 24px;">四个典型场景——日志暴涨、凌晨 SSH 爆破、WebShell 落地、可疑进程派生——我们都做过注入式演练，从信号产生到 Agent 产出处置结论，全链路分钟级闭环。</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">四、架构：五个平面，一条闭环</h2>
+
+  <p style="margin:0 0 24px;">把上面的能力拼起来，就是 OpsMini 的五平面架构。它全部运行在同一台主机上的同一个二进制里，没有 MQ、没有外部中心、没有 SaaS 后端：</p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:diagram-architecture.png>" alt="OpsMini 五平面架构" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 32px;">▲ 采集 → 归一 → 决策 → 行动 → 兜底，一条闭环</p>
+
+  <p style="margin:0 0 24px;">几个值得说的工程决策：事件总线用<strong>进程内 channel + SQLite 持久化</strong>而不是消息队列——单机每分钟不到一百条信号，引 MQ 是杀鸡用牛刀；全局同一时刻只跑一个 Agent 会话，避免两个会话抢着改同一台机器；模型不可用时自动降级为规则告警，<strong>没有判断能力的系统不许动手</strong>。</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">五、最关键的问题：怎么敢让它动手？</h2>
+
+  <p style="margin:0 0 20px;">「AI 自动改我的服务器」这句话，足以让任何运维主播间瞬间安静下来。所以我们把最多的精力花在了这块——这也是 OpsMini 和其他「AI 运维」产品最不一样的地方。</p>
+
+  <p style="margin:0 0 20px;"><strong>第一，分级放权（L0–L3）。</strong>L0 只读工具永远自主；L1 低危动作按模式决定；L2 高危动作必须确认，且<strong>这个限制不可关闭</strong>；L3 危险参数（rm -rf、dd、mkfs……）直接正则硬禁止，连「把面板自己关掉」这种自毁操作都被单独拦住。</p>
+
+  <p style="margin:0 0 20px;"><strong>第二，把不可逆的动作全部改成可逆的。</strong>这是我们认为真正值钱的一条设计原则：</p>
+
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 24px;">
+    <tr style="background:#eff6ff;">
+      <th style="border:1px solid #dbeafe;padding:10px 12px;text-align:left;color:#1d4ed8;width:42%;">人的直觉动作</th>
+      <th style="border:1px solid #dbeafe;padding:10px 12px;text-align:left;color:#1d4ed8;">OpsMini 的做法</th>
+    </tr>
+    <tr><td style="border:1px solid #e2e8f0;padding:10px 12px;color:#64748b;">rm 删掉可疑文件</td><td style="border:1px solid #e2e8f0;padding:10px 12px;"><strong>移入隔离区</strong>，附 sha256 和原路径，一键还原</td></tr>
+    <tr style="background:#f8fafc;"><td style="border:1px solid #e2e8f0;padding:10px 12px;color:#64748b;">kill -9 杀掉可疑进程</td><td style="border:1px solid #e2e8f0;padding:10px 12px;">先 SIGSTOP <strong>冻结</strong>（可恢复）→ 观察 → 再终止</td></tr>
+    <tr><td style="border:1px solid #e2e8f0;padding:10px 12px;color:#64748b;">改 sshd_config、改防火墙</td><td style="border:1px solid #e2e8f0;padding:10px 12px;">改前<strong>快照</strong>，定时未确认连通则自动回滚</td></tr>
+    <tr style="background:#f8fafc;"><td style="border:1px solid #e2e8f0;padding:10px 12px;color:#64748b;">封禁攻击 IP</td><td style="border:1px solid #e2e8f0;padding:10px 12px;"><strong>临时封禁 + TTL 自动解封</strong>（默认 60 分钟）</td></tr>
+  </table>
+
+  <p style="margin:0 0 20px;"><strong>第三，动作预算与急停。</strong>Agent 的写操作有配额，防止它反复折腾；页面右上角常驻一个红色急停开关，任何时刻可以一键接管；每一次工具调用、每一个动作、每一条决策依据，全部落库，事后可完整回放。</p>
+
+  <p style="margin:0 0 24px;">一句话总结我们的安全观：<strong style="color:#1d4ed8;">半夜三点，它不会替你冒险。</strong>无人值守时遇到高危动作，它的选择是拒绝并记录，而不是硬着头皮上。</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">六、数据不出本机</h2>
+
+  <p style="margin:0 0 24px;">这是和 SaaS Agent 的根本分歧。OpsMini 没有云端大脑：模型你说了算——可以接 DeepSeek、通义、GPT，也可以直接连本机 <strong>Ollama</strong>，做到完全离线；巡检报告、审计日志、隔离区文件、事件证据，全部落在你自己机器的磁盘上。一台没有外网的服务器，OpsMini 照样跑。同时也支持 <strong>MCP 协议</strong>，你可以把 OpsMini 接入任何支持 MCP 的客户端。</p>
+
+  
+  <p style="text-align:center;margin:0 0 8px;"><img src="<DRY-RUN-URL:02-monitor.png>" alt="监控与告警" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(15,23,42,0.06);"></p>
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0 0 32px;">▲ 监控告警、Web 终端、文件管理、容器管理、计划任务等工具箱能力一应俱全</p>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">七、一分钟上手</h2>
+
+  <p style="margin:0 0 12px;">一台 Linux 服务器（x86_64 / arm64 均可），一行命令：</p>
+
+  <div style="background:#0f172a;border-radius:10px;padding:16px 20px;margin:0 0 20px;">
+    <code style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:14px;color:#e2e8f0;word-break:break-all;">curl -sSL https://opsmini.com/install.sh | bash</code>
+  </div>
+
+  <p style="margin:0 0 24px;">装完打开 <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:14px;color:#1d4ed8;">http://服务器IP:8888</code>，配一个大模型 API Key（或指向本机 Ollama），然后把「影子模式」开两周——看看它每天都看见了什么、想做什么、哪些判断是对的。信任建立起来之后，再逐步放开 assist 和 auto。</p>
+
+  <section style="margin:0 0 32px;padding:18px 20px;background:#eff6ff;border-radius:10px;">
+    <p style="margin:0;font-size:15px;line-height:2;">
+      🔗 GitHub：<strong>github.com/unixhot/opsmini</strong><br>
+      📖 官方文档：<strong>www.opsmini.com/docs</strong><br>
+      💬 支持 7 种语言界面（简中 / 繁中 / 英 / 日 / 韩 / 泰 / 德）
+    </p>
+  </section>
+
+  <h2 style="font-size:21px;font-weight:700;color:#0f172a;margin:40px 0 18px;padding-left:12px;border-left:4px solid #2563eb;line-height:1.5;">写在最后</h2>
+
+  <p style="margin:0 0 20px;">我们不讳言现在的边界：OpsMini 目前还不能被任意事件「叫醒」后处理一切，没有跨会话的长期记忆，命令级回滚还在路上。我们也不想用「完全自主」这种大词——它现在能做到的是：<strong>大部分时间自己盯着，出事自己查，有把握的低危动作自己做，没把握的停下来问你</strong>。</p>
+
+  <p style="margin:0 0 20px;">但方向是清晰的：让每一个在凌晨三点被告警叫醒的运维工程师，能多睡一会儿。</p>
+
+  <p style="margin:0 0 30px;">OpsMini 永久开源、没有商业版，如果你也相信「服务器上应该住着一个会干活的 AI」，欢迎来 GitHub 点一个 Star，或者直接把它装到你最不重要的那台测试机上——反正，影子模式下它什么也不会动。</p>
+
+  <p style="text-align:center;font-size:13px;color:#94a3b8;margin:0;border-top:1px solid #e2e8f0;padding-top:20px;">OpsMini · 主机上的 AI 运维 Agent · 速云科技（opsmini.com）</p>
+
+</div>

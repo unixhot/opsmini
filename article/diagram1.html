@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
+body { width:1080px; background:#ffffff; padding:28px 30px 24px; }
+svg text { font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
+</style>
+</head>
+<body>
+<svg width="1020" height="1060" viewBox="0 0 1020 1060" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- 标题 -->
+  <text x="510" y="34" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">OpsMini 自主 Agent 架构：五个平面，一条闭环</text>
+  <text x="510" y="58" text-anchor="middle" font-size="13" fill="#64748b">发现 → 归一 → 决策 → 行动 → 兜底，全部运行在一台主机上的一个二进制里</text>
+
+  <!-- ═══ 平面1：采集 ═══ -->
+  <rect x="30" y="86" width="960" height="150" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  <text x="50" y="114" font-size="16" font-weight="700" fill="#1d4ed8">① 采集平面 Collectors</text>
+  <text x="245" y="114" font-size="12" fill="#64748b">7×24 常驻，秒级轮询</text>
+  <g font-size="13" font-weight="600" fill="#1e40af">
+    <rect x="50"  y="130" width="140" height="42" rx="8" fill="#ffffff" stroke="#bfdbfe"/><text x="120" y="148" text-anchor="middle">指标 metric</text><text x="120" y="164" text-anchor="middle" font-size="10.5" fill="#64748b" font-weight="400">阈值 / 趋势</text>
+    <rect x="204" y="130" width="140" height="42" rx="8" fill="#ffffff" stroke="#bfdbfe"/><text x="274" y="148" text-anchor="middle">日志 logwatch</text><text x="274" y="164" text-anchor="middle" font-size="10.5" fill="#64748b" font-weight="400">暴涨 / 模板指纹</text>
+    <rect x="358" y="130" width="140" height="42" rx="8" fill="#ffffff" stroke="#bfdbfe"/><text x="428" y="148" text-anchor="middle">登录 authwatch</text><text x="428" y="164" text-anchor="middle" font-size="10.5" fill="#64748b" font-weight="400">爆破 / 异常时段</text>
+    <rect x="512" y="130" width="140" height="42" rx="8" fill="#ffffff" stroke="#bfdbfe"/><text x="582" y="148" text-anchor="middle">文件 filewatch</text><text x="582" y="164" text-anchor="middle" font-size="10.5" fill="#64748b" font-weight="400">FIM / webroot</text>
+    <rect x="666" y="130" width="140" height="42" rx="8" fill="#ffffff" stroke="#bfdbfe"/><text x="736" y="148" text-anchor="middle">进程 procwatch</text><text x="736" y="164" text-anchor="middle" font-size="10.5" fill="#64748b" font-weight="400">进程链 / 派生</text>
+    <rect x="820" y="130" width="140" height="42" rx="8" fill="#ffffff" stroke="#bfdbfe"/><text x="890" y="148" text-anchor="middle">网络 netwatch</text><text x="890" y="164" text-anchor="middle" font-size="10.5" fill="#64748b" font-weight="400">出站基线</text>
+  </g>
+
+  <line x1="510" y1="236" x2="510" y2="266" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="524" y="256" font-size="11.5" fill="#64748b">Signal 统一信号（指纹去重 / 证据落盘）</text>
+
+  <!-- ═══ 平面2：事件总线 ═══ -->
+  <rect x="30" y="270" width="960" height="106" rx="12" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+  <text x="50" y="298" font-size="16" font-weight="700" fill="#0369a1">② 归一平面 Event Bus</text>
+  <g font-size="12.5" font-weight="600">
+    <rect x="50" y="314" width="215" height="40" rx="8" fill="#ffffff" stroke="#bae6fd"/><text x="157" y="339" text-anchor="middle" fill="#0c4a6e">去重 dedup_key</text>
+    <rect x="281" y="314" width="215" height="40" rx="8" fill="#ffffff" stroke="#bae6fd"/><text x="388" y="339" text-anchor="middle" fill="#0c4a6e">分级 info→critical</text>
+    <rect x="512" y="314" width="215" height="40" rx="8" fill="#ffffff" stroke="#bae6fd"/><text x="619" y="339" text-anchor="middle" fill="#0c4a6e">聚合 Incident 事件簇</text>
+    <rect x="743" y="314" width="217" height="40" rx="8" fill="#ffffff" stroke="#bae6fd"/><text x="851" y="339" text-anchor="middle" fill="#0c4a6e">持久化 SQLite</text>
+  </g>
+
+  <line x1="510" y1="376" x2="510" y2="406" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="524" y="396" font-size="11.5" fill="#64748b">待处置事件</text>
+
+  <!-- ═══ 平面3：决策 ═══ -->
+  <rect x="30" y="410" width="960" height="112" rx="12" fill="#fefce8" stroke="#fde68a" stroke-width="1.5"/>
+  <text x="50" y="438" font-size="16" font-weight="700" fill="#a16207">③ 决策平面 Trigger Engine</text>
+  <g font-size="12.5" font-weight="600">
+    <rect x="50" y="456" width="180" height="40" rx="8" fill="#ffffff" stroke="#fde68a"/><text x="140" y="481" text-anchor="middle" fill="#713f12">策略匹配（可增删改）</text>
+    <rect x="246" y="456" width="180" height="40" rx="8" fill="#ffffff" stroke="#fde68a"/><text x="336" y="477" text-anchor="middle" fill="#713f12">模式选择</text><text x="336" y="491" text-anchor="middle" font-size="10.5" fill="#a16207" font-weight="400">shadow / assist / auto</text>
+    <rect x="442" y="456" width="180" height="40" rx="8" fill="#ffffff" stroke="#fde68a"/><text x="532" y="477" text-anchor="middle" fill="#713f12">预算 / 冷却 / 并发</text><text x="532" y="491" text-anchor="middle" font-size="10.5" fill="#a16207" font-weight="400">防风暴保护</text>
+    <rect x="638" y="456" width="322" height="40" rx="8" fill="#ffffff" stroke="#fde68a"/><text x="799" y="481" text-anchor="middle" fill="#713f12">组装 RunOptions + 证据包，拉起 Agent 会话</text>
+  </g>
+
+  <line x1="510" y1="522" x2="510" y2="552" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="524" y="542" font-size="11.5" fill="#64748b">只读工具取证 → 只读与处置工具物理分家</text>
+
+  <!-- ═══ 平面4：Agent Runtime ═══ -->
+  <rect x="30" y="556" width="960" height="150" rx="12" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5"/>
+  <text x="50" y="584" font-size="16" font-weight="700" fill="#6d28d9">④ 行动平面 Agent Runtime（ReAct 循环）</text>
+  <g font-size="12.5" font-weight="600">
+    <rect x="50" y="602" width="172" height="42" rx="8" fill="#ffffff" stroke="#ddd6fe"/><text x="136" y="620" text-anchor="middle" fill="#4c1d95">取证（只读）</text><text x="136" y="636" text-anchor="middle" font-size="10.5" fill="#7c3aed" font-weight="400">日志 / 进程 / 网络</text>
+    <text x="232" y="627" font-size="14" fill="#94a3b8">→</text>
+    <rect x="248" y="602" width="172" height="42" rx="8" fill="#ffffff" stroke="#ddd6fe"/><text x="334" y="620" text-anchor="middle" fill="#4c1d95">判定根因</text><text x="334" y="636" text-anchor="middle" font-size="10.5" fill="#7c3aed" font-weight="400">假设驱动</text>
+    <text x="430" y="627" font-size="14" fill="#94a3b8">→</text>
+    <rect x="446" y="602" width="172" height="42" rx="8" fill="#ffffff" stroke="#ddd6fe"/><text x="532" y="620" text-anchor="middle" fill="#4c1d95">处置（受约束）</text><text x="532" y="636" text-anchor="middle" font-size="10.5" fill="#7c3aed" font-weight="400">按 L0–L3 边界</text>
+    <text x="628" y="627" font-size="14" fill="#94a3b8">→</text>
+    <rect x="644" y="602" width="150" height="42" rx="8" fill="#ffffff" stroke="#ddd6fe"/><text x="719" y="620" text-anchor="middle" fill="#4c1d95">闭环验证</text><text x="719" y="636" text-anchor="middle" font-size="10.5" fill="#7c3aed" font-weight="400">断言 DSL</text>
+    <text x="804" y="627" font-size="14" fill="#94a3b8">→</text>
+    <rect x="820" y="602" width="140" height="42" rx="8" fill="#ffffff" stroke="#ddd6fe"/><text x="890" y="620" text-anchor="middle" fill="#4c1d95">报告 + 回滚</text><text x="890" y="636" text-anchor="middle" font-size="10.5" fill="#7c3aed" font-weight="400">必要时</text>
+  </g>
+  <g font-size="11" fill="#6d28d9">
+    <text x="50" y="682" font-weight="600">29 个内置工具：</text>
+    <text x="160" y="682">执行命令/脚本 · 文件读写 · 服务管理 · 容器管理 · 网络诊断 · 指标查询 · 包管理 · 定时任务 …（只读与处置分层，处置全走策略通道）</text>
+    <text x="50" y="700" font-weight="600">模型可换：</text>
+    <text x="130" y="700">DeepSeek / 通义 / GPT / 本地 Ollama —— 可完全离线运行，数据不出本机</text>
+  </g>
+
+  <line x1="510" y1="706" x2="510" y2="736" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="524" y="726" font-size="11.5" fill="#64748b">每一次动作（Action）全量留痕</text>
+
+  <!-- ═══ 平面5：安全兜底 ═══ -->
+  <rect x="30" y="740" width="960" height="150" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5"/>
+  <text x="50" y="768" font-size="16" font-weight="700" fill="#b91c1c">⑤ 兜底平面 Safety &amp; Audit —— 让它敢动手，更让你放心</text>
+  <g font-size="12.5" font-weight="600" fill="#7f1d1d">
+    <rect x="50"  y="786" width="220" height="42" rx="8" fill="#ffffff" stroke="#fecaca"/><text x="160" y="804" text-anchor="middle">不可逆 → 可逆化</text><text x="160" y="820" text-anchor="middle" font-size="10.5" fill="#b91c1c" font-weight="400">删除=隔离区 · kill=先冻结 · 封禁带 TTL</text>
+    <rect x="286" y="786" width="220" height="42" rx="8" fill="#ffffff" stroke="#fecaca"/><text x="396" y="804" text-anchor="middle">快照 + 自动回滚</text><text x="396" y="820" text-anchor="middle" font-size="10.5" fill="#b91c1c" font-weight="400">改配置前先快照</text>
+    <rect x="522" y="786" width="220" height="42" rx="8" fill="#ffffff" stroke="#fecaca"/><text x="632" y="804" text-anchor="middle">动作预算与熔断</text><text x="632" y="820" text-anchor="middle" font-size="10.5" fill="#b91c1c" font-weight="400">防反复折腾</text>
+    <rect x="758" y="786" width="202" height="42" rx="8" fill="#ffffff" stroke="#fecaca"/><text x="859" y="804" text-anchor="middle">急停开关 + 决策链审计</text><text x="859" y="820" text-anchor="middle" font-size="10.5" fill="#b91c1c" font-weight="400">随时人工接管</text>
+  </g>
+  <g font-size="11" fill="#b91c1c">
+    <text x="50" y="862" font-weight="600">L0 只读自主</text><text x="160" y="862">L1 低危需确认</text><text x="270" y="862">L2 必须确认（不可关闭）</text><text x="430" y="862">L3 正则硬禁止（含面板自保护）</text>
+    <text x="50" y="880" fill="#ef4444">高危动作：落库待确认 · 10 分钟超时 · 无人值守时直接拒绝 —— 半夜三点它不会替你冒险</text>
+  </g>
+
+  <!-- 底部闭环 -->
+  <rect x="30" y="912" width="960" height="58" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="510" y="936" text-anchor="middle" font-size="13.5" font-weight="700" fill="#334155">三种触发并存：事件触发（反应式） + 定时巡检（探索式） + 人工提问（深度）</text>
+  <text x="510" y="956" text-anchor="middle" font-size="11.5" fill="#64748b">交付形态：单二进制 + systemd 常驻 · 纯 Go 无 CGO · 数据全留本机 · 断网不影响本地自治</text>
+
+  <text x="510" y="1010" text-anchor="middle" font-size="12" fill="#94a3b8">opsmini.com · 开源 · 永久免费</text>
+</svg>
+</body>
+</html>

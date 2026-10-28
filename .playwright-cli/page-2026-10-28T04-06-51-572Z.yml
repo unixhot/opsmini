@@ -1,0 +1,480 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "OpsMini 主机上的 AI 运维 Agent" [ref=e4] [cursor=pointer]:
+        - /url: "#top"
+        - img "OpsMini" [ref=e5]
+        - generic [ref=e6]: 主机上的 AI 运维 Agent
+      - generic [ref=e7]:
+        - link "工具" [ref=e8] [cursor=pointer]:
+          - /url: "#features"
+        - link "Agent" [ref=e9] [cursor=pointer]:
+          - /url: "#agent"
+        - link "边界" [ref=e10] [cursor=pointer]:
+          - /url: "#guard"
+        - link "对比" [ref=e11] [cursor=pointer]:
+          - /url: "#compare"
+        - link "架构" [ref=e12] [cursor=pointer]:
+          - /url: "#arch"
+        - link "快速开始" [ref=e13] [cursor=pointer]:
+          - /url: "#quickstart"
+        - link "FAQ" [ref=e14] [cursor=pointer]:
+          - /url: "#faq"
+        - link "GitHub" [ref=e15] [cursor=pointer]:
+          - /url: https://github.com/unixhot/opsmini/
+        - link "文档" [ref=e16] [cursor=pointer]:
+          - /url: https://www.opsmini.com/docs/
+      - generic [ref=e17]:
+        - button "🌐 简体中文 ▼" [ref=e19] [cursor=pointer]:
+          - generic [ref=e20]: 🌐
+          - generic [ref=e21]: 简体中文
+          - generic [ref=e22]: ▼
+        - link "立即体验" [ref=e23] [cursor=pointer]:
+          - /url: "#quickstart"
+  - banner [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: 常驻主机 · 自主执行 · 数据不出本机
+        - heading "把 AI 装进服务器， 让它自己运维自己" [level=1] [ref=e30]: 把 AI 装进服务器，让它自己运维自己
+        - paragraph [ref=e31]: OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。
+        - generic [ref=e32]:
+          - link "快速开始 →" [ref=e33] [cursor=pointer]:
+            - /url: "#quickstart"
+          - link "看它怎么干活" [ref=e34] [cursor=pointer]:
+            - /url: "#agent"
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]: Go
+            - text: 静态单文件
+          - generic [ref=e38]:
+            - generic [ref=e39]: systemd
+            - text: 常驻托管
+          - generic [ref=e40]:
+            - generic [ref=e41]: "29"
+            - text: 个运维工具
+          - generic [ref=e42]:
+            - generic [ref=e43]: L0–L3
+            - text: 分级放权
+      - generic [ref=e44]:
+        - generic [ref=e45]: "opsmini agent · daily-inspection · run #128"
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - generic [ref=e53]: 每日主机巡检
+            - generic [ref=e54]: 已完成 · 38s
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: "1"
+              - generic [ref=e58]:
+                - generic [ref=e59]: 感知
+                - text: 采集 48 项指标：CPU 12% · 内存 61% · 磁盘 /var 91%
+            - generic [ref=e60]:
+              - generic [ref=e61]: "2"
+              - generic [ref=e62]:
+                - generic [ref=e63]: 判断
+                - text: 定位到 /var/log 有 6.8 GB 日志未轮转
+            - generic [ref=e64]:
+              - generic [ref=e65]: "3"
+              - generic [ref=e66]:
+                - generic [ref=e67]: 行动
+                - text: 执行 journalctl --vacuum-size=500M，释放 6.3 GB
+            - generic [ref=e68]:
+              - generic [ref=e69]: "4"
+              - generic [ref=e70]:
+                - generic [ref=e71]: 报告
+                - text: 生成单文件 HTML，归档到本机数据目录
+          - generic [ref=e72]:
+            - generic [ref=e73]: "!"
+            - generic [ref=e74]: 清理 app.log 属高危 · 已挂起等你批准
+          - generic [ref=e75]: 5 次工具调用 · 0 次越权 · 全程可审计
+  - generic [ref=e77]:
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]: 🤖
+        - generic [ref=e81]:
+          - generic [ref=e82]: 会自己动手的 AI
+          - text: 不只诊断，还能执行——按危险程度分级放权
+      - generic [ref=e83]:
+        - generic [ref=e84]: 🔓
+        - generic [ref=e85]:
+          - generic [ref=e86]: 永久开源 · 无商业版
+          - text: 完全开源，无功能阉割、无付费墙、无商业版计划
+      - generic [ref=e87]:
+        - generic [ref=e88]: 🔌
+        - generic [ref=e89]:
+          - generic [ref=e90]: 支持 MCP 与 Skill
+          - text: 对接 MCP 协议与自定义 Skill，自由扩展 AI 能力
+    - generic [ref=e91]:
+      - generic [ref=e92]: 一键安装
+      - code [ref=e93]: $ curl -fsSL https://opsmini.com/install.sh | sudo bash
+      - button "复制" [ref=e94] [cursor=pointer]
+  - generic [ref=e96]:
+    - generic [ref=e97]:
+      - generic [ref=e98]: Positioning
+      - heading "它不是面板，是装在你服务器上的 Agent" [level=2] [ref=e99]
+      - paragraph [ref=e100]: 面板等你来点，Agent 自己动手。OpsMini 常驻在主机上，用一整套运维工具自行环视、判断、处理，只在需要你拍板时停下。
+    - generic [ref=e101]:
+      - generic [ref=e102]:
+        - heading "以前：运维面板" [level=4] [ref=e103]
+        - list [ref=e104]:
+          - listitem [ref=e105]: – 你发现问题，你打开页面
+          - listitem [ref=e106]: – 你逐项点开菜单去查
+          - listitem [ref=e107]: – 你决定改什么、怎么改
+          - listitem [ref=e108]: – 关掉页面后，它什么也不知道
+      - generic [ref=e109]:
+        - heading "现在：主机上的 Agent" [level=4] [ref=e110]
+        - list [ref=e111]:
+          - listitem [ref=e112]: ✓ 它自己定时、或按事件去看
+          - listitem [ref=e113]: ✓ 它自己连着查几层，直到定位到原因
+          - listitem [ref=e114]: ✓ 它自己动手，高危的先问你
+          - listitem [ref=e115]: ✓ 你不在，它也在盯，还留下报告
+    - generic [ref=e116]:
+      - generic [ref=e117]:
+        - generic [ref=e118]: 常驻
+        - text: systemd 托管，开机自启、崩溃自恢复
+      - generic [ref=e119]:
+        - generic [ref=e120]: 感知
+        - text: 指标、进程、端口、磁盘、服务、日志、文件
+      - generic [ref=e121]:
+        - generic [ref=e122]: 决策
+        - text: 自研 ReAct 循环，自己决定下一步查什么
+      - generic [ref=e123]:
+        - generic [ref=e124]: 行动
+        - text: 执行命令与脚本、改配置、管容器、发报告
+  - generic [ref=e126]:
+    - generic [ref=e127]:
+      - generic [ref=e128]:
+        - generic [ref=e129]: AI Agent
+        - heading "它不只是聊天，它会动手" [level=3] [ref=e130]
+        - paragraph [ref=e131]: OpsMini 内置自研 ReAct 智能体。接到问题后自主规划、连续调用运维工具查证，把每一步的工具、参数和原始输出都摊在你面前；按危险程度分级放权——该自己动手的自己动手，该问你的必须先问。
+        - list [ref=e132]:
+          - listitem [ref=e133]: ✓ 自主多步排查：一次提问连查磁盘、进程、日志，直到定位到原因
+          - listitem [ref=e134]: ✓ 29 个内置工具：只读 / 低危写 / 高危写分级，覆盖系统、容器、服务、安全
+          - listitem [ref=e135]: ✓ 四级护栏：L0 自主、L1 可配置、L2 必须确认、L3 直接禁止（如 rm -rf /）
+          - listitem [ref=e136]: ✓ 定时巡检：排进计划任务，每天早上自动体检并归档单文件 HTML 报告
+          - listitem [ref=e137]: ✓ 双向 MCP：能调用外部 MCP 工具，也能把自身 29 个工具发布给 Claude / Cursor
+      - generic [ref=e138]:
+        - generic [ref=e139]: 磁盘告警了，帮我查一下是什么占的
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - generic [ref=e142]: "1"
+            - generic [ref=e143]: dir_usage
+            - generic [ref=e144]: /var/log
+            - generic [ref=e145]: ✓ 42ms
+          - generic [ref=e146]:
+            - generic [ref=e147]: "2"
+            - generic [ref=e148]: list_disks
+            - generic [ref=e149]: /var
+            - generic [ref=e150]: ✓ 18ms
+          - generic [ref=e151]:
+            - generic [ref=e152]: "3"
+            - generic [ref=e153]: search_logs
+            - generic [ref=e154]: No space left
+            - generic [ref=e155]: ✓ 61ms
+        - generic [ref=e156]: 定位到 /var/log/app.log 单文件 2.1 GB，30 天未轮转。只读排查已自动完成；清空该文件需要 root 权限，已挂起等你确认。
+        - generic [ref=e157]:
+          - generic [ref=e158]: "!"
+          - generic [ref=e159]: 高危操作已挂起 · 等待你批准
+    - generic [ref=e160]:
+      - generic [ref=e161]:
+        - generic [ref=e162]: 自主执行
+        - text: 不预设工作流，按现场情况决定下一步查什么
+      - generic [ref=e163]:
+        - generic [ref=e164]: 分级授权
+        - text: 破坏性操作在执行前被拦截，要你点一下才放行
+      - generic [ref=e165]:
+        - generic [ref=e166]: 定时巡检
+        - text: 无人值守跑完，产出可打开可下载的 HTML 报告
+      - generic [ref=e167]:
+        - generic [ref=e168]: 双向 MCP
+        - text: 既是客户端也是服务端，与外部 AI 生态互通
+  - generic [ref=e170]:
+    - generic [ref=e171]:
+      - generic [ref=e172]: Guardrails
+      - heading "它能动手，但你划得住线" [level=2] [ref=e173]
+      - paragraph [ref=e174]: 每个工具按危险程度定级。只读的它自己看，破坏性的必须你点头，致命的直接禁止。无人值守时，凡需确认的一律拒绝，不猜你的意思。
+    - generic [ref=e175]:
+      - generic [ref=e176]:
+        - generic [ref=e177]: L0
+        - generic [ref=e178]: 只读自主
+        - text: 查指标、进程、端口、磁盘、日志。看什么都不会改变系统状态。
+      - generic [ref=e179]:
+        - generic [ref=e180]: L1
+        - generic [ref=e181]: 低危需确认
+        - text: 重启服务、清理临时文件。默认要你点一下，可按需放开。
+      - generic [ref=e182]:
+        - generic [ref=e183]: L2
+        - generic [ref=e184]: 必须确认
+        - text: 改配置、删数据、动网络。确认不可关闭，无人值守直接拒绝。
+      - generic [ref=e185]:
+        - generic [ref=e186]: L3
+        - generic [ref=e187]: 直接禁止
+        - text: 正则硬拦截致命命令（如 rm -rf /），并禁止它把自己关掉。
+    - generic [ref=e188]:
+      - generic [ref=e189]: "!"
+      - generic [ref=e190]: 每一次调用都进审计日志：谁触发的、调了什么工具、传了什么参数、返回了什么。想复盘随时查。
+  - generic [ref=e192]:
+    - generic [ref=e193]:
+      - generic [ref=e194]: Tools
+      - heading "它手上的工具" [level=2] [ref=e195]
+      - paragraph [ref=e196]: 下面这些是它真正能用的东西。你也可以在界面里手动点，只是它比你快——而且它能自己决定下一个点哪里。
+    - generic [ref=e197]:
+      - generic [ref=e198]:
+        - generic [ref=e199]: 📊
+        - heading "实时监控与趋势" [level=4] [ref=e200]
+        - paragraph [ref=e201]: CPU / 内存 / 磁盘 / 网络实时指标，ECharts 可视化，数据持久化 SQLite 保留 30 天，24h / 7d 趋势一目了然。
+        - generic [ref=e202]:
+          - generic [ref=e203]: 仪表盘
+          - generic [ref=e204]: 历史趋势
+          - generic [ref=e205]: Prometheus 指标
+      - generic [ref=e206]:
+        - generic [ref=e207]: 🔔
+        - heading "告警与通知" [level=4] [ref=e208]
+        - paragraph [ref=e209]: 自定义告警规则（CPU、内存、磁盘、端口存活等），事件中心集中管理，未读通知角标实时提醒。
+        - generic [ref=e210]:
+          - generic [ref=e211]: 告警规则
+          - generic [ref=e212]: 事件中心
+          - generic [ref=e213]: 站内通知
+      - generic [ref=e214]:
+        - generic [ref=e215]: 🛡️
+        - heading "安全中心" [level=4] [ref=e216]
+        - paragraph [ref=e217]: 安全基线扫描、文件完整性监控（FIM）、威胁检测、防火墙端口管理、登录与 SSH 安全分析，主机加固一个入口搞定。
+        - generic [ref=e218]:
+          - generic [ref=e219]: 基线扫描
+          - generic [ref=e220]: FIM
+          - generic [ref=e221]: 防火墙
+          - generic [ref=e222]: 威胁检测
+      - generic [ref=e223]:
+        - generic [ref=e224]: 🐳
+        - heading "Docker 管理" [level=4] [ref=e225]
+        - paragraph [ref=e226]: 容器启停与日志、镜像拉取、卷与网络管理，还能直接打开容器内终端——Alpine 等精简镜像也开箱即用。
+        - generic [ref=e227]:
+          - generic [ref=e228]: 容器
+          - generic [ref=e229]: 镜像
+          - generic [ref=e230]: 卷
+          - generic [ref=e231]: 网络
+          - generic [ref=e232]: exec 终端
+      - generic [ref=e233]:
+        - generic [ref=e234]: ⌨️
+        - heading "Web 终端" [level=4] [ref=e235]
+        - paragraph [ref=e236]: WebSocket + pty 的浏览器 SSH 级交互终端，vim、htop 等全屏程序完整兼容，随时随地登录服务器。
+        - generic [ref=e237]:
+          - generic [ref=e238]: xterm
+          - generic [ref=e239]: pty
+          - generic [ref=e240]: WebSocket
+      - generic [ref=e241]:
+        - generic [ref=e242]: 📁
+        - heading "文件管理器" [level=4] [ref=e243]
+        - paragraph [ref=e244]: 在线浏览、上传、下载、重命名、新建目录、批量删除，大文件断点无忧。
+        - generic [ref=e245]:
+          - generic [ref=e246]: 上传下载
+          - generic [ref=e247]: 在线管理
+      - generic [ref=e248]:
+        - generic [ref=e249]: ⏰
+        - heading "计划任务" [level=4] [ref=e250]
+        - paragraph [ref=e251]: 系统级与用户级 crontab 可视化管理，脚本在线运行，执行记录可追溯。
+        - generic [ref=e252]:
+          - generic [ref=e253]: cron
+          - generic [ref=e254]: 脚本执行
+      - generic [ref=e255]:
+        - generic [ref=e256]: 📦
+        - heading "应用商店" [level=4] [ref=e257]
+        - paragraph [ref=e258]: 常用应用一键部署，支持官方仓库同步与本地导入，网站与数据库管理配套齐全。
+        - generic [ref=e259]:
+          - generic [ref=e260]: 一键部署
+          - generic [ref=e261]: 网站
+          - generic [ref=e262]: 数据库
+      - generic [ref=e263]:
+        - generic [ref=e264]: 🔐
+        - heading "权限与审计" [level=4] [ref=e265]
+        - paragraph [ref=e266]: 用户 / 角色 / 权限组 RBAC 体系，TOTP 两步验证（MFA），全操作审计日志，团队协作安全合规。
+        - generic [ref=e267]:
+          - generic [ref=e268]: RBAC
+          - generic [ref=e269]: MFA
+          - generic [ref=e270]: 审计日志
+  - generic [ref=e272]:
+    - generic [ref=e273]:
+      - generic [ref=e274]: Comparison
+      - heading "和别的方案摆在一起看" [level=2] [ref=e275]
+      - paragraph [ref=e276]: 不比功能多少，比三件事：谁在动手、谁在等指令、数据在谁手里。
+    - generic [ref=e277]:
+      - table [ref=e278]:
+        - rowgroup [ref=e279]:
+          - row [ref=e280]:
+            - columnheader "维度" [ref=e281]
+            - columnheader "OpsMini" [ref=e282]
+            - columnheader "传统面板" [ref=e283]
+            - columnheader "SaaS 监控 Agent" [ref=e284]
+            - columnheader "配置管理" [ref=e285]
+        - rowgroup [ref=e286]:
+          - row [ref=e287]:
+            - rowheader "能自己动手执行" [ref=e288]
+            - cell "✓" [ref=e289]
+            - cell "✗" [ref=e290]
+            - cell "✗" [ref=e291]
+            - cell "✓" [ref=e292]
+          - row [ref=e293]:
+            - rowheader "自己做判断，不用人写规则" [ref=e294]
+            - cell "✓" [ref=e295]
+            - cell "✗" [ref=e296]
+            - cell "~" [ref=e297]
+            - cell "✗" [ref=e298]
+          - row [ref=e299]:
+            - rowheader "数据不出本机" [ref=e300]
+            - cell "✓" [ref=e301]
+            - cell "✓" [ref=e302]
+            - cell "✗" [ref=e303]
+            - cell "✓" [ref=e304]
+          - row [ref=e305]:
+            - rowheader "不依赖中心与外部服务" [ref=e306]
+            - cell "✓" [ref=e307]
+            - cell "✓" [ref=e308]
+            - cell "✗" [ref=e309]
+            - cell "~" [ref=e310]
+          - row [ref=e311]:
+            - rowheader "单文件、分钟级部署" [ref=e312]
+            - cell "✓" [ref=e313]
+            - cell "~" [ref=e314]
+            - cell "✗" [ref=e315]
+            - cell "✗" [ref=e316]
+          - row [ref=e317]:
+            - rowheader "开源，无商业版" [ref=e318]
+            - cell "✓" [ref=e319]
+            - cell "~" [ref=e320]
+            - cell "✗" [ref=e321]
+            - cell "✓" [ref=e322]
+      - paragraph [ref=e323]: ✓ 支持 ~ 部分支持 ✗ 不支持
+  - generic [ref=e325]:
+    - generic [ref=e326]:
+      - generic [ref=e327]: Architecture
+      - heading "为“单机交付”而生的架构" [level=2] [ref=e328]
+      - paragraph [ref=e329]: 没有外部数据库、没有消息队列、没有运行时依赖。拷贝一个文件，chmod +x，直接运行。
+    - generic [ref=e330]:
+      - generic [ref=e331]:
+        - heading "浏览器" [level=5] [ref=e332]
+        - generic [ref=e333]:
+          - generic [ref=e334]: Vue 3 单页应用
+          - text: go:embed 嵌入二进制，7 语言 i18n
+        - generic [ref=e335]:
+          - generic [ref=e336]: ECharts 可视化
+          - text: 仪表盘 / 趋势图 / 告警面板
+        - generic [ref=e337]:
+          - generic [ref=e338]: xterm.js 终端
+          - text: WebSocket 全双工交互
+      - generic [ref=e339]: ⇄
+      - generic [ref=e340]:
+        - heading "OpsMini 服务" [level=5] [ref=e341]
+        - generic [ref=e342]:
+          - generic [ref=e343]: Go · Gin 路由层
+          - text: /api/v1 界面接口 · /mcp 工具接口 · gRPC 纳管
+        - generic [ref=e344]:
+          - generic [ref=e345]: Service 层
+          - text: AI / 安全 / Docker / 监控 / 文件 / 计划任务…
+        - generic [ref=e346]:
+          - generic [ref=e347]: JWT 鉴权 + RBAC + MFA
+          - text: 中间件链式校验
+      - generic [ref=e348]: ⇄
+      - generic [ref=e349]:
+        - heading "宿主机" [level=5] [ref=e350]
+        - generic [ref=e351]:
+          - generic [ref=e352]: SQLite（纯 Go 驱动）
+          - text: 单文件存储，免安装数据库
+        - generic [ref=e353]:
+          - generic [ref=e354]: Docker Engine / systemd / procfs
+          - text: 系统与容器直接对接
+        - generic [ref=e355]:
+          - generic [ref=e356]: pty / crontab / 防火墙
+          - text: 原生系统能力封装
+      - generic [ref=e357]: 交叉编译支持 Linux amd64 / arm64 —— 树莓派、国产化服务器同样能跑
+  - generic [ref=e359]:
+    - generic [ref=e360]:
+      - generic [ref=e361]: Quick Start
+      - heading "三分钟跑起来" [level=2] [ref=e362]
+      - paragraph [ref=e363]: 下载、执行、打开浏览器——没有安装向导，没有依赖地狱。
+    - generic [ref=e364]:
+      - generic [ref=e365]: "# one-line install $ curl -fsSL https://opsmini.com/install.sh | sudo bash ✓ OpsMini v1.2.1 installed ✓ listening on :8888 ➜ initial password is written to .init_passwd # open the panel $ open http://your-server:8888"
+      - generic [ref=e371]:
+        - generic [ref=e372]:
+          - generic [ref=e373]: "1"
+          - generic [ref=e374]:
+            - generic [ref=e375]: 一键安装
+            - text: 一条命令自动下载二进制、生成配置并注册 systemd 服务
+        - generic [ref=e376]:
+          - generic [ref=e377]: "2"
+          - generic [ref=e378]:
+            - generic [ref=e379]: 打开登录
+            - text: 访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件
+        - generic [ref=e380]:
+          - generic [ref=e381]: "3"
+          - generic [ref=e382]:
+            - generic [ref=e383]: 加固与接入
+            - text: 开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server
+  - generic [ref=e386]:
+    - generic [ref=e387]:
+      - generic [ref=e388]: "1"
+      - generic [ref=e389]: 个二进制文件
+    - generic [ref=e390]:
+      - generic [ref=e391]: "0"
+      - generic [ref=e392]: 运行时依赖
+    - generic [ref=e393]:
+      - generic [ref=e394]: "7"
+      - generic [ref=e395]: 种界面语言
+    - generic [ref=e396]:
+      - generic [ref=e397]: "2"
+      - generic [ref=e398]: 组对外接口
+  - generic [ref=e400]:
+    - generic [ref=e401]:
+      - generic [ref=e402]: FAQ
+      - heading "常见问题" [level=2] [ref=e403]
+    - generic [ref=e404]:
+      - group [ref=e405]:
+        - generic "OpsMini 和宝塔、1Panel 有什么区别？ +" [ref=e406] [cursor=pointer]
+      - group [ref=e407]:
+        - generic "支持哪些系统 / 架构？ +" [ref=e408] [cursor=pointer]
+      - group [ref=e409]:
+        - generic "数据存在哪里？会丢吗？ +" [ref=e410] [cursor=pointer]
+      - group [ref=e411]:
+        - generic "AI 功能需要外接大模型吗？ +" [ref=e412] [cursor=pointer]
+      - group [ref=e413]:
+        - generic "如何保证安全？ +" [ref=e414] [cursor=pointer]
+      - group [ref=e415]:
+        - generic "它真的会自己改动我的系统吗？ +" [ref=e416] [cursor=pointer]
+      - group [ref=e417]:
+        - generic "需要连外网吗？数据会不会传出去？ +" [ref=e418] [cursor=pointer]
+      - group [ref=e419]:
+        - generic "和宝塔、1Panel 比，到底差在哪？ +" [ref=e420] [cursor=pointer]
+  - generic [ref=e423]:
+    - heading "装上去，剩下的交给它" [level=2] [ref=e424]
+    - paragraph [ref=e425]: 一条命令，你的服务器上就多了一个会自己干活、也听你话的运维 Agent。
+    - link "下载 OpsMini →" [ref=e426] [cursor=pointer]:
+      - /url: "#quickstart"
+  - contentinfo [ref=e427]:
+    - generic [ref=e428]:
+      - generic [ref=e429]:
+        - img "OpsMini" [ref=e431]
+        - generic [ref=e432]:
+          - generic [ref=e433]:
+            - heading "产品" [level=6] [ref=e434]
+            - link "工具清单" [ref=e435] [cursor=pointer]:
+              - /url: "#features"
+            - link "AI Agent" [ref=e436] [cursor=pointer]:
+              - /url: "#ai"
+            - link "快速开始" [ref=e437] [cursor=pointer]:
+              - /url: "#quickstart"
+          - generic [ref=e438]:
+            - heading "开发者" [level=6] [ref=e439]
+            - link "GitHub" [ref=e440] [cursor=pointer]:
+              - /url: https://github.com/unixhot/opsmini/
+            - link "文档" [ref=e441] [cursor=pointer]:
+              - /url: https://www.opsmini.com/docs/
+            - link "架构说明" [ref=e442] [cursor=pointer]:
+              - /url: "#arch"
+          - generic [ref=e443]:
+            - heading "社区" [level=6] [ref=e444]
+            - link "常见问题" [ref=e445] [cursor=pointer]:
+              - /url: "#faq"
+      - generic [ref=e446]:
+        - generic [ref=e447]:
+          - generic [ref=e448]: OpsMini © 2026 北京速云科技有限公司（opsmini.com）
+          - link "京ICP备2022007302号-3" [ref=e449] [cursor=pointer]:
+            - /url: https://beian.miit.gov.cn/
+        - generic [ref=e450]: Go · Gin · GORM · SQLite · Vue 3 · ECharts

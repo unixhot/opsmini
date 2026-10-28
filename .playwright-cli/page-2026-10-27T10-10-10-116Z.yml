@@ -1,0 +1,289 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e65]:
+    - complementary [ref=e66]:
+      - img "OpsMini" [ref=e68] [cursor=pointer]
+      - navigation [ref=e69]:
+        - generic [ref=e70]: 总览
+        - generic "仪表盘" [ref=e71] [cursor=pointer]
+        - generic "监控" [ref=e75] [cursor=pointer]
+        - generic "AI 助手" [ref=e79] [cursor=pointer]
+        - generic "事件中心" [ref=e83] [cursor=pointer]
+        - generic [ref=e87]: 安全
+        - generic "主机安全" [ref=e88] [cursor=pointer]
+        - generic "终端" [ref=e92] [cursor=pointer]
+        - generic "日志" [ref=e96] [cursor=pointer]
+        - generic [ref=e100]: 工具
+        - generic "容器管理" [ref=e101] [cursor=pointer]
+        - generic "系统管理" [ref=e105] [cursor=pointer]
+        - generic "计划任务" [ref=e109] [cursor=pointer]
+        - generic "文件" [ref=e113] [cursor=pointer]
+        - generic [ref=e117]: 系统
+        - generic "个人设置" [ref=e118] [cursor=pointer]
+        - generic "用户管理" [ref=e122] [cursor=pointer]
+        - generic "面板设置" [ref=e126] [cursor=pointer]
+      - generic [ref=e130]:
+        - generic "收起菜单" [ref=e131] [cursor=pointer]
+        - generic [ref=e135] [cursor=pointer]:
+          - generic [ref=e136]: OpsMini v1.2.1-14-gb462a8e
+          - generic [ref=e137]: ubuntu 22.04
+        - generic [ref=e138] [cursor=pointer]:
+          - generic "个人设置" [ref=e139]:
+            - generic [ref=e140]: O
+            - text: opsmini
+          - generic [ref=e141]: 退出
+    - generic [ref=e142]:
+      - banner [ref=e143]:
+        - generic [ref=e144]: 总览 / 事件中心
+        - generic [ref=e145]:
+          - link "官方文档" [ref=e147] [cursor=pointer]:
+            - /url: https://www.opsmini.com/docs/
+          - link "GitHub" [ref=e151] [cursor=pointer]:
+            - /url: https://github.com/unixhot/opsmini/
+          - button "Language / 语言" [ref=e155] [cursor=pointer]
+          - button "主题配色" [ref=e160] [cursor=pointer]
+          - generic [ref=e164]: 运行正常
+          - button "30" [ref=e166] [cursor=pointer]
+          - button "AI 助手" [ref=e171] [cursor=pointer]
+      - generic [ref=e498]:
+        - generic [ref=e499]:
+          - generic [ref=e500]:
+            - generic [ref=e501]: 事件中心
+            - generic [ref=e502]: 采集器在这里汇总主机信号，按策略决定是否唤起 Agent；每次处置都可审计、可回滚。
+          - generic [ref=e503]:
+            - generic [ref=e504]: 自主运行中
+            - button "急停" [ref=e506] [cursor=pointer]
+        - generic [ref=e507]:
+          - generic [ref=e508] [cursor=pointer]:
+            - generic [ref=e509]:
+              - generic [ref=e510]: 24h 信号
+              - generic [ref=e511]: →
+            - generic [ref=e512]: "119"
+          - generic [ref=e513] [cursor=pointer]:
+            - generic [ref=e514]:
+              - generic [ref=e515]: 待处置
+              - generic [ref=e516]: →
+            - generic [ref=e517]: "94"
+          - generic [ref=e518] [cursor=pointer]:
+            - generic [ref=e519]:
+              - generic [ref=e520]: 24h 事件
+              - generic [ref=e521]: →
+            - generic [ref=e522]: "110"
+          - generic [ref=e523] [cursor=pointer]:
+            - generic [ref=e524]:
+              - generic [ref=e525]: 24h 动作
+              - generic [ref=e526]: →
+            - generic [ref=e527]: "181"
+        - generic [ref=e528]:
+          - generic [ref=e529] [cursor=pointer]: 事件
+          - generic [ref=e530] [cursor=pointer]: 策略
+          - generic [ref=e531] [cursor=pointer]: 动作审计
+          - generic [ref=e532] [cursor=pointer]: 隔离与封禁
+          - generic [ref=e533] [cursor=pointer]: 信号流
+        - generic [ref=e534]:
+          - generic [ref=e536]:
+            - generic [ref=e537] [cursor=pointer]:
+              - text: 待处置
+              - generic [ref=e538]: "94"
+            - generic [ref=e539] [cursor=pointer]:
+              - text: 待唤醒
+              - generic [ref=e540]: "89"
+            - generic [ref=e541] [cursor=pointer]: 全部
+            - generic [ref=e542] [cursor=pointer]: 已处置
+            - generic [ref=e543] [cursor=pointer]: 失败
+            - generic [ref=e544] [cursor=pointer]: 已忽略
+          - generic [ref=e545]:
+            - combobox [ref=e546]:
+              - option "全部分类" [selected]
+              - option "登录异常 (95)"
+              - option "日志暴涨 (5)"
+              - option "可疑进程 (5)"
+              - option "WebShell (5)"
+            - combobox [ref=e547]:
+              - option "全部等级" [selected]
+              - option "critical"
+              - option "high"
+              - option "medium"
+              - option "low"
+              - option "info"
+            - textbox "搜索事件标题、对象或结论" [ref=e548]
+            - button "搜索" [ref=e549] [cursor=pointer]
+            - button "重置" [ref=e550] [cursor=pointer]
+          - table [ref=e552]:
+            - rowgroup [ref=e561]:
+              - row [ref=e562]:
+                - columnheader "时间" [ref=e563]
+                - columnheader "分类" [ref=e564]
+                - columnheader "事件" [ref=e565]
+                - columnheader "等级" [ref=e566]
+                - columnheader "状态" [ref=e567]
+                - columnheader "模式" [ref=e568]
+                - columnheader "操作" [ref=e569]
+            - rowgroup [ref=e570]:
+              - row [ref=e571]:
+                - cell "2026-10-27 18:09" [ref=e572]
+                - cell "登录异常" [ref=e573]
+                - cell "登录行为异常 · 80.94.92.31" [ref=e575]
+                - cell "medium" [ref=e577]
+                - cell "待处置" [ref=e579]
+                - cell "-" [ref=e581]
+                - cell "详情忽略" [ref=e582]
+              - row [ref=e583]:
+                - cell "2026-10-27 18:06" [ref=e584]
+                - cell "登录异常" [ref=e585]
+                - cell "登录行为异常 · 80.94.92.28" [ref=e587]
+                - cell "medium" [ref=e589]
+                - cell "待处置" [ref=e591]
+                - cell "-" [ref=e593]
+                - cell "详情忽略" [ref=e594]
+              - row [ref=e595]:
+                - cell "2026-10-27 18:06" [ref=e596]
+                - cell "登录异常" [ref=e597]
+                - cell "登录行为异常 · 80.94.92.176" [ref=e599]
+                - cell "medium" [ref=e601]
+                - cell "待处置" [ref=e603]
+                - cell "-" [ref=e605]
+                - cell "详情忽略" [ref=e606]
+              - row [ref=e607]:
+                - cell "2026-10-27 18:04" [ref=e608]
+                - cell "登录异常" [ref=e609]
+                - cell "登录行为异常 · 80.94.92.29" [ref=e611]
+                - cell "medium" [ref=e613]
+                - cell "待处置" [ref=e615]
+                - cell "-" [ref=e617]
+                - cell "详情忽略" [ref=e618]
+              - row [ref=e619]:
+                - cell "2026-10-27 18:04" [ref=e620]
+                - cell "登录异常" [ref=e621]
+                - cell "登录行为异常 · 2.57.122.245" [ref=e623]
+                - cell "medium" [ref=e625]
+                - cell "待处置" [ref=e627]
+                - cell "-" [ref=e629]
+                - cell "详情忽略" [ref=e630]
+              - row [ref=e631]:
+                - cell "2026-10-27 18:02" [ref=e632]
+                - cell "登录异常" [ref=e633]
+                - cell "登录行为异常 · 2.57.122.137" [ref=e635]
+                - cell "medium" [ref=e637]
+                - cell "待处置" [ref=e639]
+                - cell "-" [ref=e641]
+                - cell "详情忽略" [ref=e642]
+              - row [ref=e643]:
+                - cell "2026-10-27 18:01" [ref=e644]
+                - cell "登录异常" [ref=e645]
+                - cell "登录行为异常 · 80.94.92.163" [ref=e647]
+                - cell "medium" [ref=e649]
+                - cell "待处置" [ref=e651]
+                - cell "-" [ref=e653]
+                - cell "详情忽略" [ref=e654]
+              - row [ref=e655]:
+                - cell "2026-10-27 18:00" [ref=e656]
+                - cell "登录异常" [ref=e657]
+                - cell "登录行为异常 · 80.94.92.30" [ref=e659]
+                - cell "medium" [ref=e661]
+                - cell "待处置" [ref=e663]
+                - cell "-" [ref=e665]
+                - cell "详情忽略" [ref=e666]
+              - row [ref=e667]:
+                - cell "2026-10-27 17:46" [ref=e668]
+                - cell "登录异常" [ref=e669]
+                - cell "登录行为异常 · 80.94.92.29" [ref=e671]
+                - cell "medium" [ref=e673]
+                - cell "待处置" [ref=e675]
+                - cell "-" [ref=e677]
+                - cell "详情忽略" [ref=e678]
+              - row [ref=e679]:
+                - cell "2026-10-27 17:44" [ref=e680]
+                - cell "登录异常" [ref=e681]
+                - cell "登录行为异常 · 80.94.92.163" [ref=e683]
+                - cell "medium" [ref=e685]
+                - cell "待处置" [ref=e687]
+                - cell "-" [ref=e689]
+                - cell "详情忽略" [ref=e690]
+              - row [ref=e691]:
+                - cell "2026-10-27 17:42" [ref=e692]
+                - cell "登录异常" [ref=e693]
+                - cell "登录行为异常 · 80.94.92.31" [ref=e695]
+                - cell "medium" [ref=e697]
+                - cell "待处置" [ref=e699]
+                - cell "-" [ref=e701]
+                - cell "详情忽略" [ref=e702]
+              - row [ref=e703]:
+                - cell "2026-10-27 17:40" [ref=e704]
+                - cell "登录异常" [ref=e705]
+                - cell "登录行为异常 · 80.94.92.30" [ref=e707]
+                - cell "medium" [ref=e709]
+                - cell "待处置" [ref=e711]
+                - cell "-" [ref=e713]
+                - cell "详情忽略" [ref=e714]
+              - row [ref=e715]:
+                - cell "2026-10-27 17:40" [ref=e716]
+                - cell "登录异常" [ref=e717]
+                - cell "登录行为异常 · 80.94.92.176" [ref=e719]
+                - cell "medium" [ref=e721]
+                - cell "待处置" [ref=e723]
+                - cell "-" [ref=e725]
+                - cell "详情忽略" [ref=e726]
+              - row [ref=e727]:
+                - cell "2026-10-27 17:38" [ref=e728]
+                - cell "登录异常" [ref=e729]
+                - cell "登录行为异常 · 80.94.92.28" [ref=e731]
+                - cell "medium" [ref=e733]
+                - cell "待处置" [ref=e735]
+                - cell "-" [ref=e737]
+                - cell "详情忽略" [ref=e738]
+              - row [ref=e739]:
+                - cell "2026-10-27 17:37" [ref=e740]
+                - cell "登录异常" [ref=e741]
+                - cell "登录行为异常 · 2.57.122.245" [ref=e743]
+                - cell "medium" [ref=e745]
+                - cell "待处置" [ref=e747]
+                - cell "-" [ref=e749]
+                - cell "详情忽略" [ref=e750]
+              - row [ref=e751]:
+                - cell "2026-10-27 17:36" [ref=e752]
+                - cell "登录异常" [ref=e753]
+                - cell "登录行为异常 · 2.57.122.137" [ref=e755]
+                - cell "medium" [ref=e757]
+                - cell "待处置" [ref=e759]
+                - cell "-" [ref=e761]
+                - cell "详情忽略" [ref=e762]
+              - row [ref=e763]:
+                - cell "2026-10-27 17:09" [ref=e764]
+                - cell "登录异常" [ref=e765]
+                - cell "登录行为异常 · 80.94.92.29" [ref=e767]
+                - cell "medium" [ref=e769]
+                - cell "待处置" [ref=e771]
+                - cell "-" [ref=e773]
+                - cell "详情忽略" [ref=e774]
+              - row [ref=e775]:
+                - cell "2026-10-27 17:08" [ref=e776]
+                - cell "登录异常" [ref=e777]
+                - cell "登录行为异常 · 80.94.92.163" [ref=e779]
+                - cell "medium" [ref=e781]
+                - cell "待处置" [ref=e783]
+                - cell "-" [ref=e785]
+                - cell "详情忽略" [ref=e786]
+              - row [ref=e787]:
+                - cell "2026-10-27 17:06" [ref=e788]
+                - cell "登录异常" [ref=e789]
+                - cell "登录行为异常 · 80.94.92.176" [ref=e791]
+                - cell "medium" [ref=e793]
+                - cell "待处置" [ref=e795]
+                - cell "-" [ref=e797]
+                - cell "详情忽略" [ref=e798]
+              - row [ref=e799]:
+                - cell "2026-10-27 17:05" [ref=e800]
+                - cell "登录异常" [ref=e801]
+                - cell "登录行为异常 · 80.94.92.30" [ref=e803]
+                - cell "medium" [ref=e805]
+                - cell "待处置" [ref=e807]
+                - cell "-" [ref=e809]
+                - cell "详情忽略" [ref=e810]
+          - generic [ref=e811]:
+            - generic [ref=e812]: 共 94
+            - generic [ref=e813]:
+              - button "‹ 上一页" [disabled] [ref=e814] [cursor=pointer]
+              - generic [ref=e815]: 1 / 5
+              - button "下一页 ›" [ref=e816] [cursor=pointer]
+      - generic [ref=e351]: Copyright @ 2015-2026 速云科技（opsmini.com）
+  - generic [ref=e352]: 欢迎回来，opsmini

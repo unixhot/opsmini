@@ -437,6 +437,41 @@ func (h *SentinelHandler) PurgeRetention(c *gin.Context) {
 	response.OK(c, res)
 }
 
+// Reset POST /sentinel/reset  {"scope":"all|events","dry_run":true,"confirm":"RESET"}
+//
+// This is the "clear the event history" button: it ignores retention windows
+// and the open-incident protection on purpose, so it requires an explicit
+// confirm token. Scope "all" also releases firewall bans before their records
+// disappear, otherwise the machine would stay blocked with no trace in the UI.
+func (h *SentinelHandler) Reset(c *gin.Context) {
+	var req struct {
+		Scope   string `json:"scope"`
+		DryRun  bool   `json:"dry_run"`
+		Confirm string `json:"confirm"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	if req.Scope == "" {
+		req.Scope = "all"
+	}
+	if !req.DryRun && req.Confirm != "RESET" {
+		response.Error(c, 400, response.CodeInvalidParam, "需要确认：confirm 必须为 RESET")
+		return
+	}
+	if !req.DryRun && req.Scope == "all" && h.Safety != nil {
+		var active []model.BlockedIP
+		h.DB.Where("released_at IS NULL").Find(&active)
+		for _, b := range active {
+			_ = h.Safety.UnblockIP(b.IP)
+		}
+	}
+	res, err := h.Manager.Reset(req.Scope, req.DryRun)
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, res)
+}
+
 func atoiDefault(s string, def int) int {
 	if s == "" {
 		return def

@@ -1,0 +1,87 @@
+- generic [ref=e1]:
+  - generic [ref=e65]:
+    - complementary [ref=e66]:
+      - img "OpsMini" [ref=e68] [cursor=pointer]
+      - navigation [ref=e69]:
+        - generic [ref=e70]: 总览
+        - generic "仪表盘" [ref=e71] [cursor=pointer]
+        - generic "监控" [ref=e75] [cursor=pointer]
+        - generic "AI 助手" [ref=e79] [cursor=pointer]
+        - generic "事件中心" [ref=e83] [cursor=pointer]
+        - generic [ref=e87]: 安全
+        - generic "主机安全" [ref=e88] [cursor=pointer]
+        - generic "终端" [ref=e92] [cursor=pointer]
+        - generic "日志" [ref=e96] [cursor=pointer]
+        - generic [ref=e100]: 工具
+        - generic "容器管理" [ref=e101] [cursor=pointer]
+        - generic "系统管理" [ref=e105] [cursor=pointer]
+        - generic "计划任务" [ref=e109] [cursor=pointer]
+        - generic "文件" [ref=e113] [cursor=pointer]
+        - generic [ref=e117]: 系统
+        - generic "个人设置" [ref=e118] [cursor=pointer]
+        - generic "用户管理" [ref=e122] [cursor=pointer]
+        - generic "面板设置" [ref=e126] [cursor=pointer]
+      - generic [ref=e130]:
+        - generic "收起菜单" [ref=e131] [cursor=pointer]
+        - generic [ref=e135] [cursor=pointer]:
+          - generic [ref=e136]: OpsMini v1.2.1-14-gb462a8e
+          - generic [ref=e137]: ubuntu 22.04
+        - generic [ref=e138] [cursor=pointer]:
+          - generic "个人设置" [ref=e139]:
+            - generic [ref=e140]: O
+            - text: opsmini
+          - generic [ref=e141]: 退出
+    - generic [ref=e142]:
+      - banner [ref=e143]:
+        - generic [ref=e144]: 安全 / 终端
+        - generic [ref=e145]:
+          - link "官方文档" [ref=e147] [cursor=pointer]:
+            - /url: https://www.opsmini.com/docs/
+          - link "GitHub" [ref=e151] [cursor=pointer]:
+            - /url: https://github.com/unixhot/opsmini/
+          - button "Language / 语言" [ref=e155] [cursor=pointer]
+          - button "主题配色" [ref=e160] [cursor=pointer]
+          - generic [ref=e164]: 运行正常
+          - button "30" [ref=e166] [cursor=pointer]
+          - button "AI 助手" [ref=e171] [cursor=pointer]
+      - generic [ref=e1030]:
+        - generic [ref=e1031]:
+          - generic [ref=e1032]:
+            - generic [ref=e1033]: 终端
+            - generic [ref=e1034]: Web SSH 终端
+          - generic [ref=e1035]:
+            - button "清屏" [ref=e1036] [cursor=pointer]
+            - button "⚡ AI 帮我执行" [ref=e1037] [cursor=pointer]
+        - generic [ref=e1038]:
+          - generic [ref=e1039]:
+            - generic [ref=e1043]: 终端 1
+            - generic [ref=e1044]: ● 已连接
+            - generic [ref=e1045]:
+              - generic [ref=e1046]:
+                - button "A-" [ref=e1047] [cursor=pointer]
+                - generic [ref=e1048]: 16px
+                - button "A+" [ref=e1049] [cursor=pointer]
+              - combobox "配色方案" [ref=e1050] [cursor=pointer]:
+                - option "XShell 黑" [selected]
+                - option "Ubuntu 紫"
+                - option "经典绿屏"
+                - option "Solarized Dark"
+                - option "One Dark"
+                - option "白底黑字"
+                - option "深海蓝"
+              - combobox "字符集" [ref=e1051] [cursor=pointer]:
+                - option "UTF-8" [selected]
+                - option "GBK"
+                - option "GB18030"
+                - option "Big5"
+              - button "全屏" [ref=e1052] [cursor=pointer]
+          - generic [ref=e1055]:
+            - generic [ref=e1056] [cursor=pointer]:
+              - generic [ref=e1057]: 终端 1
+              - button "×" [ref=e1058]
+            - button "+" [ref=e1059] [cursor=pointer]
+          - generic [ref=e1063]:
+            - textbox "Terminal input" [active] [ref=e1064]
+            - generic [ref=e1066]: root@demo-node4:/data/opsmini#
+      - generic [ref=e351]: Copyright @ 2015-2026 速云科技（opsmini.com）
+  - generic [ref=e352]: 欢迎回来，opsmini

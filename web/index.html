@@ -1871,11 +1871,14 @@
             <div class="card-head">
               <div class="card-title">{{ t('sentinel.retention.title') }}</div>
               <div class="row" style="gap:8px">
+                <button class="btn ghost sm" @click="gotoRetentionSettings()">{{ t('ret.openSettings') }}</button>
                 <button class="btn ghost sm" @click="purgeRetention(true)">{{ t('sentinel.retention.preview') }}</button>
                 <button class="btn ghost sm" @click="purgeRetention(false)" v-if="hasPerm('settings.edit')">{{ t('sentinel.retention.purge') }}</button>
               </div>
             </div>
-            <div style="padding:0 16px 10px;font-size:12.5px;color:var(--t3);line-height:1.7">{{ t('sentinel.retention.hint') }}</div>
+            <div style="padding:0 16px 10px;font-size:12.5px;color:var(--t3);line-height:1.7">
+              {{ t('ret.summaryLine').replace('{d}', retUnified).replace('{a}', retAudit) }}
+            </div>
             <div class="table-wrap">
               <table class="st-tbl">
                 <colgroup><col style="width:auto"><col style="width:110px"><col style="width:150px"><col style="width:170px"></colgroup>
@@ -1887,13 +1890,7 @@
                   <tr v-for="s in retentionStats" :key="s.table">
                     <td>{{ retName(s.table) }}</td>
                     <td class="mono">{{ s.rows }}</td>
-                    <td>
-                      <div class="row" style="gap:4px;align-items:center;white-space:nowrap">
-                        <input class="input" style="width:76px" type="number" min="0"
-                               :value="retDays(s.table)" @change="setRetDays(s.table, $event.target.value)">
-                        <span class="mute" style="font-size:11px">{{ t('sentinel.retention.dayUnit') }}</span>
-                      </div>
-                    </td>
+                    <td class="mono">{{ retDays(s.table) }} <span class="mute" style="font-size:11px">{{ t('sentinel.retention.dayUnit') }}</span></td>
                     <td class="mono">{{ s.oldest ? fmtDT(s.oldest) : '-' }}</td>
                   </tr>
                 </tbody>
@@ -2692,6 +2689,7 @@
             <span :class="{active: settingsTab==='theme'}" @click="settingsTab='theme'">{{ t('set.theme') }}</span>
             <span :class="{active: settingsTab==='menu'}" @click="settingsTab='menu'">{{ t('set.menu') }}</span>
             <span :class="{active: settingsTab==='metrics'}" @click="settingsTab='metrics'">{{ t('set.metrics') }}</span>
+            <span :class="{active: settingsTab==='retention'}" @click="setSettingsTab('retention')">{{ t('set.retention') }}</span>
             <span :class="{active: settingsTab==='notify'}" @click="setSettingsTab('notify')">{{ t('set.notify') }}</span>
             <!-- v1.0 暂隐藏应用模版 Tab（下个版本发布），恢复时取消注释
             <span :class="{active: settingsTab==='appTemplate'}" @click="setSettingsTab('appTemplate')">{{ t('set.appTemplate') }}</span>
@@ -2912,6 +2910,83 @@
                 <button class="btn primary" @click="saveMetricsSettings">{{ t('btn.save') }}</button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- 数据保留 -->
+        <div v-if="settingsTab==='retention'">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">{{ t('ret.title') }}</div>
+              <div class="row" style="gap:8px">
+                <button class="btn ghost sm" @click="purgeRetention(true)">{{ t('sentinel.retention.preview') }}</button>
+                <button class="btn ghost sm" @click="purgeRetention(false)" v-if="hasPerm('settings.edit')">{{ t('sentinel.retention.purge') }}</button>
+              </div>
+            </div>
+            <div style="padding:0 16px 16px;font-size:12.5px;color:var(--t3);line-height:1.75">{{ t('ret.hint') }}</div>
+
+            <div class="row" style="gap:28px;padding:0 16px 18px;flex-wrap:wrap;align-items:flex-start;border-top:1px solid var(--border);padding-top:16px">
+              <div style="min-width:260px">
+                <label class="form-label">{{ t('ret.eventsLabel') }}</label>
+                <div class="row" style="gap:6px;align-items:center">
+                  <input class="input" style="width:92px" type="number" min="0" v-model.number="retUnified">
+                  <span class="mute" style="font-size:12px">{{ t('sentinel.retention.dayUnit') }}</span>
+                  <button class="btn primary sm" @click="applyUnifiedRetention()" v-if="hasPerm('settings.edit')">{{ t('btn.save') }}</button>
+                </div>
+                <div class="form-hint" style="margin-top:6px;max-width:360px;line-height:1.65">{{ t('ret.eventsHelp') }}</div>
+              </div>
+              <div style="min-width:260px">
+                <label class="form-label">{{ t('ret.auditLabel') }}</label>
+                <div class="row" style="gap:6px;align-items:center">
+                  <input class="input" style="width:92px" type="number" min="0" v-model.number="retAudit">
+                  <span class="mute" style="font-size:12px">{{ t('sentinel.retention.dayUnit') }}</span>
+                  <button class="btn primary sm" @click="applyAuditRetention()" v-if="hasPerm('settings.edit')">{{ t('btn.save') }}</button>
+                </div>
+                <div class="form-hint" style="margin-top:6px;max-width:360px;line-height:1.65">{{ t('ret.auditHelp') }}</div>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="st-tbl">
+                <colgroup><col style="width:auto"><col style="width:110px"><col style="width:150px"><col style="width:170px"></colgroup>
+                <thead><tr>
+                  <th>{{ t('sentinel.retention.table') }}</th><th>{{ t('sentinel.retention.rows') }}</th>
+                  <th>{{ t('sentinel.retention.days') }}</th><th>{{ t('sentinel.retention.oldest') }}</th>
+                </tr></thead>
+                <tbody>
+                  <tr v-for="s in retentionStats" :key="s.table">
+                    <td>{{ retName(s.table) }}</td>
+                    <td class="mono">{{ s.rows }}</td>
+                    <td>
+                      <div class="row" style="gap:4px;align-items:center;white-space:nowrap">
+                        <input class="input" style="width:76px" type="number" min="0"
+                               :value="retDays(s.table)" @change="setRetDays(s.table, $event.target.value)"
+                               :disabled="!hasPerm('settings.edit')">
+                        <span class="mute" style="font-size:11px">{{ t('sentinel.retention.dayUnit') }}</span>
+                      </div>
+                    </td>
+                    <td class="mono">{{ s.oldest ? fmtDT(s.oldest) : '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="purgeMsg" style="padding:10px 16px;font-size:12.5px;color:var(--t2)">{{ purgeMsg }}</div>
+          </div>
+
+          <div class="card" style="margin-top:16px;border-color:rgba(220,38,38,.35)" v-if="hasPerm('settings.edit')">
+            <div class="card-head">
+              <div class="card-title" style="color:var(--danger)">{{ t('ret.dangerTitle') }}</div>
+            </div>
+            <div style="padding:0 16px 14px;font-size:12.5px;color:var(--t2);line-height:1.8">{{ t('ret.dangerHint') }}</div>
+            <div class="row" style="gap:10px;padding:0 16px 16px;flex-wrap:wrap">
+              <button class="btn danger" @click="resetArmed=true" v-if="!resetArmed">{{ t('ret.resetBtn') }}</button>
+              <template v-if="resetArmed">
+                <span style="font-size:12.5px;color:var(--danger);line-height:32px;font-weight:600">{{ t('ret.resetConfirm') }}</span>
+                <button class="btn danger" :disabled="resetBusy" @click="resetEvents()">{{ t('ret.resetYes') }}</button>
+                <button class="btn ghost" @click="resetArmed=false">{{ t('common.cancel') }}</button>
+              </template>
+            </div>
+            <div v-if="resetMsg" style="padding:0 16px 16px;font-size:12.5px;color:var(--t2)">{{ resetMsg }}</div>
           </div>
         </div>
 
@@ -4052,6 +4127,150 @@ const I18N10 = {
   'de': { 'login.expired':'Sitzung abgelaufen, bitte erneut anmelden','login.needUser':'Bitte Benutzernamen eingeben','login.needPass':'Bitte Passwort eingeben','login.welcome':'Willkommen zurück, {user}','common.netError':'Netzwerkfehler: Backend nicht erreichbar','sentinel.clickToView':'→','sentinel.openIncidents':'Zu erledigen','sentinel.filter.unresolved':'Offen','sentinel.filter.pending':'Wartend','sentinel.filter.all':'Alle','sentinel.filter.resolved':'Erledigt','sentinel.filter.failed':'Fehlgeschlagen','sentinel.filter.ignored':'Ignoriert','sentinel.filter.allFamily':'Alle Kategorien','sentinel.filter.allSeverity':'Alle Stufen','sentinel.filter.allTool':'Alle Werkzeuge','sentinel.filter.allVerdict':'Alle Urteile','sentinel.filter.allKind':'Alle Typen','sentinel.searchPh':'Titel, Objekt oder Fazit suchen','sentinel.searchActionPh':'Werkzeug oder Ergebnis suchen','sentinel.searchSignalPh':'Objekt oder Meldung suchen','sentinel.search':'Suchen','sentinel.reset':'Zurücksetzen','sentinel.total':'Gesamt','sentinel.col.category':'Kategorie','sentinel.col.duration':'Dauer','sentinel.col.threshold':'Auslösestufe','sentinel.detail':'Details','sentinel.detailTitle':'Vorfall-Details','sentinel.detail.signals':'Zugehörige Signale','sentinel.detail.runs':'Agent-Läufe','sentinel.detail.actions':'Aktionskette','sentinel.detail.none':'Noch keine Datensätze','sentinel.signalsUnit':'Signale','sentinel.stepsUnit':'Schritte','sentinel.toolsUnit':'Werkzeugaufrufe','sentinel.writesUnit':'Schreibzugriffe','sentinel.st.open':'Offen','sentinel.st.triggered':'Ausgelöst','sentinel.st.running':'Läuft','sentinel.st.resolved':'Erledigt','sentinel.st.ignored':'Ignoriert','sentinel.st.taken_over':'Übernommen','sentinel.st.failed':'Fehlgeschlagen','sentinel.verify.passed':'verifiziert','sentinel.verify.failed':'Verifikation fehlgeschlagen','sentinel.verify.empty':'leerer Bericht','sentinel.fam.webshell':'WebShell','sentinel.fam.auth.anomaly':'Login-Anomalie','sentinel.fam.proc.anomaly':'Verdächtiger Prozess','sentinel.fam.net.anomaly':'Auffälliger Abfluss','sentinel.fam.log_growth':'Log-Wachstum','sentinel.fam.metric':'Metrik-Alarm','sentinel.released':'Entsperrt','sentinel.policy.helpTitle':'So sind die Richtlinien zu lesen','sentinel.policy.collapse':'Einklappen','sentinel.policy.expand':'Erklären','sentinel.policy.new':'Neue Richtlinie','sentinel.policy.edit':'Bearbeiten','sentinel.policy.del':'Löschen','sentinel.policy.delConfirm':'Richtlinie löschen? Vergangene Vorfälle bleiben, nur das automatische Auslösen endet.','sentinel.policy.what':'Was eine Richtlinie ist: ','sentinel.policy.whatTip':'eine Konfiguration, die beantwortet: Bei dieser Art Ereignis den Agent wecken, und was darf er dann? Daten, kein Code — jederzeit änderbar.','sentinel.policy.how':'Wann ausgelöst wird: ','sentinel.policy.howTip':'alle drei müssen zutreffen: passende Kategorie, Stufe über der Schwelle und außerhalb der Abklingzeit. Sonst wird nur protokolliert.','sentinel.policy.fieldHelp':'Bedeutung der Felder: ','sentinel.policy.help.family':'der Szenarioschlüssel aus einem Collector. Es gibt nur sechs: webshell, auth.anomaly, proc.anomaly, net.anomaly, log_growth, metric. Falsche Werte treffen nie.','sentinel.policy.help.severity':'Mindeststufe zum Auslösen. Niedriger = empfindlicher und teurer.','sentinel.policy.help.cooldown':'Mindestabstand zwischen zwei Läufen in Sekunden. 1800 = 30 Minuten.','sentinel.policy.help.budget':'Obergrenze pro Lauf: Schreibzugriffe, Schritte, Dauer, Tokens. Jede Grenze stoppt den Lauf.','sentinel.policy.help.tools':'Werkzeuge des Agent. Lesende Werkzeuge sind unbedenklich, Eingriffswerkzeuge nur so viele wie nötig.','sentinel.policy.help.verify':'Bedingungen, die prüfen, ob die Behebung wirklich griff, z. B. no_new_signal. Schlägt sie fehl, gilt der Vorfall als fehlgeschlagen.','sentinel.policy.help.prompt':'das Playbook für das Modell: erst Beweise, dann Urteil, dann konkrete Werkzeuge. {title} ist der Vorfalltitel.','sentinel.policy.help.autoTools':'nur im auto-Modus: diese Werkzeuge laufen ohne Bestätigung. In assist und shadow ignoriert. Nur risikoarme, umkehrbare Aktionen.','sentinel.policy.help.maxWrites':'max. Schreibaktionen pro Lauf.','sentinel.policy.help.maxSteps':'max. Modellschritte.','sentinel.policy.help.maxSeconds':'Zeitlimit pro Lauf.','sentinel.policy.help.maxTokens':'Token-Obergrenze pro Lauf.','sentinel.policy.sec.trigger':'Auslösung','sentinel.policy.sec.budget':'Laufbudget','sentinel.policy.sec.tools':'Werkzeuge und Verifikation','sentinel.policy.f.name':'Name','sentinel.policy.f.namePh':'z. B. webshell-respond','sentinel.policy.f.nameHelp':'eindeutig, nach dem Anlegen fest. Kleinbuchstaben mit Bindestrich.','sentinel.policy.f.family':'Szenario','sentinel.policy.f.severity':'Auslösestufe','sentinel.policy.f.mode':'Modus','sentinel.policy.f.description':'Kurzbeschreibung','sentinel.policy.f.descriptionPh':'Was diese Richtlinie abdeckt','sentinel.policy.f.descriptionHelp':'Erscheint in der Liste.','sentinel.policy.f.maxWrites':'Max. Schreibzugriffe','sentinel.policy.f.maxSteps':'Max. Schritte','sentinel.policy.f.maxSeconds':'Max. Sekunden','sentinel.policy.f.maxTokens':'Max. Tokens','sentinel.policy.f.autoTools':'Werkzeuge im auto-Modus','sentinel.policy.cooldown':'Abklingzeit (s)','sentinel.policy.budget':'Budget','sentinel.policy.tools':'Erlaubte Werkzeuge','sentinel.policy.verify':'Verifikation','sentinel.policy.prompt':'Playbook','sentinel.policyHint':'Richtlinien sind Daten: Modus ändern, Schwellen anpassen, neue anlegen — ohne Neustart.','sentinel.modeHelp.shadow':'nur beobachten: untersuchen und Fazit schreiben, aber nichts ändern.','sentinel.modeHelp.assist':'Assistenz: Lesen automatisch, Schreiben nur mit Freigabe.','sentinel.modeHelp.auto':'Autonom: freigegebene risikoarme Aktionen direkt, alles andere mit Freigabe.','sentinel.retention.title':'Aufbewahrung und Bereinigung','sentinel.retention.hint':'Stündliche Bereinigung. Nur erledigte Vorfälle werden entfernt; offene nie. Quarantänedateien bleiben bis zur Wiederherstellung. 0 = dauerhaft.','sentinel.retention.preview':'Vorschau','sentinel.retention.purge':'Jetzt bereinigen','sentinel.retention.table':'Tabelle','sentinel.retention.rows':'Zeilen','sentinel.retention.days':'Aufbewahrung','sentinel.retention.dayUnit':'T','sentinel.retention.oldest':'Ältestes','sentinel.retention.previewResult':'Mit aktueller Richtlinie würden {n} Datensätze entfernt (noch nichts gelöscht).','sentinel.retention.purged':'{n} Datensätze entfernt.','sentinel.retention.noRows':'Nichts zu bereinigen.','sentinel.retention.signalNote':'Signale laufen ab, offene Vorfälle bleiben.','sentinel.retention.tbl.signals':'Signale','sentinel.retention.tbl.incidents':'Vorfälle','sentinel.retention.tbl.actions':'Aktionsprotokoll','sentinel.retention.tbl.runs':'Agent-Läufe','sentinel.retention.tbl.quarantine':'Quarantäne','sentinel.retention.tbl.blocks':'IP-Sperren' },
 };
 
+/* I18N11: 数据保留设置与事件清空（面板设置 → 数据保留） */
+const I18N11 = {
+  'zh-CN': {
+    'sentinel.st.open':'待唤醒',
+    'set.retention':'数据保留',
+    'ret.title':'事件数据保留',
+    'ret.hint':'采集器每小时清理一次过期数据。清理只针对已处置事件；待处置事件连同它的信号与动作链永不自动删除。填 0 表示永久保留。想让历史彻底干净，用页面底部的「清空事件历史」。',
+    'ret.eventsLabel':'事件与信号保留',
+    'ret.eventsHelp':'同时作用于信号、事件、运行记录三项。默认 30 天，改了立即生效。',
+    'ret.auditLabel':'动作审计保留',
+    'ret.auditHelp':'谁在什么时候动了什么，出问题时靠它复盘。建议不低于 180 天，填 0 永久保留。',
+    'ret.saved':'保留策略已保存',
+    'ret.openSettings':'去设置',
+    'ret.summaryLine':'事件与信号保留 {d} 天，动作审计保留 {a} 天，每小时自动清理一次。',
+    'ret.dangerTitle':'清空事件历史',
+    'ret.dangerHint':'把事件、信号、运行记录、动作审计、隔离项、封禁记录全部删除，等于把事件中心归零重来。隔离的文件副本会被永久删除（无法再还原），所有 IP 封禁会被解除。这个操作不可撤销。',
+    'ret.resetBtn':'清空全部事件历史',
+    'ret.resetConfirm':'确认清空？删除后无法恢复。',
+    'ret.resetYes':'确认清空',
+    'ret.resetDone':'已清空 {n} 条记录，删除隔离文件 {f} 个。',
+    'ret.resetFail':'清空失败'
+  },
+  'zh-TW': {
+    'sentinel.st.open':'待喚醒',
+    'set.retention':'資料保留',
+    'ret.title':'事件資料保留',
+    'ret.hint':'採集器每小時清理一次過期資料。清理只針對已處置事件；待處置事件連同它的訊號與動作鏈永不自動刪除。填 0 表示永久保留。想讓歷史徹底乾淨，用頁面底部的「清空事件歷史」。',
+    'ret.eventsLabel':'事件與訊號保留',
+    'ret.eventsHelp':'同時作用於訊號、事件、執行記錄三項。預設 30 天，改了立即生效。',
+    'ret.auditLabel':'動作稽核保留',
+    'ret.auditHelp':'誰在什麼時候動了什麼，出問題時靠它複盤。建議不低於 180 天，填 0 永久保留。',
+    'ret.saved':'保留原則已儲存',
+    'ret.openSettings':'去設定',
+    'ret.summaryLine':'事件與訊號保留 {d} 天，動作稽核保留 {a} 天，每小時自動清理一次。',
+    'ret.dangerTitle':'清空事件歷史',
+    'ret.dangerHint':'把事件、訊號、執行記錄、動作稽核、隔離項、封鎖記錄全部刪除，等於把事件中心歸零重來。隔離的檔案副本會被永久刪除（無法再還原），所有 IP 封鎖會被解除。這個操作無法復原。',
+    'ret.resetBtn':'清空全部事件歷史',
+    'ret.resetConfirm':'確認清空？刪除後無法恢復。',
+    'ret.resetYes':'確認清空',
+    'ret.resetDone':'已清空 {n} 條記錄，刪除隔離檔案 {f} 個。',
+    'ret.resetFail':'清空失敗'
+  },
+  'en': {
+    'sentinel.st.open':'Awaiting agent',
+    'set.retention':'Retention',
+    'ret.title':'Event data retention',
+    'ret.hint':'Collectors clean up once an hour, and only ever touch handled incidents; an open incident and its signals and action chain are never removed automatically. Set 0 to keep forever. To start from a blank history, use "Clear event history" at the bottom.',
+    'ret.eventsLabel':'Keep events and signals',
+    'ret.eventsHelp':'Applies to signals, incidents and agent runs together. 30 days by default; takes effect immediately.',
+    'ret.auditLabel':'Keep the action log',
+    'ret.auditHelp':'Who changed what and when — this is the trail you read after an incident. Keep at least 180 days; 0 keeps forever.',
+    'ret.saved':'Retention policy saved',
+    'ret.openSettings':'Open settings',
+    'ret.summaryLine':'Events and signals kept {d} days, action log {a} days, cleaned up hourly.',
+    'ret.dangerTitle':'Clear event history',
+    'ret.dangerHint':'Deletes every incident, signal, agent run, action log entry, quarantine item and ban record — the event center starts from zero. Quarantined file copies are deleted permanently and cannot be restored, and every IP ban is released. This cannot be undone.',
+    'ret.resetBtn':'Clear all event history',
+    'ret.resetConfirm':'Clear everything? It cannot be recovered.',
+    'ret.resetYes':'Yes, clear it',
+    'ret.resetDone':'Removed {n} records and {f} quarantined files.',
+    'ret.resetFail':'Clear failed'
+  },
+  'ja': {
+    'sentinel.st.open':'起動待ち',
+    'set.retention':'データ保持',
+    'ret.title':'イベントデータの保持',
+    'ret.hint':'コレクタは 1 時間ごとに期限切れデータを削除します。対象は処理済みインシデントのみで、未処理インシデントとそのシグナル・アクション履歴は自動削除されません。0 は永久保持です。完全に初期化したい場合は下部の「イベント履歴を消去」を使います。',
+    'ret.eventsLabel':'イベントとシグナルの保持',
+    'ret.eventsHelp':'シグナル・インシデント・実行記録の 3 つに同時に適用されます。既定 30 日、変更は即時反映。',
+    'ret.auditLabel':'操作ログの保持',
+    'ret.auditHelp':'誰がいつ何をしたかの記録で、障害時の調査に使います。180 日以上を推奨。0 は永久保持。',
+    'ret.saved':'保持ポリシーを保存しました',
+    'ret.openSettings':'設定へ',
+    'ret.summaryLine':'イベントとシグナルは {d} 日、操作ログは {a} 日保持し、1 時間ごとに削除します。',
+    'ret.dangerTitle':'イベント履歴を消去',
+    'ret.dangerHint':'インシデント・シグナル・実行記録・操作ログ・隔離項目・遮断記録をすべて削除し、イベントセンターをゼロに戻します。隔離されたファイルの複製は完全削除され復元できず、すべての IP 遮断も解除されます。元に戻せません。',
+    'ret.resetBtn':'すべてのイベント履歴を消去',
+    'ret.resetConfirm':'本当に消去しますか？復元できません。',
+    'ret.resetYes':'消去する',
+    'ret.resetDone':'{n} 件のレコードと隔離ファイル {f} 個を削除しました。',
+    'ret.resetFail':'消去に失敗しました'
+  },
+  'ko': {
+    'sentinel.st.open':'대기 중',
+    'set.retention':'데이터 보존',
+    'ret.title':'이벤트 데이터 보존',
+    'ret.hint':'수집기는 1시간마다 만료된 데이터를 정리합니다. 정리 대상은 처리된 이벤트뿐이며, 미처리 이벤트와 그 신호·동작 기록은 자동 삭제되지 않습니다. 0은 영구 보존입니다. 기록을 완전히 초기화하려면 하단의 "이벤트 기록 비우기"를 사용하세요.',
+    'ret.eventsLabel':'이벤트 및 신호 보존',
+    'ret.eventsHelp':'신호, 이벤트, 실행 기록 세 가지에 함께 적용됩니다. 기본 30일, 변경 즉시 적용.',
+    'ret.auditLabel':'동작 감사 로그 보존',
+    'ret.auditHelp':'누가 언제 무엇을 했는지 기록으로, 장애 분석에 필요합니다. 180일 이상 권장, 0은 영구 보존.',
+    'ret.saved':'보존 정책이 저장되었습니다',
+    'ret.openSettings':'설정으로',
+    'ret.summaryLine':'이벤트와 신호는 {d}일, 감사 로그는 {a}일 보존하며 1시간마다 정리합니다.',
+    'ret.dangerTitle':'이벤트 기록 비우기',
+    'ret.dangerHint':'이벤트, 신호, 실행 기록, 감사 로그, 격리 항목, 차단 기록을 모두 삭제하여 이벤트 센터를 초기 상태로 되돌립니다. 격리된 파일 사본은 영구 삭제되어 복원할 수 없고, 모든 IP 차단이 해제됩니다. 되돌릴 수 없습니다.',
+    'ret.resetBtn':'모든 이벤트 기록 비우기',
+    'ret.resetConfirm':'정말 비우시겠습니까? 복구할 수 없습니다.',
+    'ret.resetYes':'비우기',
+    'ret.resetDone':'레코드 {n}개와 격리 파일 {f}개를 삭제했습니다.',
+    'ret.resetFail':'비우기 실패'
+  },
+  'th': {
+    'sentinel.st.open':'รอปลุก',
+    'set.retention':'การเก็บข้อมูล',
+    'ret.title':'การเก็บข้อมูลเหตุการณ์',
+    'ret.hint':'ตัวเก็บข้อมูลจะล้างข้อมูลที่หมดอายุทุกชั่วโมง เฉพาะเหตุการณ์ที่จัดการแล้วเท่านั้น เหตุการณ์ที่ยังไม่จัดการพร้อมสัญญาณและบันทึกการกระทำจะไม่ถูกลบอัตโนมัติ ใส่ 0 เพื่อเก็บถาวร หากต้องการเริ่มประวัติใหม่ทั้งหมดให้ใช้ "ล้างประวัติเหตุการณ์" ด้านล่าง',
+    'ret.eventsLabel':'เก็บเหตุการณ์และสัญญาณ',
+    'ret.eventsHelp':'มีผลกับสัญญาณ เหตุการณ์ และบันทึกการทำงานพร้อมกัน ค่าเริ่มต้น 30 วัน มีผลทันที',
+    'ret.auditLabel':'เก็บบันทึกการกระทำ',
+    'ret.auditHelp':'ใครทำอะไรเมื่อไหร่ ใช้ตรวจสอบย้อนหลังเมื่อเกิดปัญหา แนะนำอย่างน้อย 180 วัน ใส่ 0 เพื่อเก็บถาวร',
+    'ret.saved':'บันทกนโยบายการเก็บข้อมูลแล้ว',
+    'ret.openSettings':'ไปที่การตั้งค่า',
+    'ret.summaryLine':'เก็บเหตุการณ์และสัญญาณ {d} วัน บันทึกการกระทำ {a} วัน ล้างอัตโนมัติทุกชั่วโมง',
+    'ret.dangerTitle':'ล้างประวัติเหตุการณ์',
+    'ret.dangerHint':'ลบเหตุการณ์ สัญญาณ บันทึกการทำงาน บันทึกการกระทำ รายการกักกัน และบันทึกการบล็อกทั้งหมด เท่ากับรีเซ็ตศูนย์เหตุการณ์ใหม่ สำเนาไฟล์ที่ถูกกักกันจะถูกลบถาวรและกู้คืนไม่ได้ และการบล็อก IP ทั้งหมดจะถูกยกเลิก ไม่สามารถย้อนกลับได้',
+    'ret.resetBtn':'ล้างประวัติเหตุการณ์ทั้งหมด',
+    'ret.resetConfirm':'ยืนยันการล้าง? ลบแล้วกู้คืนไม่ได้',
+    'ret.resetYes':'ยืนยันล้าง',
+    'ret.resetDone':'ล้าง {n} รายการ และลบไฟล์กักกัน {f} ไฟล์',
+    'ret.resetFail':'ล้างไม่สำเร็จ'
+  },
+  'de': {
+    'sentinel.st.open':'Wartet auf Agent',
+    'set.retention':'Aufbewahrung',
+    'ret.title':'Aufbewahrung der Ereignisdaten',
+    'ret.hint':'Collectors räumen stündlich ab, und zwar nur behandelte Vorfälle; ein offener Vorfall samt Signalen und Aktionskette wird nie automatisch gelöscht. 0 bedeutet unbegrenzt. Für einen komplett leeren Verlauf den Knopf "Ereignisverlauf löschen" unten verwenden.',
+    'ret.eventsLabel':'Ereignisse und Signale behalten',
+    'ret.eventsHelp':'Gilt gemeinsam für Signale, Vorfälle und Agent-Läufe. Standard 30 Tage, wirkt sofort.',
+    'ret.auditLabel':'Aktionsprotokoll behalten',
+    'ret.auditHelp':'Wer wann was geändert hat — die Spur, die man nach einem Vorfall liest. Mindestens 180 Tage empfohlen; 0 behält dauerhaft.',
+    'ret.saved':'Aufbewahrungsregel gespeichert',
+    'ret.openSettings':'Zu den Einstellungen',
+    'ret.summaryLine':'Ereignisse und Signale {d} Tage, Aktionsprotokoll {a} Tage, stündliche Bereinigung.',
+    'ret.dangerTitle':'Ereignisverlauf löschen',
+    'ret.dangerHint':'Löscht alle Vorfälle, Signale, Agent-Läufe, Protokolleinträge, Quarantäneobjekte und Sperrungen — das Ereigniszentrum beginnt bei null. Quarantänierte Dateikopien werden endgültig gelöscht und lassen sich nicht wiederherstellen, alle IP-Sperren werden aufgehoben. Nicht rückgängig zu machen.',
+    'ret.resetBtn':'Gesamten Ereignisverlauf löschen',
+    'ret.resetConfirm':'Wirklich alles löschen? Es gibt kein Zurück.',
+    'ret.resetYes':'Ja, löschen',
+    'ret.resetDone':'{n} Datensätze und {f} Quarantänedateien entfernt.',
+    'ret.resetFail':'Löschen fehlgeschlagen'
+  }
+};
+
 const I18N2 = {
   'zh-CN': { 'brand.tagline':'主机上的 AI 运维 Agent','login.lead':'把 AI 装进服务器，让它自己运维自己','login.userPh':'请输入用户名','login.passPh':'请输入密码',
     'misc.uptime':'已运行','misc.cores':'核','misc.load':'负载','misc.todayTotal':'今日累计','misc.menu':'菜单','misc.collapse':'收起菜单','misc.expand':'展开菜单','misc.goDashboard':'回到仪表盘',
@@ -4636,6 +4855,7 @@ createApp({
       quePage:1, quePageSize:10, queTotal:0,
       blkPage:1, blkPageSize:10, blkTotal:0,
       retentionPolicy:{}, retentionStats:[], purgeMsg:'',
+      retUnified: 30, retAudit: 180, resetArmed:false, resetBusy:false, resetMsg:'',
       incDetail:null, policyForm:null, policyErr:'', policyHelp:false,
       menu: [
         { title:'group.overview', items:[
@@ -4886,7 +5106,55 @@ createApp({
         const d = await this.api('/sentinel/retention');
         this.retentionPolicy = (d && d.policy) || {};
         this.retentionStats = (d && d.stats) || [];
+        const p = this.retentionPolicy;
+        if(p.incident_days !== undefined) this.retUnified = p.incident_days;
+        if(p.action_days !== undefined) this.retAudit = p.action_days;
       }catch(e){}
+    },
+    async saveRetention(next){
+      try{
+        const d = await this.api('/sentinel/retention', {method:'PUT', body: JSON.stringify(next)});
+        this.retentionPolicy = (d && d.policy) || next;
+        this.loadRetention();
+        this.toast(this.t('ret.saved'));
+      }catch(e){ this.toast(e.message || this.t('set.saveFail')); }
+    },
+    // 统一口径：一个输入框同时管信号、事件、运行记录三项
+    async applyUnifiedRetention(){
+      const days = Math.max(0, parseInt(this.retUnified||'0', 10) || 0);
+      const next = Object.assign({}, this.retentionPolicy);
+      next.signal_days = days;
+      next.incident_days = days;
+      next.run_days = days;
+      await this.saveRetention(next);
+    },
+    async applyAuditRetention(){
+      const days = Math.max(0, parseInt(this.retAudit||'0', 10) || 0);
+      const next = Object.assign({}, this.retentionPolicy);
+      next.action_days = days;
+      await this.saveRetention(next);
+    },
+    gotoRetentionSettings(){
+      this.page = 'settings';
+      this.settingsTab = 'retention';
+      this.loadRetention();
+    },
+    async resetEvents(){
+      this.resetBusy = true;
+      try{
+        const d = await this.api('/sentinel/reset', {method:'POST', body: JSON.stringify({scope:'all', confirm:'RESET'})});
+        const n = (d && d.total) || 0;
+        const f = (d && d.files) || 0;
+        this.resetMsg = this.t('ret.resetDone').replace('{n}', n).replace('{f}', f);
+        this.resetArmed = false;
+        this.loadRetention();
+        this.loadSentinel();
+        if(this.sentinelTab==='incidents') this.loadIncidents(1);
+        if(this.sentinelTab==='signals') this.loadSignals(1);
+        if(this.sentinelTab==='actions') this.loadActions(1);
+        if(this.sentinelTab==='safety'){ this.loadQuarantine(); this.loadBlocks(1); }
+      }catch(e){ this.toast(e.message || this.t('ret.resetFail')); }
+      finally{ this.resetBusy = false; }
     },
     async setRetDays(table, val){
       const days = Math.max(0, parseInt(val||'0', 10) || 0);
@@ -5075,7 +5343,7 @@ createApp({
       else if(p==='terminal') this.connectTerminal();
     },
     // ===== 多语言 =====
-    t(key){ const dicts=[I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
+    t(key){ const dicts=[I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
     setDocTitle(){
       document.title = this.loggedIn
         ? 'OpsMini · ' + (location.hostname || location.host || 'localhost')
@@ -6611,7 +6879,7 @@ createApp({
       try{ this.appCategories = await this.api('/app-categories') || []; }catch(e){ this.appCategories = []; }
     },
     catName(key){ const c = (this.appCategories||[]).find(x => x.key === key); return c ? c.name : key; },
-    setSettingsTab(tab){ this.settingsTab = tab; if(tab === 'appTemplate'){ this.loadAppCategories(); this.loadStoreApps(); } else if(tab === 'notify'){ this.loadNotifyCfg(); } },
+    setSettingsTab(tab){ this.settingsTab = tab; if(tab === 'appTemplate'){ this.loadAppCategories(); this.loadStoreApps(); } else if(tab === 'notify'){ this.loadNotifyCfg(); } else if(tab === 'retention'){ this.loadRetention(); } },
     async loadNotifyCfg(){
       try{
         const kv = await this.api('/settings');

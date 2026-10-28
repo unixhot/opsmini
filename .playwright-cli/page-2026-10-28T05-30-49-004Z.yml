@@ -1,0 +1,169 @@
+- generic [ref=e1]:
+  - generic [ref=e34]:
+    - complementary [ref=e35]:
+      - img "OpsMini" [ref=e37] [cursor=pointer]
+      - navigation [ref=e38]:
+        - generic [ref=e39]: Overview
+        - generic "Dashboard" [ref=e40] [cursor=pointer]
+        - generic "Monitoring" [ref=e44] [cursor=pointer]
+        - generic "AI Assistant" [ref=e48] [cursor=pointer]
+        - generic "Event Center" [ref=e52] [cursor=pointer]
+        - generic [ref=e56]: Security
+        - generic "Host Security" [ref=e57] [cursor=pointer]
+        - generic "Terminal" [ref=e61] [cursor=pointer]
+        - generic "Logs" [ref=e65] [cursor=pointer]
+        - generic [ref=e69]: Tools
+        - generic "Containers" [ref=e70] [cursor=pointer]
+        - generic "System" [ref=e74] [cursor=pointer]
+        - generic "Cron Jobs" [ref=e78] [cursor=pointer]
+        - generic "Files" [ref=e82] [cursor=pointer]
+        - generic [ref=e86]: System
+        - generic "Profile" [ref=e87] [cursor=pointer]
+        - generic "Users" [ref=e91] [cursor=pointer]
+        - generic "Panel Settings" [ref=e95] [cursor=pointer]
+      - generic [ref=e99]:
+        - generic "Collapse" [ref=e100] [cursor=pointer]
+        - generic [ref=e104] [cursor=pointer]:
+          - generic [ref=e105]: OpsMini v1.2.1-116-ge589a33-dirty
+          - generic [ref=e106]: ubuntu 22.04
+        - generic [ref=e107] [cursor=pointer]:
+          - generic "Profile" [ref=e108]:
+            - generic [ref=e109]: O
+            - text: opsmini
+          - generic [ref=e110]: Log out
+    - generic [ref=e111]:
+      - banner [ref=e112]:
+        - generic [ref=e113]: System / Panel Settings
+        - generic [ref=e114]:
+          - link "Documentation" [ref=e116] [cursor=pointer]:
+            - /url: https://www.opsmini.com/docs/
+          - link "GitHub" [ref=e120] [cursor=pointer]:
+            - /url: https://github.com/unixhot/opsmini/
+          - generic [ref=e123]:
+            - button "Language / 语言" [active] [ref=e124] [cursor=pointer]
+            - generic [ref=e426]:
+              - generic [ref=e427]: Language / 语言
+              - generic [ref=e428] [cursor=pointer]:
+                - generic [ref=e429]: 🇨🇳
+                - generic [ref=e430]: 简体中文
+              - generic [ref=e431] [cursor=pointer]:
+                - generic [ref=e432]: 🇨🇳
+                - generic [ref=e433]: 繁體中文
+              - generic [ref=e434] [cursor=pointer]:
+                - generic [ref=e435]: 🇺🇸
+                - generic [ref=e436]: English
+                - generic [ref=e437]: ✓
+              - generic [ref=e438] [cursor=pointer]:
+                - generic [ref=e439]: 🇯🇵
+                - generic [ref=e440]: 日本語
+              - generic [ref=e441] [cursor=pointer]:
+                - generic [ref=e442]: 🇰🇷
+                - generic [ref=e443]: 한국어
+              - generic [ref=e444] [cursor=pointer]:
+                - generic [ref=e445]: 🇹🇭
+                - generic [ref=e446]: ไทย
+              - generic [ref=e447] [cursor=pointer]:
+                - generic [ref=e448]: 🇩🇪
+                - generic [ref=e449]: Deutsch
+          - button "Theme" [ref=e129] [cursor=pointer]
+          - generic [ref=e133]: Healthy
+          - button "Notifications" [ref=e135] [cursor=pointer]
+          - button "AI Assistant" [ref=e139] [cursor=pointer]
+      - generic [ref=e321]:
+        - generic [ref=e322]:
+          - generic [ref=e323]:
+            - generic [ref=e324]: Panel Settings
+            - generic [ref=e325]: Panel config, AI model integration & appearance
+          - generic [ref=e326]:
+            - generic [ref=e327] [cursor=pointer]: Basic Settings
+            - generic [ref=e328] [cursor=pointer]: AI Model Integration
+            - generic [ref=e329] [cursor=pointer]: Appearance & Theme
+            - generic [ref=e330] [cursor=pointer]: Menu Visibility
+            - generic [ref=e331] [cursor=pointer]: Metrics Export
+            - generic [ref=e332] [cursor=pointer]: Retention
+            - generic [ref=e333] [cursor=pointer]: Notifications
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - generic [ref=e336]:
+              - generic [ref=e337]: Event data retention
+              - generic [ref=e338]:
+                - button "Preview" [ref=e339] [cursor=pointer]
+                - button "Clean now" [ref=e340] [cursor=pointer]
+            - generic [ref=e341]: Collectors clean up once an hour, and only ever touch handled incidents; an open incident and its signals and action chain are never removed automatically. Set 0 to keep forever. To start from a blank history, use "Clear event history" at the bottom.
+            - generic [ref=e342]:
+              - generic [ref=e343]:
+                - generic [ref=e344]: Keep events and signals
+                - generic [ref=e345]:
+                  - spinbutton [ref=e346]: "30"
+                  - generic [ref=e347]: d
+                  - button "Save" [ref=e348] [cursor=pointer]
+                - generic [ref=e349]: Applies to signals, incidents and agent runs together. 30 days by default; takes effect immediately.
+              - generic [ref=e350]:
+                - generic [ref=e351]: Keep the action log
+                - generic [ref=e352]:
+                  - spinbutton [ref=e353]: "180"
+                  - generic [ref=e354]: d
+                  - button "Save" [ref=e355] [cursor=pointer]
+                - generic [ref=e356]: Who changed what and when — this is the trail you read after an incident. Keep at least 180 days; 0 keeps forever.
+            - table [ref=e358]:
+              - rowgroup [ref=e364]:
+                - row [ref=e365]:
+                  - columnheader "Table" [ref=e366]
+                  - columnheader "Rows" [ref=e367]
+                  - columnheader "Keep for" [ref=e368]
+                  - columnheader "Oldest" [ref=e369]
+              - rowgroup [ref=e370]:
+                - row [ref=e371]:
+                  - cell "Signals" [ref=e372]
+                  - cell "0" [ref=e373]
+                  - cell "30 d" [ref=e374]:
+                    - generic [ref=e375]:
+                      - spinbutton [ref=e376]: "30"
+                      - generic [ref=e377]: d
+                  - cell "-" [ref=e378]
+                - row [ref=e379]:
+                  - cell "Incidents" [ref=e380]
+                  - cell "0" [ref=e381]
+                  - cell "30 d" [ref=e382]:
+                    - generic [ref=e383]:
+                      - spinbutton [ref=e384]: "30"
+                      - generic [ref=e385]: d
+                  - cell "-" [ref=e386]
+                - row [ref=e387]:
+                  - cell "Action log" [ref=e388]
+                  - cell "0" [ref=e389]
+                  - cell "180 d" [ref=e390]:
+                    - generic [ref=e391]:
+                      - spinbutton [ref=e392]: "180"
+                      - generic [ref=e393]: d
+                  - cell "-" [ref=e394]
+                - row [ref=e395]:
+                  - cell "Agent runs" [ref=e396]
+                  - cell "0" [ref=e397]
+                  - cell "30 d" [ref=e398]:
+                    - generic [ref=e399]:
+                      - spinbutton [ref=e400]: "30"
+                      - generic [ref=e401]: d
+                  - cell "-" [ref=e402]
+                - row [ref=e403]:
+                  - cell "Quarantine" [ref=e404]
+                  - cell "0" [ref=e405]
+                  - cell "30 d" [ref=e406]:
+                    - generic [ref=e407]:
+                      - spinbutton [ref=e408]: "30"
+                      - generic [ref=e409]: d
+                  - cell "-" [ref=e410]
+                - row [ref=e411]:
+                  - cell "IP bans" [ref=e412]
+                  - cell "0" [ref=e413]
+                  - cell "30 d" [ref=e414]:
+                    - generic [ref=e415]:
+                      - spinbutton [ref=e416]: "30"
+                      - generic [ref=e417]: d
+                  - cell "-" [ref=e418]
+          - generic [ref=e419]:
+            - generic [ref=e420]: Clear event history
+            - generic [ref=e422]: Deletes every incident, signal, agent run, action log entry, quarantine item and ban record — the event center starts from zero. Quarantined file copies are deleted permanently and cannot be restored, and every IP ban is released. This cannot be undone.
+            - button "Clear all event history" [ref=e424] [cursor=pointer]
+      - generic [ref=e319]: Copyright @ 2015-2026 速云科技（opsmini.com）
+  - generic [ref=e320]: Welcome back, opsmini

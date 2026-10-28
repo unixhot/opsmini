@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
+body { width:1080px; background:#ffffff; padding:28px 30px 24px; }
+</style>
+</head>
+<body>
+<svg width="1020" height="760" viewBox="0 0 1020 760" xmlns="http://www.w3.org/2000/svg">
+  <text x="510" y="36" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">运维工具地图：右上角这块空地，OpsMini 补上了</text>
+  <text x="510" y="60" text-anchor="middle" font-size="13" fill="#64748b">横轴：只观测 → 会行动　·　纵轴：必须有中心 → 单机自治</text>
+
+  <!-- 坐标轴 -->
+  <line x1="110" y1="620" x2="950" y2="620" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="110" y1="620" x2="110" y2="110" stroke="#cbd5e1" stroke-width="2"/>
+  <polygon points="950,620 938,614 938,626" fill="#94a3b8"/>
+  <polygon points="110,110 104,122 116,122" fill="#94a3b8"/>
+  <text x="940" y="645" text-anchor="end" font-size="13" fill="#475569" font-weight="600">只观测 ──────→ 会行动</text>
+  <text x="96" y="122" text-anchor="end" font-size="13" fill="#475569" font-weight="600" transform="rotate(-90 96 122)">必须有中心 ──────→ 单机自治</text>
+
+  <!-- 象限底色 -->
+  <rect x="530" y="110" width="420" height="510" rx="16" fill="#fffbeb" stroke="#fde68a" stroke-width="2" stroke-dasharray="6 4"/>
+
+  <!-- 左上：只观测+必须中心 -->
+  <g>
+    <circle cx="240" cy="220" r="7" fill="#94a3b8"/>
+    <text x="258" y="216" font-size="15" font-weight="600" fill="#334155">Datadog / New Relic</text>
+    <text x="258" y="236" font-size="11.5" fill="#64748b">SaaS 监控，数据出网</text>
+    <circle cx="240" cy="300" r="7" fill="#94a3b8"/>
+    <text x="258" y="296" font-size="15" font-weight="600" fill="#334155">Zabbix</text>
+    <text x="258" y="316" font-size="11.5" fill="#64748b">自建 Server + Agent</text>
+  </g>
+
+  <!-- 左下：只观测+单机自治 -->
+  <g>
+    <circle cx="240" cy="470" r="7" fill="#94a3b8"/>
+    <text x="258" y="466" font-size="15" font-weight="600" fill="#334155">node_exporter / Netdata</text>
+    <text x="258" y="486" font-size="11.5" fill="#64748b">单机轻量，但只会汇报</text>
+  </g>
+
+  <!-- 右上：会行动+必须中心 -->
+  <g>
+    <circle cx="640" cy="220" r="7" fill="#94a3b8"/>
+    <text x="658" y="216" font-size="15" font-weight="600" fill="#334155">Salt / Ansible / Puppet</text>
+    <text x="658" y="236" font-size="11.5" fill="#64748b">会执行，但规则全靠人写</text>
+    <circle cx="640" cy="300" r="7" fill="#94a3b8"/>
+    <text x="658" y="296" font-size="15" font-weight="600" fill="#334155">商业 AIOps / AI SRE</text>
+    <text x="658" y="316" font-size="11.5" fill="#64748b">云端决策，按主机数收费</text>
+  </g>
+
+  <!-- 右下：OpsMini -->
+  <g>
+    <rect x="640" y="440" width="270" height="120" rx="14" fill="#2563eb" />
+    <rect x="640" y="440" width="270" height="120" rx="14" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+    <text x="775" y="478" text-anchor="middle" font-size="22" font-weight="800" fill="#ffffff">OpsMini</text>
+    <text x="775" y="504" text-anchor="middle" font-size="12.5" fill="#dbeafe">自己发现 · 自己判断 · 自己动手</text>
+    <text x="775" y="524" text-anchor="middle" font-size="12.5" fill="#dbeafe">边界你划得住 · 数据不出本机</text>
+    <text x="775" y="546" text-anchor="middle" font-size="11.5" fill="#93c5fd">单二进制 · 开源 · 无中心依赖</text>
+  </g>
+  <circle cx="620" cy="500" r="9" fill="#2563eb">
+    <animate attributeName="r" values="7;12;7" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="620" cy="500" r="7" fill="#2563eb"/>
+
+  <!-- 结论条 -->
+  <rect x="110" y="668" width="810" height="56" rx="12" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  <text x="515" y="691" text-anchor="middle" font-size="14.5" font-weight="700" fill="#1d4ed8">别的 Agent 只上报，别的面板只等人点；OpsMini 会动手，而且你划得住线。</text>
+  <text x="515" y="711" text-anchor="middle" font-size="11.5" fill="#64748b">「能自主行动 + 不需要中心 + 开源自托管」三件事凑在一起，安全和工程门槛都高——这正是右上角一直空着的原因</text>
+</svg>
+</body>
+</html>

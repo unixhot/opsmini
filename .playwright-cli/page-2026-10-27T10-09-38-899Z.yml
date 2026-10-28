@@ -1,0 +1,122 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e65]:
+    - complementary [ref=e66]:
+      - img "OpsMini" [ref=e68] [cursor=pointer]
+      - navigation [ref=e69]:
+        - generic [ref=e70]: 总览
+        - generic "仪表盘" [ref=e71] [cursor=pointer]
+        - generic "监控" [ref=e75] [cursor=pointer]
+        - generic "AI 助手" [ref=e79] [cursor=pointer]
+        - generic "事件中心" [ref=e83] [cursor=pointer]
+        - generic [ref=e87]: 安全
+        - generic "主机安全" [ref=e88] [cursor=pointer]
+        - generic "终端" [ref=e92] [cursor=pointer]
+        - generic "日志" [ref=e96] [cursor=pointer]
+        - generic [ref=e100]: 工具
+        - generic "容器管理" [ref=e101] [cursor=pointer]
+        - generic "系统管理" [ref=e105] [cursor=pointer]
+        - generic "计划任务" [ref=e109] [cursor=pointer]
+        - generic "文件" [ref=e113] [cursor=pointer]
+        - generic [ref=e117]: 系统
+        - generic "个人设置" [ref=e118] [cursor=pointer]
+        - generic "用户管理" [ref=e122] [cursor=pointer]
+        - generic "面板设置" [ref=e126] [cursor=pointer]
+      - generic [ref=e130]:
+        - generic "收起菜单" [ref=e131] [cursor=pointer]
+        - generic [ref=e135] [cursor=pointer]:
+          - generic [ref=e136]: OpsMini v1.2.1-14-gb462a8e
+          - generic [ref=e137]: ubuntu 22.04
+        - generic [ref=e138] [cursor=pointer]:
+          - generic "个人设置" [ref=e139]:
+            - generic [ref=e140]: O
+            - text: opsmini
+          - generic [ref=e141]: 退出
+    - generic [ref=e142]:
+      - banner [ref=e143]:
+        - generic [ref=e144]: 总览 / 监控
+        - generic [ref=e145]:
+          - link "官方文档" [ref=e147] [cursor=pointer]:
+            - /url: https://www.opsmini.com/docs/
+          - link "GitHub" [ref=e151] [cursor=pointer]:
+            - /url: https://github.com/unixhot/opsmini/
+          - button "Language / 语言" [ref=e155] [cursor=pointer]
+          - button "主题配色" [ref=e160] [cursor=pointer]
+          - generic [ref=e164]: 运行正常
+          - button "30" [ref=e166] [cursor=pointer]
+          - button "AI 助手" [ref=e171] [cursor=pointer]
+      - generic [ref=e353]:
+        - generic [ref=e354]:
+          - generic [ref=e355]:
+            - generic [ref=e356]: 监控
+            - generic [ref=e357]: demo-node4.opsany.com · ubuntu 22.04 · x86_64
+          - generic [ref=e358]:
+            - generic [ref=e359] [cursor=pointer]: 监控图表
+            - generic [ref=e360] [cursor=pointer]: 告警事件
+            - generic [ref=e361] [cursor=pointer]: 告警规则
+        - generic [ref=e362]:
+          - button "刷新" [ref=e364] [cursor=pointer]
+          - generic [ref=e367]:
+            - generic [ref=e368]: 基本数据
+            - generic [ref=e371]:
+              - generic [ref=e372]:
+                - generic [ref=e373]: 主机名
+                - generic [ref=e374]: demo-node4.opsany.com
+              - generic [ref=e375]:
+                - generic [ref=e376]: IP 地址
+                - generic [ref=e377]: 172.30.9.18, 172.17.0.1
+              - generic [ref=e378]:
+                - generic [ref=e379]: 操作系统
+                - generic [ref=e380]: ubuntu 22.04
+              - generic [ref=e381]:
+                - generic [ref=e382]: 内核版本
+                - generic [ref=e383]: 5.15.0-94-generic
+              - generic [ref=e384]:
+                - generic [ref=e385]: CPU 型号
+                - generic [ref=e386]: Intel(R) Xeon(R) Platinum
+              - generic [ref=e387]:
+                - generic [ref=e388]: CPU 核心
+                - generic [ref=e389]: "2"
+              - generic [ref=e390]:
+                - generic [ref=e391]: DNS
+                - generic [ref=e392]: 127.0.0.53
+              - generic [ref=e393]:
+                - generic [ref=e394]: 运行时间
+                - generic [ref=e395]: 573 天 7 小时
+          - generic [ref=e396]:
+            - generic [ref=e397]:
+              - generic [ref=e398]: CPU 使用率
+              - generic [ref=e404]: 2%
+              - generic [ref=e407]: 2 核 · 负载 0.01 / 0.04 / 0.01
+            - generic [ref=e408]:
+              - generic [ref=e409]: 内存使用率
+              - generic [ref=e414]: 37%
+              - generic [ref=e417]: 621 MB / 1.7 GB
+            - generic [ref=e418]:
+              - generic [ref=e419]: 磁盘使用率
+              - generic [ref=e424]: 38%
+              - generic [ref=e427]: 14.2 GB / 39.0 GB · 挂载点 /
+          - generic [ref=e428]:
+            - generic [ref=e429]:
+              - generic [ref=e430]: 进程总数
+              - generic [ref=e432]: "121"
+            - generic [ref=e433]:
+              - generic [ref=e434]: 用户总数
+              - generic [ref=e436]: 36可登录 2
+            - generic [ref=e437]:
+              - generic [ref=e438]: 监听端口
+              - generic [ref=e440]:
+                - generic [ref=e441]: 3TCP
+                - generic [ref=e442]: 3UDP
+            - generic [ref=e443]:
+              - generic [ref=e444]: 定时任务
+              - generic [ref=e446]:
+                - generic [ref=e447]: 8系统
+                - generic [ref=e448]: 0用户
+          - generic [ref=e450]:
+            - generic [ref=e451]: 系统资源时序
+            - generic [ref=e452]:
+              - generic [ref=e453] [cursor=pointer]: 1小时
+              - generic [ref=e454] [cursor=pointer]: 24小时
+              - generic [ref=e455] [cursor=pointer]: 7天
+      - generic [ref=e351]: Copyright @ 2015-2026 速云科技（opsmini.com）
+  - generic [ref=e352]: 欢迎回来，opsmini
