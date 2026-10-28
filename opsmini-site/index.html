@@ -460,6 +460,93 @@ table.cmp td.y{color:var(--green)}table.cmp td.n{color:#cbd5e1}table.cmp td.p{co
   .hl-band{grid-template-columns:1fr}
   .hl-sec{padding:0 0 60px}
 }
+
+/* ---------- motion system ---------- */
+:root{
+  --ease:cubic-bezier(0.22,1,0.36,1);
+}
+/* upgrade default transitions to the base curve */
+.hamburger span{transition:all .25s var(--ease)}
+.nav-links a{transition:color .3s var(--ease)}
+.btn{transition:all .3s var(--ease)}
+.lang-btn{transition:all .3s var(--ease)}
+.lang-menu button{transition:background .3s var(--ease)}
+.lang-menu{transition:opacity .3s var(--ease),transform .3s var(--ease),visibility .3s}
+.feat{transition:transform .5s var(--ease),border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.hl{transition:transform .5s var(--ease),border-color .3s var(--ease)}
+.faq details{transition:border-color .3s var(--ease)}
+.faq summary::after{transition:transform .3s var(--ease)}
+.copy-btn{transition:opacity .3s var(--ease),transform .15s var(--ease)}
+.foot-cols a{transition:color .3s var(--ease)}
+.foot-bottom a.beian{transition:color .3s var(--ease)}
+
+/* press feedback + focus rings */
+.btn:active{transform:translateY(0) scale(.98)}
+.copy-btn:active{transform:scale(.97)}
+.copy-btn:focus-visible,.lang-btn:focus-visible,.hamburger:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+a:focus-visible,summary:focus-visible,details summary:focus-visible{
+  outline:2px solid var(--accent);outline-offset:3px;border-radius:4px;
+}
+.faq summary:focus-visible{outline-offset:-2px}
+
+/* hero entrance orchestration */
+@keyframes heroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero-badge{animation:heroIn .6s var(--ease) .05s both}
+.hero h1{animation:heroIn .7s var(--ease) .13s both}
+.hero p.lead{animation:heroIn .7s var(--ease) .23s both}
+.hero-cta{animation:heroIn .7s var(--ease) .32s both}
+.hero-meta{animation:heroIn .7s var(--ease) .4s both}
+
+/* scroll reveal (class injected by JS; no-JS pages stay fully visible) */
+.reveal{opacity:0;transform:translateY(26px);
+  transition:opacity .7s var(--ease),transform .7s var(--ease),
+             border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion: no-preference){
+  /* hero inspection flow: steps light up one by one when the panel enters */
+  .flow-item{opacity:0;transform:translateX(-12px);
+    transition:opacity .5s var(--ease),transform .5s var(--ease)}
+  .mockup.in .flow-item{opacity:1;transform:none}
+  .mockup.in .flow-item:nth-child(1){transition-delay:.15s}
+  .mockup.in .flow-item:nth-child(2){transition-delay:.42s}
+  .mockup.in .flow-item:nth-child(3){transition-delay:.69s}
+  .mockup.in .flow-item:nth-child(4){transition-delay:.96s}
+  .mockup .agent-confirm,.mockup .flow-foot{opacity:0;transition:opacity .6s var(--ease)}
+  .mockup.in .agent-confirm{opacity:1;transition-delay:1.3s}
+  .mockup.in .flow-foot{opacity:1;transition-delay:1.55s}
+
+  /* chat demo: conversation plays out in order */
+  .chat-demo > *{opacity:0;transform:translateY(10px);
+    transition:opacity .55s var(--ease),transform .55s var(--ease)}
+  .chat-demo.in > *{opacity:1;transform:none}
+  .chat-demo.in > :nth-child(1){transition-delay:.1s}
+  .chat-demo.in > :nth-child(2){transition-delay:.45s}
+  .chat-demo.in > :nth-child(3){transition-delay:1.15s}
+  .chat-demo.in > :nth-child(4){transition-delay:1.45s}
+  .chat-demo .agent-step{opacity:0;transform:translateX(-10px)}
+  .chat-demo.in .agent-step{opacity:1;transform:none}
+  .chat-demo.in .agent-step:nth-child(1){transition-delay:.6s}
+  .chat-demo.in .agent-step:nth-child(2){transition-delay:.78s}
+  .chat-demo.in .agent-step:nth-child(3){transition-delay:.96s}
+  .chat-demo .st-ok{opacity:0}
+  .chat-demo.in .st-ok{opacity:1;transition:opacity .3s ease .5s}
+  .chat-demo.in .agent-step:nth-child(2) .st-ok{transition-delay:.68s}
+  .chat-demo.in .agent-step:nth-child(3) .st-ok{transition-delay:.86s}
+
+  /* feature card icons: gentle lift on hover */
+  .feat:hover .icon{transform:translateY(-3px) scale(1.06)}
+  .feat .icon{transition:transform .4s var(--ease)}
+}
+@media (prefers-reduced-motion: reduce){
+  .hero-badge,.hero h1,.hero p.lead,.hero-cta,.hero-meta{animation:none}
+  .reveal{opacity:1;transform:none;transition:none}
+  .mockup .flow-item,.mockup .agent-confirm,.mockup .flow-foot,
+  .chat-demo > *,.chat-demo .agent-step,.chat-demo .st-ok{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+}
 </style>
 </head>
 <body data-page-node-id="VB0rf7IOXz6ERzm8IhLnxd">
@@ -1736,6 +1823,84 @@ function copyInstallCmd(btn){
     fallback();
   }
 }
+
+/* ================= motion pass ================= */
+(function(){
+  'use strict';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- scroll reveal: inject classes (no-JS pages stay visible) ---- */
+  var targets = document.querySelectorAll(
+    '.sec-head, .hl-band, .install-strip, .vs-grid, .proof, .ai-band, ' +
+    '.agent-caps, .guard-grid, .guard-note, .feat-grid .feat, .cmp-wrap, ' +
+    '.arch, .qs-grid > *, .stats-band, .faq > details, .cta'
+  );
+  if (reduced || !('IntersectionObserver' in window)) return; // leave page static
+
+  targets.forEach(function(el){ el.classList.add('reveal'); });
+
+  /* stagger cards inside grids, clear the delay once revealed so hover stays snappy */
+  document.querySelectorAll(
+    '.feat-grid, .guard-grid, .agent-caps, .hl-band, .proof, .qs-steps'
+  ).forEach(function(grid){
+    Array.prototype.forEach.call(grid.children, function(c, i){
+      c.style.transitionDelay = (i * 0.07).toFixed(2) + 's';
+    });
+  });
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      var el = e.target;
+      el.classList.add('in');
+      io.unobserve(el);
+      if (el.style.transitionDelay) {
+        setTimeout(function(){ el.style.transitionDelay = ''; }, 900);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -36px 0px' });
+  targets.forEach(function(el){ io.observe(el); });
+
+  /* hero panel + chat demo: one-shot sequence triggers */
+  ['.mockup', '.chat-demo'].forEach(function(sel){
+    var el = document.querySelector(sel);
+    if (!el) return;
+    var o = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        o.unobserve(e.target);
+      });
+    }, { threshold: 0.3 });
+    o.observe(el);
+  });
+
+  /* ---- stat count-up (one-shot, respects reduced motion) ---- */
+  var stats = document.querySelectorAll('.stat .v');
+  if (!stats.length) return;
+  var runCount = function(el){
+    var target = parseInt(el.textContent, 10);
+    if (isNaN(target)) return;
+    var t0 = null, dur = 850;
+    var tick = function(ts){
+      if (!t0) t0 = ts;
+      var p = Math.min((ts - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3); /* ease-out cubic */
+      el.textContent = Math.round(target * eased);
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    };
+    requestAnimationFrame(tick);
+  };
+  var so = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if (!e.isIntersecting) return;
+      runCount(e.target);
+      so.unobserve(e.target);
+    });
+  }, { threshold: 0.6 });
+  stats.forEach(function(el){ so.observe(el); });
+})();
 </script>
 </body>
 </html>
