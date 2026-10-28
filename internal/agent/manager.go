@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"log"
 	"sync"
 )
 
@@ -27,6 +28,8 @@ func NewManager(hostname, version string) *Manager {
 func (m *Manager) Start(cfg Config) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	wasRunning := m.running
+	prevAddr := m.cfg.ServerAddr
 	if m.cancel != nil {
 		m.cancel()
 		m.cancel = nil
@@ -34,6 +37,12 @@ func (m *Manager) Start(cfg Config) {
 	m.running = false
 	m.cfg = cfg
 	if cfg.ServerAddr == "" {
+		// Log the transition explicitly: otherwise a manual disconnect looks
+		// identical to a network drop in the journal, and nobody can tell
+		// whether the operator turned it off or OpsAnt went away.
+		if wasRunning {
+			log.Printf("agent: stopped, server address cleared (was %s) — manual disconnect", prevAddr)
+		}
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
