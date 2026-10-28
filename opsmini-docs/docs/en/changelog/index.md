@@ -2,6 +2,72 @@
 
 Change records for each version.
 
+## v1.3.0 (2026-10-28)
+
+**Autonomous Agent: from "you ask, it answers" to "it watches on its own"**
+
+This version advances OpsMini from "an AI assistant that does work on command" to a resident Agent that "finds problems on its own, judges on its own, and acts within your boundaries." The core is a closed loop from collection to verification, not just a few more buttons.
+
+**Perception layer (internal/sentinel)**
+
+- Six types of collectors run continuously: log spikes (hourly-bucket EWMA baseline + 20MB/min hard threshold), login anomalies (non-working hours / first-seen IP / success after brute force / `authorized_keys` just changed), web directory script drops (14 types of WebShell signatures, strong signatures go straight to high), process spawning (web user starting shell / curl / python), suspicious outbound connections, metric alerts
+- Collection results are uniformly normalized into **Signal**: fingerprint deduplication, persisted to SQLite; passed via in-process channel, no message queue introduced
+- Collection frequency is tiered from 2s–20s; for anomalous logs, look up the process holding the file, avoiding "the log is growing but we don't know who is writing it"
+
+**Event center**
+
+- Signals are aggregated into **events** by fingerprint and time window; an event carries title, category, level, object, and occurrence count
+- Six filters (pending / pending wake / all / handled / failed / ignored) all carry counts; selecting one shows the definition for that status
+- Event details can drill down to related signals, Agent run records, and the per-step action chain (tool, parameters, verdict, raw output)
+
+**Policy engine (internal/trigger)**
+
+- Five built-in policies work out of the box: `webshell-respond`, `auth-anomaly`, `proc-anomaly` (critical only), `log-growth` (shadow mode), `net-anomaly` (disabled by default)
+- The Agent is woken only when three conditions are met simultaneously: category matches, level reaches threshold, and not in cooldown; otherwise only the event is recorded, **without consuming model quota**
+- Each policy can be configured with its own budget: write operation count, model steps, wall-clock duration, token limit; stop when any is exceeded
+- Policies are data, not code: add, delete, modify, adjust thresholds, and switch modes in the UI without restarting
+
+**Three run modes**
+
+- `shadow` observe only: gather evidence as usual, write conclusions and "what it plans to do," execute no write operations; suitable for running for a few days to calibrate judgment first
+- `assist` assist: read-only actions execute automatically, any write action stops and waits for human confirmation — the recommended daily setting
+- `auto` autonomous: only low-risk actions in the `auto_tools` whitelist skip confirmation; L2 and above always require human approval
+
+**Making irreversible actions reversible**
+
+- Delete → **quarantine**: move files to the quarantine area, record original path, checksum, and permissions, restore with one click
+- `kill -9` → **SIGSTOP freeze**: stop first to preserve the scene, decide after confirmation
+- Permanent ban → **temporary ban with TTL**: automatically unbanned on expiry, a mistaken ban won't become an incident
+- **Snapshot** before acting: keep a backup before changing config, roll back if verification fails
+
+**Five safety gates (internal/safety)**
+
+- Parameter policy, write budget, protected paths, killswitch, post-action assertion verification (`no_new_signal`, `port_listen`, `file_absent`, etc.)
+- Events that fail verification are marked as failed and handed back to a human, rather than glossed over as success; empty reports also count as failure
+- Every tool call goes into the action audit: who triggered it, what was called, what parameters were passed, what was returned
+
+**Data retention**
+
+- A new "Data Retention" page in panel settings: events and signals retained 30 days by default, action audit 180 days, quarantine items and ban records 30 days
+- Pending events together with their signals and action chains are **never automatically deleted**; quarantined files are untouched until restored, bans untouched until unbanned
+- Also added "Clear event history": clear everything at once regardless of retention window (including quarantined file copies and ban records, removing firewall rules, resetting policy cooldowns), executed after second confirmation
+
+**Drill and verification**
+
+- Added `scripts/chaos-drill.sh`: inject four types of faults (log spike / WebShell drop / SSH brute-force success / web user spawning shell), then use the API to verify whether the perception layer produces corresponding events
+- All four scenarios passed on a public network test machine; in `auto` mode, a real WebShell was quarantined and verified successfully
+
+**Other improvements**
+
+- Login page copy changed to Agent positioning (7 languages), tab title follows login status
+- Notification cards can be closed by clicking blank space on the page
+- Build version stamp switched to `git describe --tags --dirty`, added `make release-check` release pre-check to avoid releasing with a dirty working tree
+
+**Upgrade notes**
+
+- v1.2.1 → v1.3.0: just replace the binary and restart; new tables are created automatically, no migration needed
+- After upgrading, it is recommended to first look at the five built-in policies in "Event Center → Policies": by default they are all `assist` or `shadow`, and will not automatically change the system
+
 ## v1.2.1 (2026-10-27)
 
 **Fix: remove four multi-host AI tools that crossed an architectural boundary**

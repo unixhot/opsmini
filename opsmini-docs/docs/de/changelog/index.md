@@ -2,6 +2,72 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.3.0 (2026-10-28)
+
+**Autonomer Agent: Von „Du fragst, er antwortet" zu „Er behält es selbst im Blick"**
+
+Diese Version bringt OpsMini von einem „KI-Assistenten, der Anweisungen ausführt" zu einem permanenten Agenten, der „selbst Probleme erkennt, selbst urteilt und innerhalb deiner Grenzen handelt". Der Kern ist ein geschlossener Kreislauf von der Erfassung bis zur Verifikation – nicht nur ein paar weitere Buttons.
+
+**Wahrnehmungsschicht (internal/sentinel)**
+
+- Sechs Collector-Typen im Dauerbetrieb: Log-Explosion (stündliche EWMA-Baseline + harte Schwelle von 20MB/min), Anmelde-Anomalien (außerhalb der Arbeitszeit / erstmalig auftretende IP / Erfolg nach Brute-Force / `authorized_keys` gerade geändert), Skript-Ablage in Web-Verzeichnissen (14 WebShell-Merkmale, starke Merkmale direkt high), Prozess-Spawning (Web-Benutzer startet shell / curl / python), verdächtige ausgehende Verbindungen, Metrik-Alarme
+- Erfassungsergebnisse werden einheitlich zu **Signal** normalisiert: Fingerprint-Deduplizierung, Persistenz in SQLite; Übergabe über prozessinternen channel, keine Message-Queue
+- Erfassungsfrequenz gestaffelt 2s–20s, bei anomalen Logs wird der Prozess ermittelt, der die Datei hält, um „Log wächst, aber niemand weiß, wer schreibt" zu vermeiden
+
+**Event-Center**
+
+- Signale werden nach Fingerprint und Zeitfenster zu **Events** aggregiert; ein Event trägt Titel, Kategorie, Stufe, Objekt, Häufigkeit
+- Sechs Filter (ausstehend / aufzuwecken / alle / erledigt / fehlgeschlagen / ignoriert) mit Zählern; bei Auswahl wird die Definition des jeweiligen Status angezeigt
+- Event-Details lassen sich bis zu zugehörigen Signalen, Agent-Ausführungsprotokollen und der einzelnen Aktionskette (Tool, Parameter, Entscheidung, Rohausgabe) aufschlüsseln
+
+**Policy-Engine (internal/trigger)**
+
+- Fünf integrierte Policies sofort einsatzbereit: `webshell-respond`, `auth-anomaly`, `proc-anomaly` (nur critical), `log-growth` (Shadow-Modus), `net-anomaly` (standardmäßig deaktiviert)
+- Drei Bedingungen müssen gleichzeitig erfüllt sein, um den Agenten zu wecken: Kategorie passt, Stufe erreicht Schwelle, nicht in Abklingzeit; andernfalls wird nur das Event protokolliert, **ohne Modellkontingent zu verbrauchen**
+- Jede Policy kann einzeln Budgets konfigurieren: Anzahl Schreiboperationen, Modell-Schritte, Wall-Clock-Dauer, Token-Obergrenze; bei Überschreitung eines Werts wird gestoppt
+- Policies sind Daten, kein Code: im UI hinzufügen/ändern/löschen, Schwellen anpassen, Modus wechseln, ohne Neustart
+
+**Drei Betriebsmodi**
+
+- `shadow` Nur beobachten: wie gewohnt Beweise sichern, Schlussfolgerungen und „was ich vorhätte" schreiben, keine einzige Schreiboperation ausführen – geeignet, um erst einige Tage zur Kalibrierung der Beurteilung zu laufen
+- `assist` Unterstützen: Leseaktionen werden automatisch ausgeführt, jede Schreibaktion hält an und wartet auf Bestätigung – empfohlene Stufe für den Alltag
+- `auto` Autonom: nur risikoarme Aktionen aus der `auto_tools`-Whitelist sind bestätigungsfrei, ab L2 ist immer ein menschliches OK nötig
+
+**Irreversible Aktionen reversibel machen**
+
+- Löschen → **Isolieren**: Datei wird in den Isolationsbereich verschoben, Originalpfad, Prüfsumme, Berechtigungen werden erfasst, Ein-Klick-Wiederherstellung
+- `kill -9` → **SIGSTOP-Einfrieren**: erst anhalten und den Zustand bewahren, nach Bestätigung entscheiden
+- Dauerhafte Sperre → **temporäre Sperre mit TTL**: automatische Aufhebung bei Ablauf, Fehlsperren werden kein Vorfall
+- Vor dem Handeln erst **Snapshot**: vor Konfigurationsänderungen ein Backup, bei fehlgeschlagener Verifikation Rollback möglich
+
+**Fünf Sicherheitsschranken (internal/safety)**
+
+- Parameter-Policy, Schreibbudget, geschützte Pfade, Not-Aus-Schalter (killswitch), Assertion-Verifikation nach der Behandlung (`no_new_signal`, `port_listen`, `file_absent` usw.)
+- Events mit fehlgeschlagener Verifikation werden als fehlgeschlagen markiert und an den Menschen zurückgegeben, statt sie als Erfolg zu verschleiern; leere Berichte gelten ebenfalls als fehlgeschlagen
+- Jeder Tool-Aufruf geht in die Aktionsprüfung: wer ihn ausgelöst hat, was aufgerufen wurde, welche Parameter übergeben wurden, was zurückkam
+
+**Datenaufbewahrung**
+
+- Panel-Einstellungen erhalten eine neue Seite „Datenaufbewahrung": Events und Signale standardmäßig 30 Tage, Aktionsprüfung 180 Tage, Isolationsobjekte und Sperrprotokolle 30 Tage
+- Ausstehende Events samt zugehörigen Signalen und Aktionsketten werden **niemals automatisch gelöscht**; isolierte Dateien bleiben bis zur Wiederherstellung unangetastet, Sperren bis zur Aufhebung
+- Zusätzlich „Event-Verlauf leeren": ignoriert das Aufbewahrungsfenster und leert einmalig alles (inkl. isolierter Dateikopien und Sperrprotokolle, Entfernen von Firewall-Regeln, Zurücksetzen der Policy-Abklingzeiten), Ausführung nach doppelter Bestätigung
+
+**Drill und Verifikation**
+
+- Neu: `scripts/chaos-drill.sh`: Injektion von vier Fehlertypen (Log-Explosion / WebShell-Ablage / erfolgreicher SSH-Brute-Force / Web-Benutzer spawnt shell), anschließend API-Prüfung, ob die Wahrnehmungsschicht die entsprechenden Events erzeugt
+- Auf einer öffentlichen Testmaschine alle vier Szenarien bestanden; im `auto`-Modus echte Isolierung einer WebShell und Verifikation bestanden
+
+**Weitere Verbesserungen**
+
+- Login-Seiten-Text auf Agent-Positionierung umgestellt (7 Sprachen), Tab-Titel folgt dem Anmeldestatus
+- Benachrichtigungskarten lassen sich durch Klick auf leere Seitenbereiche schließen
+- Build-Versionsstempel auf `git describe --tags --dirty` umgestellt, neu `make release-check` Release-Vorprüfung, um Releases mit schmutzigem Arbeitsbereich zu vermeiden
+
+**Upgrade-Hinweise**
+
+- v1.2.1 → v1.3.0: einfach das Binary ersetzen und neu starten, neue Tabellen werden automatisch angelegt, keine Migration nötig
+- Nach dem Upgrade empfiehlt es sich, im „Event-Center → Policies" einen Blick auf die fünf integrierten Policies zu werfen: standardmäßig sind alle `assist` oder `shadow`, das System wird nicht automatisch verändert
+
 ## v1.2.1 (2026-10-27)
 
 **Korrektur: vier Mehrhost-KI-Werkzeuge entfernt, die eine Grenze überschritten**
