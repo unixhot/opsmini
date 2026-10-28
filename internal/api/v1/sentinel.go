@@ -82,11 +82,20 @@ func (h *SentinelHandler) Stats(c *gin.Context) {
 	}
 	h.DB.Model(&model.Incident{}).Select("status, count(*) as n").Group("status").Scan(&byStatus)
 	statusMap := gin.H{}
+	// Zero-fill every known state so the filter chips always render the same set
+	// of numbers instead of flickering between 0 and blank.
+	for _, st := range []string{model.IncidentOpen, model.IncidentTriggered, model.IncidentRunning,
+		model.IncidentResolved, model.IncidentIgnored, model.IncidentTakenOver, model.IncidentFailed} {
+		statusMap[st] = int64(0)
+	}
+	var total int64
+	h.DB.Model(&model.Incident{}).Count(&total)
 	for _, r := range byStatus {
 		statusMap[r.Status] = r.N
 	}
 	out["incidents_open"] = open
 	out["incidents_unresolved"] = unresolved
+	out["incidents_total"] = total
 	out["by_status"] = statusMap
 	response.OK(c, out)
 }

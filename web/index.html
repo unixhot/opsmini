@@ -491,11 +491,12 @@
   .page-tabs span:hover{color:var(--primary);background:var(--card)}
   .page-tabs span.active{background:var(--primary);color:#fff;box-shadow:0 1px 6px rgba(37,99,235,.35);font-weight:600}
   @media(max-width:768px){.page-tabs{width:100%}.page-tabs span{flex:1;text-align:center;padding:7px 6px}}
-  /* 状态说明：tab 上的 ? 徽标 + 选中后的解释条 */
-  .hint-q{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;
-    background:var(--border);color:var(--t3);font-size:9px;font-weight:700;line-height:1;margin-left:4px;
-    cursor:help;vertical-align:1px;flex:none}
-  .page-tabs span.active .hint-q{background:rgba(255,255,255,.28);color:#fff}
+  /* 状态说明：tab 上的计数徽标 + 选中后的解释条
+     注意选择器要带上 .page-tabs span 前缀，否则被 .page-tabs span 的
+     padding/font-size 覆盖（同权重时后者在样式表里更靠后） */
+  .page-tabs span .tab-count{margin-left:6px;font-size:10.5px;font-weight:700;padding:1px 7px;min-width:20px;
+    justify-content:center;border-radius:9px;letter-spacing:0;line-height:1.6}
+  .page-tabs span.active .tab-count{background:rgba(255,255,255,.24);color:#fff}
   .explain-strip{padding:10px 12px;border-radius:8px;background:var(--info-soft);border:1px solid rgba(2,132,199,.18);
     font-size:12.5px;color:var(--t2);line-height:1.7;display:flex;gap:8px;align-items:flex-start}
   .explain-strip .ei{flex:none;width:15px;height:15px;border-radius:50%;background:var(--info);color:#fff;
@@ -1605,18 +1606,32 @@
             <div class="page-tabs" style="margin:0">
               <span :class="{active: incFilter.status==='unresolved'}" @click="setIncStatus('unresolved')">
                 {{ t('sentinel.filter.unresolved') }}
-                <span class="tag warn" style="margin-left:5px;font-size:10px">{{ sentinelStats.incidents_unresolved || 0 }}</span>
+                <span class="tag warn tab-count">{{ incCount('unresolved') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='open'}" @click="setIncStatus('open')" :title="t('sent.open.tip')">
+              <span :class="{active: incFilter.status==='open'}" @click="setIncStatus('open')">
                 {{ t('sentinel.filter.pending') }}
-                <span class="tag info" style="margin-left:5px;font-size:10px">{{ (sentinelStats.by_status||{}).open || 0 }}</span>
-                <span class="hint-q" :title="t('sent.open.tip')">?</span>
+                <span class="tag info tab-count">{{ incCount('open') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='all'}" @click="setIncStatus('all')">{{ t('sentinel.filter.all') }}</span>
-              <span :class="{active: incFilter.status==='resolved'}" @click="setIncStatus('resolved')">{{ t('sentinel.filter.resolved') }}</span>
-              <span :class="{active: incFilter.status==='failed'}" @click="setIncStatus('failed')">{{ t('sentinel.filter.failed') }}</span>
-              <span :class="{active: incFilter.status==='ignored'}" @click="setIncStatus('ignored')">{{ t('sentinel.filter.ignored') }}</span>
+              <span :class="{active: incFilter.status==='all'}" @click="setIncStatus('all')">
+                {{ t('sentinel.filter.all') }}
+                <span class="tag mute tab-count">{{ incCount('all') }}</span>
+              </span>
+              <span :class="{active: incFilter.status==='resolved'}" @click="setIncStatus('resolved')">
+                {{ t('sentinel.filter.resolved') }}
+                <span class="tag ok tab-count">{{ incCount('resolved') }}</span>
+              </span>
+              <span :class="{active: incFilter.status==='failed'}" @click="setIncStatus('failed')">
+                {{ t('sentinel.filter.failed') }}
+                <span class="tag err tab-count">{{ incCount('failed') }}</span>
+              </span>
+              <span :class="{active: incFilter.status==='ignored'}" @click="setIncStatus('ignored')">
+                {{ t('sentinel.filter.ignored') }}
+                <span class="tag mute tab-count">{{ incCount('ignored') }}</span>
+              </span>
             </div>
+          </div>
+          <div v-if="incFilter.status==='unresolved'" class="explain-strip" style="margin:0 16px 12px">
+            <span class="ei">i</span><span>{{ t('sent.unresolved.hint') }}</span>
           </div>
           <div v-if="incFilter.status==='open'" class="explain-strip" style="margin:0 16px 12px">
             <span class="ei">i</span><span>{{ t('sent.open.hint') }}</span>
@@ -4144,7 +4159,7 @@ const I18N10 = {
 /* I18N11: 数据保留设置与事件清空（面板设置 → 数据保留） */
 const I18N11 = {
   'zh-CN': {
-    'sentinel.st.open':'待唤醒','sent.open.tip':'待唤醒 = 事件已成型，但策略条件没同时满足（分类匹配 / 等级达标 / 不在冷却），Agent 还没被唤醒，不消耗模型额度。','sent.open.hint':'待唤醒 = 信号已经聚合成事件，但 Agent 还没被叫醒。策略要同时满足三个条件才会唤醒它：分类匹配、等级达到阈值、不在冷却期内；只要有一条不满足，事件就只记录、不消耗模型额度——扫描探测这类噪音会一直堆在这里。打开事件详情能看到关联信号，确实不用管的可以点「忽略」。',
+    'sentinel.st.open':'待唤醒','sent.unresolved.hint':'待处置 = 所有还没有结束的事件，它是「待唤醒 + 执行中 + 失败」三项之和，不是独立状态。所以这里的数字大于等于「待唤醒」和「失败」两个页签，那些事件也会同时出现在这里。','sent.open.tip':'待唤醒 = 事件已成型，但策略条件没同时满足（分类匹配 / 等级达标 / 不在冷却），Agent 还没被唤醒，不消耗模型额度。','sent.open.hint':'待唤醒 = 信号已经聚合成事件，但 Agent 还没被叫醒。策略要同时满足三个条件才会唤醒它：分类匹配、等级达到阈值、不在冷却期内；只要有一条不满足，事件就只记录、不消耗模型额度——扫描探测这类噪音会一直堆在这里。打开事件详情能看到关联信号，确实不用管的可以点「忽略」。',
     'set.retention':'数据保留',
     'ret.title':'事件数据保留',
     'ret.hint':'采集器每小时清理一次过期数据。清理只针对已处置事件；待处置事件连同它的信号与动作链永不自动删除。填 0 表示永久保留。想让历史彻底干净，用页面底部的「清空事件历史」。',
@@ -4164,7 +4179,7 @@ const I18N11 = {
     'ret.resetFail':'清空失败'
   },
   'zh-TW': {
-    'sentinel.st.open':'待喚醒','sent.open.tip':'待喚醒 = 事件已成形，但策略條件沒有同時滿足（分類符合 / 等級達標 / 不在冷卻），Agent 還沒被喚醒，不消耗模型額度。','sent.open.hint':'待喚醒 = 訊號已經聚合成事件，但 Agent 還沒被叫醒。策略要同時滿足三個條件才會喚醒它：分類符合、等級達到閾值、不在冷卻期內；只要有一條不滿足，事件就只記錄、不消耗模型額度——掃描探測這類噪音會一直堆在這裡。開啟事件詳情能看到關聯訊號，確定不用管的可以點「忽略」。',
+    'sentinel.st.open':'待喚醒','sent.unresolved.hint':'待處置 = 所有還沒結束的事件，它是「待喚醒 + 執行中 + 失敗」三項之和，不是獨立狀態。所以這裡的數字大於等於「待喚醒」和「失敗」兩個頁籤，那些事件也會同時出現在這裡。','sent.open.tip':'待喚醒 = 事件已成形，但策略條件沒有同時滿足（分類符合 / 等級達標 / 不在冷卻），Agent 還沒被喚醒，不消耗模型額度。','sent.open.hint':'待喚醒 = 訊號已經聚合成事件，但 Agent 還沒被叫醒。策略要同時滿足三個條件才會喚醒它：分類符合、等級達到閾值、不在冷卻期內；只要有一條不滿足，事件就只記錄、不消耗模型額度——掃描探測這類噪音會一直堆在這裡。開啟事件詳情能看到關聯訊號，確定不用管的可以點「忽略」。',
     'set.retention':'資料保留',
     'ret.title':'事件資料保留',
     'ret.hint':'採集器每小時清理一次過期資料。清理只針對已處置事件；待處置事件連同它的訊號與動作鏈永不自動刪除。填 0 表示永久保留。想讓歷史徹底乾淨，用頁面底部的「清空事件歷史」。',
@@ -4184,7 +4199,7 @@ const I18N11 = {
     'ret.resetFail':'清空失敗'
   },
   'en': {
-    'sentinel.st.open':'Awaiting agent','sent.open.tip':'Awaiting agent = the incident exists, but the policy conditions (category match, severity, cooldown) are not all met, so the agent was never woken and no tokens are spent.','sent.open.hint':'Awaiting agent means the signals have been clustered into an incident but the agent has not been woken. A policy fires only when all three hold at once: matching category, severity at or above the threshold, and outside the cooldown window. If any one fails, the incident is merely recorded and no model tokens are spent, which is why scanning noise piles up here. Open an incident to see its related signals, or ignore it if it needs no action.',
+    'sentinel.st.open':'Awaiting agent','sent.unresolved.hint':'To handle = every incident that has not finished yet: the sum of awaiting agent, running and failed, not a state of its own. That is why this number is at least as large as the awaiting and failed tabs, and those incidents appear here too.','sent.open.tip':'Awaiting agent = the incident exists, but the policy conditions (category match, severity, cooldown) are not all met, so the agent was never woken and no tokens are spent.','sent.open.hint':'Awaiting agent means the signals have been clustered into an incident but the agent has not been woken. A policy fires only when all three hold at once: matching category, severity at or above the threshold, and outside the cooldown window. If any one fails, the incident is merely recorded and no model tokens are spent, which is why scanning noise piles up here. Open an incident to see its related signals, or ignore it if it needs no action.',
     'set.retention':'Retention',
     'ret.title':'Event data retention',
     'ret.hint':'Collectors clean up once an hour, and only ever touch handled incidents; an open incident and its signals and action chain are never removed automatically. Set 0 to keep forever. To start from a blank history, use "Clear event history" at the bottom.',
@@ -4204,7 +4219,7 @@ const I18N11 = {
     'ret.resetFail':'Clear failed'
   },
   'ja': {
-    'sentinel.st.open':'起動待ち','sent.open.tip':'起動待ち = インシデントは出来ていますが、ポリシー条件（分類一致 / しきい値 / クールダウン）が揃わず、エージェントは起動していません。トークンは消費しません。','sent.open.hint':'起動待ちとは、シグナルが 1 つのインシデントにまとまったものの、まだエージェントを起動していない状態です。ポリシーは 3 条件が同時に成立したときだけ起動します：分類の一致、しきい値以上の重要度、クールダウン外。1 つでも欠けると記録だけが残り、トークンは消費しません。そのためスキャン等のノイズがここに溜まります。詳細を開けば関連シグナルを確認でき、対応不要なら「無視」できます。',
+    'sentinel.st.open':'起動待ち','sent.unresolved.hint':'未処理 = まだ終わっていないインシデントすべてで、「起動待ち + 実行中 + 失敗」の合計です。独立した状態ではありません。そのためこの数は「起動待ち」「失敗」の各タブ以上になり、それらもここに表示されます。','sent.open.tip':'起動待ち = インシデントは出来ていますが、ポリシー条件（分類一致 / しきい値 / クールダウン）が揃わず、エージェントは起動していません。トークンは消費しません。','sent.open.hint':'起動待ちとは、シグナルが 1 つのインシデントにまとまったものの、まだエージェントを起動していない状態です。ポリシーは 3 条件が同時に成立したときだけ起動します：分類の一致、しきい値以上の重要度、クールダウン外。1 つでも欠けると記録だけが残り、トークンは消費しません。そのためスキャン等のノイズがここに溜まります。詳細を開けば関連シグナルを確認でき、対応不要なら「無視」できます。',
     'set.retention':'データ保持',
     'ret.title':'イベントデータの保持',
     'ret.hint':'コレクタは 1 時間ごとに期限切れデータを削除します。対象は処理済みインシデントのみで、未処理インシデントとそのシグナル・アクション履歴は自動削除されません。0 は永久保持です。完全に初期化したい場合は下部の「イベント履歴を消去」を使います。',
@@ -4224,7 +4239,7 @@ const I18N11 = {
     'ret.resetFail':'消去に失敗しました'
   },
   'ko': {
-    'sentinel.st.open':'대기 중','sent.open.tip':'대기 중 = 이벤트는 생성되었지만 정책 조건(분류 일치 / 등급 / 쿨다운)이 모두 충족되지 않아 에이전트가 호출되지 않았고, 토큰도 소모되지 않았습니다.','sent.open.hint':'대기 중은 신호가 하나의 이벤트로 묶였지만 아직 에이전트가 호출되지 않은 상태입니다. 정책은 세 조건이 동시에 충족될 때만 실행됩니다: 분류 일치, 등급이 임계값 이상, 쿨다운 밖. 하나라도 어긋나면 기록만 남고 모델 토큰은 소모되지 않습니다. 그래서 스캔 같은 노이즈가 여기에 쌓입니다. 이벤트 상세에서 관련 신호를 확인하고, 조치가 필요 없으면 무시할 수 있습니다.',
+    'sentinel.st.open':'대기 중','sent.unresolved.hint':'처리 필요 = 아직 끝나지 않은 모든 이벤트로, 대기 중 + 실행 중 + 실패의 합계입니다. 별도의 상태가 아닙니다. 그래서 이 숫자는 대기 중·실패 탭보다 크거나 같고, 그 이벤트들도 여기에 함께 표시됩니다.','sent.open.tip':'대기 중 = 이벤트는 생성되었지만 정책 조건(분류 일치 / 등급 / 쿨다운)이 모두 충족되지 않아 에이전트가 호출되지 않았고, 토큰도 소모되지 않았습니다.','sent.open.hint':'대기 중은 신호가 하나의 이벤트로 묶였지만 아직 에이전트가 호출되지 않은 상태입니다. 정책은 세 조건이 동시에 충족될 때만 실행됩니다: 분류 일치, 등급이 임계값 이상, 쿨다운 밖. 하나라도 어긋나면 기록만 남고 모델 토큰은 소모되지 않습니다. 그래서 스캔 같은 노이즈가 여기에 쌓입니다. 이벤트 상세에서 관련 신호를 확인하고, 조치가 필요 없으면 무시할 수 있습니다.',
     'set.retention':'데이터 보존',
     'ret.title':'이벤트 데이터 보존',
     'ret.hint':'수집기는 1시간마다 만료된 데이터를 정리합니다. 정리 대상은 처리된 이벤트뿐이며, 미처리 이벤트와 그 신호·동작 기록은 자동 삭제되지 않습니다. 0은 영구 보존입니다. 기록을 완전히 초기화하려면 하단의 "이벤트 기록 비우기"를 사용하세요.',
@@ -4244,7 +4259,7 @@ const I18N11 = {
     'ret.resetFail':'비우기 실패'
   },
   'th': {
-    'sentinel.st.open':'รอปลุก','sent.open.tip':'รอปลุก = เหตุการณ์ถูกสร้างแล้ว แต่เงื่อนไขนโยบาย (หมวดตรง / ระดับถึงเกณฑ์ / ไม่อยู่ในคูลดาวน์) ไม่ครบ จึงยังไม่ปลุกเอเจนต์และไม่เสียโทเคน','sent.open.hint':'รอปลุกหมายถึงสัญญาณถูกรวมเป็นเหตุการณ์แล้ว แต่เอเจนต์ยังไม่ถูกปลุก นโยบายจะทำงานเมื่อครบทั้งสามข้อพร้อมกัน: หมวดตรง ระดับถึงเกณฑ์ และอยู่นอกช่วงคูลดาวน์ ถ้าข้อใดข้อหนึ่งไม่ครบ จะเพียงบันทึกเหตุการณ์และไม่เสียโทเคน ทำให้เสียงรบกวนจากการสแกนกองอยู่ที่นี่ เปิดรายละเอียดเพื่อดูสัญญาณที่เกี่ยวข้อง หรือกด ไม่สนใจ หากไม่ต้องจัดการ',
+    'sentinel.st.open':'รอปลุก','sent.unresolved.hint':'รอจัดการ = เหตุการณ์ทั้งหมดที่ยังไม่จบ คือผลรวมของรอปลุก + กำลังทำงาน + ล้มเหลว ไม่ใช่สถานะแยก ดังนั้นตัวเลขนี้จะมากกว่าหรือเท่ากับแท็บรอปลุกและล้มเหลว และเหตุการณ์เหล่านั้นจะปรากฏที่นี่ด้วย','sent.open.tip':'รอปลุก = เหตุการณ์ถูกสร้างแล้ว แต่เงื่อนไขนโยบาย (หมวดตรง / ระดับถึงเกณฑ์ / ไม่อยู่ในคูลดาวน์) ไม่ครบ จึงยังไม่ปลุกเอเจนต์และไม่เสียโทเคน','sent.open.hint':'รอปลุกหมายถึงสัญญาณถูกรวมเป็นเหตุการณ์แล้ว แต่เอเจนต์ยังไม่ถูกปลุก นโยบายจะทำงานเมื่อครบทั้งสามข้อพร้อมกัน: หมวดตรง ระดับถึงเกณฑ์ และอยู่นอกช่วงคูลดาวน์ ถ้าข้อใดข้อหนึ่งไม่ครบ จะเพียงบันทึกเหตุการณ์และไม่เสียโทเคน ทำให้เสียงรบกวนจากการสแกนกองอยู่ที่นี่ เปิดรายละเอียดเพื่อดูสัญญาณที่เกี่ยวข้อง หรือกด ไม่สนใจ หากไม่ต้องจัดการ',
     'set.retention':'การเก็บข้อมูล',
     'ret.title':'การเก็บข้อมูลเหตุการณ์',
     'ret.hint':'ตัวเก็บข้อมูลจะล้างข้อมูลที่หมดอายุทุกชั่วโมง เฉพาะเหตุการณ์ที่จัดการแล้วเท่านั้น เหตุการณ์ที่ยังไม่จัดการพร้อมสัญญาณและบันทึกการกระทำจะไม่ถูกลบอัตโนมัติ ใส่ 0 เพื่อเก็บถาวร หากต้องการเริ่มประวัติใหม่ทั้งหมดให้ใช้ "ล้างประวัติเหตุการณ์" ด้านล่าง',
@@ -4264,7 +4279,7 @@ const I18N11 = {
     'ret.resetFail':'ล้างไม่สำเร็จ'
   },
   'de': {
-    'sentinel.st.open':'Wartet auf Agent','sent.open.tip':'Wartet auf Agent = der Vorfall existiert, aber die Richtlinienbedingungen (Kategorie, Stufe, Abklingzeit) sind nicht alle erfüllt — der Agent wurde nie geweckt, es werden keine Tokens verbraucht.','sent.open.hint':'Wartet auf Agent heißt: Die Signale sind zu einem Vorfall gebündelt, aber der Agent wurde noch nicht geweckt. Eine Richtlinie greift nur, wenn alles drei zugleich zutrifft: passende Kategorie, Stufe über der Schwelle und außerhalb der Abklingzeit. Fehlt eines, wird der Vorfall nur protokolliert und es werden keine Tokens verbraucht — deshalb sammelt sich Scan-Rauschen hier. Details öffnen zeigt die zugehörigen Signale; was niemanden interessiert, lässt sich ignorieren.',
+    'sentinel.st.open':'Wartet auf Agent','sent.unresolved.hint':'Zu erledigen = alle noch offenen Vorfälle, also die Summe aus Wartet auf Agent, Läuft und Fehlgeschlagen — kein eigener Status. Deshalb ist diese Zahl mindestens so groß wie die Tabs Wartet auf Agent und Fehlgeschlagen, und deren Vorfälle erscheinen auch hier.','sent.open.tip':'Wartet auf Agent = der Vorfall existiert, aber die Richtlinienbedingungen (Kategorie, Stufe, Abklingzeit) sind nicht alle erfüllt — der Agent wurde nie geweckt, es werden keine Tokens verbraucht.','sent.open.hint':'Wartet auf Agent heißt: Die Signale sind zu einem Vorfall gebündelt, aber der Agent wurde noch nicht geweckt. Eine Richtlinie greift nur, wenn alles drei zugleich zutrifft: passende Kategorie, Stufe über der Schwelle und außerhalb der Abklingzeit. Fehlt eines, wird der Vorfall nur protokolliert und es werden keine Tokens verbraucht — deshalb sammelt sich Scan-Rauschen hier. Details öffnen zeigt die zugehörigen Signale; was niemanden interessiert, lässt sich ignorieren.',
     'set.retention':'Aufbewahrung',
     'ret.title':'Aufbewahrung der Ereignisdaten',
     'ret.hint':'Collectors räumen stündlich ab, und zwar nur behandelte Vorfälle; ein offener Vorfall samt Signalen und Aktionskette wird nie automatisch gelöscht. 0 bedeutet unbegrenzt. Für einen komplett leeren Verlauf den Knopf "Ereignisverlauf löschen" unten verwenden.',
@@ -5041,6 +5056,13 @@ createApp({
     },
     gotoSignals(){ this.sentinelTab='signals'; this.loadSignals(1); },
     setIncStatus(s){ this.incFilter.status=s; this.loadIncidents(1); },
+    // 计数徽标：unresolved 与 all 是聚合口径，其余按状态取值
+    incCount(k){
+      const s = this.sentinelStats || {};
+      if(k==='unresolved') return s.incidents_unresolved || 0;
+      if(k==='all') return s.incidents_total || 0;
+      return (s.by_status||{})[k] || 0;
+    },
     resetIncFilter(){ this.incFilter={status:'unresolved',family:'',severity:'',q:'',page:1}; this.loadIncidents(1); },
     async loadSentinel(){
       try{
