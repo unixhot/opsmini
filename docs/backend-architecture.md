@@ -537,26 +537,3 @@ WantedBy=multi-user.target
 ### 11.3 Reverse proxy (optional)
 
 Nginx reverse-proxies 80/443 → 8888, with certificates managed by the panel's website module or an external load balancer.
-
----
-
-## 12. Development Roadmap (milestones)
-
-| Phase | Content | Deliverable |
-|------|------|------|
-| M1 Skeleton | Go project, Gin routing, SQLite, GORM migration, login/users/RBAC | A minimal runnable panel |
-| M2 System capabilities | gopsutil metrics, processes/ports/disks/network, dashboard + monitoring | Single-machine monitoring loop |
-| M3 Resource management | Websites (Nginx), databases, files, terminal (pty), cron jobs | Parity with 1Panel core |
-| M4 Containers | Docker SDK: containers/images/volumes/networks | Container management |
-| M5 AI | LLM adapter layer, context, NL execution, AI assistant | Differentiating capability |
-| M6 Agent API | Agent exposes standard REST API (`/agent/v1`), token auth, command allowlist | External integration capability |
-| M7 Polish | i18n, audit, rate limiting, tests, docs | Production-ready |
-
----
-
-## 13. Decision Points to Confirm
-
-1. **Agent API authentication strength**: default Bearer Token; is mTLS mutual certificates needed (more secure, heavier deployment)?
-2. **Does the Agent API need an IP allowlist**: disabled by default, token-only; should IP restrictions be added for multi-machine/public-network scenarios?
-3. **Streaming data**: log tail / real-time metrics default to REST pagination polling — is this acceptable? (v1.0 does not introduce SSE/long-lived connections)
-4. **Unified multi-machine management (future)**: if a Proxy center is introduced later, should it reuse the existing `/agent/v1` for pull scheduling, or define a separate protocol? (out of v1.0 scope, memo only)

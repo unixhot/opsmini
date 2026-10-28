@@ -42,7 +42,8 @@ make build-all      # 交叉编译 Linux amd64/arm64
 - [开发者手册](developer-guide.zh-CN.md)
 - [后端架构设计](backend-architecture.md)
 - [构建与部署手册](build-and-deploy.md)
-- [主机安全设计](security-audit.md)
+- [主机安全设计](host-security-design.md)
+- [安全审查报告](security-audit.md)
 
 ### 版权
 

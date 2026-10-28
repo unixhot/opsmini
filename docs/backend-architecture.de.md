@@ -537,26 +537,3 @@ WantedBy=multi-user.target
 ### 11.3 Reverse-Proxy (optional)
 
 Nginx als Reverse-Proxy 80/443 → 8888; Zertifikate werden vom Website-Modul im Panel oder einem externen Load-Balancer verwaltet.
-
----
-
-## 12. Entwicklungs-Roadmap (Meilensteine)
-
-| Phase | Inhalt | Lieferung |
-|------|------|------|
-| M1 Grundgerüst | Go-Projekt, Gin-Routing, SQLite, GORM-Migration, Login/Benutzer/RBAC | Minimal lauffähiges Panel |
-| M2 Systemfähigkeiten | gopsutil-Metriken, Prozesse/Ports/Datenträger/Netzwerk, Dashboard + Monitoring | Geschlossener Single-Machine-Monitoring-Kreislauf |
-| M3 Ressourcenverwaltung | Websites (Nginx), Datenbanken, Dateien, Terminal (pty), Cron-Jobs | Parität mit 1Panel-Kern |
-| M4 Container | Docker SDK: Container/Images/Volumes/Netzwerke | Container-Verwaltung |
-| M5 KI | LLM-Adapter-Schicht, Kontext, NL-Ausführung, KI-Assistent | Differenzierungsfähigkeit |
-| M6 Agent-API | Agent stellt standardisierte REST-API (`/agent/v1`) bereit, Token-Auth, Befehls-Allowlist | Externe Integrationsfähigkeit |
-| M7 Feinschliff | i18n, Audit, Ratenbegrenzung, Tests, Dokumentation | Produktionsreif |
-
----
-
-## 13. Zu bestätigende Entscheidungspunkte
-
-1. **Authentifizierungsstärke der Agent-API**: Standard Bearer Token; sind mTLS-Zertifikate nötig (sicherer, aber schwereres Deployment)?
-2. **Benötigt die Agent-API eine IP-Allowlist**: standardmäßig deaktiviert, nur Token; sollen IP-Beschränkungen für Multi-Machine-/Public-Network-Szenarien ergänzt werden?
-3. **Streaming-Daten**: Log-tail / Echtzeit-Metriken standardmäßig über REST-Paginierungs-Polling — akzeptabel? (v1.0 führt kein SSE/Long-Lived-Connection ein)
-4. **Einheitliche Multi-Machine-Verwaltung (Zukunft)**: Falls später ein Proxy-Zentrum eingeführt wird — die bestehende `/agent/v1` für Pull/Scheduling wiederverwenden oder ein separates Protokoll definieren? (außerhalb des v1.0-Umfangs, nur Notiz)

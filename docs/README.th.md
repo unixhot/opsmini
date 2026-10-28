@@ -42,7 +42,8 @@ make build-all      # ครอสคอมไพล์สำหรับ Linux 
 - [คู่มือนักพัฒนา](docs/developer-guide.md)
 - [สถาปัตยกรรมแบ็กเอนด์](docs/backend-architecture.md)
 - [การบิลด์และการปรับใช้](docs/build-and-deploy.md)
-- [การออกแบบความปลอดภัยโฮสต์](docs/security-audit.md)
+- [การออกแบบความปลอดภัยโฮสต์](host-security-design.md)
+- [รายงานการตรวจสอบความปลอดภัย](security-audit.md)
 
 ### ลิขสิทธิ์
 

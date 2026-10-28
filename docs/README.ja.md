@@ -42,7 +42,8 @@ make build-all      # Linux amd64/arm64 向けにクロスコンパイル
 - [開発者ガイド](docs/developer-guide.md)
 - [バックエンドアーキテクチャ](docs/backend-architecture.md)
 - [ビルドとデプロイ](docs/build-and-deploy.md)
-- [ホストセキュリティ設計](docs/security-audit.md)
+- [ホストセキュリティ設計](host-security-design.md)
+- [セキュリティ監査レポート](security-audit.md)
 
 ### 著作権
 
