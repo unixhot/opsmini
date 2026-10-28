@@ -3755,7 +3755,8 @@
     </div>
   </div>
 
-  <!-- 通知下拉 -->
+  <!-- 通知下拉：透明遮罩承接「点空白处关闭」，与语言/主题下拉保持同一套做法 -->
+  <div v-if="notifOpen" class="theme-mask" @click="notifOpen=false"></div>
   <div v-if="notifOpen" style="position:fixed;top:56px;right:140px;width:340px;z-index:60">
     <div class="card">
       <div class="card-head">
