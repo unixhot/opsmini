@@ -3816,6 +3816,21 @@
     </div>
   </div>
 
+  <!-- 通用确认弹窗（替代浏览器原生 confirm） -->
+  <div v-if="confirmDlg" class="modal-mask" @click.self="confirmDlg=null">
+    <div class="modal-card" style="max-width:460px">
+      <div class="modal-head">
+        <div class="modal-title">{{ confirmDlg.title }}</div>
+        <button class="btn ghost sm" @click="confirmDlg=null">✕</button>
+      </div>
+      <div class="modal-body" style="font-size:13.5px;color:var(--t2);line-height:1.75">{{ confirmDlg.text }}</div>
+      <div class="modal-foot">
+        <button class="btn ghost" @click="confirmDlg=null">{{ t('common.cancel') }}</button>
+        <button class="btn" :class="confirmDlg.danger ? 'danger' : 'primary'" @click="runConfirm">{{ t('common.confirm') }}</button>
+      </div>
+    </div>
+  </div>
+
   </div><!-- /主面板 .app -->
 
 </div><!-- /#app -->
@@ -4626,6 +4641,7 @@ createApp({
       page: 'dashboard',
       search: '',
       notifOpen: false,
+      confirmDlg: null,
       themeOpen: false,
       mobileNavOpen: false,
       sidebarCollapsed: false,
@@ -5323,8 +5339,11 @@ createApp({
         this.loadPolicies();
       }catch(e){ this.policyErr = e.message || this.t('set.saveFail'); }
     },
-    async delPolicy(p){
-      if(!confirm(this.t('sentinel.policy.delConfirm'))) return;
+    delPolicy(p){
+      this.askConfirm(this.t('sentinel.policy.del'), this.t('sentinel.policy.delConfirm'),
+        () => this.doDelPolicy(p), true);
+    },
+    async doDelPolicy(p){
       try{
         await this.api('/sentinel/policies/'+p.id, {method:'DELETE'});
         this.toast(this.t('common.saved'));
@@ -5551,9 +5570,21 @@ createApp({
         await this.loadAgentConfig();
       }catch(e){ this.toast(this.t('set.saveFail') + ': ' + e.message); }
     },
+    // 通用确认弹窗：替代浏览器原生 confirm（原生弹窗样式与面板不统一，且被浏览器拦截时静默失败）
+    askConfirm(title, text, onOk, danger){
+      this.confirmDlg = { title, text, danger: !!danger, onOk };
+    },
+    runConfirm(){
+      const d = this.confirmDlg;
+      this.confirmDlg = null;
+      if(d && typeof d.onOk === 'function') d.onOk();
+    },
     // 断开接入：清空地址与 token，Agent 立即停止；OpsAnt 侧需重新同意才能再次纳管
-    async disconnectAgent(){
-      if(!confirm(this.t('set.opsantDisconnectConfirm'))) return;
+    disconnectAgent(){
+      this.askConfirm(this.t('set.opsantDisconnect'), this.t('set.opsantDisconnectConfirm'),
+        () => this.doDisconnectAgent(), true);
+    },
+    async doDisconnectAgent(){
       try{
         await this.api('/agent-config', { method:'PUT', body: JSON.stringify({ server_addr:'', server_token:'' }) });
         this.agentCfg.server_addr = '';
@@ -7588,9 +7619,9 @@ createApp({
       }catch(e){ this.toast(e.message); }
     },
     // rotateMcpToken 重新生成访问令牌。
-    async rotateMcpToken(){
-      if(!confirm(this.t('ai.mcpRotateConfirm'))) return;
-      await this.saveMcpServer({ rotate_token: true });
+    rotateMcpToken(){
+      this.askConfirm(this.t('ai.mcpRotate'), this.t('ai.mcpRotateConfirm'),
+        () => this.saveMcpServer({ rotate_token: true }), true);
     },
     // copyMcpToken 复制令牌到剪贴板。
     async copyMcpToken(){
