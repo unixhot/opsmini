@@ -284,6 +284,50 @@ func (h *SentinelHandler) Ignore(c *gin.Context) {
 	response.OK(c, gin.H{"status": "ignored"})
 }
 
+// Feedback POST /sentinel/incidents/:id/feedback
+//
+// A human verdict on the incident ("this was right" / "this was noise"). Ignore and
+// takeover already imply false_positive; this endpoint exists for the opposite case
+// and for shadow runs, where nothing was executed and the only thing a human can
+// judge is whether the analysis was worth reading. The rows land in signal_feedbacks
+// so a later tuner can use them without re-reading the incident table.
+func (h *SentinelHandler) Feedback(c *gin.Context) {
+	id := c.Param("id")
+	var inc model.Incident
+	if err := h.DB.First(&inc, "id = ?", id).Error; err != nil {
+		response.Error(c, 404, response.CodeNotFound, "事件不存在")
+		return
+	}
+	var req struct {
+		Verdict string `json:"verdict"`
+		Note    string `json:"note"`
+		By      string `json:"by"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	verdict := strings.TrimSpace(req.Verdict)
+	if verdict != "true_positive" && verdict != "false_positive" {
+		response.Error(c, 400, response.CodeInvalidParam, "verdict 只能是 true_positive 或 false_positive")
+		return
+	}
+	if req.By == "" {
+		// The auth middleware only puts the numeric user id on the context, so look
+		// the name up: a feedback row without an author is not auditable.
+		if uid, ok := c.Get("userID"); ok {
+			var u model.User
+			if err := h.DB.Select("username").First(&u, "id = ?", uid).Error; err == nil {
+				req.By = u.Username
+			}
+		}
+	}
+	var sig model.Signal
+	_ = h.DB.Where("incident_id = ?", id).Order("observed_at").First(&sig).Error
+	h.DB.Create(&model.SignalFeedback{
+		SignalID: sig.ID, Fingerprint: sig.Fingerprint,
+		Verdict: verdict, Note: req.Note, By: req.By,
+	})
+	response.OK(c, gin.H{"status": "recorded"})
+}
+
 // Takeover POST /sentinel/incidents/:id/takeover
 func (h *SentinelHandler) Takeover(c *gin.Context) {
 	id := c.Param("id")

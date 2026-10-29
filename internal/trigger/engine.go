@@ -389,7 +389,21 @@ func (e *Engine) worker() {
 
 // run executes one incident end to end: prepare the run options, call the agent,
 // verify the outcome, then update the incident.
+//
+// Two things make this more than a single call:
+//
+//   - a failed verification earns exactly one retry (see maxAttempts), because the
+//     difference between "the fix did not work" and "the model picked the wrong
+//     first hypothesis" is often one more look; and
+//   - a group that a human already ignored twice in a week does not wake the agent
+//     at all (see suppressed). Ignoring an incident is feedback; ignoring the same
+//     thing every night is a configuration mistake we can stop paying for.
 func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
+	if reason, quiet := e.suppressed(inc); quiet {
+		e.recordSuppressed(inc, p, reason)
+		return
+	}
+
 	var signals []model.Signal
 	e.DB.Where("incident_id = ?", inc.ID).Order("observed_at").Limit(50).Find(&signals)
 
@@ -446,67 +460,110 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 	})
 	e.DB.Model(&model.TriggerPolicy{}).Where("id = ?", p.ID).Update("last_run_at", time.Now())
 
-	runRow := model.AgentRun{
-		IncidentID: inc.ID, PolicyName: p.Name, Mode: mode,
-		Status: "running", StartedAt: time.Now(),
-	}
-	e.DB.Create(&runRow)
+	// A retry only makes sense when there is something to verify: without an
+	// assertion "failed" is not defined, and retrying on an error would just pay
+	// for the same failure twice.
+	maxAttempts := 2
 
-	ctx := context.Background()
-	if req.MaxSeconds > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(req.MaxSeconds)*time.Second)
-		defer cancel()
-	}
-	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).
-		Update("status", model.IncidentRunning)
-
-	res, err := e.Runner.RunIncident(ctx, req)
-	fin := time.Now()
-
-	upd := map[string]any{
-		"status":      "success",
-		"session_id":  res.SessionID,
-		"steps":       res.Steps,
-		"tools":       res.Tools,
-		"writes":      res.Writes,
-		"summary":     res.Summary,
-		"report_rel":  res.ReportRel,
-		"finished_at": fin,
-	}
-	if len(res.Skipped) > 0 {
-		if b, jerr := json.Marshal(res.Skipped); jerr == nil {
-			upd["skipped"] = string(b)
+	var (
+		res         RunResult
+		runErr      error
+		verifyState string
+		status      string
+		fin         time.Time
+	)
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		attemptReq := req
+		if attempt > 1 {
+			attemptReq.Prompt = req.Prompt + retryHint(res)
 		}
-	}
-	status := model.IncidentResolved
-	if err != nil {
-		upd["status"] = "failed"
-		upd["error"] = err.Error()
-		status = model.IncidentFailed
-	}
-	e.DB.Model(&model.AgentRun{}).Where("id = ?", runRow.ID).Updates(upd)
 
-	// Quality gate: a run that produced no usable conclusion is a failure, not a
-	// success with an empty report. This catches models that lose the thread.
-	verifyState := ""
-	if err == nil && len(strings.TrimSpace(res.Summary)) < 20 {
-		status = model.IncidentFailed
-		verifyState = "empty-report"
-	}
+		runRow := model.AgentRun{
+			IncidentID: inc.ID, PolicyName: p.Name, Mode: req.Mode,
+			Status: "running", StartedAt: time.Now(), Attempt: attempt,
+		}
+		e.DB.Create(&runRow)
 
-	// Post-action verification: an action is not "done" until the assertions pass.
-	if len(req.Verify) > 0 && err == nil && verifyState == "" {
-		ok, detail := e.Safety.Verify(ctx, inc.ID, req.Verify)
-		res.VerifyOK = ok
-		res.VerifyDetail = detail
-		verifyState = "passed"
-		if !ok {
-			verifyState = "failed"
+		ctx := context.Background()
+		cancel := func() {}
+		if req.MaxSeconds > 0 {
+			timeout := time.Duration(req.MaxSeconds) * time.Second
+			if attempt > 1 {
+				// The second pass gets a shorter budget: the first one already
+				// spent most of the incident's allowance.
+				timeout = timeout / 2
+				if timeout < 60*time.Second {
+					timeout = 60 * time.Second
+				}
+			}
+			var c context.CancelFunc
+			ctx, c = context.WithTimeout(ctx, timeout)
+			cancel = c
+		}
+
+		e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).
+			Update("status", model.IncidentRunning)
+
+		res, runErr = e.Runner.RunIncident(ctx, attemptReq)
+		// Release the per-attempt deadline now rather than at function end: a retry
+		// must not inherit the first attempt's remaining budget.
+		cancel()
+		fin = time.Now()
+
+		upd := map[string]any{
+			"status":      "success",
+			"session_id":  res.SessionID,
+			"steps":       res.Steps,
+			"tools":       res.Tools,
+			"writes":      res.Writes,
+			"summary":     res.Summary,
+			"report_rel":  res.ReportRel,
+			"finished_at": fin,
+			"attempt":     attempt,
+		}
+		if len(res.Skipped) > 0 {
+			if b, jerr := json.Marshal(res.Skipped); jerr == nil {
+				upd["skipped"] = string(b)
+			}
+		}
+		status = model.IncidentResolved
+		verifyState = ""
+		if runErr != nil {
+			upd["status"] = "failed"
+			upd["error"] = runErr.Error()
 			status = model.IncidentFailed
 		}
-		e.DB.Model(&model.AgentRun{}).Where("id = ?", runRow.ID).
-			Update("summary", res.Summary+"\n\n验证："+strings.Join(detail, "；"))
+		e.DB.Model(&model.AgentRun{}).Where("id = ?", runRow.ID).Updates(upd)
+
+		// Quality gate: a run that produced no usable conclusion is a failure, not a
+		// success with an empty report. This catches models that lose the thread.
+		if runErr == nil && len(strings.TrimSpace(res.Summary)) < 20 {
+			status = model.IncidentFailed
+			verifyState = "empty-report"
+		}
+
+		// Post-action verification: an action is not "done" until the assertions pass.
+		if len(req.Verify) > 0 && runErr == nil && verifyState == "" {
+			ok, detail := e.Safety.Verify(ctx, inc.ID, req.Verify)
+			res.VerifyOK = ok
+			res.VerifyDetail = detail
+			verifyState = "passed"
+			if !ok {
+				verifyState = "failed"
+				status = model.IncidentFailed
+			}
+			e.DB.Model(&model.AgentRun{}).Where("id = ?", runRow.ID).
+				Update("summary", res.Summary+"\n\n验证："+strings.Join(detail, "；"))
+		}
+
+		// Retry only a verification failure: a hard error (model down, timeout) would
+		// fail the same way again, and a passing run needs nothing more.
+		if verifyState != "failed" || attempt == maxAttempts {
+			break
+		}
+		if runErr == nil {
+			log.Printf("trigger: %s verify failed on attempt %d, retrying once", inc.ID, attempt)
+		}
 	}
 
 	incUpd := map[string]any{
@@ -529,18 +586,80 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(incUpd)
 
 	if e.Notify != nil {
-		text := fmt.Sprintf("【%s】%s — %s", strings.ToUpper(inc.Severity), inc.Title, mode)
+		text := fmt.Sprintf("【%s】%s — %s", strings.ToUpper(inc.Severity), inc.Title, req.Mode)
 		if res.Summary != "" {
 			text += "\n" + truncate(res.Summary, 400)
 		}
 		if verifyState == "failed" {
-			text += "\n⚠ 验证未通过，需人工确认"
+			text += "\n⚠ 验证未通过（已重试 1 次），需人工确认"
 		}
-		if err != nil {
-			text += "\n执行失败：" + err.Error()
+		if runErr != nil {
+			text += "\n执行失败：" + runErr.Error()
 		}
 		e.Notify(inc, text)
 	}
+}
+
+// retryHint is appended to the playbook for the second attempt. Feeding back what
+// was already tried is what stops the model from repeating the same first guess.
+func retryHint(res RunResult) string {
+	var b strings.Builder
+	b.WriteString("\n\n【上一次处置未通过验证】\n")
+	if len(res.VerifyDetail) > 0 {
+		b.WriteString("验证结果：" + strings.Join(res.VerifyDetail, "；") + "\n")
+	}
+	b.WriteString(fmt.Sprintf("上一次共 %d 步、%d 次工具调用、%d 次写操作。\n", res.Steps, res.Tools, res.Writes))
+	if len(res.Skipped) > 0 {
+		b.WriteString("被拦下的动作：" + strings.Join(res.Skipped, ", ") + "\n")
+	}
+	b.WriteString("请先重新取证，检查上一次的假设是否成立，再换一种处置思路；" +
+		"如果确认必须由人工执行，请在结论里写出可直接复制执行的命令，不要重复同样的操作。")
+	return b.String()
+}
+
+// --- feedback-driven suppression ---------------------------------------------
+
+const (
+	// suppressWindow is how far back a human "ignore" still counts.
+	suppressWindow = 7 * 24 * time.Hour
+	// suppressHits is how many ignores of the same group make us stop waking the
+	// agent. Two is deliberate: one ignore can be a one-off, two is a pattern.
+	suppressHits = 2
+)
+
+// suppressed reports whether this group has been ignored by a human often enough
+// that waking the agent again would just burn tokens. The incident itself is still
+// recorded and shown in the panel — only the automatic investigation is skipped.
+func (e *Engine) suppressed(inc model.Incident) (string, bool) {
+	if e.DB == nil || inc.GroupKey == "" {
+		return "", false
+	}
+	var n int64
+	e.DB.Model(&model.Incident{}).
+		Where("group_key = ? AND status = ? AND updated_at > ?",
+			inc.GroupKey, model.IncidentIgnored, time.Now().Add(-suppressWindow)).
+		Count(&n)
+	if n < suppressHits {
+		return "", false
+	}
+	return fmt.Sprintf("同类事件近 7 天已被人工忽略 %d 次，本次只记录不自动处置", n), true
+}
+
+// recordSuppressed logs a skipped run so the decision is auditable: without a row
+// it looks like the engine simply dropped the incident.
+func (e *Engine) recordSuppressed(inc model.Incident, p model.TriggerPolicy, reason string) {
+	now := time.Now()
+	e.DB.Create(&model.AgentRun{
+		IncidentID: inc.ID, PolicyName: p.Name, Mode: p.Mode,
+		Status: "skipped", Error: reason,
+		StartedAt: now, FinishedAt: &now, Attempt: 0,
+	})
+	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(map[string]any{
+		"policy_id":   p.ID,
+		"policy_name": p.Name,
+		"summary":     reason,
+		"updated_at":  now,
+	})
 }
 
 // --- defaults ----------------------------------------------------------------

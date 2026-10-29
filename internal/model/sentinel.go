@@ -163,15 +163,19 @@ type TriggerPolicy struct {
 
 // AgentRun records one event-triggered agent execution.
 type AgentRun struct {
-	ID         uint       `gorm:"primaryKey" json:"id"`
-	IncidentID string     `gorm:"size:32;index" json:"incident_id"`
-	PolicyName string     `gorm:"size:96" json:"policy_name"`
-	Mode       string     `gorm:"size:16" json:"mode"`
-	Status     string     `gorm:"size:16" json:"status"` // running | success | failed | skipped
-	SessionID  string     `gorm:"size:32" json:"session_id"`
-	Steps      int        `json:"steps"`
-	Tools      int        `json:"tools"`
-	Writes     int        `json:"writes"`
+	ID         uint   `gorm:"primaryKey" json:"id"`
+	IncidentID string `gorm:"size:32;index" json:"incident_id"`
+	PolicyName string `gorm:"size:96" json:"policy_name"`
+	Mode       string `gorm:"size:16" json:"mode"`
+	Status     string `gorm:"size:16" json:"status"` // running | success | failed | skipped
+	SessionID  string `gorm:"size:32" json:"session_id"`
+	Steps      int    `json:"steps"`
+	Tools      int    `json:"tools"`
+	Writes     int    `json:"writes"`
+	// Attempt counts the tries for this incident: 1 = first pass, 2 = the one
+	// retry allowed after a failed verification. Recorded so "it needed two
+	// attempts" is visible instead of being flattened into a single success.
+	Attempt    int        `json:"attempt"`
 	Skipped    string     `gorm:"type:text" json:"skipped"`
 	Summary    string     `gorm:"type:text" json:"summary"`
 	ReportRel  string     `gorm:"size:256" json:"report_rel"`

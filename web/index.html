@@ -2277,7 +2277,13 @@
         <div class="modal-card" style="max-width:860px">
           <div class="modal-head">
             <div class="modal-title">{{ t('sentinel.detailTitle') }}</div>
-            <button class="btn ghost sm" @click="incDetail=null">✕</button>
+            <div class="row" style="gap:8px;align-items:center">
+              <span class="mute" style="font-size:12px">{{ t('sent.feedback.title') }}</span>
+              <button class="btn sm ghost" :disabled="incFeedbackBusy" @click="sendIncidentFeedback('true_positive')">{{ t('sent.feedback.correct') }}</button>
+              <button class="btn sm ghost" :disabled="incFeedbackBusy" @click="sendIncidentFeedback('false_positive')">{{ t('sent.feedback.falsePositive') }}</button>
+              <span class="tag ok" v-if="incFeedbackSent">{{ t('sent.feedback.saved') }}</span>
+              <button class="btn ghost sm" @click="incDetail=null">✕</button>
+            </div>
           </div>
           <div style="padding:0 20px 18px;max-height:70vh;overflow:auto">
             <div style="font-size:15px;font-weight:600;margin:6px 0 10px">{{ incDetail.incident.title }}</div>
@@ -2326,8 +2332,17 @@
             <div class="st-detail-sec">{{ t('sentinel.detail.runs') }} ({{ (incDetail.runs||[]).length }})</div>
             <div v-for="r in incDetail.runs" :key="r.id" class="st-detail-row">
               <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(r.started_at) }}</span>
+              <span v-if="r.attempt>1" class="tag warn" style="margin-right:6px">{{ t('sent.run.attempt').replace('{n}', r.attempt) }}</span>
               <span>{{ r.mode }} · {{ r.status }} · {{ r.steps }} {{ t('sentinel.stepsUnit') }} · {{ r.tools }} {{ t('sentinel.toolsUnit') }} · {{ r.writes }} {{ t('sentinel.writesUnit') }}</span>
             </div>
+            <div class="st-detail-sec" v-if="shadowActions.length">{{ t('sent.shadow.title') }} ({{ shadowActions.length }})</div>
+            <div v-for="a in shadowActions" :key="'sh-'+a.id" class="st-detail-row">
+              <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(a.created_at) }}</span>
+              <span class="mono" style="min-width:150px">{{ a.tool }}</span>
+              <span class="tag warn" style="margin-right:6px">shadow</span>
+              <span class="prewrap" style="flex:1">{{ a.result || '-' }}</span>
+            </div>
+            <div v-if="shadowActions.length" class="mute" style="font-size:11.5px;padding:2px 0 8px">{{ t('sent.shadow.hint') }}</div>
             <div class="st-detail-sec">{{ t('sentinel.detail.actions') }} ({{ (incDetail.actions||[]).length }})</div>
             <div v-for="a in incDetail.actions" :key="a.id" class="st-detail-row">
               <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(a.created_at) }}</span>
@@ -4783,6 +4798,13 @@ const I18N12 = {
     'set.aiModelRequired':'请先选择或填写模型',
     'set.aiPicked':'已选择 {m}',
     'sent.agg.expand':'展开全部 {n} 个',
+    'sent.shadow.title':'影子建议（未执行）',
+    'sent.shadow.hint':'影子模式下只观察不动作，这里是它本来会做的事，可用于判断策略是否该放开。',
+    'sent.feedback.title':'判定：',
+    'sent.feedback.correct':'判断正确',
+    'sent.feedback.falsePositive':'误报',
+    'sent.feedback.saved':'已记录',
+    'sent.run.attempt':'第 {n} 次',
     'sent.agg.truncated':'数量太多，仅显示前 {n} 个',
   },
   'zh-TW': {
@@ -4802,6 +4824,13 @@ const I18N12 = {
     'set.aiModelRequired':'請先選擇或填寫模型',
     'set.aiPicked':'已選擇 {m}',
     'sent.agg.expand':'展開全部 {n} 個',
+    'sent.shadow.title':'影子建議（未執行）',
+    'sent.shadow.hint':'影子模式下只觀察不動手，這裡是它原本會做的事，可用來判斷策略是否該放開。',
+    'sent.feedback.title':'判定：',
+    'sent.feedback.correct':'判斷正確',
+    'sent.feedback.falsePositive':'誤報',
+    'sent.feedback.saved':'已記錄',
+    'sent.run.attempt':'第 {n} 次',
     'sent.agg.truncated':'數量太多，僅顯示前 {n} 個',
   },
   'en': {
@@ -4821,6 +4850,13 @@ const I18N12 = {
     'set.aiModelRequired':'Pick or type a model first',
     'set.aiPicked':'Selected {m}',
     'sent.agg.expand':'Show all {n}',
+    'sent.shadow.title':'Shadow proposal (not executed)',
+    'sent.shadow.hint':'In shadow mode the agent only observes. These are the actions it would have taken — useful when deciding whether to widen the policy.',
+    'sent.feedback.title':'Verdict:',
+    'sent.feedback.correct':'Correct',
+    'sent.feedback.falsePositive':'False positive',
+    'sent.feedback.saved':'Recorded',
+    'sent.run.attempt':'Attempt {n}',
     'sent.agg.truncated':'Too many to show; first {n} listed',
   },
   'ja': {
@@ -4840,6 +4876,13 @@ const I18N12 = {
     'set.aiModelRequired':'モデルを選択または入力してください',
     'set.aiPicked':'{m} を選択しました',
     'sent.agg.expand':'全 {n} 件を表示',
+    'sent.shadow.title':'シャドウ提案（未実行）',
+    'sent.shadow.hint':'シャドウモードでは観察のみ。ここに出るのは本来実行したかった操作で、ポリシーを広げるかの判断材料になります。',
+    'sent.feedback.title':'判定：',
+    'sent.feedback.correct':'正しい',
+    'sent.feedback.falsePositive':'誤検知',
+    'sent.feedback.saved':'記録しました',
+    'sent.run.attempt':'{n} 回目',
     'sent.agg.truncated':'件数が多いため先頭 {n} 件のみ表示',
   },
   'ko': {
@@ -4859,6 +4902,13 @@ const I18N12 = {
     'set.aiModelRequired':'모델을 선택하거나 입력하세요',
     'set.aiPicked':'{m} 선택됨',
     'sent.agg.expand':'전체 {n}개 펼치기',
+    'sent.shadow.title':'섀도 제안(미실행)',
+    'sent.shadow.hint':'섀도 모드에서는 관찰만 합니다. 여기 표시된 것은 실행하려던 작업이며, 정책을 넓힐지 판단하는 근거가 됩니다.',
+    'sent.feedback.title':'판정:',
+    'sent.feedback.correct':'정확함',
+    'sent.feedback.falsePositive':'오탐',
+    'sent.feedback.saved':'기록됨',
+    'sent.run.attempt':'{n}차 시도',
     'sent.agg.truncated':'너무 많아 앞 {n}개만 표시',
   },
   'th': {
@@ -4878,6 +4928,13 @@ const I18N12 = {
     'set.aiModelRequired':'โปรดเลือกหรือกรอกโมเดลก่อน',
     'set.aiPicked':'เลือก {m} แล้ว',
     'sent.agg.expand':'แสดงทั้งหมด {n} รายการ',
+    'sent.shadow.title':'ข้อเสนอโหมดเงา (ยังไม่ถูกเรียกใช้)',
+    'sent.shadow.hint':'โหมดเงาจะสังเกตอย่างเดียว สิ่งที่แสดงคือการกระทำที่จะทำจริง ใช้ตัดสินว่าควรขยายนโยบายหรือไม่',
+    'sent.feedback.title':'ผลตัดสิน:',
+    'sent.feedback.correct':'ถูกต้อง',
+    'sent.feedback.falsePositive':'แจ้งเตือนผิด',
+    'sent.feedback.saved':'บันทึกแล้ว',
+    'sent.run.attempt':'ครั้งที่ {n}',
     'sent.agg.truncated':'มีจำนวนมาก แสดงเพียง {n} รายการแรก',
   },
   'de': {
@@ -4897,6 +4954,13 @@ const I18N12 = {
     'set.aiModelRequired':'Bitte zuerst ein Modell wählen oder eintragen',
     'set.aiPicked':'{m} ausgewählt',
     'sent.agg.expand':'Alle {n} anzeigen',
+    'sent.shadow.title':'Shadow-Vorschlag (nicht ausgeführt)',
+    'sent.shadow.hint':'Im Shadow-Modus wird nur beobachtet. Hier steht, was der Agent getan hätte — nützlich für die Entscheidung, ob die Policy weiter geöffnet wird.',
+    'sent.feedback.title':'Bewertung:',
+    'sent.feedback.correct':'Korrekt',
+    'sent.feedback.falsePositive':'Fehlalarm',
+    'sent.feedback.saved':'Gespeichert',
+    'sent.run.attempt':'Versuch {n}',
     'sent.agg.truncated':'Zu viele Einträge, nur die ersten {n} werden gezeigt',
   },
 };
@@ -5723,6 +5787,8 @@ createApp({
       sentinelSignals:[],
       sentinelQuarantine:[],
       sentinelBlocks:[],
+      incFeedbackBusy: false,
+      incFeedbackSent: false,
       incMembersAll: [],        // 「展开全部」拉回来的完整成员列表
       incMembersLoading: false,
       incMembersTruncated: false,
@@ -5765,6 +5831,11 @@ createApp({
   },
   computed: {
     // ---- AI 接入表单（computed：模板里不能带括号，误放 methods 会渲染出函数源码）----
+    // shadow 运行里被拦下的动作：这是「如果放行它会做什么」，复盘时唯一能看的东西
+    shadowActions(){
+      const list = (this.incDetail && this.incDetail.actions) || [];
+      return list.filter(a => a.verdict === 'shadow');
+    },
     // 已显示 vs 总数，决定「展开全部」按钮出不出现
     incMoreMembers(){
       if(!this.incDetail) return 0;
@@ -5930,6 +6001,20 @@ createApp({
       const inc = this.incDetail && this.incDetail.incident;
       if(!inc) return 0;
       return Math.max(inc.member_total || 0, this.incMembers().length);
+    },
+    async sendIncidentFeedback(verdict){
+      if(!this.incDetail || this.incFeedbackBusy) return;
+      this.incFeedbackBusy = true;
+      try{
+        await this.api('/sentinel/incidents/' + this.incDetail.incident.id + '/feedback',
+          { method:'POST', body: JSON.stringify({ verdict }) });
+        this.incFeedbackSent = true;
+        this.toast(this.t('sent.feedback.saved'));
+      }catch(e){
+        this.toast(e.message);
+      }finally{
+        this.incFeedbackBusy = false;
+      }
     },
     async expandMembers(){
       if(this.incMembersLoading || !this.incDetail) return;
@@ -6223,6 +6308,7 @@ createApp({
       this.incDetail = { incident: i, signals: [], actions: [], runs: [], related: [] };
       this.incMembersAll = [];
       this.incMembersTruncated = false;
+      this.incFeedbackSent = false;
       try{
         const d = await this.api('/sentinel/incidents/'+i.id);
         if(d) this.incDetail = d;
