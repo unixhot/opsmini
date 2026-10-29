@@ -707,3 +707,53 @@ func atoiSafe(s string) int {
 
 func goos() string   { return runtime.GOOS }
 func goarch() string { return runtime.GOARCH }
+
+// State reports the current state of one plugin. It mirrors the state shown in the
+// panel so a platform task and a human looking at the UI never disagree.
+func (m *Manager) State(id string) (state, version, lastErr string, ok bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	st, found := m.state.Plugins[id]
+	if !found {
+		return "", "", "", false
+	}
+	switch {
+	case m.procs[id] != nil:
+		state = "running"
+	case st.Enabled:
+		state = "failed"
+	default:
+		state = "stopped"
+	}
+	return state, st.Version, st.LastError, true
+}
+
+// SetConfig stores a plugin's configuration and restarts it so the new values
+// take effect. Configuration is opaque to the manager: it is written to the
+// plugin's own config file and read by the plugin itself.
+func (m *Manager) SetConfig(id, config string) error {
+	m.mu.Lock()
+	st, ok := m.state.Plugins[id]
+	if !ok {
+		m.mu.Unlock()
+		return fmt.Errorf("插件 %s 未安装", id)
+	}
+	st.Config = config
+	m.state.Plugins[id] = st
+	m.mu.Unlock()
+	m.save()
+
+	if st.Dir == "" {
+		return nil
+	}
+	path := filepath.Join(st.Dir, "config.yaml")
+	if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
+		return fmt.Errorf("写入插件配置失败：%w", err)
+	}
+	if m.isEnabled(id) {
+		if err := m.Restart(id); err != nil {
+			return fmt.Errorf("配置已保存，但重启插件失败：%w", err)
+		}
+	}
+	return nil
+}

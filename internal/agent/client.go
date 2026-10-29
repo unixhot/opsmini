@@ -67,6 +67,9 @@ type Client struct {
 	version   string
 	panelPort int32
 	agentID   string
+	// ctrl holds the subsystems that platform tasks act on (log pipeline and
+	// plugin manager). Nil means the feature is not wired.
+	ctrl controls
 }
 
 // New creates an Agent client. hostname is usually os.Hostname(); version is the build version.
@@ -187,6 +190,10 @@ func (c *Client) connect(ctx context.Context) error {
 			go c.handlePushFile(ctx, p.PushFile, sendCh)
 		case *agentpb.ServerMessage_PullFile:
 			go c.handlePullFile(ctx, p.PullFile, sendCh)
+		case *agentpb.ServerMessage_LogTask:
+			go c.handleLogTask(ctx, p.LogTask, sendCh)
+		case *agentpb.ServerMessage_PluginTask:
+			go c.handlePluginTask(ctx, p.PluginTask, sendCh)
 		case *agentpb.ServerMessage_Ping:
 			sendCh <- &agentpb.AgentMessage{Payload: &agentpb.AgentMessage_Heartbeat{
 				Heartbeat: &agentpb.Heartbeat{AgentId: ack.AgentId, Timestamp: time.Now().Unix()},

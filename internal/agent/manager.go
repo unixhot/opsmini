@@ -16,6 +16,9 @@ type Manager struct {
 	version  string
 	cancel   context.CancelFunc
 	running  bool
+	// ctrl is carried across reconnects so a restart of the link keeps the
+	// subsystems wired to the new client.
+	ctrl controls
 }
 
 // NewManager creates an Agent lifecycle manager.
@@ -46,7 +49,9 @@ func (m *Manager) Start(cfg Config) {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	go New(cfg, m.hostname, m.version).Run(ctx)
+	cl := New(cfg, m.hostname, m.version)
+	cl.SetControls(m.ctrl.log, m.ctrl.plugin)
+	go cl.Run(ctx)
 	m.cancel = cancel
 	m.running = true
 }

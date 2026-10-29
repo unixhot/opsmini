@@ -411,6 +411,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		p, d := logMgr.Health()
 		return p, d, true
 	}
+	// Platform tasks act on these two subsystems; wiring them here (instead of in
+	// main) keeps the Agent unaware of how the panel is assembled.
+	agentMgr.SetControls(&agentLogAdapter{mgr: logMgr}, &agentPluginAdapter{mgr: pluginMgr})
+
 	sources := service.AlertSources{
 		FailedCronJobs: failedCronJobs,
 		FailedBackups:  backupMgr.Failures,

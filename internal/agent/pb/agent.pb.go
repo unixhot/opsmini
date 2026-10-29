@@ -30,6 +30,8 @@ type AgentMessage struct {
 	//	*AgentMessage_Result
 	//	*AgentMessage_FileAck
 	//	*AgentMessage_FileData
+	//	*AgentMessage_LogResult
+	//	*AgentMessage_PluginResult
 	Payload       isAgentMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -117,6 +119,24 @@ func (x *AgentMessage) GetFileData() *FileChunkData {
 	return nil
 }
 
+func (x *AgentMessage) GetLogResult() *LogTaskResult {
+	if x != nil {
+		if x, ok := x.Payload.(*AgentMessage_LogResult); ok {
+			return x.LogResult
+		}
+	}
+	return nil
+}
+
+func (x *AgentMessage) GetPluginResult() *PluginResult {
+	if x != nil {
+		if x, ok := x.Payload.(*AgentMessage_PluginResult); ok {
+			return x.PluginResult
+		}
+	}
+	return nil
+}
+
 type isAgentMessage_Payload interface {
 	isAgentMessage_Payload()
 }
@@ -141,6 +161,14 @@ type AgentMessage_FileData struct {
 	FileData *FileChunkData `protobuf:"bytes,5,opt,name=file_data,json=fileData,proto3,oneof"` // 文件拉取的分片数据（Agent -> Server）
 }
 
+type AgentMessage_LogResult struct {
+	LogResult *LogTaskResult `protobuf:"bytes,6,opt,name=log_result,json=logResult,proto3,oneof"` // 日志任务执行/状态回报
+}
+
+type AgentMessage_PluginResult struct {
+	PluginResult *PluginResult `protobuf:"bytes,7,opt,name=plugin_result,json=pluginResult,proto3,oneof"` // 插件任务执行/状态回报
+}
+
 func (*AgentMessage_Register) isAgentMessage_Payload() {}
 
 func (*AgentMessage_Heartbeat) isAgentMessage_Payload() {}
@@ -151,6 +179,10 @@ func (*AgentMessage_FileAck) isAgentMessage_Payload() {}
 
 func (*AgentMessage_FileData) isAgentMessage_Payload() {}
 
+func (*AgentMessage_LogResult) isAgentMessage_Payload() {}
+
+func (*AgentMessage_PluginResult) isAgentMessage_Payload() {}
+
 type ServerMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
@@ -160,6 +192,8 @@ type ServerMessage struct {
 	//	*ServerMessage_PushFile
 	//	*ServerMessage_Ping
 	//	*ServerMessage_PullFile
+	//	*ServerMessage_LogTask
+	//	*ServerMessage_PluginTask
 	Payload       isServerMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -247,6 +281,24 @@ func (x *ServerMessage) GetPullFile() *PullFileTask {
 	return nil
 }
 
+func (x *ServerMessage) GetLogTask() *LogTask {
+	if x != nil {
+		if x, ok := x.Payload.(*ServerMessage_LogTask); ok {
+			return x.LogTask
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetPluginTask() *PluginTask {
+	if x != nil {
+		if x, ok := x.Payload.(*ServerMessage_PluginTask); ok {
+			return x.PluginTask
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Payload interface {
 	isServerMessage_Payload()
 }
@@ -271,6 +323,14 @@ type ServerMessage_PullFile struct {
 	PullFile *PullFileTask `protobuf:"bytes,5,opt,name=pull_file,json=pullFile,proto3,oneof"` // 文件拉取（请求 Agent 上传指定路径文件）
 }
 
+type ServerMessage_LogTask struct {
+	LogTask *LogTask `protobuf:"bytes,6,opt,name=log_task,json=logTask,proto3,oneof"` // 日志采集任务下发（filebeat 配置）
+}
+
+type ServerMessage_PluginTask struct {
+	PluginTask *PluginTask `protobuf:"bytes,7,opt,name=plugin_task,json=pluginTask,proto3,oneof"` // 插件管理任务下发
+}
+
 func (*ServerMessage_RegisterAck) isServerMessage_Payload() {}
 
 func (*ServerMessage_Execute) isServerMessage_Payload() {}
@@ -280,6 +340,10 @@ func (*ServerMessage_PushFile) isServerMessage_Payload() {}
 func (*ServerMessage_Ping) isServerMessage_Payload() {}
 
 func (*ServerMessage_PullFile) isServerMessage_Payload() {}
+
+func (*ServerMessage_LogTask) isServerMessage_Payload() {}
+
+func (*ServerMessage_PluginTask) isServerMessage_Payload() {}
 
 // Register 注册请求（Agent -> Server）。
 type Register struct {
@@ -1141,24 +1205,521 @@ func (x *FileChunkData) GetError() string {
 	return ""
 }
 
+// LogTask 日志任务（Server -> Agent）。
+type LogTask struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`               // apply | remove | reload | status
+	TaskId        string                 `protobuf:"bytes,3,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"` // 平台侧任务 ID，落到 fields.task_id
+	Filename      string                 `protobuf:"bytes,4,opt,name=filename,proto3" json:"filename,omitempty"`           // tasks.d 下的文件名（不含路径），apply/remove 时必填
+	Content       []byte                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`             // 完整 YAML（apply 时必填）
+	Sha256        string                 `protobuf:"bytes,6,opt,name=sha256,proto3" json:"sha256,omitempty"`               // 内容摘要：相同则不重写、不触发 reload（幂等）
+	Strict        bool                   `protobuf:"varint,7,opt,name=strict,proto3" json:"strict,omitempty"`              // true = 未知字段导致加载失败；false = 记 warning 继续
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogTask) Reset() {
+	*x = LogTask{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogTask) ProtoMessage() {}
+
+func (x *LogTask) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogTask.ProtoReflect.Descriptor instead.
+func (*LogTask) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *LogTask) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *LogTask) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *LogTask) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *LogTask) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *LogTask) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *LogTask) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *LogTask) GetStrict() bool {
+	if x != nil {
+		return x.Strict
+	}
+	return false
+}
+
+// LogTaskResult 日志任务结果/状态（Agent -> Server）。
+type LogTaskResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // applied | removed | running | failed | unchanged
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	Warnings      []string               `protobuf:"bytes,5,rep,name=warnings,proto3" json:"warnings,omitempty"` // 未知字段、路径不存在等
+	State         *LogTaskState          `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`       // status 动作为状态查询时填充
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogTaskResult) Reset() {
+	*x = LogTaskResult{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogTaskResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogTaskResult) ProtoMessage() {}
+
+func (x *LogTaskResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogTaskResult.ProtoReflect.Descriptor instead.
+func (*LogTaskResult) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *LogTaskResult) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *LogTaskResult) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *LogTaskResult) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *LogTaskResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *LogTaskResult) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+func (x *LogTaskResult) GetState() *LogTaskState {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+// LogTaskState 单个任务的实时采集状态。
+// 平台需要它来区分「配置已下发」和「真的在采」：路径写错、权限不足、磁盘满，
+// 这三种情况下配置下发都会成功。
+type LogTaskState struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	InputId       string                 `protobuf:"bytes,2,opt,name=input_id,json=inputId,proto3" json:"input_id,omitempty"`
+	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"` // running | failed | stopped
+	FilesOpen     int32                  `protobuf:"varint,4,opt,name=files_open,json=filesOpen,proto3" json:"files_open,omitempty"`
+	BytesRead     int64                  `protobuf:"varint,5,opt,name=bytes_read,json=bytesRead,proto3" json:"bytes_read,omitempty"`
+	EventsSent    int64                  `protobuf:"varint,6,opt,name=events_sent,json=eventsSent,proto3" json:"events_sent,omitempty"`
+	EventsDropped int64                  `protobuf:"varint,7,opt,name=events_dropped,json=eventsDropped,proto3" json:"events_dropped,omitempty"`
+	QueueDepth    int64                  `protobuf:"varint,8,opt,name=queue_depth,json=queueDepth,proto3" json:"queue_depth,omitempty"`
+	LastError     string                 `protobuf:"bytes,9,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	Output        string                 `protobuf:"bytes,10,opt,name=output,proto3" json:"output,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogTaskState) Reset() {
+	*x = LogTaskState{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogTaskState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogTaskState) ProtoMessage() {}
+
+func (x *LogTaskState) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogTaskState.ProtoReflect.Descriptor instead.
+func (*LogTaskState) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *LogTaskState) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *LogTaskState) GetInputId() string {
+	if x != nil {
+		return x.InputId
+	}
+	return ""
+}
+
+func (x *LogTaskState) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *LogTaskState) GetFilesOpen() int32 {
+	if x != nil {
+		return x.FilesOpen
+	}
+	return 0
+}
+
+func (x *LogTaskState) GetBytesRead() int64 {
+	if x != nil {
+		return x.BytesRead
+	}
+	return 0
+}
+
+func (x *LogTaskState) GetEventsSent() int64 {
+	if x != nil {
+		return x.EventsSent
+	}
+	return 0
+}
+
+func (x *LogTaskState) GetEventsDropped() int64 {
+	if x != nil {
+		return x.EventsDropped
+	}
+	return 0
+}
+
+func (x *LogTaskState) GetQueueDepth() int64 {
+	if x != nil {
+		return x.QueueDepth
+	}
+	return 0
+}
+
+func (x *LogTaskState) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *LogTaskState) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+// PluginTask 插件任务（Server -> Agent）。
+type PluginTask struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"` // install | upgrade | remove | enable | disable | restart | status
+	PluginId      string                 `protobuf:"bytes,3,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	Version       string                 `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`                      // 期望版本（仅用于回报核对）
+	SourceUrl     string                 `protobuf:"bytes,5,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"` // 包下载地址（http/https），install/upgrade 必填
+	Sha256        string                 `protobuf:"bytes,6,opt,name=sha256,proto3" json:"sha256,omitempty"`                        // 包摘要，Agent 校验后才安装
+	Signature     string                 `protobuf:"bytes,7,opt,name=signature,proto3" json:"signature,omitempty"`                  // ed25519 签名（base64），配置了公钥时校验
+	Config        string                 `protobuf:"bytes,8,opt,name=config,proto3" json:"config,omitempty"`                        // 插件配置 JSON，原样写入插件目录
+	KeepData      bool                   `protobuf:"varint,9,opt,name=keep_data,json=keepData,proto3" json:"keep_data,omitempty"`   // remove 时是否保留数据目录
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginTask) Reset() {
+	*x = PluginTask{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginTask) ProtoMessage() {}
+
+func (x *PluginTask) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginTask.ProtoReflect.Descriptor instead.
+func (*PluginTask) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *PluginTask) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *PluginTask) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *PluginTask) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginTask) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *PluginTask) GetSourceUrl() string {
+	if x != nil {
+		return x.SourceUrl
+	}
+	return ""
+}
+
+func (x *PluginTask) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *PluginTask) GetSignature() string {
+	if x != nil {
+		return x.Signature
+	}
+	return ""
+}
+
+func (x *PluginTask) GetConfig() string {
+	if x != nil {
+		return x.Config
+	}
+	return ""
+}
+
+func (x *PluginTask) GetKeepData() bool {
+	if x != nil {
+		return x.KeepData
+	}
+	return false
+}
+
+// PluginResult 插件任务结果（Agent -> Server）。
+type PluginResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	PluginId      string                 `protobuf:"bytes,2,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // ok | failed
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	Version       string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	State         string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"` // running | stopped | failed | installed | removed
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginResult) Reset() {
+	*x = PluginResult{}
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginResult) ProtoMessage() {}
+
+func (x *PluginResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_agent_v1_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginResult.ProtoReflect.Descriptor instead.
+func (*PluginResult) Descriptor() ([]byte, []int) {
+	return file_proto_agent_v1_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *PluginResult) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *PluginResult) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginResult) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *PluginResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *PluginResult) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *PluginResult) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
 var File_proto_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproto/agent/v1/agent.proto\x12\bagent.v1\"\x9d\x02\n" +
+	"\x1aproto/agent/v1/agent.proto\x12\bagent.v1\"\x96\x03\n" +
 	"\fAgentMessage\x120\n" +
 	"\bregister\x18\x01 \x01(\v2\x12.agent.v1.RegisterH\x00R\bregister\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x12.\n" +
 	"\x06result\x18\x03 \x01(\v2\x14.agent.v1.TaskResultH\x00R\x06result\x123\n" +
 	"\bfile_ack\x18\x04 \x01(\v2\x16.agent.v1.FileChunkAckH\x00R\afileAck\x126\n" +
-	"\tfile_data\x18\x05 \x01(\v2\x17.agent.v1.FileChunkDataH\x00R\bfileDataB\t\n" +
-	"\apayload\"\x9d\x02\n" +
+	"\tfile_data\x18\x05 \x01(\v2\x17.agent.v1.FileChunkDataH\x00R\bfileData\x128\n" +
+	"\n" +
+	"log_result\x18\x06 \x01(\v2\x17.agent.v1.LogTaskResultH\x00R\tlogResult\x12=\n" +
+	"\rplugin_result\x18\a \x01(\v2\x16.agent.v1.PluginResultH\x00R\fpluginResultB\t\n" +
+	"\apayload\"\x86\x03\n" +
 	"\rServerMessage\x12:\n" +
 	"\fregister_ack\x18\x01 \x01(\v2\x15.agent.v1.RegisterAckH\x00R\vregisterAck\x121\n" +
 	"\aexecute\x18\x02 \x01(\v2\x15.agent.v1.ExecuteTaskH\x00R\aexecute\x125\n" +
 	"\tpush_file\x18\x03 \x01(\v2\x16.agent.v1.PushFileTaskH\x00R\bpushFile\x12$\n" +
 	"\x04ping\x18\x04 \x01(\v2\x0e.agent.v1.PingH\x00R\x04ping\x125\n" +
-	"\tpull_file\x18\x05 \x01(\v2\x16.agent.v1.PullFileTaskH\x00R\bpullFileB\t\n" +
+	"\tpull_file\x18\x05 \x01(\v2\x16.agent.v1.PullFileTaskH\x00R\bpullFile\x12.\n" +
+	"\blog_task\x18\x06 \x01(\v2\x11.agent.v1.LogTaskH\x00R\alogTask\x127\n" +
+	"\vplugin_task\x18\a \x01(\v2\x14.agent.v1.PluginTaskH\x00R\n" +
+	"pluginTaskB\t\n" +
 	"\apayload\"\x99\x01\n" +
 	"\bRegister\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1a\n" +
@@ -1224,7 +1785,58 @@ const file_proto_agent_v1_agent_proto_rawDesc = "" +
 	"\x06offset\x18\x05 \x01(\x03R\x06offset\x12\x14\n" +
 	"\x05chunk\x18\x06 \x01(\fR\x05chunk\x12\x12\n" +
 	"\x04last\x18\a \x01(\bR\x04last\x12\x14\n" +
-	"\x05error\x18\b \x01(\tR\x05error2M\n" +
+	"\x05error\x18\b \x01(\tR\x05error\"\xb7\x01\n" +
+	"\aLogTask\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x17\n" +
+	"\atask_id\x18\x03 \x01(\tR\x06taskId\x12\x1a\n" +
+	"\bfilename\x18\x04 \x01(\tR\bfilename\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\fR\acontent\x12\x16\n" +
+	"\x06sha256\x18\x06 \x01(\tR\x06sha256\x12\x16\n" +
+	"\x06strict\x18\a \x01(\bR\x06strict\"\xb7\x01\n" +
+	"\rLogTaskResult\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x1a\n" +
+	"\bwarnings\x18\x05 \x03(\tR\bwarnings\x12,\n" +
+	"\x05state\x18\x06 \x01(\v2\x16.agent.v1.LogTaskStateR\x05state\"\xb6\x02\n" +
+	"\fLogTaskState\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x19\n" +
+	"\binput_id\x18\x02 \x01(\tR\ainputId\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\x12\x1d\n" +
+	"\n" +
+	"files_open\x18\x04 \x01(\x05R\tfilesOpen\x12\x1d\n" +
+	"\n" +
+	"bytes_read\x18\x05 \x01(\x03R\tbytesRead\x12\x1f\n" +
+	"\vevents_sent\x18\x06 \x01(\x03R\n" +
+	"eventsSent\x12%\n" +
+	"\x0eevents_dropped\x18\a \x01(\x03R\reventsDropped\x12\x1f\n" +
+	"\vqueue_depth\x18\b \x01(\x03R\n" +
+	"queueDepth\x12\x1d\n" +
+	"\n" +
+	"last_error\x18\t \x01(\tR\tlastError\x12\x16\n" +
+	"\x06output\x18\n" +
+	" \x01(\tR\x06output\"\xfc\x01\n" +
+	"\n" +
+	"PluginTask\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1b\n" +
+	"\tplugin_id\x18\x03 \x01(\tR\bpluginId\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\x12\x1d\n" +
+	"\n" +
+	"source_url\x18\x05 \x01(\tR\tsourceUrl\x12\x16\n" +
+	"\x06sha256\x18\x06 \x01(\tR\x06sha256\x12\x1c\n" +
+	"\tsignature\x18\a \x01(\tR\tsignature\x12\x16\n" +
+	"\x06config\x18\b \x01(\tR\x06config\x12\x1b\n" +
+	"\tkeep_data\x18\t \x01(\bR\bkeepData\"\xa0\x01\n" +
+	"\fPluginResult\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1b\n" +
+	"\tplugin_id\x18\x02 \x01(\tR\bpluginId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\x12\x14\n" +
+	"\x05state\x18\x06 \x01(\tR\x05state2M\n" +
 	"\fAgentService\x12=\n" +
 	"\x06Stream\x12\x16.agent.v1.AgentMessage\x1a\x17.agent.v1.ServerMessage(\x010\x01B6Z4github.com/opsmini/opsmini/internal/agent/pb;agentpbb\x06proto3"
 
@@ -1240,7 +1852,7 @@ func file_proto_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_proto_agent_v1_agent_proto_rawDescData
 }
 
-var file_proto_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_proto_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_proto_agent_v1_agent_proto_goTypes = []any{
 	(*AgentMessage)(nil),  // 0: agent.v1.AgentMessage
 	(*ServerMessage)(nil), // 1: agent.v1.ServerMessage
@@ -1256,6 +1868,11 @@ var file_proto_agent_v1_agent_proto_goTypes = []any{
 	(*TaskResult)(nil),    // 11: agent.v1.TaskResult
 	(*PullFileTask)(nil),  // 12: agent.v1.PullFileTask
 	(*FileChunkData)(nil), // 13: agent.v1.FileChunkData
+	(*LogTask)(nil),       // 14: agent.v1.LogTask
+	(*LogTaskResult)(nil), // 15: agent.v1.LogTaskResult
+	(*LogTaskState)(nil),  // 16: agent.v1.LogTaskState
+	(*PluginTask)(nil),    // 17: agent.v1.PluginTask
+	(*PluginResult)(nil),  // 18: agent.v1.PluginResult
 }
 var file_proto_agent_v1_agent_proto_depIdxs = []int32{
 	2,  // 0: agent.v1.AgentMessage.register:type_name -> agent.v1.Register
@@ -1263,20 +1880,25 @@ var file_proto_agent_v1_agent_proto_depIdxs = []int32{
 	11, // 2: agent.v1.AgentMessage.result:type_name -> agent.v1.TaskResult
 	10, // 3: agent.v1.AgentMessage.file_ack:type_name -> agent.v1.FileChunkAck
 	13, // 4: agent.v1.AgentMessage.file_data:type_name -> agent.v1.FileChunkData
-	3,  // 5: agent.v1.ServerMessage.register_ack:type_name -> agent.v1.RegisterAck
-	6,  // 6: agent.v1.ServerMessage.execute:type_name -> agent.v1.ExecuteTask
-	9,  // 7: agent.v1.ServerMessage.push_file:type_name -> agent.v1.PushFileTask
-	5,  // 8: agent.v1.ServerMessage.ping:type_name -> agent.v1.Ping
-	12, // 9: agent.v1.ServerMessage.pull_file:type_name -> agent.v1.PullFileTask
-	7,  // 10: agent.v1.ExecuteTask.command:type_name -> agent.v1.CommandSpec
-	8,  // 11: agent.v1.ExecuteTask.script:type_name -> agent.v1.ScriptSpec
-	0,  // 12: agent.v1.AgentService.Stream:input_type -> agent.v1.AgentMessage
-	1,  // 13: agent.v1.AgentService.Stream:output_type -> agent.v1.ServerMessage
-	13, // [13:14] is the sub-list for method output_type
-	12, // [12:13] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	15, // 5: agent.v1.AgentMessage.log_result:type_name -> agent.v1.LogTaskResult
+	18, // 6: agent.v1.AgentMessage.plugin_result:type_name -> agent.v1.PluginResult
+	3,  // 7: agent.v1.ServerMessage.register_ack:type_name -> agent.v1.RegisterAck
+	6,  // 8: agent.v1.ServerMessage.execute:type_name -> agent.v1.ExecuteTask
+	9,  // 9: agent.v1.ServerMessage.push_file:type_name -> agent.v1.PushFileTask
+	5,  // 10: agent.v1.ServerMessage.ping:type_name -> agent.v1.Ping
+	12, // 11: agent.v1.ServerMessage.pull_file:type_name -> agent.v1.PullFileTask
+	14, // 12: agent.v1.ServerMessage.log_task:type_name -> agent.v1.LogTask
+	17, // 13: agent.v1.ServerMessage.plugin_task:type_name -> agent.v1.PluginTask
+	7,  // 14: agent.v1.ExecuteTask.command:type_name -> agent.v1.CommandSpec
+	8,  // 15: agent.v1.ExecuteTask.script:type_name -> agent.v1.ScriptSpec
+	16, // 16: agent.v1.LogTaskResult.state:type_name -> agent.v1.LogTaskState
+	0,  // 17: agent.v1.AgentService.Stream:input_type -> agent.v1.AgentMessage
+	1,  // 18: agent.v1.AgentService.Stream:output_type -> agent.v1.ServerMessage
+	18, // [18:19] is the sub-list for method output_type
+	17, // [17:18] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_proto_agent_v1_agent_proto_init() }
@@ -1290,6 +1912,8 @@ func file_proto_agent_v1_agent_proto_init() {
 		(*AgentMessage_Result)(nil),
 		(*AgentMessage_FileAck)(nil),
 		(*AgentMessage_FileData)(nil),
+		(*AgentMessage_LogResult)(nil),
+		(*AgentMessage_PluginResult)(nil),
 	}
 	file_proto_agent_v1_agent_proto_msgTypes[1].OneofWrappers = []any{
 		(*ServerMessage_RegisterAck)(nil),
@@ -1297,6 +1921,8 @@ func file_proto_agent_v1_agent_proto_init() {
 		(*ServerMessage_PushFile)(nil),
 		(*ServerMessage_Ping)(nil),
 		(*ServerMessage_PullFile)(nil),
+		(*ServerMessage_LogTask)(nil),
+		(*ServerMessage_PluginTask)(nil),
 	}
 	file_proto_agent_v1_agent_proto_msgTypes[6].OneofWrappers = []any{
 		(*ExecuteTask_Command)(nil),
@@ -1308,7 +1934,7 @@ func file_proto_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_agent_v1_agent_proto_rawDesc), len(file_proto_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

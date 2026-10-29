@@ -26,6 +26,8 @@ message AgentMessage {
     TaskResult result = 3;     // 任务结果回报
     FileChunkAck file_ack = 4; // 文件下发分片确认（断点续传）
     FileChunkData file_data = 5; // 文件拉取的分片数据（Agent -> Server）
+    LogTaskResult log_result = 6;       // 日志任务执行/状态回报
+    PluginResult plugin_result = 7;     // 插件任务执行/状态回报
   }
 }
 
@@ -38,6 +40,8 @@ message ServerMessage {
     PushFileTask push_file = 3;    // 文件下发（分片）
     Ping ping = 4;                 // 心跳探测
     PullFileTask pull_file = 5;    // 文件拉取（请求 Agent 上传指定路径文件）
+    LogTask log_task = 6;          // 日志采集任务下发（filebeat 配置）
+    PluginTask plugin_task = 7;    // 插件管理任务下发
   }
 }
 
@@ -139,4 +143,75 @@ message FileChunkData {
   bytes chunk = 6;  // 分片数据
   bool last = 7;    // 是否最后一个分片
   string error = 8; // 错误信息（文件不存在/无权限等，非空表示失败）
+}
+
+// ===== 日志采集任务下发（OpsAnt -> OpsMini）=====
+//
+// 一个任务 = 一份 filebeat 配置。content 是原样下发的 YAML，Agent 不做二次
+// 加工，只负责落盘到 tasks.d/ 并触发热加载——这样平台侧对 filebeat 与 OpsMini
+// 可以下发完全相同的配置，不需要为两种采集器维护两套格式。
+
+// LogTask 日志任务（Server -> Agent）。
+message LogTask {
+  string job_id = 1;
+  string action = 2;    // apply | remove | reload | status
+  string task_id = 3;   // 平台侧任务 ID，落到 fields.task_id
+  string filename = 4;  // tasks.d 下的文件名（不含路径），apply/remove 时必填
+  bytes content = 5;    // 完整 YAML（apply 时必填）
+  string sha256 = 6;    // 内容摘要：相同则不重写、不触发 reload（幂等）
+  bool strict = 7;      // true = 未知字段导致加载失败；false = 记 warning 继续
+}
+
+// LogTaskResult 日志任务结果/状态（Agent -> Server）。
+message LogTaskResult {
+  string job_id = 1;
+  string task_id = 2;
+  string status = 3;              // applied | removed | running | failed | unchanged
+  string error = 4;
+  repeated string warnings = 5;   // 未知字段、路径不存在等
+  LogTaskState state = 6;         // status 动作为状态查询时填充
+}
+
+// LogTaskState 单个任务的实时采集状态。
+// 平台需要它来区分「配置已下发」和「真的在采」：路径写错、权限不足、磁盘满，
+// 这三种情况下配置下发都会成功。
+message LogTaskState {
+  string task_id = 1;
+  string input_id = 2;
+  string state = 3;          // running | failed | stopped
+  int32 files_open = 4;
+  int64 bytes_read = 5;
+  int64 events_sent = 6;
+  int64 events_dropped = 7;
+  int64 queue_depth = 8;
+  string last_error = 9;
+  string output = 10;
+}
+
+// ===== 插件管理任务下发（OpsAnt -> OpsMini）=====
+//
+// 包由 Agent 主动 HTTP 拉取（可断点续传、适配 NAT），而不是 Server 推流：
+// 插件包通常几 MB，走 gRPC 流会把已有的文件分发通道和插件生命周期搅在一起。
+
+// PluginTask 插件任务（Server -> Agent）。
+message PluginTask {
+  string job_id = 1;
+  string action = 2;       // install | upgrade | remove | enable | disable | restart | status
+  string plugin_id = 3;
+  string version = 4;      // 期望版本（仅用于回报核对）
+  string source_url = 5;   // 包下载地址（http/https），install/upgrade 必填
+  string sha256 = 6;       // 包摘要，Agent 校验后才安装
+  string signature = 7;    // ed25519 签名（base64），配置了公钥时校验
+  string config = 8;       // 插件配置 JSON，原样写入插件目录
+  bool keep_data = 9;      // remove 时是否保留数据目录
+}
+
+// PluginResult 插件任务结果（Agent -> Server）。
+message PluginResult {
+  string job_id = 1;
+  string plugin_id = 2;
+  string status = 3;    // ok | failed
+  string error = 4;
+  string version = 5;
+  string state = 6;     // running | stopped | failed | installed | removed
 }
