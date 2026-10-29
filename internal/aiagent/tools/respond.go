@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -108,6 +109,8 @@ func freezeProcessTool(d Deps) aiagent.Tool {
 			if err := syscall.Kill(pid, syscall.SIGSTOP); err != nil {
 				return failed("冻结失败：%v", err), nil
 			}
+			// Undoable: a failed run should not leave a process frozen forever.
+			d.Safety.Journal(ctx.SessionID, "freeze_process", strconv.Itoa(pid), 0, true)
 			return textResult(fmt.Sprintf("已冻结 pid=%d（SIGSTOP，可用 resume_process 恢复）", pid)), nil
 		},
 	}
@@ -267,6 +270,7 @@ func truncateLogTool(d Deps) aiagent.Tool {
 			if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
 				return failed("写回失败：%v", err), nil
 			}
+			d.Safety.Journal(ctx.SessionID, "truncate_log", path, snap.ID, true)
 			return textResult(fmt.Sprintf("已截断 %s，保留末 %d 行；快照 id=%d 可回滚", path, len(lines), snap.ID)), nil
 		},
 	}

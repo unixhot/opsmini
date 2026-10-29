@@ -299,18 +299,31 @@ func (s *Store) Usage() Usage {
 // surviving record points at a row that no longer exists — every later check would
 // report "chain broken" although nothing was tampered with.
 func (s *Store) EnsureChainAnchor() {
-	if s.chainAnchor() != "" {
-		return
-	}
 	var oldest model.ChangeEvent
-	if err := s.db.Order("created_at asc, rowid asc").Limit(1).Find(&oldest).Error; err != nil || oldest.ID == "" {
+	err := s.db.Order("created_at asc, rowid asc").Limit(1).Find(&oldest).Error
+	anchor := s.chainAnchor()
+
+	if err != nil || oldest.ID == "" {
+		// No rows left. A surviving anchor now points at a row that no longer
+		// exists, so the next append would look tampered with from the very first
+		// record. Drop it: an empty table needs no anchor.
+		if anchor != "" {
+			s.setChainAnchor("")
+		}
 		return
 	}
 	if oldest.PrevHash == "" {
-		// The chain genuinely starts here; nothing was pruned.
+		// The chain genuinely starts here. If an anchor is still set, it belongs to a
+		// previous generation of rows (someone cleared the table by hand); keeping it
+		// would report a break that is not there.
+		if anchor != "" {
+			s.setChainAnchor("")
+		}
 		return
 	}
-	s.setChainAnchor(oldest.PrevHash)
+	if anchor == "" {
+		s.setChainAnchor(oldest.PrevHash)
+	}
 }
 
 const chainAnchorKey = "anchor"

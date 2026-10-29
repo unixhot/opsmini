@@ -75,6 +75,9 @@ func (m *Manager) Quarantine(incidentID, path, reason string) (*model.Quarantine
 			return item, err
 		}
 	}
+	// Journaled AFTER the move succeeded: an entry for an action that never
+	// happened would make a rollback try to restore something still in place.
+	m.Journal(incidentID, "quarantine", clean, item.ID, true)
 	return item, nil
 }
 
@@ -182,6 +185,7 @@ func (m *Manager) BlockIP(incidentID, ip string, ttl time.Duration, reason strin
 			return rec, err
 		}
 	}
+	m.Journal(incidentID, "block_ip", rec.IP, rec.ID, true)
 	return rec, nil
 }
 
