@@ -165,9 +165,21 @@ func dmesgCount(pattern string) func(time.Duration) (int, string, bool) {
 	}
 }
 
-// readOnlyFS counts mounts that are read-only but should not be. Squashfs, iso9660
-// and the various virtual filesystems are read-only by design and would otherwise
-// make every host permanently alert.
+// realFilesystems are the types that actually hold user data, so "read-only"
+// means a problem rather than a design decision.
+//
+// This started as a blacklist and promptly false-fired on the cloud host:
+// systemd mounts /run/credentials/* as read-only ramfs, and snap packages are
+// squashfs. Listing what matters is the safer direction — a filesystem nobody
+// listed simply never alerts.
+var realFilesystems = map[string]bool{
+	"ext2": true, "ext3": true, "ext4": true, "xfs": true, "btrfs": true, "zfs": true,
+	"f2fs": true, "jfs": true, "reiserfs": true,
+	"vfat": true, "ntfs": true, "ntfs3": true, "exfat": true, "hfsplus": true,
+	"cifs": true, "nfs": true, "nfs4": true, "overlay": true,
+}
+
+// readOnlyFS counts real filesystems mounted read-only.
 func readOnlyFS() (int, string, bool) {
 	data, err := os.ReadFile("/proc/mounts")
 	if err != nil {
@@ -181,17 +193,15 @@ func readOnlyFS() (int, string, bool) {
 			continue
 		}
 		dev, mp, fstype, opts := f[0], f[1], f[2], f[3]
-		switch fstype {
-		case "squashfs", "iso9660", "sysfs", "proc", "devtmpfs", "devpts", "cgroup", "cgroup2",
-			"securityfs", "debugfs", "tracefs", "pstore", "bpf", "configfs", "fusectl",
-			"mqueue", "hugetlbfs", "autofs", "binfmt_misc", "nsfs", "efivarfs":
+		if !realFilesystems[fstype] {
 			continue
 		}
 		if !strings.Contains(","+opts+",", ",ro,") {
 			continue
 		}
-		// A loop-mounted image or a live-USB is legitimately read-only.
-		if strings.HasPrefix(dev, "/dev/loop") || strings.HasPrefix(mp, "/snap") || strings.HasPrefix(mp, "/run/snapd") {
+		// A loop-mounted image or a snap revision is legitimately read-only.
+		if strings.HasPrefix(dev, "/dev/loop") || strings.HasPrefix(mp, "/snap") ||
+			strings.HasPrefix(mp, "/run/credentials") {
 			continue
 		}
 		n++
@@ -275,11 +285,19 @@ func absFloat(v float64) float64 {
 	return v
 }
 
-// eventMetricUnit reports the unit suffix for an event-type metric and whether the
-// metric is event-type at all.
+// eventMetricUnit reports the unit suffix for a counter-style metric.
+//
+// The suffix matters more than it looks: "上下文切换次数 95824551256.0%" reads as a
+// percentage of something, and an operator cannot tell whether 95824551256 is
+// alarming. Counters must print as integers with a countable unit.
 func eventMetricUnit(metric string) (string, bool) {
 	switch {
+	case strings.Contains(metric, "上下文切换"), strings.Contains(metric, "错误"):
+		return " 次", true
+	case strings.Contains(metric, "连接数"), strings.Contains(metric, "进程数"):
+		return " 个", true
 	case strings.HasSuffix(metric, "数"):
+		// Event metrics: OOM 事件数 / 备份失败数 / 只读文件系统数 …
 		return " 次", true
 	case metric == "NTP 时间偏移":
 		return " 秒", true

@@ -214,6 +214,33 @@ jwt:
   access_ttl_seconds: 900
   refresh_ttl_seconds: 604800
 
+# 日志采集（filebeat 兼容）：任务由 OpsAnt 下发，单机不启用、不占资源。
+# 主配置与任务目录都在安装目录内，卸载不留残余。
+logpipeline:
+  enabled: true
+  # agent.type 默认输出真实值 opsmini；如需直接复用现成的 ES 索引模板，
+  # 改成 filebeat。
+  agent_type: opsmini
+
+# 异地备份目标（可选）。本地快照挡不住整机丢失，能配就配。
+# backup:
+#   targets:
+#     - name: oss
+#       type: s3
+#       endpoint: https://oss-cn-beijing.aliyuncs.com
+#       region: cn-beijing
+#       bucket: opsmini-backup
+#       prefix: prod
+#       path_style: true
+#       access_key: ""
+#       secret_key: ""
+#     - name: sftp1
+#       type: sftp
+#       host: 1.2.3.4
+#       user: backup
+#       password: ""
+#       base_dir: /backup/opsmini
+
 log:
   level: error
   path: "${INSTALL_DIR}/opsmini.log"
