@@ -85,7 +85,7 @@ func buildPackage(t *testing.T, scriptBody string) []byte {
 	tw := tar.NewWriter(gz)
 	files := map[string]string{
 		"plugin.yaml": goodManifest,
-		"bin/plugin": scriptBody,
+		"bin/plugin":  scriptBody,
 	}
 	names := []string{"plugin.yaml", "bin/plugin"}
 	for _, name := range names {

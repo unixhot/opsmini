@@ -34,10 +34,10 @@ type Object struct {
 // Actor is who (or what) made the change. Attribution is best-effort; see
 // Confidence in model.Confidence* constants.
 type Actor struct {
-	Kind   string // ssh_session | panel | agent | cron | package_manager | system | unknown
-	User   string // OS user
-	IP     string // source IP when known
-	How    string // vim | sed | apt | systemctl | panel | ...
+	Kind       string // ssh_session | panel | agent | cron | package_manager | system | unknown
+	User       string // OS user
+	IP         string // source IP when known
+	How        string // vim | sed | apt | systemctl | panel | ...
 	Confidence string
 }
 

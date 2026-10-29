@@ -101,10 +101,10 @@ type Signal struct {
 // Incident is an aggregated cluster of related signals plus the agent run it
 // triggered (if any).
 type Incident struct {
-	ID          string     `gorm:"primaryKey;size:32" json:"id"`
-	Title       string     `gorm:"size:192" json:"title"`
-	Family      string     `gorm:"size:64;index" json:"family"`
-	Subject     string     `gorm:"size:256" json:"subject"`
+	ID      string `gorm:"primaryKey;size:32" json:"id"`
+	Title   string `gorm:"size:192" json:"title"`
+	Family  string `gorm:"size:64;index" json:"family"`
+	Subject string `gorm:"size:256" json:"subject"`
 	// GroupKey is the aggregation key. Signals sharing it are folded into this
 	// row: a service that restarts 40 times is one incident with count=40, not
 	// 40 incidents that bury everything else on the page.
@@ -112,8 +112,8 @@ type Incident struct {
 	// Members is a JSON array of the distinct subjects folded in (source IPs for
 	// a brute-force burst, units for a restart loop). Capped in length while
 	// MemberTotal keeps the true count.
-	Members     string `gorm:"type:text" json:"members"`
-	MemberTotal int    `json:"member_total"`
+	Members     string     `gorm:"type:text" json:"members"`
+	MemberTotal int        `json:"member_total"`
 	Severity    string     `gorm:"size:16;index" json:"severity"`
 	Status      string     `gorm:"size:16;index" json:"status"`
 	Count       int        `json:"count"`
@@ -136,29 +136,29 @@ type Incident struct {
 // TriggerPolicy decides whether an incident wakes the agent, in which mode, with
 // which tool subset and with which budget.
 type TriggerPolicy struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	Name        string    `gorm:"size:96;uniqueIndex" json:"name"`
-	Enabled     bool      `gorm:"default:true" json:"enabled"`
-	Family      string    `gorm:"size:64" json:"family"`
-	MinSeverity string    `gorm:"size:16;default:high" json:"min_severity"`
-	Mode        string    `gorm:"size:16;default:shadow" json:"mode"`
-	CooldownSec int       `gorm:"default:1800" json:"cooldown_sec"`
-	MaxWrites   int       `gorm:"default:2" json:"max_writes"`
-	MaxSteps    int       `gorm:"default:12" json:"max_steps"`
-	MaxSeconds  int       `gorm:"default:300" json:"max_seconds"`
-	MaxTokens   int       `gorm:"default:150000" json:"max_tokens"`
-	AllowTools  string    `gorm:"type:text" json:"allow_tools"`
-	DenyTools   string    `gorm:"type:text" json:"deny_tools"`
-	Verify      string    `gorm:"type:text" json:"verify"`
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	Name        string `gorm:"size:96;uniqueIndex" json:"name"`
+	Enabled     bool   `gorm:"default:true" json:"enabled"`
+	Family      string `gorm:"size:64" json:"family"`
+	MinSeverity string `gorm:"size:16;default:high" json:"min_severity"`
+	Mode        string `gorm:"size:16;default:shadow" json:"mode"`
+	CooldownSec int    `gorm:"default:1800" json:"cooldown_sec"`
+	MaxWrites   int    `gorm:"default:2" json:"max_writes"`
+	MaxSteps    int    `gorm:"default:12" json:"max_steps"`
+	MaxSeconds  int    `gorm:"default:300" json:"max_seconds"`
+	MaxTokens   int    `gorm:"default:150000" json:"max_tokens"`
+	AllowTools  string `gorm:"type:text" json:"allow_tools"`
+	DenyTools   string `gorm:"type:text" json:"deny_tools"`
+	Verify      string `gorm:"type:text" json:"verify"`
 	// AutoTools lists the L1 tools allowed to run without confirmation when the
 	// policy mode is "auto". Everything not listed still needs a human.
-	AutoTools   string    `gorm:"type:text" json:"auto_tools"`
-	Notify      string    `gorm:"size:128" json:"notify"`
-	Prompt      string    `gorm:"type:text" json:"prompt"`
-	Description string    `gorm:"size:256" json:"description"`
+	AutoTools   string     `gorm:"type:text" json:"auto_tools"`
+	Notify      string     `gorm:"size:128" json:"notify"`
+	Prompt      string     `gorm:"type:text" json:"prompt"`
+	Description string     `gorm:"size:256" json:"description"`
 	LastRunAt   *time.Time `json:"last_run_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // AgentRun records one event-triggered agent execution.
@@ -217,48 +217,48 @@ type QuarantineItem struct {
 
 // SnapshotRecord is a pre-change copy of a file or config.
 type SnapshotRecord struct {
-	ID          uint       `gorm:"primaryKey" json:"id"`
-	IncidentID  string     `gorm:"size:32;index" json:"incident_id"`
-	Path        string     `gorm:"size:512" json:"path"`
-	StoredPath  string     `gorm:"size:512" json:"stored_path"`
-	Kind        string     `gorm:"size:16" json:"kind"` // file | config
-	SHA256      string     `gorm:"size:64" json:"sha256"`
-	Size        int64      `json:"size"`
-	RolledBack  bool       `json:"rolled_back"`
+	ID           uint       `gorm:"primaryKey" json:"id"`
+	IncidentID   string     `gorm:"size:32;index" json:"incident_id"`
+	Path         string     `gorm:"size:512" json:"path"`
+	StoredPath   string     `gorm:"size:512" json:"stored_path"`
+	Kind         string     `gorm:"size:16" json:"kind"` // file | config
+	SHA256       string     `gorm:"size:64" json:"sha256"`
+	Size         int64      `json:"size"`
+	RolledBack   bool       `json:"rolled_back"`
 	RolledBackAt *time.Time `json:"rolled_back_at,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 // Baseline stores learned expectations (EWMA per hour bucket, seen IPs, ...).
 type Baseline struct {
-	Key        string    `gorm:"primaryKey;size:192" json:"key"`
-	Kind       string    `gorm:"size:32" json:"kind"`
-	Value      float64   `json:"value"`
-	Sigma      float64   `json:"sigma"`
-	Samples    int       `json:"samples"`
-	Extra      string    `gorm:"type:text" json:"extra"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	Key       string    `gorm:"primaryKey;size:192" json:"key"`
+	Kind      string    `gorm:"size:32" json:"kind"`
+	Value     float64   `json:"value"`
+	Sigma     float64   `json:"sigma"`
+	Samples   int       `json:"samples"`
+	Extra     string    `gorm:"type:text" json:"extra"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // SignalFeedback records a human verdict on a signal (used to tune thresholds).
 type SignalFeedback struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	SignalID   string    `gorm:"size:32;index" json:"signal_id"`
-	Fingerprint string   `gorm:"size:128;index" json:"fingerprint"`
-	Verdict    string    `gorm:"size:24" json:"verdict"` // false_positive | true_positive
-	Note       string    `gorm:"size:256" json:"note"`
-	By         string    `gorm:"size:64" json:"by"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	SignalID    string    `gorm:"size:32;index" json:"signal_id"`
+	Fingerprint string    `gorm:"size:128;index" json:"fingerprint"`
+	Verdict     string    `gorm:"size:24" json:"verdict"` // false_positive | true_positive
+	Note        string    `gorm:"size:256" json:"note"`
+	By          string    `gorm:"size:64" json:"by"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // BlockedIP is a temporary firewall ban with a TTL so a wrong block heals itself.
 type BlockedIP struct {
-	ID        uint       `gorm:"primaryKey" json:"id"`
-	IP        string     `gorm:"size:64;index" json:"ip"`
-	Reason    string     `gorm:"size:256" json:"reason"`
-	IncidentID string    `gorm:"size:32;index" json:"incident_id"`
-	Source    string     `gorm:"size:16" json:"source"` // agent | manual
-	ExpiresAt time.Time  `gorm:"index" json:"expires_at"`
+	ID         uint       `gorm:"primaryKey" json:"id"`
+	IP         string     `gorm:"size:64;index" json:"ip"`
+	Reason     string     `gorm:"size:256" json:"reason"`
+	IncidentID string     `gorm:"size:32;index" json:"incident_id"`
+	Source     string     `gorm:"size:16" json:"source"` // agent | manual
+	ExpiresAt  time.Time  `gorm:"index" json:"expires_at"`
 	ReleasedAt *time.Time `json:"released_at,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
+	CreatedAt  time.Time  `json:"created_at"`
 }

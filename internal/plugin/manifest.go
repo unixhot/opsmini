@@ -27,27 +27,27 @@ import (
 
 // Manifest is plugin.yaml, the only thing the runtime trusts about a package.
 type Manifest struct {
-	APIVersion  string   `yaml:"apiVersion"`
-	ID          string   `yaml:"id"`
-	Name        string   `yaml:"name"`
-	Version     string   `yaml:"version"`
-	Vendor      string   `yaml:"vendor"`
-	Description string   `yaml:"description"`
-	Kind        string   `yaml:"kind"`
-	Entry       string   `yaml:"entry"`
-	Platform    []string `yaml:"platform"`
+	APIVersion   string   `yaml:"apiVersion"`
+	ID           string   `yaml:"id"`
+	Name         string   `yaml:"name"`
+	Version      string   `yaml:"version"`
+	Vendor       string   `yaml:"vendor"`
+	Description  string   `yaml:"description"`
+	Kind         string   `yaml:"kind"`
+	Entry        string   `yaml:"entry"`
+	Platform     []string `yaml:"platform"`
 	Capabilities []string `yaml:"capabilities"`
-	Runtime     Runtime  `yaml:"runtime"`
-	Requires    Requires `yaml:"requires"`
+	Runtime      Runtime  `yaml:"runtime"`
+	Requires     Requires `yaml:"requires"`
 }
 
 // Runtime holds the process constraints.
 type Runtime struct {
-	User             string `yaml:"user"`
-	MemoryLimitMB    int    `yaml:"memoryLimitMB"`
-	CPUQuotaPercent  int    `yaml:"cpuQuotaPercent"`
-	RestartPolicy    string `yaml:"restartPolicy"`
-	Socket           string `yaml:"socket"`
+	User            string `yaml:"user"`
+	MemoryLimitMB   int    `yaml:"memoryLimitMB"`
+	CPUQuotaPercent int    `yaml:"cpuQuotaPercent"`
+	RestartPolicy   string `yaml:"restartPolicy"`
+	Socket          string `yaml:"socket"`
 }
 
 // Requires declares the minimum agent version.

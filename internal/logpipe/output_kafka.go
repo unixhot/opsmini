@@ -20,10 +20,10 @@ import (
 // after the broker acknowledged the batch, and a synchronous produce makes that
 // contract obvious. Batching is still handled inside franz-go.
 type kafkaOutput struct {
-	client *kgo.Client
-	topic  string
-	sent   int64
-	failed int64
+	client  *kgo.Client
+	topic   string
+	sent    int64
+	failed  int64
 	lastErr atomic.Value
 	lastAt  atomic.Value
 }

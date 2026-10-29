@@ -20,9 +20,9 @@ import (
 // the secrets we refuse to store would defeat the whole sanitization design.
 // Such files are still recorded as changed — they just need a manual rollback.
 type Snapshots struct {
-	dir      string
+	dir       string
 	maxPerDay int
-	maxTotal int64
+	maxTotal  int64
 
 	mu sync.Mutex
 }

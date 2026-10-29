@@ -73,17 +73,17 @@ type TaskStatus struct {
 
 // PipelineStatus is the whole-pipeline view.
 type PipelineStatus struct {
-	Enabled   bool         `json:"enabled"`
-	TasksDir  string       `json:"tasks_dir"`
-	Tasks     []TaskStatus `json:"tasks"`
-	Output    string       `json:"output"`
-	OutputErr string       `json:"output_error"`
+	Enabled   bool           `json:"enabled"`
+	TasksDir  string         `json:"tasks_dir"`
+	Tasks     []TaskStatus   `json:"tasks"`
+	Output    string         `json:"output"`
+	OutputErr string         `json:"output_error"`
 	Spool     map[string]any `json:"spool,omitempty"`
 	// Running distinguishes "configured on" from "goroutines actually alive".
-	Running bool `json:"running"`
-	Warnings  []string     `json:"warnings"`
-	LoadedAt  time.Time    `json:"loaded_at"`
-	Stats     OutputStats  `json:"output_stats"`
+	Running  bool        `json:"running"`
+	Warnings []string    `json:"warnings"`
+	LoadedAt time.Time   `json:"loaded_at"`
+	Stats    OutputStats `json:"output_stats"`
 }
 
 // stats holds the per-task counters that survive a task restart.

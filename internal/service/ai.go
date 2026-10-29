@@ -24,7 +24,7 @@ type AIService struct {
 	// Gemini depending on the provider setting. Building it here (instead of
 	// hand-rolling requests) is what makes the panel assistant support every
 	// protocol the agent does.
-	llmClient *llm.Client
+	llmClient  *llm.Client
 	cfg        *config.AI
 	client     *http.Client
 	getSetting func(key string) string // runtime config (settings take precedence over config)

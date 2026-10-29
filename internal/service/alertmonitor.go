@@ -3,9 +3,9 @@ package service
 import (
 	"log"
 	"os"
-	"runtime"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -189,10 +189,10 @@ func (m *AlertMonitor) resolve(rule model.AlertRule, val, threshold float64) {
 		return
 	}
 	rec := &model.AlertEvent{
-		RuleID:     rule.ID,
-		RuleName:   rule.Name,
-		Metric:     rule.Metric,
-		Level:      ev.Level,
+		RuleID:   rule.ID,
+		RuleName: rule.Name,
+		Metric:   rule.Metric,
+		Level:    ev.Level,
 		// The recovery message must state the value that actually cleared the
 		// threshold. Reusing ev.Message printed the firing value, so the history
 		// read「已恢复：CPU 使用率 98.4% > 阈值 90.0%」— a recovered alert that

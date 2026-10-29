@@ -39,7 +39,7 @@ func newEvent(task Task, path string, offset int64, line string, agentType, agen
 		"@timestamp": time.Now().UTC().Format(time.RFC3339Nano),
 		"message":    line,
 		"log": Event{
-			"file": Event{"path": path},
+			"file":   Event{"path": path},
 			"offset": offset,
 		},
 		"input": Event{"type": task.Input.Type, "id": task.ID},
@@ -48,8 +48,8 @@ func newEvent(task Task, path string, offset int64, line string, agentType, agen
 			"name": hostMeta.name, "os": Event{"type": hostMeta.os}, "arch": hostMeta.arch,
 			"ip": hostMeta.ip,
 		},
-		"agent": Event{"type": agentType, "version": agentVersion, "id": hostMeta.name},
-		"ecs":   Event{"version": ecsVersion},
+		"agent":  Event{"type": agentType, "version": agentVersion, "id": hostMeta.name},
+		"ecs":    Event{"version": ecsVersion},
 		"fields": Event{"task_id": task.ID, "service": task.Input.ID},
 	}
 	// task-declared fields: filebeat puts them under fields.* unless

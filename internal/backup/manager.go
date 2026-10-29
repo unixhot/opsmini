@@ -9,6 +9,7 @@ package backup
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -19,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"context"
 	"sort"
 	"strings"
 	"sync"
@@ -321,11 +321,11 @@ type RestoreOpts struct {
 
 // RestoreResult reports what a restore did.
 type RestoreResult struct {
-	SnapshotName string   `json:"snapshot"`
-	Preflight    []string `json:"preflight"`
-	Restored     []string `json:"restored"`
-	SnapshotBackup string `json:"pre_restore_backup,omitempty"`
-	RolledBack   bool     `json:"rolled_back"`
+	SnapshotName   string   `json:"snapshot"`
+	Preflight      []string `json:"preflight"`
+	Restored       []string `json:"restored"`
+	SnapshotBackup string   `json:"pre_restore_backup,omitempty"`
+	RolledBack     bool     `json:"rolled_back"`
 }
 
 // Restore performs the three-gate flow: preflight, pre-restore snapshot then

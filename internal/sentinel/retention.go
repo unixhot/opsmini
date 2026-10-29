@@ -72,14 +72,14 @@ type RetentionStat struct {
 
 // PurgeResult reports how many rows each table lost.
 type PurgeResult struct {
-	Signals     int64 `json:"signals"`
-	Incidents   int64 `json:"incidents"`
-	Actions     int64 `json:"actions"`
-	Runs        int64 `json:"runs"`
-	Quarantine  int64 `json:"quarantine"`
-	Blocks      int64 `json:"blocks"`
-	Total       int64 `json:"total"`
-	DryRun      bool  `json:"dry_run"`
+	Signals    int64 `json:"signals"`
+	Incidents  int64 `json:"incidents"`
+	Actions    int64 `json:"actions"`
+	Runs       int64 `json:"runs"`
+	Quarantine int64 `json:"quarantine"`
+	Blocks     int64 `json:"blocks"`
+	Total      int64 `json:"total"`
+	DryRun     bool  `json:"dry_run"`
 }
 
 // ResetResult reports what a full reset removed.

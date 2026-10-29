@@ -681,7 +681,6 @@ func containsString(list []string, v string) bool {
 // boolPtr returns a pointer to v (used for tri-state JSON fields).
 func boolPtr(v bool) *bool { return &v }
 
-
 // filterTools applies the scenario allowlist and the hard denylist.
 func filterTools(in []Tool, allow, deny []string) []Tool {
 	allowSet := map[string]bool{}

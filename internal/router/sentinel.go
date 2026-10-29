@@ -13,14 +13,14 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/opsmini/opsmini/internal/aiagent"
-	"github.com/opsmini/opsmini/internal/change"
+	"github.com/opsmini/opsmini/internal/aiagent/tools"
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
+	"github.com/opsmini/opsmini/internal/change"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/sentinel"
 	"github.com/opsmini/opsmini/internal/service"
-	"github.com/opsmini/opsmini/internal/aiagent/tools"
 	"github.com/opsmini/opsmini/internal/trigger"
 )
 

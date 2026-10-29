@@ -12,11 +12,11 @@ import (
 
 // firewallSource snapshots the active rule set and reports semantic changes.
 type firewallSource struct {
-	cfg   *Config
-	emit  func(Event)
-	mu    sync.Mutex
-	last  string
-	tool  string
+	cfg  *Config
+	emit func(Event)
+	mu   sync.Mutex
+	last string
+	tool string
 }
 
 func newFirewallSource(cfg *Config, emit func(Event)) *firewallSource {

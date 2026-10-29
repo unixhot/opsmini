@@ -13,8 +13,8 @@ import (
 	"io"
 	"net"
 	"net/url"
-	"regexp"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +29,9 @@ import (
 // --- dissect --------------------------------------------------------------
 
 // dissect parses unstructured text with a tokenizer like
-//   %{clientip} - - [%{ts}] "%{method} %{path}"
+//
+//	%{clientip} - - [%{ts}] "%{method} %{path}"
+//
 // Supported modifiers: %{field}, %{field->} (skip trailing), %{?skip},
 // %{+append}, %{&key} (value becomes a key for the following field).
 type dissectProc struct {
@@ -40,11 +42,11 @@ type dissectProc struct {
 }
 
 type dissectSeg struct {
-	literal string
-	field   string
-	skip    bool
-	append  bool
-	keyOf   bool
+	literal  string
+	field    string
+	skip     bool
+	append   bool
+	keyOf    bool
 	padRight bool
 }
 
@@ -335,7 +337,7 @@ func (p *decodeDurationProc) Apply(ev Event) []Event {
 // --- extract_array --------------------------------------------------------
 
 type extractArrayProc struct {
-	field   string
+	field    string
 	mappings []arrayMap
 }
 
@@ -472,8 +474,8 @@ func parseDecodeFields(v any) []decodeField {
 // --- truncate_fields / move_fields ---------------------------------------
 
 type truncateProc struct {
-	fields  []string
-	maxLen  int
+	fields      []string
+	maxLen      int
 	failMissing bool
 }
 

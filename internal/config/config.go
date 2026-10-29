@@ -139,16 +139,16 @@ type Log struct {
 
 // Config holds the top-level configuration.
 type Config struct {
-	Server   Server   `yaml:"server"`
-	Database Database `yaml:"database"`
-	JWT      JWT      `yaml:"jwt"`
-	AI       AI       `yaml:"ai"`
-	Agent    Agent    `yaml:"agent"`
-	Metrics  Metrics  `yaml:"metrics"`
-	Paths    Paths    `yaml:"paths"`
-	Backup   Backup   `yaml:"backup"`
+	Server   Server      `yaml:"server"`
+	Database Database    `yaml:"database"`
+	JWT      JWT         `yaml:"jwt"`
+	AI       AI          `yaml:"ai"`
+	Agent    Agent       `yaml:"agent"`
+	Metrics  Metrics     `yaml:"metrics"`
+	Paths    Paths       `yaml:"paths"`
+	Backup   Backup      `yaml:"backup"`
 	LogPipe  LogPipeline `yaml:"logpipeline"`
-	Log      Log      `yaml:"log"`
+	Log      Log         `yaml:"log"`
 }
 
 // DataDir returns the runtime data root, resolving the default from the database

@@ -118,7 +118,7 @@ func TestLogTaskReachesPipelineAndReportsBack(t *testing.T) {
 			JobId: "job-1", Action: "apply", TaskId: "900",
 			Filename: "task-900.yml", Content: content,
 		}},
-		logResults: make(chan *agentpb.LogTaskResult, 4),
+		logResults:  make(chan *agentpb.LogTaskResult, 4),
 		plugResults: make(chan *agentpb.PluginResult, 4),
 		registered:  make(chan *agentpb.Register, 1),
 	}

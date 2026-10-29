@@ -104,14 +104,14 @@ func TestRegisteredDomainAndSyslog(t *testing.T) {
 func TestCommunityIDIsDirectionIndependent(t *testing.T) {
 	p := mustProc(t, "community_id", map[string]any{})
 	a := p.Apply(Event{
-		"source": Event{"ip": "10.0.0.1", "port": int64(5000)},
+		"source":      Event{"ip": "10.0.0.1", "port": int64(5000)},
 		"destination": Event{"ip": "10.0.0.2", "port": int64(80)},
-		"network": Event{"iana_number": int64(6)},
+		"network":     Event{"iana_number": int64(6)},
 	})[0]
 	b := p.Apply(Event{
-		"source": Event{"ip": "10.0.0.2", "port": int64(80)},
+		"source":      Event{"ip": "10.0.0.2", "port": int64(80)},
 		"destination": Event{"ip": "10.0.0.1", "port": int64(5000)},
-		"network": Event{"iana_number": int64(6)},
+		"network":     Event{"iana_number": int64(6)},
 	})[0]
 	ida, _ := getPath(a, "network.community_id")
 	idb, _ := getPath(b, "network.community_id")

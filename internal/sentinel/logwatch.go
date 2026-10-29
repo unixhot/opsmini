@@ -145,16 +145,16 @@ func (w *logWatcher) scan(interval time.Duration, out func(Signal)) {
 			withDeviation(deviation).
 			withTags("scenario:log_growth").
 			withEvidence(map[string]any{
-				"path":            path,
-				"bytes_per_min":   int64(perMin),
+				"path":             path,
+				"bytes_per_min":    int64(perMin),
 				"baseline_per_min": int64(b.Mean),
-				"deviation":       deviation,
-				"holder_pid":      pid,
-				"holder_cmd":      cmd,
-				"template_top":    top,
-				"template_share":  share,
-				"template_count":  distinct,
-				"tail":            lines,
+				"deviation":        deviation,
+				"holder_pid":       pid,
+				"holder_cmd":       cmd,
+				"template_top":     top,
+				"template_share":   share,
+				"template_count":   distinct,
+				"tail":             lines,
 			})
 		out(sig)
 		prev.strikes = 0

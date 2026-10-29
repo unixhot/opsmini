@@ -69,10 +69,10 @@ type Runner interface {
 
 // Engine matches incidents against policies and runs them one at a time.
 type Engine struct {
-	DB      *gorm.DB
-	Safety  *safety.Manager
-	Runner  Runner
-	Notify  func(inc model.Incident, text string)
+	DB       *gorm.DB
+	Safety   *safety.Manager
+	Runner   Runner
+	Notify   func(inc model.Incident, text string)
 	Learning bool
 
 	mu    sync.Mutex
@@ -552,11 +552,11 @@ func defaultPolicies() []model.TriggerPolicy {
 			Name: "webshell-respond", Enabled: true, Family: "webshell",
 			MinSeverity: model.SeverityHigh, Mode: model.ModeAssist,
 			CooldownSec: 3600, MaxWrites: 4, MaxSteps: 12, MaxSeconds: 300, MaxTokens: 150000,
-			AllowTools: strings.TrimSuffix(readTools, "]") + `,"quarantine_file","freeze_process","block_ip","snapshot_path"]`,
-			AutoTools:  `["quarantine_file","freeze_process","block_ip"]`,
-			DenyTools:  `["exec_command","delete_path"]`,
-			Verify:     `[{"type":"no_new_signal","family":"webshell","window":"30m"}]`,
-			Notify:     "panel,email",
+			AllowTools:  strings.TrimSuffix(readTools, "]") + `,"quarantine_file","freeze_process","block_ip","snapshot_path"]`,
+			AutoTools:   `["quarantine_file","freeze_process","block_ip"]`,
+			DenyTools:   `["exec_command","delete_path"]`,
+			Verify:      `[{"type":"no_new_signal","family":"webshell","window":"30m"}]`,
+			Notify:      "panel,email",
 			Description: "疑似 WebShell：先取证，再隔离文件、冻结进程、临时封禁来源 IP（均可还原）",
 			Prompt: "事件「{title}」已由采集器确认，请按 playbook 处置：\n" +
 				"1) 先只读取证：文件内容与哈希、属主、派生进程链路、相关访问日志；\n" +
@@ -569,11 +569,11 @@ func defaultPolicies() []model.TriggerPolicy {
 			Name: "auth-anomaly", Enabled: true, Family: "auth.anomaly",
 			MinSeverity: model.SeverityHigh, Mode: model.ModeAssist,
 			CooldownSec: 1800, MaxWrites: 2, MaxSteps: 10, MaxSeconds: 240, MaxTokens: 120000,
-			AllowTools: strings.TrimSuffix(readTools, "]") + `,"block_ip"]`,
-			AutoTools:  `["block_ip"]`,
-			DenyTools:  `["exec_command","write_file","delete_path","modify_sshd"]`,
-			Verify:     `[{"type":"no_new_signal","family":"auth.anomaly","window":"15m"}]`,
-			Notify:     "panel,email",
+			AllowTools:  strings.TrimSuffix(readTools, "]") + `,"block_ip"]`,
+			AutoTools:   `["block_ip"]`,
+			DenyTools:   `["exec_command","write_file","delete_path","modify_sshd"]`,
+			Verify:      `[{"type":"no_new_signal","family":"auth.anomaly","window":"15m"}]`,
+			Notify:      "panel,email",
 			Description: "登录行为异常：取证登录来源与现场，必要时临时封禁 IP",
 			Prompt: "事件「{title}」已确认，请按 playbook 处置：\n" +
 				"1) 只读取证：谁在什么时候从哪里登录、认证方式、当前会话、最近命令（如可读）；\n" +
@@ -586,10 +586,10 @@ func defaultPolicies() []model.TriggerPolicy {
 			Name: "proc-anomaly", Enabled: true, Family: "proc.anomaly",
 			MinSeverity: model.SeverityCritical, Mode: model.ModeAssist,
 			CooldownSec: 1800, MaxWrites: 3, MaxSteps: 10, MaxSeconds: 240, MaxTokens: 120000,
-			AllowTools: strings.TrimSuffix(readTools, "]") + `,"freeze_process"]`,
-			DenyTools:  `["exec_command","delete_path"]`,
-			Verify:     `[{"type":"process_absent","pattern":"minerd"}]`,
-			Notify:     "panel",
+			AllowTools:  strings.TrimSuffix(readTools, "]") + `,"freeze_process"]`,
+			DenyTools:   `["exec_command","delete_path"]`,
+			Verify:      `[{"type":"process_absent","pattern":"minerd"}]`,
+			Notify:      "panel",
 			Description: "可疑进程（挖矿/反弹 shell/web 用户派生 shell）：冻结而非杀",
 			Prompt: "事件「{title}」已确认，请处置：\n1) 只读取证进程 cmdline、父子链、打开的文件、网络连接；\n" +
 				"2) 判断是否恶意，说明依据；\n3) 若确认恶意：freeze_process 冻结（不要 kill）；\n" +
@@ -600,19 +600,19 @@ func defaultPolicies() []model.TriggerPolicy {
 			MinSeverity: model.SeverityHigh, Mode: model.ModeShadow,
 			CooldownSec: 1800, MaxWrites: 1, MaxSteps: 8, MaxSeconds: 180, MaxTokens: 80000,
 			AllowTools: readTools, DenyTools: `["exec_command"]`,
-			Notify:     "panel",
+			Notify:      "panel",
 			Description: "异常外联（默认关闭）：仅观察",
-			Prompt: "事件「{title}」：请只读排查该外联的发起进程、目标与是否为已知业务，不要做任何写操作。",
+			Prompt:      "事件「{title}」：请只读排查该外联的发起进程、目标与是否为已知业务，不要做任何写操作。",
 		},
 		{
 			Name: "log-growth", Enabled: true, Family: "log_growth",
 			MinSeverity: model.SeverityHigh, Mode: model.ModeShadow,
 			CooldownSec: 1800, MaxWrites: 1, MaxSteps: 8, MaxSeconds: 180, MaxTokens: 80000,
-			AllowTools: strings.TrimSuffix(readTools, "]") + `,"truncate_log"]`,
-			AutoTools:  `["truncate_log"]`,
-			DenyTools:  `["exec_command","delete_path"]`,
-			Verify:     `[{"type":"disk_usage_lt","path":"/var","value":85}]`,
-			Notify:     "panel",
+			AllowTools:  strings.TrimSuffix(readTools, "]") + `,"truncate_log"]`,
+			AutoTools:   `["truncate_log"]`,
+			DenyTools:   `["exec_command","delete_path"]`,
+			Verify:      `[{"type":"disk_usage_lt","path":"/var","value":85}]`,
+			Notify:      "panel",
 			Description: "日志暴涨（影子模式）：找出持有进程与原因，只记录打算怎么做",
 			Prompt: "事件「{title}」：请只读排查是哪个进程在写、写了什么模板、是否日志轮转失效；" +
 				"给出处置建议（轮转/截断/重启应用），影子模式下不要执行任何写操作。",

@@ -22,18 +22,18 @@ import (
 
 // Manager owns plugin installation, lifecycle and the reporting socket.
 type Manager struct {
-	root   string // <data>/plugins
-	db     func(pluginState) // mirror callback (nil allowed)
-	pubKey string
+	root          string            // <data>/plugins
+	db            func(pluginState) // mirror callback (nil allowed)
+	pubKey        string
 	allowUnsigned bool
 	agentVersion  string
 
-	mu     sync.RWMutex
-	state  stateFile
-	procs  map[string]*proc
-	metrics map[string]map[string]float64
-	events  []PluginEvent
-	listener net.Listener
+	mu        sync.RWMutex
+	state     stateFile
+	procs     map[string]*proc
+	metrics   map[string]map[string]float64
+	events    []PluginEvent
+	listener  net.Listener
 	socketDir string
 }
 
@@ -46,11 +46,11 @@ type proc struct {
 
 // PluginEvent is a message a plugin pushed to the socket.
 type PluginEvent struct {
-	Plugin string    `json:"plugin"`
-	Level  string    `json:"level"`
-	Msg    string    `json:"message"`
+	Plugin string         `json:"plugin"`
+	Level  string         `json:"level"`
+	Msg    string         `json:"message"`
 	Fields map[string]any `json:"fields,omitempty"`
-	At     time.Time `json:"at"`
+	At     time.Time      `json:"at"`
 }
 
 // Options configures the manager.

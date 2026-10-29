@@ -297,7 +297,7 @@ func (e *ewma) Update(v float64) {
 	}
 	diff := v - e.Mean
 	e.Mean += e.Alpha * diff
-	e.Var = (1-e.Alpha)*(e.Var+e.Alpha*diff*diff)
+	e.Var = (1 - e.Alpha) * (e.Var + e.Alpha*diff*diff)
 	e.Samples++
 }
 

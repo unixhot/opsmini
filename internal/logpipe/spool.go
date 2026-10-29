@@ -25,11 +25,11 @@ type spool struct {
 	dir     string
 	maxSize int64
 
-	mu      sync.Mutex
-	written int64
+	mu       sync.Mutex
+	written  int64
 	replayed int64
-	dropped int64
-	lastErr string
+	dropped  int64
+	lastErr  string
 }
 
 func newSpool(dir string, maxMB int) *spool {
@@ -156,11 +156,11 @@ func (s *spool) Stats() map[string]any {
 	lastErr := s.lastErr
 	s.mu.Unlock()
 	return map[string]any{
-		"pending":  len(files),
-		"bytes":    size,
-		"written":  atomic.LoadInt64(&s.written),
-		"replayed": atomic.LoadInt64(&s.replayed),
-		"dropped":  atomic.LoadInt64(&s.dropped),
+		"pending":    len(files),
+		"bytes":      size,
+		"written":    atomic.LoadInt64(&s.written),
+		"replayed":   atomic.LoadInt64(&s.replayed),
+		"dropped":    atomic.LoadInt64(&s.dropped),
 		"last_error": lastErr,
 	}
 }

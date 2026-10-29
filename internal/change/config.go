@@ -4,16 +4,16 @@ import "time"
 
 // Config controls the change awareness subsystem.
 type Config struct {
-	Enabled  bool
-	File     FileConfig
-	Package  PackageConfig
-	Service  ServiceConfig
-	Account  AccountConfig
-	Firewall FirewallConfig
-	Cron     CronConfig
-	Snapshot SnapshotConfig
+	Enabled   bool
+	File      FileConfig
+	Package   PackageConfig
+	Service   ServiceConfig
+	Account   AccountConfig
+	Firewall  FirewallConfig
+	Cron      CronConfig
+	Snapshot  SnapshotConfig
 	Retention RetentionConfig
-	Quota    QuotaConfig
+	Quota     QuotaConfig
 
 	// ActorResolver lets the file source attribute changes to an active session.
 	// It returns ok=false when no session can be reasonably associated; the
@@ -23,13 +23,13 @@ type Config struct {
 
 // FileConfig configures configuration-file watching.
 type FileConfig struct {
-	WatchDirs      []string
-	Realtime       bool
-	ScanInterval   time.Duration
-	MaxFileSize    int64
-	MaxDiffSize    int64
-	IgnoreGlobs    []string
-	ExtraBlocked   []string // can only ADD to the hard-coded blocklist
+	WatchDirs    []string
+	Realtime     bool
+	ScanInterval time.Duration
+	MaxFileSize  int64
+	MaxDiffSize  int64
+	IgnoreGlobs  []string
+	ExtraBlocked []string // can only ADD to the hard-coded blocklist
 }
 
 // PackageConfig configures dpkg/apt/dnf log parsing.

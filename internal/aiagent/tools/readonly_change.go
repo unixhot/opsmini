@@ -29,10 +29,10 @@ func changeHistoryTool(d Deps) aiagent.Tool {
 		Risk: aiagent.RiskReadonly,
 		Perm: "sentinel.view",
 		Schema: schema(map[string]any{
-			"path":    pStr("按对象过滤：文件路径、包名、服务名都行（可选）"),
-			"kind":    pStr("按类型过滤：config / package / service / account / firewall / cron（可选）"),
-			"since":   pStr("时间范围，例如 2h、30m、24h，默认 24h"),
-			"limit":   pInt("最多返回条数，默认 20，最大 100"),
+			"path":  pStr("按对象过滤：文件路径、包名、服务名都行（可选）"),
+			"kind":  pStr("按类型过滤：config / package / service / account / firewall / cron（可选）"),
+			"since": pStr("时间范围，例如 2h、30m、24h，默认 24h"),
+			"limit": pInt("最多返回条数，默认 20，最大 100"),
 		}),
 		Preview: func(args map[string]any) string {
 			return "查询变更历史 " + strDef(args, "path", strDef(args, "kind", ""))
@@ -90,11 +90,11 @@ func changeHistoryTool(d Deps) aiagent.Tool {
 
 func changeDiffTool(d Deps) aiagent.Tool {
 	return aiagent.Tool{
-		Name:  "change_diff",
-		Title: "查看变更内容",
+		Name:        "change_diff",
+		Title:       "查看变更内容",
 		Description: "按变更 id 查看这次变更的具体内容（脱敏后的差异）。只能读取一次变更的详情，不修改任何东西。",
-		Risk: aiagent.RiskReadonly,
-		Perm: "sentinel.view",
+		Risk:        aiagent.RiskReadonly,
+		Perm:        "sentinel.view",
 		Schema: schema(map[string]any{
 			"change_id": pStr("变更 id，形如 chg_xxxxxxxx（来自 change_history 或事件证据）"),
 		}),

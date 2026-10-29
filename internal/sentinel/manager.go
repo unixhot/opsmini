@@ -54,14 +54,14 @@ func DefaultConfig() Config {
 
 // Manager owns the collectors, the bus and the aggregator.
 type Manager struct {
-	cfg       Config
-	db        *gorm.DB
-	Bus       *Bus
-	Agg       *Aggregator
+	cfg        Config
+	db         *gorm.DB
+	Bus        *Bus
+	Agg        *Aggregator
 	collectors []collector
-	stop      chan struct{}
-	wg        sync.WaitGroup
-	startedAt time.Time
+	stop       chan struct{}
+	wg         sync.WaitGroup
+	startedAt  time.Time
 
 	// Retention controls how long records are kept (see retention.go). It is
 	// persisted by the panel, not by this package.

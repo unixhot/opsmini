@@ -28,10 +28,10 @@ import (
 // S3Config configures an S3-compatible target.
 type S3Config struct {
 	Name      string `json:"name"`
-	Endpoint  string `json:"endpoint"`   // e.g. https://oss-cn-beijing.aliyuncs.com
-	Region    string `json:"region"`     // e.g. cn-beijing / us-east-1
+	Endpoint  string `json:"endpoint"` // e.g. https://oss-cn-beijing.aliyuncs.com
+	Region    string `json:"region"`   // e.g. cn-beijing / us-east-1
 	Bucket    string `json:"bucket"`
-	Prefix    string `json:"prefix"`     // key prefix, e.g. "opsmini/prod"
+	Prefix    string `json:"prefix"` // key prefix, e.g. "opsmini/prod"
 	AccessKey string `json:"access_key"`
 	SecretKey string `json:"secret_key"`
 	// PathStyle uses endpoint/bucket/key instead of bucket.endpoint/key.

@@ -128,7 +128,7 @@ func (w *fileWatcher) scan(out func(Signal), initial bool) {
 				withTags("mitre:T1505.003", "scenario:webshell").
 				withEvidence(map[string]any{
 					"path": path, "size": info.Size(),
-					"mtime": info.ModTime().Format(time.RFC3339),
+					"mtime":  info.ModTime().Format(time.RFC3339),
 					"strong": strong, "hits": hits,
 				}))
 			return nil
