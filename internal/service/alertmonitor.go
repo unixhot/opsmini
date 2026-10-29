@@ -3,6 +3,7 @@ package service
 import (
 	"log"
 	"os"
+	"runtime"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -27,11 +28,19 @@ type AlertMonitor struct {
 
 	stopCh chan struct{}
 
+	// sources supplies the event-type data sources (docker / cron / backup /
+	// log pipeline). Nil entries simply make those rules "unknown" instead of
+	// guessing, which matters on hosts that do not run docker at all.
+	sources AlertSources
+
 	// onFire is called after an alert event is created and notifications sent.
 	// The perception layer uses it to turn metric alerts into signals instead of
 	// polling the same metrics twice.
 	onFire func(rule model.AlertRule, val, threshold float64, op string)
 }
+
+// SetSources wires the external data sources used by event-type rules.
+func (m *AlertMonitor) SetSources(src AlertSources) { m.sources = src }
 
 // SetOnFire registers a hook invoked whenever an alert fires.
 func (m *AlertMonitor) SetOnFire(fn func(rule model.AlertRule, val, threshold float64, op string)) {
@@ -95,11 +104,24 @@ func (m *AlertMonitor) evaluate() {
 		if !rule.Enabled {
 			continue
 		}
-		op, threshold := parseCondition(rule.Condition)
-		if threshold <= 0 {
-			continue
+		op, threshold, ok := parseCondition(rule.Condition)
+		if !ok {
+			// Relative thresholds ("系统负载 > CPU 核数") cannot be parsed from the
+			// string; resolve them from the host. Without this the threshold came
+			// out as 0 and the rule was skipped forever.
+			if th, rok := relativeThreshold(rule.Metric); rok {
+				threshold = th
+			} else {
+				continue
+			}
 		}
-		val, matched := metricValue(rule.Metric, sum, m.sys)
+		// Event-type metrics (OOM killed, container crashed, backup failed) have no
+		// sampled value; they report how many happened inside a window. Check
+		// those first, then fall back to the sampled metrics.
+		val, matched := m.checkValue(rule.Metric)
+		if !matched {
+			val, matched = metricValue(rule.Metric, sum, m.sys)
+		}
 		if !matched {
 			continue
 		}
@@ -210,10 +232,14 @@ var conditionRe = regexp.MustCompile(`([><=]{1,2})?\s*(\d+(?:\.\d+)?)`)
 
 // parseCondition parses an operator and threshold from a condition string (e.g. ">= 90" or "> 85%").
 // The operator defaults to ">=" when omitted (backward compatible with old rules).
-func parseCondition(cond string) (string, float64) {
+//
+// The boolean reports whether a numeric threshold was actually found. Callers must
+// distinguish "no number in the condition" from "threshold is zero": event rules
+// legitimately use "> 0", and treating that as unparseable would disable them.
+func parseCondition(cond string) (string, float64, bool) {
 	m := conditionRe.FindStringSubmatch(strings.TrimSpace(cond))
 	if len(m) < 3 {
-		return ">=", 0
+		return ">=", 0, false
 	}
 	op := strings.TrimSpace(m[1])
 	if op == "" {
@@ -221,9 +247,18 @@ func parseCondition(cond string) (string, float64) {
 	}
 	v, err := strconv.ParseFloat(m[2], 64)
 	if err != nil {
-		return op, 0
+		return op, 0, false
 	}
-	return op, v
+	return op, v, true
+}
+
+// relativeThreshold resolves thresholds that are described in words rather than
+// numbers, using the current host.
+func relativeThreshold(metric string) (float64, bool) {
+	if strings.Contains(metric, "负载") || strings.Contains(metric, "Load") {
+		return float64(runtime.NumCPU()), true
+	}
+	return 0, false
 }
 
 // compareValue compares a metric value against the threshold using the operator.
@@ -306,6 +341,11 @@ func metricValue(metric string, sum *MonitorSummary, sys *SystemService) (float6
 
 // formatMetricValue formats a metric value with the appropriate unit.
 func formatMetricValue(metric string, v float64) string {
+	// Counter and gauge event metrics: "3 次", "12 秒", "2 批", or no unit at all
+	// for a 0/1 gauge like "Docker 服务不可用".
+	if u, ok := eventMetricUnit(metric); ok {
+		return strconv.FormatFloat(v, 'f', 0, 64) + u
+	}
 	switch {
 	case strings.Contains(metric, "温度") || strings.Contains(metric, "Temperature"):
 		return strconv.FormatFloat(v, 'f', 1, 64) + "°C"

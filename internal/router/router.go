@@ -382,6 +382,46 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	backupMgr := backup.NewManager(filepath.Join(cfg.DataDir(), "backups"), version)
 	backupHandler := v1.NewBackupHandler(backupMgr)
 
+	// Wire the data sources that event-type alert rules need. Each one is
+	// nil-safe: on a host without docker those rules stay "unknown" instead of
+	// firing, which is the difference between "no OOM happened" and "I cannot tell".
+	cronRepo := repository.NewCronJobRepo(db)
+	failedCronJobs := func() (int, string, bool) {
+		jobs, err := cronRepo.List()
+		if err != nil {
+			return 0, "", false
+		}
+		n := 0
+		first := ""
+		for _, j := range jobs {
+			if !j.Enabled || j.LastStatus != "failed" {
+				continue
+			}
+			n++
+			if first == "" {
+				first = j.Name
+				if j.LastError != "" {
+					first += ": " + j.LastError
+				}
+			}
+		}
+		return n, first, true
+	}
+	logPipelineHealth := func() (int, int, bool) {
+		p, d := logMgr.Health()
+		return p, d, true
+	}
+	sources := service.AlertSources{
+		FailedCronJobs: failedCronJobs,
+		FailedBackups:  backupMgr.Failures,
+		LogPipeline:    logPipelineHealth,
+	}
+	if dockerSvc != nil {
+		sources.DockerDaemon = dockerSvc.Healthy
+		sources.CrashedContainers = dockerSvc.CrashedContainers
+	}
+	alertMonitor.SetSources(sources)
+
 	// Basic-auth credentials priority: panel setting metrics_user/metrics_pass > config.yaml metrics.user/password; empty username means no authentication.
 	metricsCreds := func() (string, string) {
 		if u, err := settingSvc.Get("metrics_user"); err == nil && u != "" {

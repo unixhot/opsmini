@@ -442,6 +442,26 @@ func (m *Manager) Status() PipelineStatus {
 	return st
 }
 
+// Health reports backlog and drop counts for the alert monitor.
+//
+// A pipeline that stops delivering is the failure nobody notices on their own:
+// the tasks still show "running" because the harvester keeps reading files, while
+// nothing reaches Elasticsearch. Drops are reported separately because they are
+// permanent data loss, not a delay.
+func (m *Manager) Health() (pending, dropped int) {
+	pending = m.sp.Pending()
+	m.mu.RLock()
+	ids := make([]string, 0, len(m.tasks))
+	for id := range m.tasks {
+		ids = append(ids, id)
+	}
+	m.mu.RUnlock()
+	for _, id := range ids {
+		dropped += int(atomic.LoadInt64(&statsOf(id).eventsDropped))
+	}
+	return pending, dropped
+}
+
 // ReloadNow forces an immediate rescan of tasks.d (panel button / LogTask apply).
 func (m *Manager) ReloadNow() { m.reload() }
 

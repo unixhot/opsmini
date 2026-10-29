@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -580,4 +582,96 @@ func formatPorts(ports []container.PortSummary) string {
 		}
 	}
 	return strings.Join(parts, ", ")
+}
+
+// Healthy reports whether the docker daemon answers.
+//
+// A stopped daemon is easy to miss: every container just shows "exited" in the
+// list, which looks like an application problem rather than "the runtime is down".
+// The third return value mirrors the other alert checks: it reports whether the
+// answer is meaningful at all.
+func (s *DockerService) Healthy() (bool, string, bool) {
+	// A host that never installed docker is not "docker down". The client is
+	// created lazily and always succeeds, so without this distinction every plain
+	// VM would raise a permanent "Docker 服务不可用" alert.
+	if !dockerInstalled() {
+		return false, "", false
+	}
+	ctx, cancel := s.ctx()
+	defer cancel()
+	if _, err := s.cli.Ping(ctx, client.PingOptions{}); err != nil {
+		return false, err.Error(), true
+	}
+	return true, "", true
+}
+
+// CrashedContainers counts containers that exited with a non-zero code inside the
+// window, plus the ones the kernel OOM-killed.
+//
+// The list endpoint does not expose exit codes or finish times, so exited
+// containers are inspected individually. The count is capped: a host with hundreds
+// of stopped containers must not turn one alert evaluation into hundreds of API
+// calls every minute.
+func (s *DockerService) CrashedContainers(window time.Duration) (int, string, bool) {
+	if !dockerInstalled() {
+		return 0, "", false
+	}
+	ctx, cancel := s.ctx()
+	defer cancel()
+	res, err := s.cli.ContainerList(ctx, client.ContainerListOptions{All: true})
+	if err != nil {
+		return 0, "", false
+	}
+	cut := time.Now().Add(-window)
+	const maxInspect = 200
+	n := 0
+	first := ""
+	inspected := 0
+	for _, c := range res.Items {
+		if c.State == "running" || c.State == "restarting" {
+			continue
+		}
+		if inspected >= maxInspect {
+			break
+		}
+		inspected++
+		info, err := s.cli.ContainerInspect(ctx, c.ID, client.ContainerInspectOptions{})
+		if err != nil || info.Container.State == nil {
+			continue
+		}
+		st := info.Container.State
+		if st.ExitCode == 0 && !st.OOMKilled {
+			continue
+		}
+		fin, err := time.Parse(time.RFC3339Nano, st.FinishedAt)
+		if err != nil || fin.Before(cut) {
+			continue
+		}
+		n++
+		if first == "" {
+			name := strings.TrimPrefix(info.Container.Name, "/")
+			if name == "" && len(c.Names) > 0 {
+				name = strings.TrimPrefix(c.Names[0], "/")
+			}
+			reason := "退出码 " + strconv.Itoa(st.ExitCode)
+			if st.OOMKilled {
+				reason = "被 OOM 杀死"
+			}
+			first = name + " " + reason
+		}
+	}
+	return n, first, true
+}
+
+// dockerInstalled reports whether docker exists on this host in any form: an
+// explicit DOCKER_HOST, the default socket, or the CLI.
+func dockerInstalled() bool {
+	if os.Getenv("DOCKER_HOST") != "" {
+		return true
+	}
+	if _, err := os.Stat("/var/run/docker.sock"); err == nil {
+		return true
+	}
+	_, err := exec.LookPath("docker")
+	return err == nil
 }

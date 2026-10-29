@@ -85,7 +85,26 @@ func NewManager(root, version string) *Manager {
 func (m *Manager) Root() string { return m.root }
 
 // Run creates one snapshot and applies the retention policy.
-func (m *Manager) Run(job Job) (*Manifest, error) {
+//
+// The named return values exist solely so the deferred history write can see the
+// outcome: failed runs leave no snapshot behind, so without a record they would be
+// completely invisible.
+func (m *Manager) Run(job Job) (man *Manifest, err error) {
+	rec := RunRecord{Job: strings.TrimSpace(job.Name), StartedAt: time.Now()}
+	defer func() {
+		rec.EndedAt = time.Now()
+		rec.OK = err == nil
+		if err != nil {
+			rec.Error = err.Error()
+		}
+		if man != nil {
+			rec.Snapshot = man.Name
+			rec.Size = man.TotalSize
+			rec.Objects = len(man.Objects)
+		}
+		m.record(rec)
+	}()
+
 	job.Name = strings.TrimSpace(job.Name)
 	if job.Name == "" {
 		return nil, errors.New("备份任务缺少名称")
@@ -113,7 +132,7 @@ func (m *Manager) Run(job Job) (*Manifest, error) {
 		return nil, err
 	}
 
-	man := &Manifest{
+	man = &Manifest{
 		Name: name, Job: job.Name, CreatedAt: time.Now(), Hostname: hostname, Version: m.version,
 	}
 	for _, obj := range job.Objects {

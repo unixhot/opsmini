@@ -117,6 +117,20 @@ func seedAlertRules(db *gorm.DB) error {
 		{Name: "上下文切换过高", Metric: "上下文切换次数", Condition: "> 100000", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "僵尸进程堆积", Metric: "僵尸进程数", Condition: "> 5", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "系统刚刚重启", Metric: "系统运行时长", Condition: "< 300", Duration: "0 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
+
+		// Event-type rules. These have no sampled value: the metric is "how many
+		// happened inside a window", so the same threshold engine applies and the
+		// alert clears by itself once the window slides past the last occurrence.
+		{Name: "系统时钟偏移过大", Metric: "NTP 时间偏移", Condition: "> 5", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "文件系统变为只读", Metric: "只读文件系统数", Condition: "> 0", Duration: "1 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
+		{Name: "文件系统错误", Metric: "文件系统错误数", Condition: "> 0", Duration: "1 分钟", Notify: "面板,邮件,企业微信,钉钉,飞书", Enabled: true},
+		{Name: "OOM Killer 触发", Metric: "OOM 事件数", Condition: "> 0", Duration: "1 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
+		{Name: "硬件或内核错误", Metric: "硬件错误数", Condition: "> 0", Duration: "1 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "Docker 服务不可用", Metric: "Docker 服务不可用", Condition: "> 0", Duration: "5 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
+		{Name: "容器异常退出", Metric: "容器异常退出数", Condition: "> 0", Duration: "1 分钟", Notify: "面板", Enabled: true},
+		{Name: "计划任务执行失败", Metric: "计划任务失败数", Condition: "> 0", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "备份任务失败", Metric: "备份失败数", Condition: "> 0", Duration: "5 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
+		{Name: "日志管道积压", Metric: "日志管道积压", Condition: "> 1000", Duration: "10 分钟", Notify: "面板", Enabled: true},
 	}
 	inserted := 0
 	for _, r := range rules {
