@@ -133,12 +133,12 @@ func (s *Store) appendDiffLocked(changeID string, d *Diff) {
 
 // Filter narrows a change listing.
 type Filter struct {
-	Kind       string
-	ObjectKey  string
-	Since      time.Time
-	Until      time.Time
-	Page       int
-	PageSize   int
+	Kind      string
+	ObjectKey string
+	Since     time.Time
+	Until     time.Time
+	Page      int
+	PageSize  int
 }
 
 // List returns change events (metadata only) and the total count.
@@ -273,10 +273,10 @@ func (s *Store) Purge(metaDays, diffDays int) (int64, error) {
 
 // Usage reports storage consumption for the panel.
 type Usage struct {
-	Events     int64 `json:"events"`
-	Diffs      int64 `json:"diffs"`
-	DiffBytes  int64 `json:"diff_bytes"`
-	OldestAt   string `json:"oldest_at,omitempty"`
+	Events    int64  `json:"events"`
+	Diffs     int64  `json:"diffs"`
+	DiffBytes int64  `json:"diff_bytes"`
+	OldestAt  string `json:"oldest_at,omitempty"`
 }
 
 // Usage computes storage statistics.
@@ -293,6 +293,25 @@ func (s *Store) Usage() Usage {
 }
 
 // --- chain anchor ----------------------------------------------------------
+
+// EnsureChainAnchor backfills the anchor for databases written before the anchor
+// existed. Such a store may already have had its oldest rows pruned, so its first
+// surviving record points at a row that no longer exists — every later check would
+// report "chain broken" although nothing was tampered with.
+func (s *Store) EnsureChainAnchor() {
+	if s.chainAnchor() != "" {
+		return
+	}
+	var oldest model.ChangeEvent
+	if err := s.db.Order("created_at asc, rowid asc").Limit(1).Find(&oldest).Error; err != nil || oldest.ID == "" {
+		return
+	}
+	if oldest.PrevHash == "" {
+		// The chain genuinely starts here; nothing was pruned.
+		return
+	}
+	s.setChainAnchor(oldest.PrevHash)
+}
 
 const chainAnchorKey = "anchor"
 

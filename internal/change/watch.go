@@ -52,6 +52,10 @@ func (w *Watcher) Start(parent context.Context) {
 	ctx, cancel := context.WithCancel(parent)
 	w.cancel = cancel
 
+	// Heal the chain anchor before any new row is appended: an upgraded database may
+	// have been pruned by an older build and would otherwise report a broken chain.
+	w.store.EnsureChainAnchor()
+
 	// persistence + fan-out loop
 	w.wg.Add(1)
 	go func() {

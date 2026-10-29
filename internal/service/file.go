@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 )
 
 // FileService handles file management; all paths are restricted within root to prevent directory traversal.
@@ -188,13 +187,6 @@ type DirUsage struct {
 	Partial bool `json:"partial"`
 }
 
-// pseudoFS lists virtual trees whose entry sizes are not disk usage: /proc/kcore
-// alone claims 128 TB, so walking them turns "300 MB" into "140 TB". They are
-// skipped entirely rather than counted and then corrected.
-var pseudoFS = map[string]bool{"/proc": true, "/sys": true, "/dev": true}
-
-func isPseudoFS(p string) bool { return pseudoFS[filepath.Clean(p)] }
-
 // maxWalkEntries bounds one directory-size request. /proc, /sys and huge data
 // directories can hold millions of entries; without a cap a single request can
 // occupy a worker for minutes and a user can trigger it repeatedly.
@@ -233,10 +225,8 @@ func (s *FileService) DirUsage(path string) (*DirUsage, error) {
 		u.Size += fi.Size()
 		return nil
 	})
-	var st syscall.Statfs_t
-	if err := syscall.Statfs(full, &st); err == nil {
-		u.DiskTotal = int64(st.Blocks) * int64(st.Bsize)
-		u.DiskUsed = int64(st.Blocks-st.Bfree) * int64(st.Bsize)
+	if used, total, ok := diskUsage(full); ok {
+		u.DiskUsed, u.DiskTotal = used, total
 		if u.DiskTotal > 0 {
 			u.DiskPercent = float64(u.DiskUsed) / float64(u.DiskTotal) * 100
 		}
