@@ -18,6 +18,7 @@ import (
 
 	"github.com/opsmini/opsmini/internal/agent"
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
+	"github.com/opsmini/opsmini/internal/backup"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/logpipe"
 	"github.com/opsmini/opsmini/internal/middleware"
@@ -377,6 +378,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	pluginMgr.Start(context.Background())
 	pluginHandler := v1.NewPluginHandler(pluginMgr)
 
+	// 备份恢复：快照落在 <data>/backups；恢复带预检与自动回滚。
+	backupMgr := backup.NewManager(filepath.Join(cfg.DataDir(), "backups"), version)
+	backupHandler := v1.NewBackupHandler(backupMgr)
+
 	// Basic-auth credentials priority: panel setting metrics_user/metrics_pass > config.yaml metrics.user/password; empty username means no authentication.
 	metricsCreds := func() (string, string) {
 		if u, err := settingSvc.Get("metrics_user"); err == nil && u != "" {
@@ -537,6 +542,11 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 				authed.GET("/changes/:id", permMw("ai.agent"), ch.Detail)
 				authed.POST("/changes/:id/restore", permMw("settings.edit"), ch.Restore)
 			}
+
+			// 备份恢复
+			authed.GET("/backup/snapshots", permMw("ai.agent"), backupHandler.Snapshots)
+			authed.POST("/backup/run", permMw("settings.edit"), backupHandler.Run)
+			authed.POST("/backup/restore", permMw("settings.edit"), backupHandler.Restore)
 
 			// 插件：安装/卸载/启停（本地执行端；下发在 B5 接 OpsAnt）
 			authed.GET("/plugins", permMw("ai.agent"), pluginHandler.List)
