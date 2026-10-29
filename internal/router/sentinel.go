@@ -168,6 +168,27 @@ func buildSentinel(
 	}
 	mgr.Agg.OnIncident(func(inc model.Incident, _ model.Signal) { camp.Attach(inc) })
 
+	// 第二层关联：可疑变更作为攻击链的「持久化」环节。
+	//
+	// 只在三个条件同时成立时才并入：规则复核判为 suspicious、对象是能扛过重启
+	// 的持久化机制（authorized_keys / cron / systemd / sudoers / ld.so.preload…）、
+	// 且链上已经出现过 execution 或 c2。三条缺一条就不并入——「有人改了 nginx.conf」
+	// 是运维事实，把它算成入侵环节会让攻击链本身失去可信度。
+	camp.ChangeStage = func(inc model.Incident) (string, bool) {
+		if inc.Family != model.FamilyChange || changeStore == nil || inc.Subject == "" {
+			return "", false
+		}
+		ev, err := changeStore.LatestByObject(inc.Subject)
+		if err != nil || ev.ID == "" {
+			return "", false
+		}
+		verdict := ""
+		if rev, err := changeStore.ReviewFor(ev.ID); err == nil && rev != nil {
+			verdict = rev.Verdict
+		}
+		return change.ChainStage(ev.Kind, ev.ObjectKey, verdict)
+	}
+
 	// 影子评分：影子运行没有验证断言，只能在事后看「它当时想做的事还需不需要」。
 	shadow := sentinel.NewShadowReviewer(db)
 

@@ -5010,7 +5010,7 @@ const I18N13 = {
   'zh-CN': {
     'sent.chain.tab':'攻击链',
     'sent.chain.title':'疑似攻击链',
-    'sent.chain.hint':'把「WebShell 落地 → 可疑进程 → 异常外联」这类分阶段发生的事件串成一次入侵来看。关联依据是时间与共享指标，属推断，不是因果定论；它只提高关注优先级，不会放大 Agent 的权限。',
+    'sent.chain.hint':'把「WebShell 落地 → 可疑进程 → 异常外联」这类分阶段的事件串成一次入侵来看；可疑变更若改的是 authorized_keys / cron / systemd 这类能扛过重启的位置，会作为「持久化」环节并入。关联依据是时间与共享指标，属推断，不是因果定论；它只提高关注优先级，不会放大 Agent 的权限。',
     'sent.chain.badge':'攻击链',
     'sent.chain.col.title':'攻击链',
     'sent.chain.col.stages':'覆盖环节',
@@ -5076,7 +5076,7 @@ const I18N13 = {
   'zh-TW': {
     'sent.chain.tab':'攻擊鏈',
     'sent.chain.title':'疑似攻擊鏈',
-    'sent.chain.hint':'把「WebShell 落地 → 可疑行程 → 異常外聯」這類分階段發生的事件串成一次入侵來看。關聯依據是時間與共享指標，屬推斷，非因果定論；只提高關注優先級，不會放大 Agent 的權限。',
+    'sent.chain.hint':'把「WebShell 落地 → 可疑行程 → 異常外聯」這類分階段的事件串成一次入侵來看；可疑變更若改的是 authorized_keys / cron / systemd 這類能撐過重啟的位置，會作為「持久化」環節併入。關聯依據是時間與共享指標，屬推斷，非因果定論；只提高關注優先級，不會放大 Agent 的權限。',
     'sent.chain.badge':'攻擊鏈',
     'sent.chain.col.title':'攻擊鏈',
     'sent.chain.col.stages':'涵蓋環節',
@@ -5142,7 +5142,7 @@ const I18N13 = {
   'en': {
     'sent.chain.tab':'Attack chains',
     'sent.chain.title':'Suspected attack chains',
-    'sent.chain.hint':'Groups staged incidents (webshell dropped, suspicious process, outbound connection) so they read as one intrusion. The link is temporal plus shared indicators — an inference, not proof. It only raises priority; it never widens what the agent may do.',
+    'sent.chain.hint':'Groups staged incidents (webshell dropped, suspicious process, outbound connection) so they read as one intrusion. A suspicious change to a location that survives a reboot (authorized_keys, cron, systemd…) joins as the persistence stage. The link is temporal plus shared indicators — an inference, not proof. It only raises priority; it never widens what the agent may do.',
     'sent.chain.badge':'chain',
     'sent.chain.col.title':'Chain',
     'sent.chain.col.stages':'Stages',
@@ -5208,7 +5208,7 @@ const I18N13 = {
   'ja': {
     'sent.chain.tab':'攻撃チェーン',
     'sent.chain.title':'疑わしい攻撃チェーン',
-    'sent.chain.hint':'WebShell 設置 → 不審プロセス → 外部通信のように段階的に起きた事象を 1 件の侵入としてまとめます。関連付けは時刻と共有指標による推測で、因果の断定ではありません。優先度を上げるだけで、Agent の権限は広げません。',
+    'sent.chain.hint':'WebShell 設置 → 不審プロセス → 外部通信のように段階的に起きた事象を 1 件の侵入としてまとめます。再起動を生き延びる箇所（authorized_keys / cron / systemd など）への不審な変更は「永続化」段階として加わります。関連付けは時刻と共有指標による推測で、因果の断定ではありません。優先度を上げるだけで、Agent の権限は広げません。',
     'sent.chain.badge':'チェーン',
     'sent.chain.col.title':'チェーン',
     'sent.chain.col.stages':'段階',
@@ -5274,7 +5274,7 @@ const I18N13 = {
   'ko': {
     'sent.chain.tab':'공격 체인',
     'sent.chain.title':'의심 공격 체인',
-    'sent.chain.hint':'웹셸 설치 → 의심 프로세스 → 외부 통신처럼 단계적으로 발생한 사건을 하나의 침입으로 묶습니다. 연관성은 시간과 공유 지표에 근거한 추정이며 인과 확정이 아닙니다. 우선순위만 높이고 Agent 권한은 넓히지 않습니다.',
+    'sent.chain.hint':'웹셸 설치 → 의심 프로세스 → 외부 통신처럼 단계적으로 발생한 사건을 하나의 침입으로 묶습니다. 재부팅 후에도 남는 위치(authorized_keys / cron / systemd 등)에 대한 의심스러운 변경은 "지속성" 단계로 함께 묶입니다. 연관성은 시간과 공유 지표에 근거한 추정이며 인과 확정이 아닙니다. 우선순위만 높이고 Agent 권한은 넓히지 않습니다.',
     'sent.chain.badge':'체인',
     'sent.chain.col.title':'체인',
     'sent.chain.col.stages':'단계',
@@ -5340,7 +5340,7 @@ const I18N13 = {
   'th': {
     'sent.chain.tab':'ห่วงโซ่โจมตี',
     'sent.chain.title':'ห่วงโซ่โจมตีที่สงสัย',
-    'sent.chain.hint':'รวมเหตุการณ์ที่เกิดเป็นลำดับ (วางเว็บเชลล์ → กระบวนการต้องสงสัย → เชื่อมต่อภายนอก) ให้อ่านเป็นการบุกรุกครั้งเดียว การเชื่อมโยงอาศัยเวลาและตัวชี้วัดร่วม เป็นการอนุมาน ไม่ใช่ข้อสรุปเชิงสาเหตุ และไม่เพิ่มสิทธิ์ของ Agent',
+    'sent.chain.hint':'รวมเหตุการณ์ที่เกิดเป็นลำดับ (วางเว็บเชลล์ → กระบวนการต้องสงสัย → เชื่อมต่อภายนอก) ให้อ่านเป็นการบุกรุกครั้งเดียว การเปลี่ยนแปลงที่น่าสงสัยในตำแหน่งที่อยู่รอดหลังรีบูต (authorized_keys / cron / systemd ฯลฯ) จะถูกรวมเป็นขั้น "ฝังตัวถาวร" การเชื่อมโยงอาศัยเวลาและตัวชี้วัดร่วม เป็นการอนุมาน ไม่ใช่ข้อสรุปเชิงสาเหตุ และไม่เพิ่มสิทธิ์ของ Agent',
     'sent.chain.badge':'ห่วงโซ่',
     'sent.chain.col.title':'ห่วงโซ่',
     'sent.chain.col.stages':'ขั้นตอน',
@@ -5406,7 +5406,7 @@ const I18N13 = {
   'de': {
     'sent.chain.tab':'Angriffsketten',
     'sent.chain.title':'Vermutete Angriffsketten',
-    'sent.chain.hint':'Fasst stufenweise auftretende Ereignisse (Webshell abgelegt, verdächtiger Prozess, ausgehende Verbindung) zu einem Eindringen zusammen. Die Verknüpfung beruht auf Zeit und gemeinsamen Indikatoren — eine Vermutung, kein Beweis. Sie hebt nur die Priorität, nie die Rechte des Agenten.',
+    'sent.chain.hint':'Fasst stufenweise auftretende Ereignisse (Webshell abgelegt, verdächtiger Prozess, ausgehende Verbindung) zu einem Eindringen zusammen. Eine verdächtige Änderung an einem Ort, der einen Neustart übersteht (authorized_keys, cron, systemd …), kommt als Stufe "Persistenz" hinzu. Die Verknüpfung beruht auf Zeit und gemeinsamen Indikatoren — eine Vermutung, kein Beweis. Sie hebt nur die Priorität, nie die Rechte des Agenten.',
     'sent.chain.badge':'Kette',
     'sent.chain.col.title':'Kette',
     'sent.chain.col.stages':'Stufen',

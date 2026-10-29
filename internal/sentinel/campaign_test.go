@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -256,5 +257,148 @@ func TestCampaignBackfillUsesIncidentTime(t *testing.T) {
 	db.Model(&model.Campaign{}).Count(&n)
 	if n != 1 {
 		t.Fatalf("campaigns = %d, want 1 (backfill should chain them)", n)
+	}
+}
+
+// --- second-layer correlation: a suspicious change as the persistence stage ---
+
+// stubChangeStage returns a fixed stage/ok for every change incident, so the
+// campaigner's own rules can be tested without the change package.
+func stubChangeStage(stage string, ok bool) func(model.Incident) (string, bool) {
+	return func(inc model.Incident) (string, bool) {
+		if inc.Family != model.FamilyChange {
+			return "", false
+		}
+		return stage, ok
+	}
+}
+
+func changeIncident(t *testing.T, db *gorm.DB, id, subject string, at time.Time) model.Incident {
+	t.Helper()
+	return seedIncident(t, db, id, model.FamilyChange, subject, model.SeverityHigh, at)
+}
+
+// The story this exists for: a webshell lands, and eight minutes later something
+// writes an authorized_keys entry. Two symptoms, one intrusion.
+func TestCampaignChangeJoinsAfterExecution(t *testing.T) {
+	db := newCampaignDB(t)
+	c := NewCampaigner(db)
+	c.ChangeStage = stubChangeStage("persistence", true)
+	now := time.Now()
+
+	web := seedIncident(t, db, "i-web-10", "webshell", "/var/www/html/x.php", model.SeverityHigh, now)
+	c.Attach(web)
+	var camp model.Campaign
+	db.First(&camp)
+
+	chg := changeIncident(t, db, "i-chg-10", "/root/.ssh/authorized_keys", now.Add(8*time.Minute))
+	if !c.Attach(chg) {
+		t.Fatal("a persistence change after an execution event must join the chain")
+	}
+	var linked model.Incident
+	db.First(&linked, "id = ?", "i-chg-10")
+	if linked.CampaignID != camp.ID {
+		t.Fatalf("change campaign = %q, want %q", linked.CampaignID, camp.ID)
+	}
+	var after model.Campaign
+	db.First(&after, "id = ?", camp.ID)
+	if after.StageCount != 2 {
+		t.Fatalf("stage count = %d, want 2 (execution+persistence)", after.StageCount)
+	}
+	if !strings.Contains(after.Stages, "persistence") {
+		t.Fatalf("stages = %s, want persistence included", after.Stages)
+	}
+}
+
+// A change is a fact record: it must never open a chain on its own, however
+// suspicious the rules think it is. Otherwise every maintenance edit becomes an
+// "attack chain of one".
+func TestCampaignChangeNeverSeeds(t *testing.T) {
+	db := newCampaignDB(t)
+	c := NewCampaigner(db)
+	c.ChangeStage = stubChangeStage("persistence", true)
+
+	chg := changeIncident(t, db, "i-chg-11", "/root/.ssh/authorized_keys", time.Now())
+	if c.Attach(chg) {
+		t.Fatal("a change must not open a chain")
+	}
+	var n int64
+	db.Model(&model.Campaign{}).Count(&n)
+	if n != 0 {
+		t.Fatalf("campaigns = %d, want 0", n)
+	}
+}
+
+// Persisting only means something after a foothold: a chain that has not seen
+// anything execute or call out is not the right home for it.
+func TestCampaignChangeSkipsChainsWithoutFoothold(t *testing.T) {
+	db := newCampaignDB(t)
+	c := NewCampaigner(db)
+	c.ChangeStage = stubChangeStage("persistence", true)
+	now := time.Now()
+
+	// A webshell would seed, so build the chain by hand with a persistence-only stage.
+	camp := model.Campaign{
+		ID: "cp-noexec", Title: "疑似攻击链", Severity: model.SeverityHigh,
+		Status: model.CampaignOpen, Score: 0.3, StageCount: 1, IncidentCount: 1,
+		Stages: encodeStrings([]string{"persistence"}),
+		CreatedAt: now.Add(-time.Hour), UpdatedAt: now, FirstSeen: now.Add(-time.Hour), LastSeen: now.Add(-5 * time.Minute),
+	}
+	db.Create(&camp)
+
+	chg := changeIncident(t, db, "i-chg-12", "/etc/cron.d/x", now)
+	if c.Attach(chg) {
+		t.Fatal("a chain without execution/c2 must not accept a persistence change")
+	}
+}
+
+// Being close in time matters: "changed sudoers yesterday evening" and "webshell at
+// 2am" are not one story, so the base weight alone must stay below the threshold.
+func TestCampaignChangeRequiresProximity(t *testing.T) {
+	db := newCampaignDB(t)
+	c := NewCampaigner(db)
+	c.ChangeStage = stubChangeStage("persistence", true)
+	now := time.Now()
+
+	web := seedIncident(t, db, "i-web-13", "webshell", "/var/www/html/z.php", model.SeverityHigh, now)
+	c.Attach(web)
+
+	far := changeIncident(t, db, "i-chg-13", "/etc/sudoers", now.Add(100*time.Minute))
+	if c.Attach(far) {
+		t.Fatal("a change 100 minutes later must not join the chain")
+	}
+	near := changeIncident(t, db, "i-chg-13b", "/etc/sudoers", now.Add(20*time.Minute))
+	if !c.Attach(near) {
+		t.Fatal("a change 20 minutes later should join the chain")
+	}
+}
+
+// With no rule injected, changes behave exactly as before: standalone.
+func TestCampaignChangeWithoutRuleStaysStandalone(t *testing.T) {
+	db := newCampaignDB(t)
+	c := NewCampaigner(db)
+	now := time.Now()
+
+	web := seedIncident(t, db, "i-web-14", "webshell", "/var/www/html/w.php", model.SeverityHigh, now)
+	c.Attach(web)
+	chg := changeIncident(t, db, "i-chg-14", "/root/.ssh/authorized_keys", now.Add(5*time.Minute))
+	if c.Attach(chg) {
+		t.Fatal("without ChangeStage a change must not join any chain")
+	}
+}
+
+// A ruled-out change (ok=false from the rule) must stay out even when it is right
+// after an execution event: that is the "someone edited nginx.conf" case.
+func TestCampaignChangeNotSuspiciousStaysOut(t *testing.T) {
+	db := newCampaignDB(t)
+	c := NewCampaigner(db)
+	c.ChangeStage = stubChangeStage("", false)
+	now := time.Now()
+
+	web := seedIncident(t, db, "i-web-15", "webshell", "/var/www/html/v.php", model.SeverityHigh, now)
+	c.Attach(web)
+	chg := changeIncident(t, db, "i-chg-15", "/etc/nginx/nginx.conf", now.Add(3*time.Minute))
+	if c.Attach(chg) {
+		t.Fatal("a non-suspicious change must not join the chain")
 	}
 }

@@ -34,8 +34,9 @@ var chainOrder = []string{"initial_access", "execution", "persistence", "c2", "i
 //
 //   - metric / log_growth are operational noise and are reported as "impact" only
 //     when they follow a real intrusion stage, so they cannot start a chain.
-//   - change is a fact record (severity=info) and must never be promoted to an
-//     attack stage — otherwise "someone edited nginx.conf" would look like a breach.
+//   - change is handled separately by Campaigner.ChangeStage: a change is a fact
+//     record (severity=info) and must never be promoted to an attack stage on its
+//     own — otherwise "someone edited nginx.conf" would look like a breach.
 var stageOfFamily = map[string]string{
 	"auth.anomaly":   "initial_access",
 	"webshell":       "execution",
@@ -62,6 +63,13 @@ type Campaigner struct {
 	Window time.Duration
 	// Notify is called once per campaign when it first reaches escalation.
 	Notify func(c model.Campaign, incidents []model.Incident)
+	// ChangeStage decides whether a change incident may join a campaign and as which
+	// stage. Injected by the router, because the rules (only a *suspicious* change to
+	// a persistence mechanism counts) live with the change review, not here.
+	//
+	// nil means "changes stay standalone", which is the behaviour of every build that
+	// does not wire this up.
+	ChangeStage func(inc model.Incident) (string, bool)
 }
 
 // DefaultCampaignWindow is the look-back for attaching a new incident.
@@ -111,6 +119,11 @@ func (c *Campaigner) Attach(inc model.Incident) bool {
 	}
 	stage, ok := stageOfFamily[inc.Family]
 	if !ok {
+		// A change may still join a chain — but only through the injected rule, only
+		// when something already ran, and never as the opening event.
+		if inc.Family == model.FamilyChange {
+			return c.attachChange(inc)
+		}
 		return false
 	}
 	// Sub-threshold observations are not evidence of anything.
@@ -189,8 +202,148 @@ func (c *Campaigner) Backfill(window time.Duration) int {
 	return n
 }
 
-// affinity scores how well an incident fits an existing campaign.
+// attachChange tries to fold a change incident into an existing chain.
 //
+// Stricter than the generic path on purpose, in three ways:
+//
+//  1. the stage comes from the injected rule, so only a change that was ruled
+//     suspicious AND touches a persistence mechanism is even considered;
+//  2. the target chain must already contain something that *ran* (execution) or
+//     called out (c2) — persisting is only meaningful after a foothold exists;
+//  3. an hour, not the full two-hour window: "the day someone changed sudoers" and
+//     "the webshell last night" are not the same story.
+//
+// It never creates a campaign: a chain must be opened by a real observation, so a
+// suspicious config edit alone still produces exactly one incident and no scary
+// banner.
+func (c *Campaigner) attachChange(inc model.Incident) bool {
+	if c == nil || c.DB == nil || c.ChangeStage == nil || inc.ID == "" {
+		return false
+	}
+	stage, ok := c.ChangeStage(inc)
+	if !ok || stage == "" {
+		return false
+	}
+	if model.SeverityRank(inc.Severity) < model.SeverityRank(model.SeverityMedium) {
+		return false
+	}
+	anchor := inc.FirstSeen
+	if anchor.IsZero() {
+		anchor = inc.LastSeen
+	}
+	if anchor.IsZero() {
+		anchor = time.Now()
+	}
+	window := c.Window
+	if window <= 0 {
+		window = DefaultCampaignWindow
+	}
+	// Don't attach to a chain that started *after* this change: history is append
+	// only, and a chain that opens after the edit did not cause it.
+	var open []model.Campaign
+	c.DB.Where("status = ? AND last_seen > ? AND last_seen <= ?",
+		model.CampaignOpen, anchor.Add(-window), anchor.Add(5*time.Minute)).
+		Order("last_seen DESC").Limit(20).Find(&open)
+
+	best, bestScore := -1, 0.0
+	var bestReasons []string
+	for i, camp := range open {
+		stages := decodeStrings(camp.Stages)
+		if !contains(stages, "execution") && !contains(stages, "c2") {
+			continue
+		}
+		score, reasons := c.changeAffinity(camp, inc, stage)
+		if score > bestScore {
+			best, bestScore, bestReasons = i, score, reasons
+		}
+	}
+	if best < 0 || bestScore < 0.45-1e-9 {
+		return false
+	}
+	camp := open[best]
+	c.link(&camp, inc, stage, bestScore, bestReasons)
+	return true
+}
+
+// changeAffinity scores a suspicious persistence change against a chain that has
+// already seen something execute.
+//
+// The base weight is 0.4, i.e. deliberately below the attach threshold: "a
+// persistence change happened after an execution event" is not enough on its own,
+// it also has to be *close in time*. A change 90 minutes later is more likely a
+// sysadmin cleaning up than an intruder digging in.
+func (c *Campaigner) changeAffinity(camp model.Campaign, inc model.Incident, stage string) (float64, []string) {
+	var reasons []string
+	anchor := inc.FirstSeen
+	if anchor.IsZero() {
+		anchor = inc.LastSeen
+	}
+	gap := anchor.Sub(camp.LastSeen)
+	if gap < -5*time.Minute {
+		return 0, nil
+	}
+
+	score := 0.4
+	reasons = append(reasons, "已在链上确认落地/外联环节之后出现该变更")
+
+	switch {
+	case gap <= 15*time.Minute:
+		score += 0.2
+		reasons = append(reasons, fmt.Sprintf("%d 分钟内的后续变更", int(gap.Minutes())))
+	case gap <= time.Hour:
+		score += 0.1
+		reasons = append(reasons, fmt.Sprintf("%d 分钟内的后续变更", int(gap.Minutes())))
+	}
+
+	// A shared indicator is worth more than timing: a change that touches the same
+	// path root or the same address the chain already involves is very likely the
+	// same operator.
+	if shared := sharedIndicator(camp, inc.Subject); shared != "" {
+		score += 0.2
+		reasons = append(reasons, "共享指标："+shared)
+	}
+	if score > 1 {
+		score = 1
+	}
+	return score, reasons
+}
+
+// sharedIndicator finds a subject/token the campaign and this change have in common.
+func sharedIndicator(camp model.Campaign, subject string) string {
+	if subject == "" {
+		return ""
+	}
+	subjects := decodeStrings(camp.Subjects)
+	for _, sub := range subjects {
+		if sub != "" && sub == subject {
+			return sub
+		}
+	}
+	incTokens := tokensOf(subject)
+	if len(incTokens) == 0 {
+		return ""
+	}
+	campTokens := tokensOf(strings.Join(subjects, " "))
+	for tok := range incTokens {
+		if campTokens[tok] {
+			return tok
+		}
+	}
+	// Same path root: /var/www/a/x.php and /var/www/b/y.php both live under
+	// /var/www, which is how a web-root compromise and a web-shell drop connect.
+	root := pathRoot(subject)
+	if root == "" {
+		return ""
+	}
+	for _, sub := range subjects {
+		if pathRoot(sub) == root {
+			return root
+		}
+	}
+	return ""
+}
+
+
 // Everything is measured against the incident's own timestamp, not "now": during a
 // backfill, "now" is hours later than the events and every comparison would say
 // "too old".

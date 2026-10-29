@@ -405,6 +405,36 @@ func (s *Store) IncidentForChange(ids []string) map[string]string {
 	return out
 }
 
+// LatestByObject returns the most recent change recorded for one object key.
+//
+// Used by the campaign correlator, which is handed an incident (and therefore only
+// the object key) but needs the change kind to decide whether the object is a
+// persistence mechanism.
+func (s *Store) LatestByObject(objectKey string) (model.ChangeEvent, error) {
+	var ev model.ChangeEvent
+	if strings.TrimSpace(objectKey) == "" {
+		return ev, nil
+	}
+	err := s.db.Where("object_key = ?", objectKey).Order("at desc").Limit(1).Find(&ev).Error
+	return ev, err
+}
+
+// ReviewFor returns the rule verdict of one change, or nil when it was never reviewed.
+func (s *Store) ReviewFor(changeID string) (*model.ChangeReview, error) {
+	if changeID == "" {
+		return nil, nil
+	}
+	var rev model.ChangeReview
+	err := s.db.Where("change_id = ?", changeID).Limit(1).Find(&rev).Error
+	if err != nil {
+		return nil, err
+	}
+	if rev.ChangeID == "" {
+		return nil, nil
+	}
+	return &rev, nil
+}
+
 // --- ignore rules ----------------------------------------------------------
 
 // IgnorePatterns returns user-editable ignore globs.
