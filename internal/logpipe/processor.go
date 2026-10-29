@@ -98,6 +98,8 @@ func newProcessor(s ProcSpec) (Processor, error) {
 		return newMoveProc(s.Params)
 	case "add_locale":
 		return newAddLocaleProc(s.Params)
+	case "add_observer_metadata":
+		return newAddObserverMetaProc(s.Params)
 	case "add_host_metadata":
 		return newAddHostMetaProc(s.Params)
 	case "add_network_direction":

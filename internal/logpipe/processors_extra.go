@@ -923,3 +923,41 @@ func mustGet(ev Event, path string) any {
 	v, _ := getPath(ev, path)
 	return v
 }
+
+// --- add_observer_metadata ---
+//
+// ECS observer.* describes the component that observed the event. Platforms use it
+// to tell collectors apart, which matters here because agent.type is configurable
+// (opsmini by default, filebeat for template compatibility). Keeping the identity
+// in both places means a dashboard can group by observer.type without caring what
+// agent.type was set to.
+type addObserverMetaProc struct{ overwrite bool }
+
+func newAddObserverMetaProc(params map[string]any) (Processor, error) {
+	return &addObserverMetaProc{overwrite: asBool(params["overwrite"])}, nil
+}
+
+func (p *addObserverMetaProc) Name() string { return "add_observer_metadata" }
+func (p *addObserverMetaProc) Apply(ev Event) []Event {
+	agent, _ := ev["agent"].(Event)
+	obs := Event{
+		"type":     asString(agent["type"]),
+		"version":  asString(agent["version"]),
+		"hostname": hostMeta.name,
+	}
+	if obs["type"] == "" {
+		obs["type"] = "opsmini"
+	}
+	if existing, ok := ev["observer"].(Event); ok {
+		if !p.overwrite {
+			return []Event{ev}
+		}
+		for k, v := range existing {
+			if _, exists := obs[k]; !exists {
+				obs[k] = v
+			}
+		}
+	}
+	ev["observer"] = obs
+	return []Event{ev}
+}

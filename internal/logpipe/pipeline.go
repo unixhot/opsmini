@@ -38,6 +38,8 @@ type Manager struct {
 	out    Output
 	outErr string
 	sp     *spool
+	// pre keeps the last processed events per task for the panel preview.
+	pre *previewRing
 
 	sendQ chan batch
 	stop  chan struct{}
@@ -109,6 +111,7 @@ func NewManager(cfg MainConfig, db *gorm.DB, version string) *Manager {
 		sendQ:   make(chan batch, 256),
 		stop:    make(chan struct{}),
 		sp:      newSpool(cfg.SpoolDir, cfg.SpoolMaxMB),
+		pre:     newPreviewRing(previewLimit),
 	}
 	if out, err := newOutput(cfg.Output); err != nil {
 		if cfg.Output.Type != "" {
@@ -181,6 +184,7 @@ func (m *Manager) reload() {
 	for id := range old {
 		if _, ok := next[id]; !ok {
 			log.Printf("logpipe: 任务 %s 已移除", id)
+			m.pre.forget(id)
 		}
 	}
 
@@ -319,7 +323,15 @@ func (m *Manager) applyProcessors(taskID string, events []Event) []Event {
 	m.mu.RLock()
 	rt, ok := m.tasks[taskID]
 	m.mu.RUnlock()
-	if !ok || len(rt.procs) == 0 {
+	if !ok {
+		return events
+	}
+	if len(rt.procs) == 0 {
+		// No processors is still worth previewing: "the field is missing because
+		// there is no processor" is the answer half of the time.
+		for _, ev := range events {
+			m.pre.add(taskID, ev)
+		}
 		return events
 	}
 	out := make([]Event, 0, len(events))
@@ -339,6 +351,11 @@ func (m *Manager) applyProcessors(taskID string, events []Event) []Event {
 	}
 	if dropped := len(events) - len(out); dropped > 0 {
 		atomic.AddInt64(&statsOf(taskID).eventsDropped, int64(dropped))
+	}
+	// Retain a few for the preview: this is the only way to see what the
+	// processors actually produced without sending test data to the real index.
+	for _, ev := range out {
+		m.pre.add(taskID, ev)
 	}
 	return out
 }

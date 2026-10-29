@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/opsmini/opsmini/internal/logpipe"
@@ -28,6 +30,25 @@ func (h *LogPipeHandler) Status(c *gin.Context) {
 		return
 	}
 	response.OK(c, h.Mgr.Status())
+}
+
+// Preview GET /logpipe/preview?task=&limit=
+//
+// The one capability filebeat lacks: seeing what a task actually produces after
+// its processors ran, without shipping test data to the real index.
+func (h *LogPipeHandler) Preview(c *gin.Context) {
+	if h.Mgr == nil {
+		response.OK(c, []any{})
+		return
+	}
+	limit := 20
+	if v := c.Query("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			limit = n
+		}
+	}
+	task, events := h.Mgr.Preview(c.Query("task"), limit)
+	response.OK(c, gin.H{"task_id": task, "events": events})
 }
 
 // Reload POST /logpipe/reload — force a tasks.d rescan after a manual edit.

@@ -251,3 +251,26 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+func TestAddObserverMetadata(t *testing.T) {
+	p, err := newAddObserverMetaProc(map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev := newEvent(Task{ID: "x"}, "/tmp/a.log", 0, "line", "opsmini", "v1.4.0")
+	out := p.Apply(ev)[0]
+	obs, ok := out["observer"].(Event)
+	if !ok {
+		t.Fatalf("observer missing: %v", out)
+	}
+	if obs["type"] != "opsmini" || obs["version"] != "v1.4.0" {
+		t.Fatalf("observer=%v", obs)
+	}
+	// Without overwrite the existing block wins, so a user-supplied observer is not
+	// silently replaced.
+	out["observer"] = Event{"type": "custom"}
+	out2 := p.Apply(out)[0]
+	if out2["observer"].(Event)["type"] != "custom" {
+		t.Fatalf("overwrite happened without being requested: %v", out2["observer"])
+	}
+}

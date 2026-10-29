@@ -631,6 +631,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 			// 日志管道：只读视图 + 手动重扫（任务只从 OpsAnt 下发）
 			authed.GET("/logpipe/status", permMw("ai.agent"), logPipeHandler.Status)
+			authed.GET("/logpipe/preview", permMw("ai.agent"), logPipeHandler.Preview)
 			authed.POST("/logpipe/reload", permMw("settings.edit"), logPipeHandler.Reload)
 
 			authed.GET("/mcp", mcpHandler.List)
