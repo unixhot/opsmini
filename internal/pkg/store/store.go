@@ -115,6 +115,8 @@ func seedAlertRules(db *gorm.DB) error {
 		{Name: "CPU 温度过高", Metric: "CPU 温度", Condition: "> 80°C", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "运行中进程数过多", Metric: "运行中进程数", Condition: "> 500", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "上下文切换过高", Metric: "上下文切换次数", Condition: "> 100000", Duration: "5 分钟", Notify: "面板", Enabled: true},
+		{Name: "僵尸进程堆积", Metric: "僵尸进程数", Condition: "> 5", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
+		{Name: "系统刚刚重启", Metric: "系统运行时长", Condition: "< 300", Duration: "0 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
 	}
 	inserted := 0
 	for _, r := range rules {

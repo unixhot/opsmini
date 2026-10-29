@@ -57,7 +57,7 @@ func (s *BaselineService) Latest() ([]model.BaselineResult, error) {
 
 // items defines all check items (built into the code).
 func (s *BaselineService) items() []checkItem {
-	return []checkItem{
+	base := []checkItem{
 		{key: "ssh_root_login", category: "ssh", title: "SSH 禁止 root 密码登录", weight: 3, run: func() (string, string, string) {
 			v := sshdValue("PermitRootLogin")
 			if v == "" {
@@ -177,6 +177,7 @@ func (s *BaselineService) items() []checkItem {
 			return "warn", "发现可疑计划任务：" + strings.Join(sus, "; "), "检查计划任务，删除不明来源的下载执行命令"
 		}},
 	}
+	return append(base, s.extraItems()...)
 }
 
 // ---- the following are helper functions (file parsing) ----

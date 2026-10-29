@@ -2,6 +2,8 @@ package service
 
 import (
 	"log"
+	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -243,8 +245,31 @@ func compareValue(val float64, op string, threshold float64) bool {
 }
 
 // metricValue returns the current metric value and whether it matched.
+//
+// Order matters: several rule names contain another metric's name ("磁盘 inode"
+// contains "磁盘", "CPU 温度" contains "CPU"), so the narrower match must come
+// first. Getting this wrong makes a rule silently watch the wrong number — the
+// CPU-temperature rule used to report CPU utilisation as degrees.
 func metricValue(metric string, sum *MonitorSummary, sys *SystemService) (float64, bool) {
 	switch {
+	case strings.Contains(metric, "inode") || strings.Contains(metric, "Inode"):
+		v, ok := procPercent("inode")
+		if ok {
+			return v, true
+		}
+		return sum.DiskPercent, true
+	case strings.Contains(metric, "Swap") || strings.Contains(metric, "swap"):
+		return procPercent("swap")
+	case strings.Contains(metric, "负载") || strings.Contains(metric, "Load"):
+		return sum.Load5, true
+	case strings.Contains(metric, "TCP") || strings.Contains(metric, "连接数"):
+		return procCount("tcp")
+	case strings.Contains(metric, "上下文切换"):
+		return procCount("ctxt")
+	case strings.Contains(metric, "网卡接收错误"):
+		return procCount("neterr")
+	case strings.Contains(metric, "磁盘 IO") || strings.Contains(metric, "IO 使用率"):
+		return procCount("ioutil")
 	// Temperature must be matched before "CPU": every temperature rule name
 	// contains "CPU" too, and matching it first made「CPU 温度」silently read the
 	// CPU utilisation percentage (98.4% "hot" while the box was merely busy).
@@ -259,6 +284,14 @@ func metricValue(metric string, sum *MonitorSummary, sys *SystemService) (float6
 		return sum.MemPercent, true
 	case strings.Contains(metric, "磁盘") || strings.Contains(metric, "Disk"):
 		return sum.DiskPercent, true
+	case strings.Contains(metric, "僵尸"):
+		return float64(sum.ZombieCount), true
+	case strings.Contains(metric, "运行时长"):
+		up := uptimeSeconds()
+		if up <= 0 {
+			return 0, false // 无 /proc/uptime：宁可不说，也不要误报
+		}
+		return up, true
 	case strings.Contains(metric, "进程") || strings.Contains(metric, "Process"):
 		return float64(sum.ProcessCount), true
 	case strings.Contains(metric, "下载") || strings.Contains(metric, "下行"):
@@ -276,6 +309,10 @@ func formatMetricValue(metric string, v float64) string {
 	switch {
 	case strings.Contains(metric, "温度") || strings.Contains(metric, "Temperature"):
 		return strconv.FormatFloat(v, 'f', 1, 64) + "°C"
+	case strings.Contains(metric, "运行时长"):
+		return strconv.FormatFloat(v, 'f', 0, 64) + " 秒"
+	case strings.Contains(metric, "僵尸"):
+		return strconv.FormatFloat(v, 'f', 0, 64)
 	case strings.Contains(metric, "进程") || strings.Contains(metric, "Process"):
 		return strconv.FormatFloat(v, 'f', 0, 64)
 	case strings.Contains(metric, "下载") || strings.Contains(metric, "上传") || strings.Contains(metric, "下行") || strings.Contains(metric, "上行"):
@@ -283,4 +320,152 @@ func formatMetricValue(metric string, v float64) string {
 	default:
 		return strconv.FormatFloat(v, 'f', 1, 64) + "%"
 	}
+}
+
+// --- /proc based metric helpers -------------------------------------------
+//
+// The shipped rules cover more metrics than MonitorSummary carries, and several
+// of them used to be silently dead: metricValue returned "no match", so the rule
+// never fired. These helpers read the specific /proc file each metric needs.
+
+// procPercent computes a percentage from /proc (inode usage or swap usage).
+func procPercent(kind string) (float64, bool) {
+	switch kind {
+	case "swap":
+		data, err := os.ReadFile("/proc/meminfo")
+		if err != nil {
+			return 0, false
+		}
+		var total, free float64
+		for _, line := range strings.Split(string(data), "\n") {
+			f := strings.Fields(line)
+			if len(f) < 2 {
+				continue
+			}
+			switch f[0] {
+			case "SwapTotal:":
+				total, _ = strconv.ParseFloat(f[1], 64)
+			case "SwapFree:":
+				free, _ = strconv.ParseFloat(f[1], 64)
+			}
+		}
+		if total == 0 {
+			return 0, true // no swap configured: 0% used, rule stays quiet
+		}
+		return (total - free) / total * 100, true
+	case "inode":
+		// Take the fullest filesystem: that is the one that will break.
+		out, err := exec.Command("df", "-P", "-i").Output()
+		if err != nil {
+			return 0, false
+		}
+		worst := 0.0
+		found := false
+		for i, line := range strings.Split(string(out), "\n") {
+			if i == 0 || strings.TrimSpace(line) == "" {
+				continue
+			}
+			f := strings.Fields(line)
+			if len(f) < 6 {
+				continue
+			}
+			use := strings.TrimSuffix(f[4], "%")
+			if v, err := strconv.ParseFloat(use, 64); err == nil {
+				found = true
+				if v > worst {
+					worst = v
+				}
+			}
+		}
+		return worst, found
+	}
+	return 0, false
+}
+
+// procCount returns a raw count/rate from /proc.
+func procCount(kind string) (float64, bool) {
+	switch kind {
+	case "tcp":
+		data, err := os.ReadFile("/proc/net/tcp")
+		if err != nil {
+			return 0, false
+		}
+		n := 0
+		for _, line := range strings.Split(string(data), "\n")[1:] {
+			if strings.TrimSpace(line) != "" {
+				n++
+			}
+		}
+		return float64(n), true
+	case "ctxt":
+		data, err := os.ReadFile("/proc/stat")
+		if err != nil {
+			return 0, false
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "ctxt ") {
+				if v, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimPrefix(line, "ctxt")), 64); err == nil {
+					return v, true
+				}
+			}
+		}
+		return 0, false
+	case "neterr":
+		data, err := os.ReadFile("/proc/net/dev")
+		if err != nil {
+			return 0, false
+		}
+		var total float64
+		for _, line := range strings.Split(string(data), "\n")[2:] {
+			f := strings.Fields(strings.ReplaceAll(line, ":", " "))
+			if len(f) < 12 {
+				continue
+			}
+			// fields: iface rx_bytes rx_packets rx_errs ... tx_bytes tx_packets tx_errs
+			if rxErr, err := strconv.ParseFloat(f[3], 64); err == nil {
+				total += rxErr
+			}
+			if txErr, err := strconv.ParseFloat(f[11], 64); err == nil {
+				total += txErr
+			}
+		}
+		return total, true
+	case "ioutil":
+		data, err := os.ReadFile("/proc/diskstats")
+		if err != nil {
+			return 0, false
+		}
+		// Field 10 (io_ticks, ms) over wall time gives busy percentage; without a
+		// previous sample we can only report a coarse "busy ms in last interval",
+		// so use the average since boot as a stable proxy.
+		var ms float64
+		for _, line := range strings.Split(string(data), "\n") {
+			f := strings.Fields(line)
+			if len(f) < 13 {
+				continue
+			}
+			if v, err := strconv.ParseFloat(f[12], 64); err == nil {
+				ms += v
+			}
+		}
+		up := uptimeSeconds()
+		if up <= 0 {
+			return 0, false
+		}
+		return ms / (up * 1000) * 100, true
+	}
+	return 0, false
+}
+
+func uptimeSeconds() float64 {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return 0
+	}
+	f := strings.Fields(string(data))
+	if len(f) == 0 {
+		return 0
+	}
+	v, _ := strconv.ParseFloat(f[0], 64)
+	return v
 }
