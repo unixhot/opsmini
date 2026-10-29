@@ -1,19 +1,17 @@
 package service
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/config"
+	"github.com/opsmini/opsmini/internal/llm"
 )
 
 // AIService is the LLM integration service, calling the OpenAI-compatible chat completions API.
@@ -21,6 +19,11 @@ import (
 // Built-in OpsMini MCP tools inject real-time system info, MCP list, and Skill list into the context;
 // supports function calling to search/install SkillHub skills.
 type AIService struct {
+	// llmClient is the shared transport: OpenAI-compatible, Anthropic, Azure or
+	// Gemini depending on the provider setting. Building it here (instead of
+	// hand-rolling requests) is what makes the panel assistant support every
+	// protocol the agent does.
+	llmClient *llm.Client
 	cfg        *config.AI
 	client     *http.Client
 	getSetting func(key string) string // runtime config (settings take precedence over config)
@@ -40,7 +43,7 @@ type ChatMessage struct {
 
 // NewAIService creates an AIService. getSetting is optional, used to override config at runtime (panel settings).
 func NewAIService(cfg *config.AI, getSetting func(string) string, sys *SystemService, firewall *FirewallService, mcp *McpService, skill *SkillService) *AIService {
-	return &AIService{
+	svc := &AIService{
 		cfg:        cfg,
 		client:     &http.Client{Timeout: 60 * time.Second},
 		getSetting: getSetting,
@@ -49,6 +52,16 @@ func NewAIService(cfg *config.AI, getSetting func(string) string, sys *SystemSer
 		mcp:        mcp,
 		skill:      skill,
 	}
+	svc.llmClient = llm.New(func() llm.Config {
+		return llm.Config{
+			Provider:  svc.provider(),
+			BaseURL:   svc.baseURL(),
+			APIKey:    svc.apiKey(),
+			Model:     svc.model(),
+			MaxTokens: 4096,
+		}
+	})
+	return svc
 }
 
 // System prompt that constrains the model to the role of an ops assistant.
@@ -125,6 +138,14 @@ func (s *AIService) enabled() bool {
 }
 
 // apiKey returns the API key (env var OPSMINI_AI_KEY has the highest priority, then settings, then config).
+// provider returns the configured wire protocol (openai by default).
+func (s *AIService) provider() string {
+	if v := s.setting("ai_provider"); v != "" {
+		return v
+	}
+	return s.cfg.Provider
+}
+
 func (s *AIService) apiKey() string {
 	if k := os.Getenv("OPSMINI_AI_KEY"); k != "" {
 		return k
@@ -178,40 +199,44 @@ var builtinTools = []Tool{
 }
 
 // callLLM makes a single LLM call and returns the parsed response.
-func (s *AIService) callLLM(messages []ChatMessage, tools []Tool) (*chatCompletionResp, error) {
-	body, err := json.Marshal(chatCompletionReq{Model: s.model(), Messages: messages, Stream: false, Tools: tools})
-	if err != nil {
-		return nil, err
-	}
-	url := strings.TrimRight(s.baseURL(), "/") + "/chat/completions"
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.apiKey())
+// --- conversions to the neutral transport types ---------------------------
 
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
+func toLLMMessages(in []ChatMessage) []llm.Message {
+	out := make([]llm.Message, 0, len(in))
+	for _, m := range in {
+		lm := llm.Message{Role: m.Role, Content: m.Content, ToolCallID: m.ToolCallID}
+		for _, tc := range m.ToolCalls {
+			var c llm.ToolCall
+			c.ID = tc.ID
+			c.Type = tc.Type
+			c.Function.Name = tc.Function.Name
+			c.Function.Arguments = tc.Function.Arguments
+			lm.ToolCalls = append(lm.ToolCalls, c)
+		}
+		out = append(out, lm)
 	}
-	defer resp.Body.Close()
+	return out
+}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20)) // limit 4MB
-	if err != nil {
-		return nil, err
+func toLLMTools(in []Tool) []llm.Tool {
+	out := make([]llm.Tool, 0, len(in))
+	for _, t := range in {
+		out = append(out, llm.Tool{Name: t.Function.Name, Description: t.Function.Description, Schema: t.Function.Parameters})
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("LLM API %d: %s", resp.StatusCode, truncate(string(data), 300))
+	return out
+}
+
+func fromLLMToolCalls(in []llm.ToolCall) []ToolCall {
+	out := make([]ToolCall, 0, len(in))
+	for _, tc := range in {
+		var c ToolCall
+		c.ID = tc.ID
+		c.Type = tc.Type
+		c.Function.Name = tc.Function.Name
+		c.Function.Arguments = tc.Function.Arguments
+		out = append(out, c)
 	}
-	var parsed chatCompletionResp
-	if err := json.Unmarshal(data, &parsed); err != nil {
-		return nil, err
-	}
-	if parsed.Error != nil {
-		return nil, fmt.Errorf("LLM error: %s", parsed.Error.Message)
-	}
-	return &parsed, nil
+	return out
 }
 
 // Chat sends a conversation and returns the model's reply (supports function calling tool calls).
@@ -226,16 +251,17 @@ func (s *AIService) Chat(messages []ChatMessage, deepThink bool) (string, error)
 	// inject system prompt + host system info collected in real time by built-in MCP tools
 	msgs := append([]ChatMessage{{Role: "system", Content: s.buildSystemPrompt(deepThink)}}, messages...)
 
+	ctx := context.Background()
+
 	// multi-round tool call loop (at most 3 rounds)
 	for round := 0; round < 3; round++ {
-		resp, err := s.callLLM(msgs, builtinTools)
+		msg, _, err := s.llmClient.Chat(ctx, toLLMMessages(msgs), toLLMTools(builtinTools))
 		if err != nil {
 			return "", err
 		}
-		if len(resp.Choices) == 0 {
+		if msg == nil {
 			return "", errors.New("LLM returned empty response")
 		}
-		msg := resp.Choices[0].Message
 
 		// no tool calls -> return directly
 		if len(msg.ToolCalls) == 0 {
@@ -243,7 +269,7 @@ func (s *AIService) Chat(messages []ChatMessage, deepThink bool) (string, error)
 		}
 
 		// execute tool calls and append the results
-		msgs = append(msgs, ChatMessage{Role: "assistant", Content: msg.Content, ToolCalls: msg.ToolCalls})
+		msgs = append(msgs, ChatMessage{Role: "assistant", Content: msg.Content, ToolCalls: fromLLMToolCalls(msg.ToolCalls)})
 		for _, tc := range msg.ToolCalls {
 			result, terr := s.callTool(tc.Function.Name, tc.Function.Arguments)
 			if terr != nil {
@@ -255,12 +281,12 @@ func (s *AIService) Chat(messages []ChatMessage, deepThink bool) (string, error)
 	}
 
 	// exceeded rounds: ask once more without tools
-	resp, err := s.callLLM(msgs, nil)
+	msg, _, err := s.llmClient.Chat(ctx, toLLMMessages(msgs), nil)
 	if err != nil {
 		return "", err
 	}
-	if len(resp.Choices) > 0 {
-		return strings.TrimSpace(resp.Choices[0].Message.Content), nil
+	if msg != nil {
+		return strings.TrimSpace(msg.Content), nil
 	}
 	return "", errors.New("LLM returned empty response")
 }
@@ -288,66 +314,10 @@ func (s *AIService) ChatStream(ctx context.Context, messages []ChatMessage, deep
 
 	msgs := append([]ChatMessage{{Role: "system", Content: s.buildSystemPrompt(deepThink)}}, messages...)
 
-	body, err := json.Marshal(chatCompletionReq{Model: s.model(), Messages: msgs, Stream: true})
-	if err != nil {
-		return err
-	}
-	url := strings.TrimRight(s.baseURL(), "/") + "/chat/completions"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.apiKey())
-	req.Header.Set("Accept", "text/event-stream")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
-		return fmt.Errorf("LLM API %d: %s", resp.StatusCode, truncate(string(data), 300))
-	}
-
-	// parse SSE line by line (data: {...}), extracting delta.content.
-	reader := bufio.NewReader(resp.Body)
-	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		line = bytes.TrimSpace(line)
-		if !bytes.HasPrefix(line, []byte("data:")) {
-			continue
-		}
-		data := bytes.TrimSpace(bytes.TrimPrefix(line, []byte("data:")))
-		if len(data) == 0 {
-			continue
-		}
-		if string(data) == "[DONE]" {
-			break
-		}
-		var chunk struct {
-			Choices []struct {
-				Delta struct {
-					Content string `json:"content"`
-				} `json:"delta"`
-			} `json:"choices"`
-		}
-		if err := json.Unmarshal(data, &chunk); err != nil {
-			continue
-		}
-		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
-			onChunk(chunk.Choices[0].Delta.Content)
-		}
-	}
-	return nil
+	// Streaming without tools: the assistant answers from the context injected by
+	// buildSystemPrompt; tool-using flows go through the non-streaming Chat.
+	_, _, err := s.llmClient.ChatStream(ctx, toLLMMessages(msgs), nil, onChunk)
+	return err
 }
 
 // callTool executes a built-in MCP tool.

@@ -36,11 +36,16 @@ type JWT struct {
 
 // AI holds the AI large language model integration configuration.
 type AI struct {
-	Enabled  bool   `yaml:"enabled"`
-	Provider string `yaml:"provider"` // openai/deepseek/qwen/ollama
+	Enabled bool `yaml:"enabled"`
+	// Provider is the wire protocol, not the vendor: openai (covers OpenAI,
+	// DeepSeek, Qwen, Moonshot, Zhipu, Ollama, vLLM and one-api relays),
+	// anthropic (Claude), azure (Azure OpenAI) or gemini (Google).
+	Provider string `yaml:"provider"`
 	Model    string `yaml:"model"`
 	BaseURL  string `yaml:"base_url"`
 	APIKey   string `yaml:"api_key"`
+	// AzureAPIVersion is only used when provider=azure.
+	AzureAPIVersion string `yaml:"azure_api_version"`
 }
 
 // Agent holds the gRPC Agent configuration (去 SaltStack 化).

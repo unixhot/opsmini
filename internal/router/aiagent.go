@@ -106,7 +106,17 @@ func buildAIAgent(
 		if model == "" {
 			model = cfg.AI.Model
 		}
-		return aiagent.LLMConfig{BaseURL: base, APIKey: key, Model: model}
+		provider := getSetting("ai_provider")
+		if provider == "" {
+			provider = cfg.AI.Provider
+		}
+		return aiagent.LLMConfig{
+			Provider:        provider,
+			BaseURL:         base,
+			APIKey:          key,
+			Model:           model,
+			AzureAPIVersion: cfg.AI.AzureAPIVersion,
+		}
 	})
 
 	repo := repository.NewAIRepo(db)
