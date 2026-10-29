@@ -3210,7 +3210,6 @@
                   <span class="mono">{{ n }}</span>
                 </label>
               </div>
-              <div v-else class="mute" style="font-size:11.5px;margin-top:10px">{{ t('backup.noRemote') }}</div>
               <div class="row" style="margin-top:12px;gap:8px">
                 <button class="btn primary" :disabled="backupRunning" @click="runBackup()">
                   {{ backupRunning ? t('backup.running') : t('backup.runNow') }}
