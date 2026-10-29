@@ -37,7 +37,8 @@ func newTriggerDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Skipf("sqlite unavailable: %v", err)
 	}
-	if err := db.AutoMigrate(&model.Incident{}, &model.AgentRun{}, &model.TriggerPolicy{}, &model.ActionLog{}); err != nil {
+	if err := db.AutoMigrate(&model.Incident{}, &model.AgentRun{}, &model.TriggerPolicy{},
+		&model.ActionLog{}, &model.ActionJournal{}, &model.Campaign{}, &model.Signal{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
@@ -167,5 +168,108 @@ func TestRunDoesNotRetryWhenVerificationPasses(t *testing.T) {
 	db.First(&got, "id = ?", inc.ID)
 	if got.Status != model.IncidentResolved {
 		t.Fatalf("incident should be resolved, got %s", got.Status)
+	}
+}
+
+// A run that failed verification must undo what it changed. The journal here holds a
+// non-undoable write (the common case for exec_command), so the assertion is that the
+// report is present and honest — "cannot be undone" is a result, silence is not.
+func TestRunRollsBackAfterFinalFailure(t *testing.T) {
+	db := newTriggerDB(t)
+	inc := newTestIncident(db, "inc-rb", "auth.anomaly|rb")
+
+	saf := safety.New(db, func() string { return t.TempDir() }, 8888)
+	// The runner mirrors what incidentRunner.journalWrite does for a write tool with
+	// no inverse, keyed by the incident id.
+	saf.Journal(inc.ID, "exec_command", "systemctl restart nginx", 0, false)
+
+	runner := &fakeRunner{result: RunResult{Summary: "已重启服务并观察，问题仍未解决，建议扩容。"}}
+	e := NewEngine(db, saf)
+	e.Runner = runner
+
+	e.run(inc, model.TriggerPolicy{
+		Name: "rb-test", Mode: model.ModeAssist, Family: "auth.anomaly", MaxSeconds: 30,
+		Verify: `[{"type":"port_listen","port":1}]`,
+		Prompt: "排查 {title}",
+	})
+
+	var got model.Incident
+	db.First(&got, "id = ?", inc.ID)
+	if got.Status != model.IncidentFailed {
+		t.Fatalf("incident should be failed, got %s", got.Status)
+	}
+	if !strings.Contains(got.Summary, "已回滚本次处置") {
+		t.Fatalf("summary should carry the rollback result, got: %s", got.Summary)
+	}
+	if !strings.Contains(got.Summary, "不可撤销") {
+		t.Fatalf("summary must state what could not be undone, got: %s", got.Summary)
+	}
+
+	var j model.ActionJournal
+	db.Where("session_id = ?", inc.ID).First(&j)
+	if !j.Undone {
+		t.Fatal("journal row should be marked undone (skipped counts as handled)")
+	}
+}
+
+// Policies can opt out: some playbooks deliberately leave a partial fix in place.
+func TestRunKeepsWritesWhenRollbackDisabled(t *testing.T) {
+	db := newTriggerDB(t)
+	inc := newTestIncident(db, "inc-norb", "auth.anomaly|norb")
+
+	saf := safety.New(db, func() string { return t.TempDir() }, 8888)
+	saf.Journal(inc.ID, "exec_command", "systemctl restart nginx", 0, false)
+
+	runner := &fakeRunner{result: RunResult{Summary: "已重启服务并观察，问题仍未解决，建议扩容。"}}
+	e := NewEngine(db, saf)
+	e.Runner = runner
+
+	e.run(inc, model.TriggerPolicy{
+		Name: "norb", Mode: model.ModeAssist, Family: "auth.anomaly", MaxSeconds: 30,
+		NoAutoRollback: true,
+		Verify:         `[{"type":"port_listen","port":1}]`,
+		Prompt:         "排查 {title}",
+	})
+
+	var j model.ActionJournal
+	db.Where("session_id = ?", inc.ID).First(&j)
+	if j.Undone {
+		t.Fatal("NoAutoRollback should leave the journal untouched")
+	}
+	var got model.Incident
+	db.First(&got, "id = ?", inc.ID)
+	if strings.Contains(got.Summary, "已回滚本次处置") {
+		t.Fatalf("summary should not claim a rollback, got: %s", got.Summary)
+	}
+}
+
+// A chained incident must tell the model about its siblings, otherwise the feature is
+// only cosmetic in the panel.
+func TestRunAddsCampaignContextToPrompt(t *testing.T) {
+	db := newTriggerDB(t)
+	inc := newTestIncident(db, "inc-chain", "net.anomaly|chain")
+	camp := model.Campaign{ID: "cp1", Title: "疑似攻击链：执行落地 → 外联控制",
+		Severity: model.SeverityCritical, Status: model.CampaignOpen,
+		Stages: `["execution","c2"]`, StageCount: 2}
+	db.Create(&camp)
+	db.Model(&model.Incident{}).Where("id = ?", inc.ID).Update("campaign_id", "cp1")
+	db.Create(&model.Incident{ID: "inc-sib", Title: "疑似 WebShell · /var/www/x.php",
+		Family: "webshell", Subject: "/var/www/x.php", Severity: "high",
+		Status: model.IncidentResolved, CampaignID: "cp1", FirstSeen: time.Now()})
+	db.First(&inc, "id = ?", inc.ID)
+
+	runner := &fakeRunner{result: RunResult{Summary: "已阻断外联并隔离落地文件，攻击链已切断。"}}
+	e := NewEngine(db, safety.New(db, func() string { return t.TempDir() }, 8888))
+	e.Runner = runner
+	e.run(inc, model.TriggerPolicy{Name: "chain", Mode: model.ModeAssist, Family: "net.anomaly", MaxSeconds: 30, Prompt: "排查 {title}"})
+
+	if runner.calls != 1 {
+		t.Fatalf("calls = %d, want 1", runner.calls)
+	}
+	if !strings.Contains(runner.prompts[0], "攻击链上下文") {
+		t.Fatalf("prompt missing campaign context: %s", runner.prompts[0])
+	}
+	if !strings.Contains(runner.prompts[0], "疑似 WebShell") {
+		t.Fatalf("prompt should list the sibling incident: %s", runner.prompts[0])
 	}
 }

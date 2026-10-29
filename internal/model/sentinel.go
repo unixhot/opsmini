@@ -112,25 +112,33 @@ type Incident struct {
 	// Members is a JSON array of the distinct subjects folded in (source IPs for
 	// a brute-force burst, units for a restart loop). Capped in length while
 	// MemberTotal keeps the true count.
-	Members     string     `gorm:"type:text" json:"members"`
-	MemberTotal int        `json:"member_total"`
-	Severity    string     `gorm:"size:16;index" json:"severity"`
-	Status      string     `gorm:"size:16;index" json:"status"`
-	Count       int        `json:"count"`
-	FirstSeen   time.Time  `json:"first_seen"`
-	LastSeen    time.Time  `json:"last_seen"`
-	PolicyID    uint       `json:"policy_id"`
-	PolicyName  string     `gorm:"size:96" json:"policy_name"`
-	Mode        string     `gorm:"size:16" json:"mode"`
-	SessionID   string     `gorm:"size:32" json:"session_id"`
-	ReportRel   string     `gorm:"size:256" json:"report_rel"`
-	Summary     string     `gorm:"type:text" json:"summary"`
-	VerifyState string     `gorm:"size:24" json:"verify_state"`
-	IgnoredBy   string     `gorm:"size:64" json:"ignored_by"`
-	IgnoreNote  string     `gorm:"size:256" json:"ignore_note"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	ClosedAt    *time.Time `json:"closed_at,omitempty"`
+	Members     string    `gorm:"type:text" json:"members"`
+	MemberTotal int       `json:"member_total"`
+	Severity    string    `gorm:"size:16;index" json:"severity"`
+	Status      string    `gorm:"size:16;index" json:"status"`
+	Count       int       `json:"count"`
+	FirstSeen   time.Time `json:"first_seen"`
+	LastSeen    time.Time `json:"last_seen"`
+	PolicyID    uint      `json:"policy_id"`
+	PolicyName  string    `gorm:"size:96" json:"policy_name"`
+	Mode        string    `gorm:"size:16" json:"mode"`
+	SessionID   string    `gorm:"size:32" json:"session_id"`
+	ReportRel   string    `gorm:"size:256" json:"report_rel"`
+	Summary     string    `gorm:"type:text" json:"summary"`
+	VerifyState string    `gorm:"size:24" json:"verify_state"`
+	// CampaignID links incidents that look like stages of the same intrusion.
+	// Empty means "stands on its own" — that is the normal case, and it must stay
+	// the normal case: merging unrelated noise into a scary "attack chain" is how
+	// correlation features destroy their own credibility.
+	CampaignID string `gorm:"size:32;index" json:"campaign_id"`
+	// ShadowVerdict is the automated retrospective on a shadow run:
+	// would_help / unnecessary / unknown. Empty until reviewed.
+	ShadowVerdict string     `gorm:"size:24" json:"shadow_verdict"`
+	IgnoredBy     string     `gorm:"size:64" json:"ignored_by"`
+	IgnoreNote    string     `gorm:"size:256" json:"ignore_note"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	ClosedAt      *time.Time `json:"closed_at,omitempty"`
 }
 
 // TriggerPolicy decides whether an incident wakes the agent, in which mode, with
@@ -150,6 +158,11 @@ type TriggerPolicy struct {
 	AllowTools  string `gorm:"type:text" json:"allow_tools"`
 	DenyTools   string `gorm:"type:text" json:"deny_tools"`
 	Verify      string `gorm:"type:text" json:"verify"`
+	// NoAutoRollback disables the automatic undo when verification fails. The zero
+	// value means "roll back", which is the safe default: a repair that did not
+	// work should not stay applied. (Named No* on purpose — a `default:true` bool
+	// would be silently forced back to true by GORM on create.)
+	NoAutoRollback bool `gorm:"default:false" json:"no_auto_rollback"`
 	// AutoTools lists the L1 tools allowed to run without confirmation when the
 	// policy mode is "auto". Everything not listed still needs a human.
 	AutoTools   string     `gorm:"type:text" json:"auto_tools"`
@@ -266,3 +279,84 @@ type BlockedIP struct {
 	ReleasedAt *time.Time `json:"released_at,omitempty"`
 	CreatedAt  time.Time  `json:"created_at"`
 }
+
+// Campaign groups incidents that look like stages of one intrusion.
+//
+// The word "look like" is deliberate: this is temporal + family correlation, not
+// proof. A campaign raises the priority of investigation; it never widens what the
+// agent is allowed to do.
+type Campaign struct {
+	ID       string `gorm:"primaryKey;size:32" json:"id"`
+	Title    string `gorm:"size:192" json:"title"`
+	Severity string `gorm:"size:16;index" json:"severity"`
+	Status   string `gorm:"size:16;index" json:"status"` // open | closed
+	// Score is correlation confidence in 0..1; StageCount is how many distinct
+	// kill-chain stages it covers, which is the part humans actually read.
+	Score         float64 `json:"score"`
+	StageCount    int     `json:"stage_count"`
+	IncidentCount int     `json:"incident_count"`
+	// Stages is a JSON array in kill-chain order; Subjects is a JSON array of the
+	// hosts/paths/addresses that tie the chain together.
+	Stages    string    `gorm:"type:text" json:"stages"`
+	Subjects  string    `gorm:"type:text" json:"subjects"`
+	Narrative string    `gorm:"type:text" json:"narrative"`
+	FirstSeen time.Time `json:"first_seen"`
+	LastSeen  time.Time `gorm:"index" json:"last_seen"`
+	// NotifiedAt guards the escalation notice so one chain does not page a human
+	// again on every additional signal.
+	NotifiedAt *time.Time `json:"notified_at,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+}
+
+// TableName pins the table name.
+func (Campaign) TableName() string { return "campaigns" }
+
+// Campaign lifecycle.
+const (
+	CampaignOpen   = "open"
+	CampaignClosed = "closed"
+)
+
+// ActionJournal makes a run a transaction: every reversible write is recorded in
+// order so a failed run can be undone as a unit instead of leaving the host in a
+// half-repaired state that nobody can describe.
+type ActionJournal struct {
+	ID         uint       `gorm:"primaryKey" json:"id"`
+	SessionID  string     `gorm:"size:32;index" json:"session_id"`
+	IncidentID string     `gorm:"size:32;index" json:"incident_id"`
+	Seq        int        `json:"seq"`
+	Op         string     `gorm:"size:32" json:"op"` // quarantine | block_ip | freeze_process | truncate_log | exec_command | ...
+	Target     string     `gorm:"size:512" json:"target"`
+	RefID      uint       `json:"ref_id"`
+	Undoable   bool       `json:"undoable"`
+	Undone     bool       `json:"undone"`
+	UndoneAt   *time.Time `json:"undone_at,omitempty"`
+	UndoError  string     `gorm:"size:512" json:"undo_error"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+// TableName pins the table name.
+func (ActionJournal) TableName() string { return "action_journal" }
+
+// ShadowReview is the automated retrospective on a shadow run: the proposal was
+// never executed, so the only way to score it is to look at what happened next.
+type ShadowReview struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	IncidentID string    `gorm:"size:32;index" json:"incident_id"`
+	RunID      uint      `json:"run_id"`
+	Verdict    string    `gorm:"size:24;index" json:"verdict"` // would_help | unnecessary | unknown
+	Score      float64   `json:"score"`
+	Reasons    string    `gorm:"type:text" json:"reasons"`
+	ReviewedAt time.Time `json:"reviewed_at"`
+}
+
+// TableName pins the table name.
+func (ShadowReview) TableName() string { return "shadow_reviews" }
+
+// Shadow verdicts.
+const (
+	ShadowWouldHelp   = "would_help"
+	ShadowUnnecessary = "unnecessary"
+	ShadowUnknown     = "unknown"
+)

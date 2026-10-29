@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,10 @@ type SentinelHandler struct {
 	Manager *sentinel.Manager
 	Engine  *trigger.Engine
 	Safety  *safety.Manager
+	// Campaigner and Shadow are optional: they are only wired when the perception
+	// layer is active, and every handler guards on nil.
+	Campaigner *sentinel.Campaigner
+	Shadow     *sentinel.ShadowReviewer
 	// Setting persists small pieces of configuration (retention windows) in the
 	// panel settings table so a restart does not reset them.
 	Setting func(key string, value string) error
@@ -189,6 +194,9 @@ func (h *SentinelHandler) Incidents(c *gin.Context) {
 	if v := c.Query("severity"); v != "" {
 		q = q.Where("severity = ?", v)
 	}
+	if cid := c.Query("campaign"); cid != "" {
+		q = q.Where("campaign_id = ?", cid)
+	}
 	if kw := strings.TrimSpace(c.Query("q")); kw != "" {
 		like := "%" + kw + "%"
 		q = q.Where("title LIKE ? OR subject LIKE ? OR summary LIKE ?", like, like, like)
@@ -200,7 +208,129 @@ func (h *SentinelHandler) Incidents(c *gin.Context) {
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
 	}
-	response.OK(c, gin.H{"list": list, "total": total, "page": page, "page_size": size})
+	// Campaign titles in one extra query, so the list can badge "属于攻击链" without
+	// the client fetching every incident's detail.
+	titles := map[string]string{}
+	var cids []string
+	for _, i := range list {
+		if i.CampaignID != "" {
+			cids = append(cids, i.CampaignID)
+		}
+	}
+	if len(cids) > 0 {
+		var camps []model.Campaign
+		h.DB.Select("id", "title").Where("id IN ?", cids).Find(&camps)
+		for _, cp := range camps {
+			titles[cp.ID] = cp.Title
+		}
+	}
+	response.OK(c, gin.H{"list": list, "campaign_titles": titles, "total": total, "page": page, "page_size": size})
+}
+
+// Campaigns GET /sentinel/campaigns
+//
+// Lists correlated attack chains. Only chains with more than one incident are worth
+// showing — a "chain" of one is just an incident, and listing those would defeat the
+// purpose of the view.
+func (h *SentinelHandler) Campaigns(c *gin.Context) {
+	page, size, off := pageParams(c)
+	q := h.DB.Model(&model.Campaign{})
+	if st := c.Query("status"); st != "" && st != "all" {
+		q = q.Where("status = ?", st)
+	}
+	var total int64
+	q.Count(&total)
+	var list []model.Campaign
+	if err := q.Order("last_seen DESC").Offset(off).Limit(size).Find(&list).Error; err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	// Per-campaign incident counts in one grouped query (the stored counter can lag
+	// behind incidents that were attached while a notification was in flight).
+	type row struct {
+		CampaignID string
+		N          int64
+	}
+	var rows []row
+	h.DB.Model(&model.Incident{}).Select("campaign_id, count(*) as n").
+		Where("campaign_id <> ''").Group("campaign_id").Scan(&rows)
+	counts := map[string]int64{}
+	for _, r := range rows {
+		counts[r.CampaignID] = r.N
+	}
+	response.OK(c, gin.H{"list": list, "counts": counts, "total": total, "page": page, "page_size": size})
+}
+
+// Campaign GET /sentinel/campaigns/:id
+func (h *SentinelHandler) Campaign(c *gin.Context) {
+	var camp model.Campaign
+	if err := h.DB.First(&camp, "id = ?", c.Param("id")).Error; err != nil {
+		response.Error(c, 404, response.CodeNotFound, "攻击链不存在")
+		return
+	}
+	var incidents []model.Incident
+	h.DB.Where("campaign_id = ?", camp.ID).Order("first_seen").Find(&incidents)
+	response.OK(c, gin.H{"campaign": camp, "incidents": incidents})
+}
+
+// Rollback POST /sentinel/incidents/:id/rollback
+//
+// Manual undo for a run that already finished. The engine rolls back automatically
+// when verification fails; this endpoint exists for the cases it cannot judge — an
+// operator looking at a resolved incident and disagreeing with what it changed.
+func (h *SentinelHandler) Rollback(c *gin.Context) {
+	id := c.Param("id")
+	var inc model.Incident
+	if err := h.DB.First(&inc, "id = ?", id).Error; err != nil {
+		response.Error(c, 404, response.CodeNotFound, "事件不存在")
+		return
+	}
+	if h.Safety == nil {
+		response.Error(c, 500, response.CodeInternal, "安全层不可用")
+		return
+	}
+	var sessions []string
+	h.DB.Model(&model.AgentRun{}).Where("incident_id = ? AND session_id <> ?", id, "").
+		Pluck("session_id", &sessions)
+	sessions = append(sessions, id)
+
+	steps := h.Safety.RollbackSessions(sessions)
+	if len(steps) == 0 {
+		response.OK(c, gin.H{"steps": []any{}, "message": "没有可回滚的操作"})
+		return
+	}
+	undone, skipped, failedCount := 0, 0, 0
+	for _, s := range steps {
+		switch {
+		case s.OK:
+			undone++
+		case s.Skipped:
+			skipped++
+		default:
+			failedCount++
+		}
+	}
+	response.OK(c, gin.H{
+		"steps": steps, "undone": undone, "skipped": skipped, "failed": failedCount,
+		"message": fmt.Sprintf("已撤销 %d 项，%d 项不可撤销，%d 项失败", undone, skipped, failedCount),
+	})
+}
+
+// ShadowReview POST /sentinel/incidents/:id/shadow-review
+//
+// Re-scores a shadow run on demand. Automatic reviews run on a timer; this lets an
+// operator refresh the judgement right after the world changed.
+func (h *SentinelHandler) ShadowReview(c *gin.Context) {
+	if h.Shadow == nil {
+		response.Error(c, 500, response.CodeInternal, "影子评审不可用")
+		return
+	}
+	rev, err := h.Shadow.Review(c.Param("id"))
+	if err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"review": rev})
 }
 
 // Incident GET /sentinel/incidents/:id
@@ -218,11 +348,38 @@ func (h *SentinelHandler) Incident(c *gin.Context) {
 	var runs []model.AgentRun
 	h.DB.Where("incident_id = ?", id).Order("id").Find(&runs)
 
+	// Journal + campaign ride along with the detail: the transaction view ("what did
+	// this run change, and can it be undone") is useless anywhere else.
+	var journal []model.ActionJournal
+	if h.Safety != nil {
+		sessions := []string{}
+		for _, r := range runs {
+			if r.SessionID != "" {
+				sessions = append(sessions, r.SessionID)
+			}
+		}
+		// Non-undoable writes are journaled under the incident id.
+		sessions = append(sessions, inc.ID)
+		journal = h.Safety.JournalFor(sessions)
+	}
+	var campaign *model.Campaign
+	if inc.CampaignID != "" {
+		var camp model.Campaign
+		if err := h.DB.First(&camp, "id = ?", inc.CampaignID).Error; err == nil {
+			campaign = &camp
+		}
+	}
+	var shadow *model.ShadowReview
+	h.DB.Where("incident_id = ?", id).Order("id DESC").Limit(1).Find(&shadow)
+
 	response.OK(c, gin.H{
 		"incident": inc,
 		"signals":  signals,
 		"actions":  actions,
 		"runs":     runs,
+		"journal":  journal,
+		"campaign": campaign,
+		"shadow":   shadow,
 	})
 }
 

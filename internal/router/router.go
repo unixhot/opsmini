@@ -288,6 +288,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	sentinelBundle := buildSentinel(cfg, db, settingSvc, sharedNotifier, agentBundle, panelDataDir, metricSigCh)
 	sentinelHandler := sentinelBundle.handler
 	sentinelBundle.manager.Start(context.Background())
+	sentinelBundle.startBackground(context.Background())
 	// v1.4 变更感知：与感知层同生命周期启动。任一采集源失败都只降级它自己，
 	// 不影响事件链路。
 	if sentinelBundle.changes != nil {
@@ -587,6 +588,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/sentinel/incidents", permMw("ai.agent"), sentinelHandler.Incidents)
 			authed.GET("/sentinel/incidents/:id", permMw("ai.agent"), sentinelHandler.Incident)
 			authed.GET("/sentinel/incidents/:id/members", permMw("ai.agent"), sentinelHandler.Members)
+			authed.POST("/sentinel/incidents/:id/rollback", permMw("ai.agent"), sentinelHandler.Rollback)
+			authed.POST("/sentinel/incidents/:id/shadow-review", permMw("ai.agent"), sentinelHandler.ShadowReview)
+			authed.GET("/sentinel/campaigns", permMw("ai.agent"), sentinelHandler.Campaigns)
+			authed.GET("/sentinel/campaigns/:id", permMw("ai.agent"), sentinelHandler.Campaign)
 			authed.POST("/sentinel/incidents/:id/ignore", permMw("ai.agent"), sentinelHandler.Ignore)
 			authed.POST("/sentinel/incidents/:id/takeover", permMw("ai.agent"), sentinelHandler.Takeover)
 			authed.POST("/sentinel/incidents/:id/feedback", permMw("ai.agent"), sentinelHandler.Feedback)

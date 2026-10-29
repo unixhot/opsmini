@@ -550,6 +550,31 @@
   .live-dot{width:6px;height:6px;border-radius:50%;background:var(--warning);flex:none;animation:kpiPulse 2.2s infinite}
   @keyframes kpiPulse{0%{box-shadow:0 0 0 0 rgba(217,119,6,.5)}70%{box-shadow:0 0 0 5px rgba(217,119,6,0)}100%{box-shadow:0 0 0 0 rgba(217,119,6,0)}}
 
+  /* 窄屏：六列的固定宽度加起来超过 390px，标题列会被压到 1 个字宽。
+     这里把行改成卡片块，让每格各自占一行，比横向滚动更容易读。 */
+  @media(max-width:700px){
+    .chain-tbl colgroup, .chain-tbl thead{display:none}
+    .chain-tbl, .chain-tbl tbody, .chain-tbl tr, .chain-tbl td{display:block;width:auto!important}
+    .chain-tbl tr{position:relative;padding:12px 14px 12px 18px;border-bottom:1px solid var(--border)}
+    .chain-tbl tr:last-child{border-bottom:none}
+    .chain-tbl td{border:none;padding:0 0 6px}
+    /* 色条跟着时间那格走，只把 ::before 挪到卡片左内边距里；
+       整格做绝对定位会让时间文字失去宽度、压到标题上 */
+    .chain-tbl td.sev-rail{padding-left:0}
+    .chain-tbl td.sev-rail::before{left:-12px;top:2px;bottom:2px;height:auto}
+    .chain-tbl .tc-time{display:flex;gap:8px;align-items:baseline}
+    .chain-tbl .tc-time .d{font-size:11.5px;color:var(--t3)}
+    .chain-tbl td:nth-child(4), .chain-tbl td:nth-child(5), .chain-tbl td:nth-child(6){
+      display:inline-block;margin-right:10px;padding-bottom:0}
+  }
+  /* 攻击链：阶段用 chip 依次排列，箭头靠 ::after 生成，避免模板里塞字符 */
+  .stage-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:7px;font-size:11.5px;
+    background:var(--bg3);color:var(--t2);border:1px solid var(--border);white-space:nowrap;line-height:1.6}
+  .stage-chip + .stage-chip{margin-left:14px;position:relative}
+  .stage-chip + .stage-chip::before{content:'→';position:absolute;left:-12px;color:var(--t3);font-size:11px}
+  .chain-box{background:linear-gradient(180deg,#fffafa,#fff);border-color:#f3d6d6}
+  .chg-badge{cursor:pointer;font-size:10px;padding:1px 5px;vertical-align:middle}
+
   /* 模型选择：从服务拉回来的列表要「看得见、点得到」，不能只塞进 datalist */
   .model-list{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow:auto;margin-top:8px;
     padding:2px 0}
@@ -1880,6 +1905,7 @@
 
         <div class="page-tabs" style="margin-bottom:16px">
           <span :class="{active: sentinelTab==='incidents'}" @click="gototab('incidents')">{{ t('sentinel.tab.incidents') }}</span>
+          <span :class="{active: sentinelTab==='campaigns'}" @click="gototab('campaigns')">{{ t('sent.chain.tab') }}</span>
           <span :class="{active: sentinelTab==='policies'}" @click="gototab('policies')">{{ t('sentinel.tab.policies') }}</span>
           <span :class="{active: sentinelTab==='actions'}" @click="gototab('actions')">{{ t('sentinel.tab.actions') }}</span>
           <span :class="{active: sentinelTab==='safety'}" @click="gototab('safety')">{{ t('sentinel.tab.safety') }}</span>
@@ -1909,6 +1935,11 @@
                 <span class="dot" style="background:#cbd5e1"></span>{{ t('sentinel.filter.ignored') }}<span class="n">{{ incCount('ignored') }}</span>
               </span>
             </div>
+          </div>
+          <div v-if="incFilter.campaign" class="explain-strip" style="margin:0 16px 12px">
+            <span class="ei">i</span>
+            <span style="flex:1">{{ t('sent.chain.filtering') }}</span>
+            <a class="link" @click="clearCampaignFilter()">{{ t('sent.chain.clear') }}</a>
           </div>
           <div v-if="incFilter.status==='unresolved'" class="explain-strip" style="margin:0 16px 12px">
             <span class="ei">i</span><span>{{ t('sent.unresolved.hint') }}</span>
@@ -1963,6 +1994,8 @@
                   <td>
                     <div style="font-weight:600;font-size:13px;line-height:1.45;word-break:break-word">{{ i.title }}
                       <span v-if="i.count>1" class="tag warn agg-badge">×{{ i.count }}</span>
+                      <span v-if="i.campaign_id" class="tag err chg-badge" :title="incCampaignTitle(i)"
+                            @click="filterByCampaign(i.campaign_id)">{{ t('sent.chain.badge') }}</span>
                     </div>
                     <div class="mute" style="font-size:11.5px;line-height:1.5;margin-top:2px">{{ incHint(i) }}</div>
                   </td>
@@ -1989,6 +2022,66 @@
               <button class="btn sm ghost" :disabled="incFilter.page<=1" @click="loadIncidents(incFilter.page-1)">‹ {{ t('pager.prev') }}</button>
               <span class="mute" style="font-size:12px;line-height:28px">{{ incFilter.page }} / {{ incPages }}</span>
               <button class="btn sm ghost" :disabled="incFilter.page>=incPages" @click="loadIncidents(incFilter.page+1)">{{ t('pager.next') }} ›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= 攻击链 ================= -->
+        <div class="card" v-if="sentinelTab==='campaigns'">
+          <div class="card-head">
+            <div class="card-title">{{ t('sent.chain.title') }}</div>
+            <button class="btn sm ghost" @click="loadCampaigns(1)">{{ t('sent.chain.refresh') }}</button>
+          </div>
+          <div class="explain-strip" style="margin:0 16px 12px">
+            <span class="ei">i</span><span>{{ t('sent.chain.hint') }}</span>
+          </div>
+          <div class="table-wrap">
+            <table class="st-tbl chain-tbl">
+              <colgroup>
+                <col style="width:104px"><col style="width:auto"><col style="width:206px">
+                <col style="width:78px"><col style="width:96px"><col style="width:118px">
+              </colgroup>
+              <thead><tr>
+                <th>{{ t('sentinel.col.time') }}</th>
+                <th>{{ t('sent.chain.col.title') }}</th>
+                <th>{{ t('sent.chain.col.stages') }}</th>
+                <th>{{ t('sent.chain.col.incidents') }}</th>
+                <th>{{ t('sentinel.col.severity') }}</th>
+                <th>{{ t('common.actions') }}</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="c in campaigns" :key="c.id">
+                  <td class="sev-rail" :style="{'--rail': sevColor(c.severity)}">
+                    <div class="tc-time">
+                      <div class="h">{{ fmtHMS(c.last_seen) }}</div>
+                      <div class="d">{{ fmtYMD(c.last_seen) }}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-weight:600;font-size:13px;line-height:1.45;word-break:break-word">{{ chainTitle(c) }}</div>
+                    <div class="mute" style="font-size:11.5px;line-height:1.5;margin-top:2px">{{ chainSubjects(c) }}</div>
+                  </td>
+                  <td>
+                    <span v-for="st in chainStages(c)" :key="st" class="stage-chip">{{ t('sent.stage.'+st) }}</span>
+                  </td>
+                  <td><span class="tag info">{{ campaignCount(c) }}</span></td>
+                  <td><span class="tag" :class="sevTag(c.severity)"><span class="tdot"></span>{{ c.severity }}</span></td>
+                  <td style="white-space:nowrap"><a class="link" @click="filterByCampaign(c.id)">{{ t('sent.chain.view') }}</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="!campaigns.length" class="empty-state">
+            <div class="empty-ico"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v4M10 6v4M6 10v4"/><circle cx="6" cy="1.6" r="1"/><circle cx="10" cy="4.6" r="1"/><circle cx="6" cy="8.6" r="1"/></svg></div>
+            <div class="et">{{ t('sent.chain.empty') }}</div>
+            <div class="es">{{ t('sent.chain.emptyHint') }}</div>
+          </div>
+          <div class="row" style="justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)">
+            <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ campaignsTotal }}</span>
+            <div class="row" style="gap:8px">
+              <button class="btn sm ghost" :disabled="campaignPage<=1" @click="loadCampaigns(campaignPage-1)">‹ {{ t('pager.prev') }}</button>
+              <span class="mute" style="font-size:12px;line-height:28px">{{ campaignPage }} / {{ campaignPages }}</span>
+              <button class="btn sm ghost" :disabled="campaignPage>=campaignPages" @click="loadCampaigns(campaignPage+1)">{{ t('pager.next') }} ›</button>
             </div>
           </div>
         </div>
@@ -2295,6 +2388,18 @@
               <span class="mute" style="font-size:12px">{{ fmtDT(incDetail.incident.first_seen) }} → {{ fmtDT(incDetail.incident.last_seen) }} · {{ incDetail.incident.count }} {{ t('sentinel.signalsUnit') }}</span>
               <span class="tag warn" v-if="incDetail.incident.count>1">×{{ incDetail.incident.count }}</span>
             </div>
+            <div v-if="incDetail.campaign" class="st-detail-box chain-box" style="margin-bottom:10px">
+              <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+                <span class="tag err">{{ t('sent.chain.badge') }}</span>
+                <span style="font-weight:600">{{ chainTitle(incDetail.campaign) }}</span>
+                <span class="tag" :class="sevTag(incDetail.campaign.severity)">{{ incDetail.campaign.severity }}</span>
+                <span class="mute" style="font-size:11.5px">{{ t('sent.chain.score') }} {{ (incDetail.campaign.score||0).toFixed(2) }}</span>
+              </div>
+              <div style="margin-bottom:6px">
+                <span v-for="st in chainStages(incDetail.campaign)" :key="st" class="stage-chip">{{ t('sent.stage.'+st) }}</span>
+              </div>
+              <div class="mute" style="font-size:11.5px;line-height:1.65">{{ chainCover(incDetail.campaign) }}</div>
+            </div>
             <div v-if="incMembers().length>1" class="st-detail-box" style="margin-bottom:10px">
               <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
                 <div style="font-weight:600">{{ t('sent.agg.members') }} ({{ incMemberTotal() }})</div>
@@ -2335,7 +2440,14 @@
               <span v-if="r.attempt>1" class="tag warn" style="margin-right:6px">{{ t('sent.run.attempt').replace('{n}', r.attempt) }}</span>
               <span>{{ r.mode }} · {{ r.status }} · {{ r.steps }} {{ t('sentinel.stepsUnit') }} · {{ r.tools }} {{ t('sentinel.toolsUnit') }} · {{ r.writes }} {{ t('sentinel.writesUnit') }}</span>
             </div>
-            <div class="st-detail-sec" v-if="shadowActions.length">{{ t('sent.shadow.title') }} ({{ shadowActions.length }})</div>
+            <div class="st-detail-sec" v-if="shadowActions.length" style="display:flex;align-items:center;gap:8px">
+              <span>{{ t('sent.shadow.title') }} ({{ shadowActions.length }})</span>
+              <span v-if="incDetail.shadow" class="tag" :class="shadowTag(incDetail.shadow.verdict)">{{ t('sent.shadow.v.'+incDetail.shadow.verdict) }}</span>
+              <button class="btn sm ghost" style="margin-left:auto" :disabled="shadowBusy" @click="rerunShadowReview">{{ t('sent.shadow.rescore') }}</button>
+            </div>
+            <div v-if="shadowReasons.length" class="mute prewrap" style="font-size:11.5px;line-height:1.6;padding:2px 0 6px">
+              <div v-for="(r,i) in shadowReasons" :key="'sr'+i">{{ r }}</div>
+            </div>
             <div v-for="a in shadowActions" :key="'sh-'+a.id" class="st-detail-row">
               <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(a.created_at) }}</span>
               <span class="mono" style="min-width:150px">{{ a.tool }}</span>
@@ -2343,6 +2455,18 @@
               <span class="prewrap" style="flex:1">{{ a.result || '-' }}</span>
             </div>
             <div v-if="shadowActions.length" class="mute" style="font-size:11.5px;padding:2px 0 8px">{{ t('sent.shadow.hint') }}</div>
+            <div class="st-detail-sec" v-if="(incDetail.journal||[]).length" style="display:flex;align-items:center;gap:8px">
+              <span>{{ t('sent.tx.title') }} ({{ incDetail.journal.length }})</span>
+              <button class="btn sm ghost" style="margin-left:auto" :disabled="rollbackBusy || !hasPendingRollback" @click="rollbackIncident">{{ t('sent.tx.rollback') }}</button>
+            </div>
+            <div v-for="j in (incDetail.journal||[])" :key="'j'+j.id" class="st-detail-row">
+              <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(j.created_at) }}</span>
+              <span class="mono" style="min-width:150px">{{ j.op }}</span>
+              <span class="mono" style="flex:1;word-break:break-all">{{ j.target || '-' }}</span>
+              <span class="tag" :class="j.undoable ? 'info' : 'warn'" style="margin-right:6px">{{ j.undoable ? t('sent.tx.undoable') : t('sent.tx.notUndoable') }}</span>
+              <span class="tag" :class="j.undone ? 'ok' : 'mute'">{{ j.undone ? t('sent.tx.undone') : t('sent.tx.pending') }}</span>
+            </div>
+            <div v-if="(incDetail.journal||[]).length" class="mute" style="font-size:11.5px;padding:2px 0 8px">{{ t('sent.tx.hint') }}</div>
             <div class="st-detail-sec">{{ t('sentinel.detail.actions') }} ({{ (incDetail.actions||[]).length }})</div>
             <div v-for="a in incDetail.actions" :key="a.id" class="st-detail-row">
               <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(a.created_at) }}</span>
@@ -4780,6 +4904,270 @@ const I18N = {
 // 大模型接入按「服务商」而不是「协议」呈现：DeepSeek / Ollama / vLLM 都走 OpenAI
 // 协议，但地址、默认模型、要不要 Key 各不相同。放在这里单独成一块，既不改动
 // 上面那一堆巨型字典，也方便以后再加服务商。
+// 攻击链 / 处置事务 / 影子评分：v1.4 自主决策闭环的收尾三块。
+// 单独一个字典，继续避免去动那 7 行巨型字典。
+const I18N13 = {
+  'zh-CN': {
+    'sent.chain.tab':'攻击链',
+    'sent.chain.title':'疑似攻击链',
+    'sent.chain.hint':'把「WebShell 落地 → 可疑进程 → 异常外联」这类分阶段发生的事件串成一次入侵来看。关联依据是时间与共享指标，属推断，不是因果定论；它只提高关注优先级，不会放大 Agent 的权限。',
+    'sent.chain.badge':'攻击链',
+    'sent.chain.col.title':'攻击链',
+    'sent.chain.col.stages':'覆盖环节',
+    'sent.chain.col.incidents':'事件数',
+    'sent.chain.view':'查看事件',
+    'sent.chain.empty':'没有形成攻击链',
+    'sent.chain.emptyHint':'单点事件不会成链。出现多个环节（如落地 + 外联）时才会在这里汇总。',
+    'sent.chain.refresh':'刷新',
+    'sent.chain.score':'置信度',
+    'sent.chain.titlePrefix':'疑似攻击链：',
+    'sent.chain.count':'（{n} 个事件）',
+    'sent.chain.cover':'覆盖 {s} 个环节、{n} 个事件，置信度 {c}。关联推断，非因果定论。',
+    'sent.chain.filtering':'正在查看该攻击链下的事件',
+    'sent.chain.clear':'清除筛选',
+    'sent.stage.initial_access':'初始访问',
+    'sent.stage.execution':'执行落地',
+    'sent.stage.persistence':'持久化',
+    'sent.stage.c2':'外联控制',
+    'sent.stage.impact':'影响',
+    'sent.tx.title':'处置事务（可回滚）',
+    'sent.tx.rollback':'回滚本次处置',
+    'sent.tx.undoable':'可撤销',
+    'sent.tx.notUndoable':'不可撤销',
+    'sent.tx.undone':'已处理',
+    'sent.tx.pending':'待处理',
+    'sent.tx.hint':'验证未通过时引擎会自动回滚；这里的按钮用于人工否决一次已完成的处置。不可撤销的操作会明确列出，不会假装已撤销。',
+    'sent.tx.done':'回滚完成',
+    'sent.shadow.v.would_help':'本可有用',
+    'sent.shadow.v.unnecessary':'事后多余',
+    'sent.shadow.v.unknown':'无法判定',
+    'sent.shadow.rescore':'重新评分',
+    'sent.shadow.rescored':'已重新评分',
+  },
+  'zh-TW': {
+    'sent.chain.tab':'攻擊鏈',
+    'sent.chain.title':'疑似攻擊鏈',
+    'sent.chain.hint':'把「WebShell 落地 → 可疑行程 → 異常外聯」這類分階段發生的事件串成一次入侵來看。關聯依據是時間與共享指標，屬推斷，非因果定論；只提高關注優先級，不會放大 Agent 的權限。',
+    'sent.chain.badge':'攻擊鏈',
+    'sent.chain.col.title':'攻擊鏈',
+    'sent.chain.col.stages':'涵蓋環節',
+    'sent.chain.col.incidents':'事件數',
+    'sent.chain.view':'檢視事件',
+    'sent.chain.empty':'沒有形成攻擊鏈',
+    'sent.chain.emptyHint':'單點事件不會成鏈。出現多個環節（如落地 + 外聯）時才會在這裡彙總。',
+    'sent.chain.refresh':'重新整理',
+    'sent.chain.score':'信賴度',
+    'sent.chain.titlePrefix':'疑似攻擊鏈：',
+    'sent.chain.count':'（{n} 個事件）',
+    'sent.chain.cover':'涵蓋 {s} 個環節、{n} 個事件，信賴度 {c}。關聯推斷，非因果定論。',
+    'sent.chain.filtering':'正在檢視此攻擊鏈下的事件',
+    'sent.chain.clear':'清除篩選',
+    'sent.stage.initial_access':'初始存取',
+    'sent.stage.execution':'執行落地',
+    'sent.stage.persistence':'持續化',
+    'sent.stage.c2':'外聯控制',
+    'sent.stage.impact':'影響',
+    'sent.tx.title':'處置交易（可回滾）',
+    'sent.tx.rollback':'回滾本次處置',
+    'sent.tx.undoable':'可撤銷',
+    'sent.tx.notUndoable':'不可撤銷',
+    'sent.tx.undone':'已處理',
+    'sent.tx.pending':'待處理',
+    'sent.tx.hint':'驗證未通過時引擎會自動回滾；這裡的按鈕用於人工否決一次已完成的處置。不可撤銷的操作會明確列出，不會假裝已撤銷。',
+    'sent.tx.done':'回滾完成',
+    'sent.shadow.v.would_help':'本可有用',
+    'sent.shadow.v.unnecessary':'事後多餘',
+    'sent.shadow.v.unknown':'無法判定',
+    'sent.shadow.rescore':'重新評分',
+    'sent.shadow.rescored':'已重新評分',
+  },
+  'en': {
+    'sent.chain.tab':'Attack chains',
+    'sent.chain.title':'Suspected attack chains',
+    'sent.chain.hint':'Groups staged incidents (webshell dropped, suspicious process, outbound connection) so they read as one intrusion. The link is temporal plus shared indicators — an inference, not proof. It only raises priority; it never widens what the agent may do.',
+    'sent.chain.badge':'chain',
+    'sent.chain.col.title':'Chain',
+    'sent.chain.col.stages':'Stages',
+    'sent.chain.col.incidents':'Incidents',
+    'sent.chain.view':'View incidents',
+    'sent.chain.empty':'No chains formed',
+    'sent.chain.emptyHint':'A single event never forms a chain. Several stages (landing plus outbound, for example) are needed before anything appears here.',
+    'sent.chain.refresh':'Refresh',
+    'sent.chain.score':'Confidence',
+    'sent.chain.titlePrefix':'Suspected chain: ',
+    'sent.chain.count':' ({n} incidents)',
+    'sent.chain.cover':'Covers {s} stages across {n} incidents, confidence {c}. Correlated, not proof of causation.',
+    'sent.chain.filtering':'Showing incidents from this chain',
+    'sent.chain.clear':'Clear filter',
+    'sent.stage.initial_access':'Initial access',
+    'sent.stage.execution':'Execution',
+    'sent.stage.persistence':'Persistence',
+    'sent.stage.c2':'Command and control',
+    'sent.stage.impact':'Impact',
+    'sent.tx.title':'Response transaction (undoable)',
+    'sent.tx.rollback':'Roll back this response',
+    'sent.tx.undoable':'reversible',
+    'sent.tx.notUndoable':'irreversible',
+    'sent.tx.undone':'handled',
+    'sent.tx.pending':'pending',
+    'sent.tx.hint':'The engine rolls back automatically when verification fails; this button is for a human vetoing a response that already completed. Irreversible steps are listed explicitly instead of being silently ignored.',
+    'sent.tx.done':'Rollback finished',
+    'sent.shadow.v.would_help':'would have helped',
+    'sent.shadow.v.unnecessary':'unnecessary in hindsight',
+    'sent.shadow.v.unknown':'cannot tell',
+    'sent.shadow.rescore':'Re-score',
+    'sent.shadow.rescored':'Re-scored',
+  },
+  'ja': {
+    'sent.chain.tab':'攻撃チェーン',
+    'sent.chain.title':'疑わしい攻撃チェーン',
+    'sent.chain.hint':'WebShell 設置 → 不審プロセス → 外部通信のように段階的に起きた事象を 1 件の侵入としてまとめます。関連付けは時刻と共有指標による推測で、因果の断定ではありません。優先度を上げるだけで、Agent の権限は広げません。',
+    'sent.chain.badge':'チェーン',
+    'sent.chain.col.title':'チェーン',
+    'sent.chain.col.stages':'段階',
+    'sent.chain.col.incidents':'事象数',
+    'sent.chain.view':'事象を見る',
+    'sent.chain.empty':'チェーンは未形成',
+    'sent.chain.emptyHint':'単発の事象ではチェーンになりません。複数の段階（設置と外部通信など）が揃うとここに表示されます。',
+    'sent.chain.refresh':'更新',
+    'sent.chain.score':'信頼度',
+    'sent.chain.titlePrefix':'疑わしい攻撃チェーン：',
+    'sent.chain.count':'（{n} 件）',
+    'sent.chain.cover':'{s} 段階・{n} 件、信頼度 {c}。関連付けによる推測で、因果の断定ではありません。',
+    'sent.chain.filtering':'このチェーンに属する事象を表示中',
+    'sent.chain.clear':'絞り込み解除',
+    'sent.stage.initial_access':'初期アクセス',
+    'sent.stage.execution':'実行',
+    'sent.stage.persistence':'永続化',
+    'sent.stage.c2':'外部通信',
+    'sent.stage.impact':'影響',
+    'sent.tx.title':'対応トランザクション（ロールバック可）',
+    'sent.tx.rollback':'この対応をロールバック',
+    'sent.tx.undoable':'取消可能',
+    'sent.tx.notUndoable':'取消不可',
+    'sent.tx.undone':'処理済み',
+    'sent.tx.pending':'未処理',
+    'sent.tx.hint':'検証に失敗するとエンジンが自動でロールバックします。このボタンは完了済みの対応を人が取り消すためのものです。取消不可の操作は明示され、取り消したふりはしません。',
+    'sent.tx.done':'ロールバック完了',
+    'sent.shadow.v.would_help':'効果があった',
+    'sent.shadow.v.unnecessary':'結果的に不要',
+    'sent.shadow.v.unknown':'判定不能',
+    'sent.shadow.rescore':'再評価',
+    'sent.shadow.rescored':'再評価しました',
+  },
+  'ko': {
+    'sent.chain.tab':'공격 체인',
+    'sent.chain.title':'의심 공격 체인',
+    'sent.chain.hint':'웹셸 설치 → 의심 프로세스 → 외부 통신처럼 단계적으로 발생한 사건을 하나의 침입으로 묶습니다. 연관성은 시간과 공유 지표에 근거한 추정이며 인과 확정이 아닙니다. 우선순위만 높이고 Agent 권한은 넓히지 않습니다.',
+    'sent.chain.badge':'체인',
+    'sent.chain.col.title':'체인',
+    'sent.chain.col.stages':'단계',
+    'sent.chain.col.incidents':'사건 수',
+    'sent.chain.view':'사건 보기',
+    'sent.chain.empty':'형성된 체인 없음',
+    'sent.chain.emptyHint':'단일 사건은 체인이 되지 않습니다. 여러 단계(설치 + 외부 통신 등)가 모이면 여기에 표시됩니다.',
+    'sent.chain.refresh':'새로고침',
+    'sent.chain.score':'신뢰도',
+    'sent.chain.titlePrefix':'의심 공격 체인: ',
+    'sent.chain.count':' ({n}건)',
+    'sent.chain.cover':'{s}개 단계, {n}개 사건, 신뢰도 {c}. 연관성 추정이며 인과 확정이 아닙니다.',
+    'sent.chain.filtering':'이 체인의 사건을 표시 중',
+    'sent.chain.clear':'필터 해제',
+    'sent.stage.initial_access':'초기 접근',
+    'sent.stage.execution':'실행',
+    'sent.stage.persistence':'지속성',
+    'sent.stage.c2':'외부 통제',
+    'sent.stage.impact':'영향',
+    'sent.tx.title':'대응 트랜잭션(롤백 가능)',
+    'sent.tx.rollback':'이 대응 롤백',
+    'sent.tx.undoable':'취소 가능',
+    'sent.tx.notUndoable':'취소 불가',
+    'sent.tx.undone':'처리됨',
+    'sent.tx.pending':'대기',
+    'sent.tx.hint':'검증에 실패하면 엔진이 자동으로 롤백합니다. 이 버튼은 이미 완료된 대응을 사람이 취소할 때 사용합니다. 취소 불가 작업은 명시되며, 취소한 것처럼 표시하지 않습니다.',
+    'sent.tx.done':'롤백 완료',
+    'sent.shadow.v.would_help':'효과 있었음',
+    'sent.shadow.v.unnecessary':'결과적으로 불필요',
+    'sent.shadow.v.unknown':'판단 불가',
+    'sent.shadow.rescore':'재평가',
+    'sent.shadow.rescored':'재평가 완료',
+  },
+  'th': {
+    'sent.chain.tab':'ห่วงโซ่โจมตี',
+    'sent.chain.title':'ห่วงโซ่โจมตีที่สงสัย',
+    'sent.chain.hint':'รวมเหตุการณ์ที่เกิดเป็นลำดับ (วางเว็บเชลล์ → กระบวนการต้องสงสัย → เชื่อมต่อภายนอก) ให้อ่านเป็นการบุกรุกครั้งเดียว การเชื่อมโยงอาศัยเวลาและตัวชี้วัดร่วม เป็นการอนุมาน ไม่ใช่ข้อสรุปเชิงสาเหตุ และไม่เพิ่มสิทธิ์ของ Agent',
+    'sent.chain.badge':'ห่วงโซ่',
+    'sent.chain.col.title':'ห่วงโซ่',
+    'sent.chain.col.stages':'ขั้นตอน',
+    'sent.chain.col.incidents':'เหตุการณ์',
+    'sent.chain.view':'ดูเหตุการณ์',
+    'sent.chain.empty':'ยังไม่มีห่วงโซ่',
+    'sent.chain.emptyHint':'เหตุการณ์เดียวจะไม่กลายเป็นห่วงโซ่ ต้องมีหลายขั้นตอน (เช่น วางไฟล์และการเชื่อมต่อออก) จึงจะปรากฏที่นี่',
+    'sent.chain.refresh':'รีเฟรช',
+    'sent.chain.score':'ความเชื่อมั่น',
+    'sent.chain.titlePrefix':'ห่วงโซ่ที่สงสัย: ',
+    'sent.chain.count':' ({n} เหตุการณ์)',
+    'sent.chain.cover':'ครอบคลุม {s} ขั้นตอน จาก {n} เหตุการณ์ ความเชื่อมั่น {c} เป็นการอนุมาน ไม่ใช่ข้อสรุปเชิงสาเหตุ',
+    'sent.chain.filtering':'กำลังแสดงเหตุการณ์ในห่วงโซ่นี้',
+    'sent.chain.clear':'ล้างตัวกรอง',
+    'sent.stage.initial_access':'การเข้าถึงครั้งแรก',
+    'sent.stage.execution':'การทำงาน',
+    'sent.stage.persistence':'การฝังตัว',
+    'sent.stage.c2':'การควบคุมจากภายนอก',
+    'sent.stage.impact':'ผลกระทบ',
+    'sent.tx.title':'ธุรกรรมการตอบสนอง (ย้อนกลับได้)',
+    'sent.tx.rollback':'ย้อนกลับการตอบสนองนี้',
+    'sent.tx.undoable':'ย้อนกลับได้',
+    'sent.tx.notUndoable':'ย้อนกลับไม่ได้',
+    'sent.tx.undone':'จัดการแล้ว',
+    'sent.tx.pending':'รอดำเนินการ',
+    'sent.tx.hint':'เมื่อการตรวจสอบไม่ผ่าน ระบบจะย้อนกลับอัตโนมัติ ปุ่มนี้สำหรับให้คนยกเลิกงานที่ทำเสร็จแล้ว ขั้นตอนที่ย้อนกลับไม่ได้จะถูกระบุอย่างชัดเจน',
+    'sent.tx.done':'ย้อนกลับเสร็จสิ้น',
+    'sent.shadow.v.would_help':'น่าจะ有帮助',
+    'sent.shadow.v.unnecessary':'ไม่จำเป็นเมื่อมองย้อนหลัง',
+    'sent.shadow.v.unknown':'ตัดสินไม่ได้',
+    'sent.shadow.rescore':'ให้คะแนนใหม่',
+    'sent.shadow.rescored':'ให้คะแนนใหม่แล้ว',
+  },
+  'de': {
+    'sent.chain.tab':'Angriffsketten',
+    'sent.chain.title':'Vermutete Angriffsketten',
+    'sent.chain.hint':'Fasst stufenweise auftretende Ereignisse (Webshell abgelegt, verdächtiger Prozess, ausgehende Verbindung) zu einem Eindringen zusammen. Die Verknüpfung beruht auf Zeit und gemeinsamen Indikatoren — eine Vermutung, kein Beweis. Sie hebt nur die Priorität, nie die Rechte des Agenten.',
+    'sent.chain.badge':'Kette',
+    'sent.chain.col.title':'Kette',
+    'sent.chain.col.stages':'Stufen',
+    'sent.chain.col.incidents':'Ereignisse',
+    'sent.chain.view':'Ereignisse ansehen',
+    'sent.chain.empty':'Keine Kette gebildet',
+    'sent.chain.emptyHint':'Ein einzelnes Ereignis bildet nie eine Kette. Erst mehrere Stufen (etwa Ablegen und ausgehende Verbindung) erscheinen hier.',
+    'sent.chain.refresh':'Aktualisieren',
+    'sent.chain.score':'Konfidenz',
+    'sent.chain.titlePrefix':'Vermutete Kette: ',
+    'sent.chain.count':' ({n} Ereignisse)',
+    'sent.chain.cover':'{s} Stufen über {n} Ereignisse, Konfidenz {c}. Korreliert, kein Kausalitätsnachweis.',
+    'sent.chain.filtering':'Ereignisse dieser Kette werden angezeigt',
+    'sent.chain.clear':'Filter aufheben',
+    'sent.stage.initial_access':'Erstzugriff',
+    'sent.stage.execution':'Ausführung',
+    'sent.stage.persistence':'Persistenz',
+    'sent.stage.c2':'Fernsteuerung',
+    'sent.stage.impact':'Wirkung',
+    'sent.tx.title':'Reaktions-Transaktion (rückgängig)',
+    'sent.tx.rollback':'Diese Reaktion zurückrollen',
+    'sent.tx.undoable':'umkehrbar',
+    'sent.tx.notUndoable':'nicht umkehrbar',
+    'sent.tx.undone':'erledigt',
+    'sent.tx.pending':'offen',
+    'sent.tx.hint':'Scheitert die Verifikation, rollt die Engine automatisch zurück. Diese Schaltfläche ist für den menschlichen Widerruf einer bereits abgeschlossenen Reaktion. Nicht umkehrbare Schritte werden ausdrücklich genannt.',
+    'sent.tx.done':'Rollback abgeschlossen',
+    'sent.shadow.v.would_help':'hätte geholfen',
+    'sent.shadow.v.unnecessary':'im Nachhinein unnötig',
+    'sent.shadow.v.unknown':'nicht bewertbar',
+    'sent.shadow.rescore':'Neu bewerten',
+    'sent.shadow.rescored':'Neu bewertet',
+  },
+};
+
 const I18N12 = {
   'zh-CN': {
     'set.aiProvider':'服务商',
@@ -5792,7 +6180,10 @@ createApp({
       incMembersAll: [],        // 「展开全部」拉回来的完整成员列表
       incMembersLoading: false,
       incMembersTruncated: false,
-      incFilter:{status:'unresolved',family:'',severity:'',q:'',page:1}, incPageSize:20, incTotal:0,
+      incFilter:{status:'unresolved',family:'',severity:'',q:'',campaign:'',page:1}, incPageSize:20, incTotal:0,
+      campaigns:[], campaignCounts:{}, campaignTitles:{}, campaignsTotal:0, campaignPage:1,
+      campaignPageSize:20,
+      rollbackBusy:false, shadowBusy:false,
       actFilter:{tool:'',verdict:'',q:'',page:1}, actPageSize:20, actTotal:0,
       sigFilter:{kind:'',severity:'',q:'',page:1}, sigPageSize:20, sigTotal:0,
       quePage:1, quePageSize:10, queTotal:0,
@@ -5835,6 +6226,17 @@ createApp({
     shadowActions(){
       const list = (this.incDetail && this.incDetail.actions) || [];
       return list.filter(a => a.verdict === 'shadow');
+    },
+    campaignPages(){ return Math.max(1, Math.ceil((this.campaignsTotal||0) / this.campaignPageSize)); },
+    // 全部处理过就不给按钮：点了只会弹「没有可回滚的操作」
+    hasPendingRollback(){
+      return ((this.incDetail && this.incDetail.journal) || []).some(j => !j.undone && j.undoable);
+    },
+    // 影子评分的逐条理由：库里斯存的是 JSON 数组
+    shadowReasons(){
+      const rv = this.incDetail && this.incDetail.shadow;
+      if(!rv || !rv.reasons) return [];
+      try{ const v = JSON.parse(rv.reasons); return Array.isArray(v) ? v : []; }catch(e){ return []; }
     },
     // 已显示 vs 总数，决定「展开全部」按钮出不出现
     incMoreMembers(){
@@ -6055,6 +6457,7 @@ createApp({
       if(tab==='incidents') this.loadIncidents(this.incFilter.page);
       else if(tab==='policies') this.loadPolicies();
       else if(tab==='actions') this.loadActions(this.actFilter.page);
+      else if(tab==='campaigns') this.loadCampaigns(this.campaignPage);
       else if(tab==='signals') this.loadSignals(this.sigFilter.page);
       else if(tab==='safety'){ this.loadQuarantine(1); this.loadBlocks(1); this.loadRetention(); }
     },
@@ -6092,11 +6495,102 @@ createApp({
       if(f.family) qs += '&family='+encodeURIComponent(f.family);
       if(f.severity) qs += '&severity='+encodeURIComponent(f.severity);
       if(f.q) qs += '&q='+encodeURIComponent(f.q);
+      if(f.campaign) qs += '&campaign='+encodeURIComponent(f.campaign);
       try{
         const d = await this.api('/sentinel/incidents'+qs);
         this.sentinelIncidents = (d && d.list) || [];
         this.incTotal = (d && d.total) || 0;
+        this.campaignTitles = Object.assign({}, this.campaignTitles, (d && d.campaign_titles) || {});
       }catch(e){}
+    },
+    async loadCampaigns(page){
+      const p = Math.max(1, page||1);
+      this.campaignPage = p;
+      try{
+        const d = await this.api('/sentinel/campaigns?page='+p+'&page_size='+this.campaignPageSize+'&status=all');
+        this.campaigns = (d && d.list) || [];
+        this.campaignCounts = (d && d.counts) || {};
+        this.campaignsTotal = (d && d.total) || 0;
+        const map = Object.assign({}, this.campaignTitles);
+        this.campaigns.forEach(c => { map[c.id] = c.title; });
+        this.campaignTitles = map;
+      }catch(e){}
+    },
+    campaignCount(c){ return this.campaignCounts[c.id] || c.incident_count || 0; },
+    // 标题与摘要按当前语言拼：库里存的那份是给 Agent 提示词用的中文，
+    // 直接渲染会让英文界面里冒出一句中文。
+    chainTitle(c){
+      const stages = this.chainStages(c);
+      if(!stages.length) return c.title || '';
+      const labels = stages.map(x => this.t('sent.stage.'+x)).join(' → ');
+      const n = this.campaignCount(c);
+      const suffix = n > 1 ? this.t('sent.chain.count').replace('{n}', n) : '';
+      return this.t('sent.chain.titlePrefix') + labels + suffix;
+    },
+    chainCover(c){
+      return this.t('sent.chain.cover')
+        .replace('{s}', this.chainStages(c).length)
+        .replace('{n}', this.campaignCount(c))
+        .replace('{c}', (c.score || 0).toFixed(2));
+    },
+    // stages 在库里是 JSON 字符串；解析失败就当没有，不要让整个表格崩掉
+    chainStages(c){
+      if(!c || !c.stages) return [];
+      try{ const v = JSON.parse(c.stages); return Array.isArray(v) ? v : []; }catch(e){ return []; }
+    },
+    chainSubjects(c){
+      if(!c || !c.subjects) return '';
+      try{
+        const v = JSON.parse(c.subjects);
+        if(!Array.isArray(v) || !v.length) return '';
+        const head = v.slice(0, 3).join('、');
+        return v.length > 3 ? head + ' +' + (v.length - 3) : head;
+      }catch(e){ return ''; }
+    },
+    incCampaignTitle(i){ return this.campaignTitles[i.campaign_id] || ''; },
+    filterByCampaign(id){
+      if(!id) return;
+      this.incFilter.campaign = id;
+      this.incFilter.status = 'all';
+      this.gototab('incidents');
+      this.loadIncidents(1);
+    },
+    clearCampaignFilter(){
+      this.incFilter.campaign = '';
+      this.loadIncidents(1);
+    },
+    shadowTag(v){
+      if(v === 'would_help') return 'ok';
+      if(v === 'unnecessary') return 'mute';
+      return 'info';
+    },
+    // 手动回滚：引擎在验证失败时会自动回滚，这个按钮是给人用的——
+    // 运维看着一条已判定 resolved 的事件，认为它改错了。
+    async rollbackIncident(){
+      if(!this.incDetail || this.rollbackBusy) return;
+      this.rollbackBusy = true;
+      try{
+        const d = await this.api('/sentinel/incidents/' + this.incDetail.incident.id + '/rollback', { method:'POST' });
+        this.toast((d && d.message) || this.t('sent.tx.done'));
+        await this.openIncident(this.incDetail.incident);
+      }catch(e){
+        this.toast(e.message);
+      }finally{
+        this.rollbackBusy = false;
+      }
+    },
+    async rerunShadowReview(){
+      if(!this.incDetail || this.shadowBusy) return;
+      this.shadowBusy = true;
+      try{
+        const d = await this.api('/sentinel/incidents/' + this.incDetail.incident.id + '/shadow-review', { method:'POST' });
+        this.incDetail = Object.assign({}, this.incDetail, { shadow: (d && d.review) || null });
+        this.toast(this.t('sent.shadow.rescored'));
+      }catch(e){
+        this.toast(e.message);
+      }finally{
+        this.shadowBusy = false;
+      }
     },
     async loadPolicies(){
       try{ this.sentinelPolicies = (await this.api('/sentinel/policies')) || []; }catch(e){}
@@ -6408,7 +6902,7 @@ createApp({
       else if(p==='changes'){ this.loadChanges(1); this.loadChgStats(); }
     },
     // ===== 多语言 =====
-    t(key){ const dicts=[I18N12,I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
+    t(key){ const dicts=[I18N13,I18N12,I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
     setDocTitle(){
       document.title = this.loggedIn
         ? 'OpsMini · ' + (location.hostname || location.host || 'localhost')

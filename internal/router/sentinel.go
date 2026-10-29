@@ -37,6 +37,8 @@ type sentinelBundle struct {
 	snapshots *change.Snapshots
 	correlate *change.Correlator
 	changeAPI *v1.ChangeHandler
+	campaigns *sentinel.Campaigner
+	shadow    *sentinel.ShadowReviewer
 }
 
 // buildSentinel wires the v1.3.0 autonomous loop:
@@ -141,7 +143,28 @@ func buildSentinel(
 
 	mgr.Agg.OnIncident(eng.OnIncident)
 
+	// 攻击链关联：把「WebShell 落地 → 可疑进程 → 异常外联」合成一次入侵来判断。
+	// 只在事件层面汇总，不放大任何权限：预算、模式、可用工具一律不变。
+	camp := sentinel.NewCampaigner(db)
+	camp.Notify = func(c model.Campaign, list []model.Incident) {
+		notifier.Send(service.NotifyMessage{
+			Channels:    "panel,email",
+			Level:       "critical",
+			PanelTitle:  "疑似攻击链：" + c.Title,
+			PanelBody:   c.Narrative,
+			MailSubject: "[OpsMini] 疑似攻击链：" + c.Title,
+			MailBody:    c.Narrative,
+			WebhookText: c.Narrative,
+		})
+	}
+	mgr.Agg.OnIncident(func(inc model.Incident, _ model.Signal) { camp.Attach(inc) })
+
+	// 影子评分：影子运行没有验证断言，只能在事后看「它当时想做的事还需不需要」。
+	shadow := sentinel.NewShadowReviewer(db)
+
 	handler := v1.NewSentinelHandler(db, mgr, eng, sm)
+	handler.Campaigner = camp
+	handler.Shadow = shadow
 	var changeAPI *v1.ChangeHandler
 	if changeStore != nil {
 		changeAPI = v1.NewChangeHandler(db, changeStore, snapshots, changeWatcher, correlator)
@@ -168,6 +191,8 @@ func buildSentinel(
 		snapshots: snapshots,
 		correlate: correlator,
 		changeAPI: changeAPI,
+		campaigns: camp,
+		shadow:    shadow,
 	}
 	bundle.metricCh = metricCh
 	return bundle
@@ -231,6 +256,7 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 			r.logAction(req.Incident.ID, "", ev)
 			if ev.Verdict == aiagent.ActionAllow && ev.Risk >= aiagent.RiskLowWrite {
 				out.Writes++
+				r.journalWrite(req.Incident.ID, ev)
 			}
 		},
 	}
@@ -275,6 +301,33 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 }
 
 // logAction writes one entry of the decision chain.
+// journaledBySafety are writes whose undo information is recorded by the safety
+// layer (or the tool itself) with the real session id. Journaling them again here
+// would produce a second, non-undoable row for the same action and make the rollback
+// report claim it could not undo something it already undid.
+var journaledBySafety = map[string]bool{
+	"quarantine_file": true, "block_ip": true, "freeze_process": true, "truncate_log": true,
+	"restore_quarantine": true, "restore_snapshot": true, "unblock_ip": true, "resume_process": true,
+}
+
+// journalWrite records a write that has no inverse. Rollback cannot undo it, but it
+// must be able to *say so* — "3 项无法回滚" is the honest half of transaction
+// semantics, and it is the half that tells a human where to look.
+func (r *incidentRunner) journalWrite(incidentID string, ev aiagent.ActionEvent) {
+	if r.safety == nil || journaledBySafety[ev.Name] {
+		return
+	}
+	target := ""
+	if v, ok := ev.Args["path"].(string); ok {
+		target = v
+	} else if v, ok := ev.Args["command"].(string); ok {
+		target = truncateStr(v, 200)
+	} else if v, ok := ev.Args["unit"].(string); ok {
+		target = v
+	}
+	r.safety.Journal(incidentID, ev.Name, target, 0, false)
+}
+
 func (r *incidentRunner) logAction(incidentID, sessionID string, ev aiagent.ActionEvent) {
 	args, _ := json.Marshal(ev.Args)
 	if len(args) > 4000 {
@@ -374,4 +427,37 @@ func truncateStr(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// startBackground runs the parts of the loop that need a clock rather than an event:
+// attack-chain closing and shadow scoring. Both are bookkeeping — they never touch
+// the host and never call the model.
+func (b *sentinelBundle) startBackground(ctx context.Context) {
+	if b.campaigns != nil {
+		// 启动时先回填：升级前或停机期间产生的事件也要能进链，
+		// 否则面板会一直是空的，用户分不清「没有入侵」和「功能没生效」。
+		go func() {
+			if n := b.campaigns.Backfill(24 * time.Hour); n > 0 {
+				log.Printf("sentinel: campaigns backfilled from existing incidents: %d", n)
+			}
+		}()
+		go func() {
+			t := time.NewTicker(30 * time.Minute)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					if n := b.campaigns.Sweep(12 * time.Hour); n > 0 {
+						log.Printf("sentinel: campaigns closed: %d", n)
+					}
+					b.campaigns.Backfill(24 * time.Hour)
+				}
+			}
+		}()
+	}
+	if b.shadow != nil {
+		b.shadow.Start(ctx, 30*time.Minute)
+	}
 }

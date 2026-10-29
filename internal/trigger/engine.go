@@ -424,7 +424,7 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		Incident:     inc,
 		Policy:       p,
 		Mode:         mode,
-		Prompt:       strings.ReplaceAll(p.Prompt, "{title}", inc.Title),
+		Prompt:       strings.ReplaceAll(p.Prompt, "{title}", inc.Title) + e.campaignContext(inc),
 		AllowedTools: splitJSON(p.AllowTools),
 		DeniedTools:  splitJSON(p.DenyTools),
 		MaxWrites:    p.MaxWrites,
@@ -566,6 +566,17 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		}
 	}
 
+	// Transaction semantics: a run that did not achieve its goal must not leave the
+	// host half-changed. Undo what is undoable, newest first, and state plainly what
+	// could not be undone — "3 项无法回滚" is what tells a human where to look.
+	var rollbackNote string
+	if status == model.IncidentFailed && !p.NoAutoRollback && e.Safety != nil {
+		rollbackNote = e.rollback(inc, res.SessionID)
+		if rollbackNote != "" {
+			res.Summary = strings.TrimSpace(res.Summary + "\n\n" + rollbackNote)
+		}
+	}
+
 	incUpd := map[string]any{
 		"status":       status,
 		"session_id":   res.SessionID,
@@ -596,8 +607,86 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		if runErr != nil {
 			text += "\n执行失败：" + runErr.Error()
 		}
+		if rollbackNote != "" {
+			text += "\n" + truncate(rollbackNote, 600)
+		}
 		e.Notify(inc, text)
 	}
+}
+
+// campaignContext renders the attack chain this incident belongs to, so the model
+// investigates "this intrusion" instead of "this symptom". It is context only: no
+// budget, tool or mode is changed by being part of a chain.
+func (e *Engine) campaignContext(inc model.Incident) string {
+	if e.DB == nil || inc.CampaignID == "" {
+		return ""
+	}
+	var camp model.Campaign
+	if err := e.DB.First(&camp, "id = ?", inc.CampaignID).Error; err != nil {
+		return ""
+	}
+	var siblings []model.Incident
+	e.DB.Where("campaign_id = ? AND id <> ?", inc.CampaignID, inc.ID).
+		Order("first_seen").Limit(8).Find(&siblings)
+
+	var b strings.Builder
+	b.WriteString("\n\n【攻击链上下文】本事件属于一条疑似攻击链（关联推断，非因果定论）：")
+	b.WriteString(camp.Title)
+	if len(siblings) > 0 {
+		b.WriteString("\n同链的其他事件：")
+		for _, s := range siblings {
+			b.WriteString(fmt.Sprintf("\n  - [%s] %s（%s，%s）",
+				s.Severity, s.Title, s.Status, s.FirstSeen.Format("15:04")))
+		}
+		b.WriteString("\n请判断这些事件是否为同一次入侵的不同环节；如果是，处置时优先切断共同入口，")
+		b.WriteString("而不是逐个孤立症状处理。如果认为它们无关，请在结论里明确说明。")
+	}
+	return b.String()
+}
+
+// rollback undoes the reversible writes of this incident's runs and returns a short
+// report for the summary/notification. Empty string means there was nothing to undo.
+func (e *Engine) rollback(inc model.Incident, sessionID string) string {
+	if e.Safety == nil {
+		return ""
+	}
+	keys := []string{}
+	if sessionID != "" {
+		keys = append(keys, sessionID)
+	}
+	var sessions []string
+	e.DB.Model(&model.AgentRun{}).Where("incident_id = ? AND session_id <> ?", inc.ID, "").
+		Pluck("session_id", &sessions)
+	keys = append(keys, sessions...)
+	// Non-undoable writes are journaled under the incident id (the session id is not
+	// known while the run is in flight), so include it as a key too.
+	keys = append(keys, inc.ID)
+
+	steps := e.Safety.RollbackSessions(keys)
+	if len(steps) == 0 {
+		return ""
+	}
+	undone, skipped, failed := 0, 0, []string{}
+	for _, s := range steps {
+		switch {
+		case s.OK:
+			undone++
+		case s.Skipped:
+			skipped++
+		default:
+			failed = append(failed, fmt.Sprintf("%s(%s): %s", s.Op, s.Target, s.Detail))
+		}
+	}
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("已回滚本次处置：撤销 %d 项", undone))
+	if skipped > 0 {
+		b.WriteString(fmt.Sprintf("，%d 项不可撤销需人工确认", skipped))
+	}
+	if len(failed) > 0 {
+		b.WriteString(fmt.Sprintf("，%d 项回滚失败（%s）", len(failed), strings.Join(failed, "；")))
+	}
+	b.WriteString("。")
+	return b.String()
 }
 
 // retryHint is appended to the playbook for the second attempt. Feeding back what
