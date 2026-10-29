@@ -2291,17 +2291,19 @@
           <button class="btn primary" @click="openModal('cron')" v-if="hasPerm('cron.create')">{{ t('btn.addTask') }}</button>
         </div>
 
-        <div class="grid grid-4" style="margin-bottom:16px">
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
           <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.panelTask') }}</span></div><div class="stat-value" style="color:var(--info)">{{ crons.filter(c=>c.kind==='panel').length }}</div></div>
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.backupTask') }}</span></div><div class="stat-value" style="color:var(--success)">{{ crons.filter(c=>c.kind==='backup').length }}</div></div>
           <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.agentTask') }}</span></div><div class="stat-value" style="color:var(--primary)">{{ crons.filter(c=>c.kind==='agent').length }}</div></div>
           <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.systemTask') }}</span></div><div class="stat-value" style="color:var(--warning)">{{ crons.filter(c=>c.kind==='system').length }}</div></div>
-          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.userTask') }}</span></div><div class="stat-value" style="color:var(--success)">{{ crons.filter(c=>c.kind==='user').length }}</div></div>
+          <div class="card stat"><div class="stat-top"><span class="stat-label">{{ t('cron.userTask') }}</span></div><div class="stat-value" style="color:var(--t3)">{{ crons.filter(c=>c.kind==='user').length }}</div></div>
         </div>
 
         <div class="row" style="justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
           <div class="page-tabs">
             <span :class="{active: cronSource==='all'}" @click="cronSource='all'">{{ t('cron.all') }}</span>
             <span :class="{active: cronSource==='panel'}" @click="cronSource='panel'">{{ t('cron.panelTask') }}</span>
+            <span :class="{active: cronSource==='backup'}" @click="cronSource='backup'">{{ t('cron.backupTask') }}</span>
             <span :class="{active: cronSource==='agent'}" @click="cronSource='agent'">{{ t('cron.agentTask') }}</span>
             <span :class="{active: cronSource==='system'}" @click="cronSource='system'">{{ t('cron.systemTask') }}</span>
             <span :class="{active: cronSource==='user'}" @click="cronSource='user'">{{ t('cron.userTask') }}</span>
@@ -2321,17 +2323,19 @@
               <thead><tr><th>{{ t('th.taskName') }}</th><th>{{ t('th.user') }}</th><th>{{ t('cron.source') }}</th><th>{{ t('th.schedule') }}</th><th>{{ t('cron.commandOrPrompt') }}</th><th>{{ t('th.lastRun') }}</th><th>{{ t('common.state') }}</th><th>{{ t('common.actions') }}</th></tr></thead>
               <tbody>
                 <tr v-for="c in filteredCrons" :key="c.name + c.srcPath + (c.id||'')">
-                  <td>{{ (c.kind==='panel'||c.kind==='agent') ? c.name : '-' }}</td>
+                  <td>{{ (c.kind==='panel'||c.kind==='agent'||c.kind==='backup') ? c.name : '-' }}</td>
                   <td class="mono">{{ c.user || '-' }}</td>
                   <td>
-                    <span class="tag" :class="c.kind==='panel'?'info':(c.kind==='agent'?'ok':(c.kind==='system'?'warn':'mute'))">
+                    <span class="tag" :class="c.kind==='panel'?'info':(c.kind==='backup'?'ok':(c.kind==='agent'?'ok':(c.kind==='system'?'warn':'mute')))">
                       <span class="tdot"></span>{{ cronKindLabel(c.kind) }}
                     </span>
                     <div class="mono" style="font-size:11px;color:var(--t3);margin-top:4px">{{ c.srcPath }}</div>
                   </td>
                   <td class="mono">{{ c.schedule }}</td>
-                  <td :class="c.kind==='agent'?'':'mono'" style="max-width:260px">
-                    <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="c.kind==='agent' ? c.prompt : c.command">{{ c.kind==='agent' ? c.prompt : c.command }}</div>
+                  <td :class="(c.kind==='agent'||c.kind==='backup')?'':'mono'" style="max-width:260px">
+                    <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="c.kind==='agent' ? c.prompt : (c.kind==='backup' ? c.backupObjects : c.command)">
+                      {{ c.kind==='agent' ? c.prompt : (c.kind==='backup' ? (c.backupObjects||'').replace(/\n/g, ' ') : c.command) }}
+                    </div>
                   </td>
                   <td class="mono">
                     <div>{{ c.last }}</div>
@@ -2343,12 +2347,12 @@
                   </td>
                   <td><span class="tag" :class="c.on?'ok':'mute'"><span class="tdot"></span>{{ c.on?t('common.enabled'):t('common.disabled') }}</span></td>
                   <td style="white-space:nowrap">
-                    <button v-if="c.kind==='panel'||c.kind==='agent'" class="btn sm ghost" :disabled="c.running" @click="runCron(c)">{{ c.running ? t('cron.running') : t('common.run') }}</button>
-                    <button v-if="c.kind==='panel'||c.kind==='agent'" class="btn sm ghost" @click="editCron(c)">{{ t('common.edit') }}</button>
+                    <button v-if="c.kind==='panel'||c.kind==='agent'||c.kind==='backup'" class="btn sm ghost" :disabled="c.running" @click="runCron(c)">{{ c.running ? t('cron.running') : t('common.run') }}</button>
+                    <button v-if="c.kind==='panel'||c.kind==='agent'||c.kind==='backup'" class="btn sm ghost" @click="editCron(c)">{{ t('common.edit') }}</button>
                     <button v-if="c.kind==='agent' && (c.lastReport || c.lastSession)" class="btn sm ghost" @click="openReport(c)">{{ t('cron.openReport') }}</button>
                     <button v-if="c.kind==='agent' && (c.lastReport || c.lastSession)" class="btn sm ghost" @click="downloadReport(c)">{{ t('cron.downloadReport') }}</button>
                     <button v-if="c.id" class="btn sm danger" @click="deleteCron(c.id)">{{ t('common.delete') }}</button>
-                    <span v-if="c.kind!=='panel' && c.kind!=='agent'" class="tag mute" style="font-size:11px">{{ t('cron.readonly') }}</span>
+                    <span v-if="c.kind!=='panel' && c.kind!=='agent' && c.kind!=='backup'" class="tag mute" style="font-size:11px">{{ t('cron.readonly') }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -6751,10 +6755,17 @@ createApp({
         try{ users = await this.api('/cron-jobs/user'); }catch(e){}
         const toSystem = (s) => ({ kind:'system', user: s.user, srcPath: s.source, type:'系统', schedule: s.schedule, command: s.command, on:true });
         const toUser = (s) => ({ kind:'user', user: s.user, srcPath: s.source, type:'用户', schedule: s.schedule, command: s.command, on:true });
+        // kind 必须原样保留：之前这里把非 agent 的一律折成 panel，
+        // 备份任务因此在列表里显示成「面板任务」，还进了错误的统计和筛选。
         const mapPanel = (c) => ({
-          id:c.id, name:c.name, kind:c.kind === 'agent' ? 'agent' : 'panel', user:c.user,
-          srcPath:'sqlite · opsmini.db', type: c.kind === 'agent' ? 'Agent' : '脚本',
+          id:c.id, name:c.name, kind:c.kind || 'panel', user:c.user,
+          srcPath:'sqlite · opsmini.db',
+          type: c.kind === 'agent' ? 'Agent' : (c.kind === 'backup' ? '备份' : '脚本'),
           schedule:c.schedule, command:c.command, prompt:c.prompt,
+          backupObjects: c.backup_objects || '',
+          backupRetention: c.backup_retention || 0,
+          backupRemote: c.backup_remote || '',
+          backupKeepLocal: c.backup_keep_local !== false,
           max_steps: c.max_steps || 0, notify: c.notify || '',
           last: c.last_run ? c.last_run.replace('T',' ').slice(0,16) : '-',
           lastStatus: c.last_status || '', lastSession: c.last_session || '',
@@ -6914,10 +6925,10 @@ createApp({
         command: c.command || '', prompt: c.prompt || '',
         maxSteps: c.max_steps || 12,
         notifyList: (c.notify || '面板').split(',').filter(Boolean),
-        backupObjects: c.backup_objects || '',
-        backupRetention: c.backup_retention || 0,
-        backupRemoteList: (c.backup_remote || '').split(',').filter(Boolean),
-        backupKeepLocal: c.backup_keep_local !== false,
+        backupObjects: c.backupObjects || c.backup_objects || '',
+        backupRetention: c.backupRetention ?? c.backup_retention ?? 0,
+        backupRemoteList: ((c.backupRemote || c.backup_remote) || '').split(',').filter(Boolean),
+        backupKeepLocal: (c.backupKeepLocal ?? c.backup_keep_local) !== false,
       });
       if(c.kind === 'agent') this.loadReportsDir();
       if(c.kind === 'backup') this.loadBackups();
