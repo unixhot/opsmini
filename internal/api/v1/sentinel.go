@@ -226,6 +226,36 @@ func (h *SentinelHandler) Incident(c *gin.Context) {
 	})
 }
 
+// Members GET /sentinel/incidents/:id/members
+//
+// The stored member list on the incident row is capped (memberCap) so one row cannot
+// grow without bound while an attack keeps adding addresses. That cap is invisible in
+// the panel until someone wants the whole list, which is exactly when it matters — so
+// rebuild it from the signals that were folded in.
+func (h *SentinelHandler) Members(c *gin.Context) {
+	id := c.Param("id")
+	var exists int64
+	h.DB.Model(&model.Incident{}).Where("id = ?", id).Count(&exists)
+	if exists == 0 {
+		response.Error(c, 404, response.CodeNotFound, "事件不存在")
+		return
+	}
+	// Hard ceiling: a brute force from 200k addresses must not turn one click into a
+	// multi-megabyte response. The flag tells the UI it is looking at a subset.
+	const maxReturn = 1000
+	var total int64
+	h.DB.Model(&model.Signal{}).Where("incident_id = ? AND subject <> ''", id).
+		Distinct("subject").Count(&total)
+	var subjects []string
+	h.DB.Model(&model.Signal{}).Where("incident_id = ? AND subject <> ''", id).
+		Distinct().Order("subject").Limit(maxReturn).Pluck("subject", &subjects)
+	response.OK(c, gin.H{
+		"members":   subjects,
+		"total":     total,
+		"truncated": int64(len(subjects)) < total,
+	})
+}
+
 // Ignore POST /sentinel/incidents/:id/ignore
 func (h *SentinelHandler) Ignore(c *gin.Context) {
 	id := c.Param("id")

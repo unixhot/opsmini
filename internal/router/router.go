@@ -4,9 +4,9 @@ package router
 import (
 	"context"
 	"fmt"
-	"math"
 	"io/fs"
 	"log"
+	"math"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -22,9 +22,9 @@ import (
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/logpipe"
 	"github.com/opsmini/opsmini/internal/middleware"
-	"github.com/opsmini/opsmini/internal/plugin"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
+	"github.com/opsmini/opsmini/internal/plugin"
 	"github.com/opsmini/opsmini/internal/repository"
 	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/service"
@@ -586,6 +586,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/sentinel/signals", permMw("ai.agent"), sentinelHandler.Signals)
 			authed.GET("/sentinel/incidents", permMw("ai.agent"), sentinelHandler.Incidents)
 			authed.GET("/sentinel/incidents/:id", permMw("ai.agent"), sentinelHandler.Incident)
+			authed.GET("/sentinel/incidents/:id/members", permMw("ai.agent"), sentinelHandler.Members)
 			authed.POST("/sentinel/incidents/:id/ignore", permMw("ai.agent"), sentinelHandler.Ignore)
 			authed.POST("/sentinel/incidents/:id/takeover", permMw("ai.agent"), sentinelHandler.Takeover)
 			authed.GET("/sentinel/facets", permMw("ai.agent"), sentinelHandler.Facets)
