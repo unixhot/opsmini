@@ -37,9 +37,9 @@ func newOutput(spec OutputSpec) (Output, error) {
 	case "elasticsearch":
 		return newESOutput(spec)
 	case "kafka":
-		return nil, fmt.Errorf("kafka 输出尚未实现")
+		return newKafkaOutput(spec)
 	case "logstash":
-		return nil, fmt.Errorf("logstash 输出尚未实现")
+		return newLogstashOutput(spec)
 	}
 	return nil, fmt.Errorf("不支持的输出类型 %q", spec.Type)
 }

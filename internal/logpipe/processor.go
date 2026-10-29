@@ -75,6 +75,43 @@ func newProcessor(s ProcSpec) (Processor, error) {
 		return &addIDProc{target: orDefault(asString(s.Params["target"]), "@metadata._id")}, nil
 	case "timestamp":
 		return newTimestampProc(s.Params)
+	// The rest of filebeat's catalogue lives in processors_extra.go.
+	case "dissect":
+		return newDissectProc(s.Params)
+	case "script":
+		return newScriptProc(s.Params)
+	case "decode_csv_fields":
+		return newDecodeCSVProc(s.Params)
+	case "decode_duration":
+		return &decodeDurationProc{fields: asStringSlice(s.Params["fields"]), target: asString(s.Params["target_field"])}, nil
+	case "extract_array":
+		return newExtractArrayProc(s.Params)
+	case "decode_base64_field":
+		return newDecodeB64Proc(s.Params)
+	case "decompress_gzip_field":
+		return newGunzipProc(s.Params)
+	case "urldecode_fields":
+		return newURLDecodeProc(s.Params)
+	case "truncate_fields":
+		return newTruncateProc(s.Params)
+	case "move_fields":
+		return newMoveProc(s.Params)
+	case "add_locale":
+		return newAddLocaleProc(s.Params)
+	case "add_host_metadata":
+		return newAddHostMetaProc(s.Params)
+	case "add_network_direction":
+		return newAddNetDirectionProc(s.Params)
+	case "fingerprint":
+		return newFingerprintProc(s.Params)
+	case "community_id":
+		return newCommunityIDProc(s.Params)
+	case "registered_domain":
+		return newRegDomainProc(s.Params)
+	case "syslog":
+		return newSyslogProc(s.Params)
+	case "decode_xml":
+		return newDecodeXMLProc(s.Params)
 	}
 	return nil, fmt.Errorf("未实现（已跳过）")
 }

@@ -37,6 +37,7 @@ type Manager struct {
 
 	out    Output
 	outErr string
+	sp     *spool
 
 	sendQ chan batch
 	stop  chan struct{}
@@ -71,6 +72,7 @@ type PipelineStatus struct {
 	Tasks     []TaskStatus `json:"tasks"`
 	Output    string       `json:"output"`
 	OutputErr string       `json:"output_error"`
+	Spool     map[string]any `json:"spool,omitempty"`
 	Warnings  []string     `json:"warnings"`
 	LoadedAt  time.Time    `json:"loaded_at"`
 	Stats     OutputStats  `json:"output_stats"`
@@ -106,6 +108,7 @@ func NewManager(cfg MainConfig, db *gorm.DB, version string) *Manager {
 		tasks:   map[string]*taskRuntime{},
 		sendQ:   make(chan batch, 256),
 		stop:    make(chan struct{}),
+		sp:      newSpool(cfg.SpoolDir, cfg.SpoolMaxMB),
 	}
 	if out, err := newOutput(cfg.Output); err != nil {
 		if cfg.Output.Type != "" {
@@ -253,12 +256,20 @@ func (m *Manager) runTask(id string) {
 
 // sender publishes batches and advances the registry only on success.
 func (m *Manager) sender(ctx context.Context) {
+	replayTick := time.NewTicker(30 * time.Second)
+	defer replayTick.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-m.stop:
 			return
+		case <-replayTick.C:
+			// 输出恢复后把积压的批补发出去，成功的文件随即删除。
+			if m.out != nil && m.sp.Pending() > 0 {
+				m.sp.Replay(ctx, func(events []Event) error { return m.out.Publish(ctx, events) })
+			}
+			continue
 		case b := <-m.sendQ:
 			if m.out == nil {
 				// No output yet: drop would lose data, blocking would fill the
@@ -279,8 +290,16 @@ func (m *Manager) sender(ctx context.Context) {
 				continue
 			}
 			if err := m.publishWithRetry(ctx, events); err != nil {
+				// 重试用尽：落盘而不是丢弃。位点照常推进，因为数据已经在磁盘上，
+				// 这比攥在内存里更安全（进程崩溃也能补发）。
+				if serr := m.sp.Write(events); serr == nil {
+					m.reg.Advance(b.task.ID, b.path, b.inode, b.endOff, b.fp)
+					atomic.AddInt64(&statsOf(b.task.ID).eventsSent, int64(len(events)))
+					atomic.AddInt64(&statsOf(b.task.ID).bytesRead, b.endOff)
+					m.setErr(b.task.ID, "输出不可用，已写入本地队列："+err.Error())
+					continue
+				}
 				m.setErr(b.task.ID, err.Error())
-				// Requeue once: losing a batch silently is worse than a duplicate.
 				select {
 				case m.sendQ <- b:
 				default:
@@ -387,6 +406,7 @@ func (m *Manager) Status() PipelineStatus {
 		Output:    m.cfg.Output.Type,
 		OutputErr: m.outErr,
 		Warnings:  append([]string{}, m.warnings...),
+		Spool:     m.sp.Stats(),
 		LoadedAt:  m.loadedAt,
 		Tasks:     make([]TaskStatus, 0, len(m.tasks)),
 	}
