@@ -142,29 +142,10 @@ func (h *BackupHandler) RemoteSnapshots(c *gin.Context) {
 	response.OK(c, gin.H{"snapshots": list})
 }
 
-// parseBackupObjects turns the panel's line syntax into typed objects.
+// parseBackupObjects delegates to the engine so a manual run and a scheduled run
+// parse the same syntax.
 func parseBackupObjects(raw, dbUser, dbPass string) []backup.Object {
-	var out []backup.Object
-	for _, line := range strings.Split(raw, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		switch {
-		case strings.HasPrefix(line, "mysql:"):
-			name := strings.TrimSpace(strings.TrimPrefix(line, "mysql:"))
-			if name == "" {
-				continue
-			}
-			out = append(out, backup.Object{Kind: "mysql", Database: name, Name: "mysql-" + name, User: dbUser, Password: dbPass})
-		case strings.HasPrefix(line, "redis:"):
-			path := strings.TrimSpace(strings.TrimPrefix(line, "redis:"))
-			out = append(out, backup.Object{Kind: "redis", Path: path, Name: "redis"})
-		default:
-			out = append(out, backup.Object{Kind: "dir", Path: line, Name: strings.Trim(strings.ReplaceAll(line, "/", "_"), "_")})
-		}
-	}
-	return out
+	return backup.ParseObjects(raw, dbUser, dbPass)
 }
 
 func orDefaultStr(s, def string) string {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 
+	"github.com/opsmini/opsmini/internal/backup"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/repository"
 )
@@ -34,6 +35,8 @@ type CronService struct {
 	agent AgentRunner
 	// notifier delivers AI task reports to the configured channels.
 	notifier *Notifier
+	// backups runs backup tasks; nil until the router injects it.
+	backups *backup.Manager
 }
 
 // agentFailLimit is the number of consecutive failures after which an AI task is
@@ -46,6 +49,9 @@ func (s *CronService) SetAgentRunner(r AgentRunner) { s.agent = r }
 
 // SetNotifier injects the notification dispatcher used for AI task reports.
 func (s *CronService) SetNotifier(n *Notifier) { s.notifier = n }
+
+// SetBackupRunner injects the backup engine used by kind=backup tasks.
+func (s *CronService) SetBackupRunner(m *backup.Manager) { s.backups = m }
 
 // NewCronService creates a CronService: loads enabled tasks and starts the scheduler.
 func NewCronService(repo *repository.CronJobRepo) *CronService {
@@ -76,7 +82,13 @@ func (s *CronService) reload() {
 
 // register adds a task to the scheduler (ignores system/user sources and invalid expressions).
 func (s *CronService) register(j model.CronJob) {
-	if (j.Kind != model.CronKindPanel && j.Kind != model.CronKindAgent) || !j.Enabled {
+	switch j.Kind {
+	case model.CronKindPanel, model.CronKindAgent, model.CronKindBackup:
+	default:
+		// system/user tasks are read-only views of the system crontab.
+		return
+	}
+	if !j.Enabled {
 		return
 	}
 	s.mu.Lock()
@@ -104,8 +116,12 @@ func (s *CronService) unregister(id uint) {
 
 // execute runs a task and updates its last run time.
 func (s *CronService) execute(j model.CronJob) {
-	if j.Kind == model.CronKindAgent {
+	switch j.Kind {
+	case model.CronKindAgent:
 		s.executeAgent(j)
+		return
+	case model.CronKindBackup:
+		s.executeBackup(j)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
@@ -145,6 +161,13 @@ type CronReq struct {
 	Notify         string `json:"notify"`
 	MaxSteps       int    `json:"max_steps"`
 	TimeoutSeconds int    `json:"timeout_seconds"`
+
+	// --- Backup tasks (kind=backup) ---
+	// Same line syntax as the backup page: /path, mysql:db, redis:path.
+	BackupObjects   string `json:"backup_objects"`
+	BackupRetention int    `json:"backup_retention"`
+	BackupRemote    string `json:"backup_remote"`
+	BackupKeepLocal *bool  `json:"backup_keep_local"`
 }
 
 // validate checks the request against the selected task kind.
@@ -153,6 +176,10 @@ func (r CronReq) validate() error {
 	case model.CronKindAgent:
 		if strings.TrimSpace(r.Prompt) == "" {
 			return errors.New("Agent 任务必须填写提示词")
+		}
+	case model.CronKindBackup:
+		if len(backup.ParseObjects(r.BackupObjects, "", "")) == 0 {
+			return errors.New("备份任务至少需要一个对象（目录或 mysql:库名）")
 		}
 	case model.CronKindSystem, model.CronKindUser:
 		return errors.New("系统/用户 crontab 任务由系统管理，面板不支持创建")
@@ -165,6 +192,20 @@ func (r CronReq) validate() error {
 		return errors.New("必须填写 cron 表达式")
 	}
 	return nil
+}
+
+// applyBackupFields copies the backup task fields onto the model.
+// keep_local defaults to true: the local copy is what makes a restore fast, and
+// dropping it should be a deliberate choice.
+func (r CronReq) applyBackupFields(j *model.CronJob) {
+	j.BackupObjects = r.BackupObjects
+	j.BackupRetention = r.BackupRetention
+	j.BackupRemote = strings.TrimSpace(r.BackupRemote)
+	if r.BackupKeepLocal == nil {
+		j.BackupKeepLocal = true
+	} else {
+		j.BackupKeepLocal = *r.BackupKeepLocal
+	}
 }
 
 // applyAgentFields copies the AI task fields onto the model.
@@ -190,6 +231,9 @@ func (s *CronService) Create(req CronReq) (*model.CronJob, error) {
 		Enabled:  req.Enabled == nil || *req.Enabled,
 	}
 	req.applyAgentFields(j)
+	if req.Kind == model.CronKindBackup {
+		req.applyBackupFields(j)
+	}
 	if err := s.repo.Create(j); err != nil {
 		return nil, err
 	}
@@ -217,6 +261,9 @@ func (s *CronService) Update(id uint, req CronReq) (*model.CronJob, error) {
 	j.Schedule = req.Schedule
 	j.Command = req.Command
 	req.applyAgentFields(j)
+	if req.Kind == model.CronKindBackup {
+		req.applyBackupFields(j)
+	}
 	if req.Enabled != nil {
 		j.Enabled = *req.Enabled
 	}
@@ -381,4 +428,85 @@ func (s *CronService) notifyAgentReport(j model.CronJob, status string, res Agen
 		MailBody:    b.String(),
 		WebhookText: head + "\n" + truncate(res.Content, 600),
 	})
+}
+
+// executeBackup runs one scheduled backup.
+//
+// It reuses the same engine as the manual button, so a scheduled snapshot and a
+// hand-run snapshot are byte-for-byte the same artefact. Failures are recorded on
+// the task (status + error + fail streak) and also land in the backup history,
+// which is what the "备份失败数" alert rule reads — one failure should be visible
+// in two places: the task list and the alert.
+func (s *CronService) executeBackup(j model.CronJob) {
+	if s.backups == nil {
+		log.Printf("cron %q (id=%d): 备份引擎未初始化，跳过", j.Name, j.ID)
+		return
+	}
+	objs := backup.ParseObjects(j.BackupObjects, "", "")
+	if len(objs) == 0 {
+		s.recordBackupRun(j, model.CronStatusFailed, "备份对象为空", 0)
+		return
+	}
+	var remotes []string
+	for _, name := range strings.Split(j.BackupRemote, ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			remotes = append(remotes, name)
+		}
+	}
+	keepLocal := j.BackupKeepLocal
+	start := time.Now()
+	man, err := s.backups.Run(backup.Job{
+		Name:      j.Name,
+		Objects:   objs,
+		Retention: j.BackupRetention,
+		Remote:    remotes,
+		KeepLocal: &keepLocal,
+	})
+	elapsed := time.Since(start)
+
+	if err != nil {
+		log.Printf("cron %q (id=%d) backup failed after %s: %v", j.Name, j.ID, elapsed, err)
+		s.recordBackupRun(j, model.CronStatusFailed, err.Error(), 0)
+		if s.notifier != nil {
+			s.notifier.Send(NotifyMessage{
+				Channels:    orDefault(j.Notify, "面板"),
+				Level:       "critical",
+				PanelTitle:  "备份失败：" + j.Name,
+				PanelBody:   err.Error(),
+				MailSubject: "[OpsMini] 备份失败: " + j.Name,
+				MailBody:    "任务：" + j.Name + "\n时间：" + start.Format("2006-01-02 15:04:05") + "\n错误：" + err.Error(),
+				WebhookText: "备份失败 " + j.Name + "：" + err.Error(),
+			})
+		}
+		return
+	}
+	size := int64(0)
+	objects := 0
+	if man != nil {
+		size = man.TotalSize
+		objects = len(man.Objects)
+	}
+	log.Printf("cron %q (id=%d) backup done in %s: %d objects, %d bytes", j.Name, j.ID, elapsed, objects, size)
+	s.recordBackupRun(j, model.CronStatusSuccess, "", size)
+}
+
+// recordBackupRun writes the outcome back to the task row.
+func (s *CronService) recordBackupRun(j model.CronJob, status, errMsg string, size int64) {
+	cur, err := s.repo.FindByID(j.ID)
+	if err != nil {
+		return
+	}
+	now := time.Now()
+	cur.LastRun = &now
+	cur.LastStatus = status
+	cur.LastError = truncate(errMsg, 500)
+	if status == model.CronStatusSuccess {
+		cur.FailCount = 0
+	} else {
+		cur.FailCount++
+		// Backups failing repeatedly is worth stopping the noise on, but disabling
+		// the task is worse than a wrong alert — a silently disabled backup is how
+		// people discover they have no backups a year later. So it keeps retrying.
+	}
+	_ = s.repo.Update(cur)
 }

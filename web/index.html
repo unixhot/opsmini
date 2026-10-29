@@ -3731,11 +3731,12 @@
           <div class="form-item"><label>{{ t('cron.taskKind') }}</label>
             <select class="input" v-model="form.taskKind" @change="onCronKindChange">
               <option value="panel">{{ t('cron.panelTask') }}</option>
+              <option value="backup">{{ t('cron.backupTask') }}</option>
               <option value="agent">{{ t('cron.agentTask') }}</option>
               <option value="system" disabled>{{ t('cron.systemTask') }}（{{ t('cron.readonly') }}）</option>
               <option value="user" disabled>{{ t('cron.userTask') }}（{{ t('cron.readonly') }}）</option>
             </select>
-            <div class="form-hint">{{ form.taskKind==='agent' ? t('cron.agentKindHint') : t('cron.taskKindHint') }}</div>
+            <div class="form-hint">{{ form.taskKind==='agent' ? t('cron.agentKindHint') : (form.taskKind==='backup' ? t('cron.backupKindHint') : t('cron.taskKindHint')) }}</div>
           </div>
           <div class="form-item"><label>{{ t('th.taskName') }}</label><input class="input" v-model="form.taskName" :placeholder="t('cron.taskNamePh')"></div>
 
@@ -3776,8 +3777,54 @@
             <div class="form-hint" v-if="reportsDir"><span class="mono" style="font-size:11.5px">{{ t('cron.reportDirHint') }}{{ reportsDir }}</span></div>
           </template>
 
+          <!-- 备份任务：对象 + 保留 + 远端 + 通知 -->
+          <template v-else-if="form.taskKind==='backup'">
+            <div class="form-item">
+              <label>{{ t('cron.backupObjects') }}</label>
+              <textarea v-model="form.backupObjects" rows="4" :placeholder="t('backup.objectsPh')" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.6;background:var(--card);color:var(--t1);outline:none;resize:vertical;font-family:var(--mono)"></textarea>
+              <div class="form-hint">{{ t('cron.backupObjectsHint') }}</div>
+            </div>
+            <div class="form-grid">
+              <div class="form-item">
+                <label>{{ t('th.schedule') }}</label>
+                <input class="input" v-model="form.schedule" placeholder="0 2 * * *">
+                <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">
+                  <span v-for="sp in cronSchedulePresets" :key="sp.cron" class="ai-chip" @click="form.schedule = sp.cron">{{ sp.name }}</span>
+                </div>
+              </div>
+              <div class="form-item">
+                <label>{{ t('cron.backupRetention') }}</label>
+                <input class="input" type="number" min="0" v-model.number="form.backupRetention">
+                <div class="form-hint">{{ t('cron.backupRetentionHint') }}</div>
+              </div>
+            </div>
+            <div class="form-item" v-if="(backupStores||[]).length">
+              <label>{{ t('backup.remote') }}</label>
+              <div class="row" style="gap:14px;flex-wrap:wrap">
+                <label v-for="n in backupStores" :key="n" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);cursor:pointer">
+                  <input type="checkbox" :value="n" v-model="form.backupRemoteList" style="accent-color:var(--primary)">{{ n }}
+                </label>
+              </div>
+              <div class="form-hint">{{ t('cron.backupRemoteHint') }}</div>
+            </div>
+            <div class="form-item kv" v-if="(form.backupRemoteList||[]).length">
+              <span class="k">{{ t('cron.backupKeepLocal') }}</span>
+              <span class="switch" :class="{on:form.backupKeepLocal}" @click="form.backupKeepLocal=!form.backupKeepLocal"></span>
+              <div class="form-hint" style="width:100%">{{ t('cron.backupKeepLocalHint') }}</div>
+            </div>
+            <div class="form-item">
+              <label>{{ t('cron.notify') }}</label>
+              <div class="row" style="gap:14px;flex-wrap:wrap">
+                <label v-for="ch in cronNotifyChoices" :key="ch" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t2);cursor:pointer">
+                  <input type="checkbox" :value="ch" v-model="form.notifyList" style="accent-color:var(--primary)">{{ ch }}
+                </label>
+              </div>
+              <div class="form-hint">{{ t('cron.backupNotifyHint') }}</div>
+            </div>
+          </template>
+
           <!-- 面板任务：命令 -->
-          <template v-else>
+          <template v-else-if="form.taskKind==='panel'">
             <div class="form-grid">
               <div class="form-item"><label>{{ t('common.type') }}</label><select class="input" v-model="form.taskType"><option>备份</option><option>脚本</option><option>清理</option></select></div>
               <div class="form-item"><label>{{ t('th.schedule') }}</label><input class="input" v-model="form.schedule" placeholder="0 3 * * *"></div>
@@ -4760,7 +4807,7 @@ const I18N2 = {
     'misc.systemResource':'系统资源时序','misc.alertRules':'告警规则','misc.uptimeShort':'已运行','misc.online':'在线',
     'range.h30':'30分钟','range.h1':'1小时','range.h6':'6小时','range.h24':'24小时','range.d7':'7天',
     'common.sleep':'休眠','common.admin':'管理员','common.kill':'结束','misc.me':'我',
-    'btn.refreshed':'已刷新','set.saved':'已保存','set.saveFail':'保存失败','set.idleTimeout':'登录空闲超时','set.alertRetention':'告警事件保留时间','set.minutes':'分钟','set.days':'天','set.seconds':'秒','set.idleLogout':'长时间未操作，已自动退出登录','cron.taskKind':'任务类型','cron.readonly':'只读','cron.taskKindHint':'系统/用户任务由系统 crontab 管理，面板仅支持新建面板任务','monitor.eventsTab':'告警事件','alertEvent.all':'全部','alertEvent.active':'告警中','alertEvent.resolved':'已恢复','alertEvent.recovered':'恢复','alert.enable':'启用','alert.disable':'禁用','alertEvent.empty':'暂无告警事件','alertEvent.rule':'规则名称','alertEvent.message':'告警内容','alertEvent.critical':'严重','alertEvent.warning':'警告','alertEvent.deleteConfirm':'确认删除该告警事件','alert.threshold':'阈值','th.time':'时间','th.level':'级别' },
+    'btn.refreshed':'已刷新','set.saved':'已保存','set.saveFail':'保存失败','set.idleTimeout':'登录空闲超时','set.alertRetention':'告警事件保留时间','set.minutes':'分钟','set.days':'天','set.seconds':'秒','set.idleLogout':'长时间未操作，已自动退出登录','cron.backupTask':'备份任务','cron.backupKindHint':'到点自动打包指定目录/数据库，快照与手动「立即备份」完全一致；失败会记到任务里并触发「备份任务失败」告警','cron.backupObjects':'备份对象','cron.backupObjectsHint':'每行一个：目录路径、mysql:库名、redis:路径','cron.backupRetention':'保留份数','cron.backupRetentionHint':'保留最近 N 份，0 表示全部保留','cron.backupRemoteHint':'勾选后会同时上传到这些远端目标','cron.backupKeepLocal':'上传成功后保留本地副本','cron.backupKeepLocalHint':'关掉可省本地空间，但恢复时要从远端下载','cron.backupNotifyHint':'备份失败会按这里选的渠道通知','cron.needBackupObjects':'请至少填写一个备份对象','cron.taskKind':'任务类型','cron.readonly':'只读','cron.taskKindHint':'系统/用户任务由系统 crontab 管理，面板仅支持新建面板任务','monitor.eventsTab':'告警事件','alertEvent.all':'全部','alertEvent.active':'告警中','alertEvent.resolved':'已恢复','alertEvent.recovered':'恢复','alert.enable':'启用','alert.disable':'禁用','alertEvent.empty':'暂无告警事件','alertEvent.rule':'规则名称','alertEvent.message':'告警内容','alertEvent.critical':'严重','alertEvent.warning':'警告','alertEvent.deleteConfirm':'确认删除该告警事件','alert.threshold':'阈值','th.time':'时间','th.level':'级别' },
   'zh-TW': {'misc.uptimeShort':'已執行', 'brand.tagline':'主機上的 AI 維運 Agent','login.lead':'把 AI 裝進伺服器，讓它自己維運自己','login.userPh':'請輸入使用者名稱','login.passPh':'請輸入密碼',
     'misc.uptime':'已運行','misc.cores':'核心','misc.load':'負載','misc.todayTotal':'今日累計','misc.menu':'選單','misc.collapse':'收起選單','misc.expand':'展開選單','misc.goDashboard':'回到儀表板',
     'misc.connected':'已連線','misc.ip':'IP 位址','misc.mac':'MAC 位址','misc.rxTx':'接收 / 傳送',
@@ -4769,7 +4816,7 @@ const I18N2 = {
     'misc.systemResource':'系統資源時序','misc.alertRules':'告警規則','misc.online':'線上',
     'range.h30':'30分鐘','range.h1':'1小時','range.h6':'6小時','range.h24':'24小時','range.d7':'7天',
     'common.sleep':'休眠','common.admin':'管理員','common.kill':'結束','misc.me':'我',
-    'btn.refreshed':'已重新整理','set.saved':'已儲存','set.saveFail':'儲存失敗','set.idleTimeout':'登入閒置逾時','set.alertRetention':'告警事件保留時間','set.minutes':'分鐘','set.days':'天','set.seconds':'秒','set.idleLogout':'長時間未操作，已自動登出','cron.taskKind':'任務類型','cron.readonly':'唯讀','cron.taskKindHint':'系統/使用者任務由系統 crontab 管理，面板僅支援新增面板任務','monitor.eventsTab':'告警事件','alertEvent.all':'全部','alertEvent.active':'告警中','alertEvent.resolved':'已恢復','alertEvent.recovered':'恢復','alert.enable':'啟用','alert.disable':'停用','alertEvent.empty':'暫無告警事件','alertEvent.rule':'規則名稱','alertEvent.message':'告警內容','alertEvent.critical':'嚴重','alertEvent.warning':'警告','alertEvent.deleteConfirm':'確認刪除該告警事件','alert.threshold':'閾值','th.time':'時間','th.level':'級別' },
+    'btn.refreshed':'已重新整理','set.saved':'已儲存','set.saveFail':'儲存失敗','set.idleTimeout':'登入閒置逾時','set.alertRetention':'告警事件保留時間','set.minutes':'分鐘','set.days':'天','set.seconds':'秒','set.idleLogout':'長時間未操作，已自動登出','cron.backupTask':'備份任務','cron.backupKindHint':'到時自動打包指定目錄/資料庫，快照與手動「立即備份」完全一致；失敗會記到任務並觸發「備份任務失敗」告警','cron.backupObjects':'備份對象','cron.backupObjectsHint':'每行一個：目錄路徑、mysql:庫名、redis:路徑','cron.backupRetention':'保留份數','cron.backupRetentionHint':'保留最近 N 份，0 表示全部保留','cron.backupRemoteHint':'勾選後會同時上傳到這些遠端目標','cron.backupKeepLocal':'上傳成功後保留本機副本','cron.backupKeepLocalHint':'關掉可省本機空間，但還原時要從遠端下載','cron.backupNotifyHint':'備份失敗會依這裡選的頻道通知','cron.needBackupObjects':'請至少填寫一個備份對象','cron.taskKind':'任務類型','cron.readonly':'唯讀','cron.taskKindHint':'系統/使用者任務由系統 crontab 管理，面板僅支援新增面板任務','monitor.eventsTab':'告警事件','alertEvent.all':'全部','alertEvent.active':'告警中','alertEvent.resolved':'已恢復','alertEvent.recovered':'恢復','alert.enable':'啟用','alert.disable':'停用','alertEvent.empty':'暫無告警事件','alertEvent.rule':'規則名稱','alertEvent.message':'告警內容','alertEvent.critical':'嚴重','alertEvent.warning':'警告','alertEvent.deleteConfirm':'確認刪除該告警事件','alert.threshold':'閾值','th.time':'時間','th.level':'級別' },
   'en': { 'brand.tagline':'The AI ops agent on your server','login.lead':'Put an AI inside your server and let it run itself','login.userPh':'Enter username','login.passPh':'Enter password',
     'misc.uptime':'Uptime','misc.cores':'cores','misc.load':'Load','misc.todayTotal':'Today','misc.menu':'Menu','misc.collapse':'Collapse','misc.expand':'Expand','misc.goDashboard':'Back to dashboard',
     'misc.connected':'Connected','misc.ip':'IP Address','misc.mac':'MAC Address','misc.rxTx':'RX / TX',
@@ -4778,7 +4825,7 @@ const I18N2 = {
     'misc.systemResource':'System Resources','misc.alertRules':'Alert Rules','misc.online':'Online',
     'range.h30':'30m','range.h1':'1h','range.h6':'6h','range.h24':'24h','range.d7':'7d',
     'common.sleep':'Sleeping','common.admin':'Admin','common.kill':'Kill','misc.me':'Me',
-    'btn.refreshed':'Refreshed','set.saved':'Saved','set.saveFail':'Save failed','set.idleTimeout':'Login idle timeout','set.alertRetention':'Alert retention','set.minutes':'min','set.days':'days','set.seconds':'sec','set.idleLogout':'Inactive too long, logged out','cron.taskKind':'Task type','cron.readonly':'Read-only','cron.taskKindHint':'System/user tasks are managed by system crontab; panel only creates panel tasks','monitor.eventsTab':'Alert Events','alertEvent.all':'All','alertEvent.active':'Active','alertEvent.resolved':'Resolved','alertEvent.recovered':'Recovered','alert.enable':'Enable','alert.disable':'Disable','alertEvent.empty':'No alert events','alertEvent.rule':'Rule','alertEvent.message':'Message','alertEvent.critical':'Critical','alertEvent.warning':'Warning','alertEvent.deleteConfirm':'Delete this alert event?','alert.threshold':'Threshold','th.time':'Time','th.level':'Level' },
+    'btn.refreshed':'Refreshed','set.saved':'Saved','set.saveFail':'Save failed','set.idleTimeout':'Login idle timeout','set.alertRetention':'Alert retention','set.minutes':'min','set.days':'days','set.seconds':'sec','set.idleLogout':'Inactive too long, logged out','cron.backupTask':'Backup task','cron.backupKindHint':'Creates a snapshot on schedule; the artefact is identical to the manual Backup now button. Failures are recorded on the task and raise the Backup failed alert.','cron.backupObjects':'Objects','cron.backupObjectsHint':'One per line: a directory, mysql:DBNAME, or redis:PATH','cron.backupRetention':'Retention','cron.backupRetentionHint':'Keep the newest N snapshots; 0 keeps all','cron.backupRemoteHint':'Checked targets also receive an upload','cron.backupKeepLocal':'Keep the local copy after upload','cron.backupKeepLocalHint':'Turn off to save disk; restores then download from the remote','cron.backupNotifyHint':'Failure notifications use the channels selected here','cron.needBackupObjects':'Enter at least one backup object','cron.taskKind':'Task type','cron.readonly':'Read-only','cron.taskKindHint':'System/user tasks are managed by system crontab; panel only creates panel tasks','monitor.eventsTab':'Alert Events','alertEvent.all':'All','alertEvent.active':'Active','alertEvent.resolved':'Resolved','alertEvent.recovered':'Recovered','alert.enable':'Enable','alert.disable':'Disable','alertEvent.empty':'No alert events','alertEvent.rule':'Rule','alertEvent.message':'Message','alertEvent.critical':'Critical','alertEvent.warning':'Warning','alertEvent.deleteConfirm':'Delete this alert event?','alert.threshold':'Threshold','th.time':'Time','th.level':'Level' },
   'ja': {'misc.noLogs':'セキュリティログはありません','misc.noPorts':'リッスンポートはありません','misc.ports':'リッスンポート','misc.uptimeShort':'稼働中', 'brand.tagline':'サーバー上で動く AI 運用エージェント','login.lead':'AI をサーバーに住まわせ、自分で運用させる','login.userPh':'ユーザー名を入力','login.passPh':'パスワードを入力',
     'misc.uptime':'稼働時間','misc.cores':'コア','misc.load':'負荷','misc.todayTotal':'本日の累計','misc.menu':'メニュー','misc.collapse':'メニューを閉じる','misc.expand':'メニューを開く','misc.goDashboard':'ダッシュボードへ',
     'misc.connected':'接続済み','misc.ip':'IP アドレス','misc.mac':'MAC アドレス','misc.rxTx':'受信 / 送信',
@@ -4787,7 +4834,7 @@ const I18N2 = {
     'misc.systemResource':'システムリソース','misc.alertRules':'アラートルール','misc.online':'オンライン',
     'range.h30':'30分','range.h1':'1時間','range.h6':'6時間','range.h24':'24時間','range.d7':'7日',
     'common.sleep':'スリープ','common.admin':'管理者','common.kill':'終了','misc.me':'私',
-    'btn.refreshed':'更新完了','set.saved':'保存しました','set.saveFail':'保存失敗','set.idleTimeout':'ログインアイドルタイムアウト','set.alertRetention':'アラート保持期間','set.minutes':'分','set.days':'日','set.seconds':'秒','set.idleLogout':'長時間操作がなかったためログアウトしました','cron.taskKind':'タスク種別','cron.readonly':'読み取り専用','cron.taskKindHint':'システム/ユーザータスクはシステム crontab が管理、パネルはパネルタスクのみ作成可能','monitor.eventsTab':'アラートイベント','alertEvent.all':'すべて','alertEvent.active':'発生中','alertEvent.resolved':'復旧済み','alertEvent.recovered':'回復','alert.enable':'有効化','alert.disable':'無効化','alertEvent.empty':'アラートイベントなし','alertEvent.rule':'ルール名','alertEvent.message':'メッセージ','alertEvent.critical':'重大','alertEvent.warning':'警告','alertEvent.deleteConfirm':'このアラートイベントを削除しますか？','alert.threshold':'しきい値','th.time':'時刻','th.level':'レベル' },
+    'btn.refreshed':'更新完了','set.saved':'保存しました','set.saveFail':'保存失敗','set.idleTimeout':'ログインアイドルタイムアウト','set.alertRetention':'アラート保持期間','set.minutes':'分','set.days':'日','set.seconds':'秒','set.idleLogout':'長時間操作がなかったためログアウトしました','cron.backupTask':'バックアップ','cron.backupKindHint':'スケジュールで指定のディレクトリ／データベースを固めます。手動の「今すぐバックアップ」と同一の成果物です。失敗はタスクに記録され「バックアップ失敗」アラートが発生します','cron.backupObjects':'対象','cron.backupObjectsHint':'1 行に 1 件：ディレクトリ、mysql:DB 名、redis:パス','cron.backupRetention':'保持数','cron.backupRetentionHint':'最新 N 件を保持。0 はすべて保持','cron.backupRemoteHint':'チェックしたリモート先にもアップロードします','cron.backupKeepLocal':'アップロード後もローカルコピーを残す','cron.backupKeepLocalHint':'オフにすると容量を節約できますが、復元時にリモートから取得します','cron.backupNotifyHint':'失敗時の通知はここで選んだ経路を使います','cron.needBackupObjects':'対象を 1 つ以上入力してください','cron.taskKind':'タスク種別','cron.readonly':'読み取り専用','cron.taskKindHint':'システム/ユーザータスクはシステム crontab が管理、パネルはパネルタスクのみ作成可能','monitor.eventsTab':'アラートイベント','alertEvent.all':'すべて','alertEvent.active':'発生中','alertEvent.resolved':'復旧済み','alertEvent.recovered':'回復','alert.enable':'有効化','alert.disable':'無効化','alertEvent.empty':'アラートイベントなし','alertEvent.rule':'ルール名','alertEvent.message':'メッセージ','alertEvent.critical':'重大','alertEvent.warning':'警告','alertEvent.deleteConfirm':'このアラートイベントを削除しますか？','alert.threshold':'しきい値','th.time':'時刻','th.level':'レベル' },
   'ko': {'misc.noLogs':'보안 로그 없음','misc.noPorts':'수신 포트 없음','misc.ports':'수신 포트','misc.uptimeShort':'가동 중', 'brand.tagline':'서버 위에서 사는 AI 운영 에이전트','login.lead':'AI 를 서버에 심으면 스스로 운영합니다','login.userPh':'사용자 이름 입력','login.passPh':'비밀번호 입력',
     'misc.uptime':'가동 시간','misc.cores':'코어','misc.load':'부하','misc.todayTotal':'오늘 누적','misc.menu':'메뉴','misc.collapse':'메뉴 접기','misc.expand':'메뉴 펼치기','misc.goDashboard':'대시보드로',
     'misc.connected':'연결됨','misc.ip':'IP 주소','misc.mac':'MAC 주소','misc.rxTx':'수신 / 전송',
@@ -4796,7 +4843,7 @@ const I18N2 = {
     'misc.systemResource':'시스템 리소스','misc.alertRules':'알림 규칙','misc.online':'온라인',
     'range.h30':'30분','range.h1':'1시간','range.h6':'6시간','range.h24':'24시간','range.d7':'7일',
     'common.sleep':'절전','common.admin':'관리자','common.kill':'종료','misc.me':'나',
-    'btn.refreshed':'새로고침됨','set.saved':'저장됨','set.saveFail':'저장 실패','set.idleTimeout':'로그인 유휴 시간 초과','set.alertRetention':'알림 보존 기간','set.minutes':'분','set.days':'일','set.seconds':'초','set.idleLogout':'장시간 미사용으로 로그아웃되었습니다','cron.taskKind':'작업 유형','cron.readonly':'읽기 전용','cron.taskKindHint':'시스템/사용자 작업은 시스템 crontab이 관리하며 패널은 패널 작업만 생성 가능','monitor.eventsTab':'알림 이벤트','alertEvent.all':'전체','alertEvent.active':'발생 중','alertEvent.resolved':'복구됨','alertEvent.recovered':'복구','alert.enable':'활성화','alert.disable':'비활성화','alertEvent.empty':'알림 이벤트 없음','alertEvent.rule':'규칙 이름','alertEvent.message':'메시지','alertEvent.critical':'심각','alertEvent.warning':'경고','alertEvent.deleteConfirm':'이 알림 이벤트를 삭제하시겠습니까?','alert.threshold':'임계값','th.time':'시간','th.level':'수준' },
+    'btn.refreshed':'새로고침됨','set.saved':'저장됨','set.saveFail':'저장 실패','set.idleTimeout':'로그인 유휴 시간 초과','set.alertRetention':'알림 보존 기간','set.minutes':'분','set.days':'일','set.seconds':'초','set.idleLogout':'장시간 미사용으로 로그아웃되었습니다','cron.backupTask':'백업 작업','cron.backupKindHint':'예약 시각에 지정 디렉터리/데이터베이스를 압축합니다. 수동 「지금 백업」과 동일한 결과물입니다. 실패는 작업에 기록되고 「백업 실패」 경고가 발생합니다','cron.backupObjects':'백업 대상','cron.backupObjectsHint':'한 줄에 하나: 디렉터리, mysql:DB명, redis:경로','cron.backupRetention':'보존 개수','cron.backupRetentionHint':'최신 N개 보존, 0은 모두 보존','cron.backupRemoteHint':'선택한 원격 대상에도 업로드합니다','cron.backupKeepLocal':'업로드 후 로컬 사본 유지','cron.backupKeepLocalHint':'끄면 디스크를 절약하지만 복구 시 원격에서 내려받습니다','cron.backupNotifyHint':'실패 알림은 여기서 선택한 채널로 전송합니다','cron.needBackupObjects':'백업 대상을 하나 이상 입력하세요','cron.taskKind':'작업 유형','cron.readonly':'읽기 전용','cron.taskKindHint':'시스템/사용자 작업은 시스템 crontab이 관리하며 패널은 패널 작업만 생성 가능','monitor.eventsTab':'알림 이벤트','alertEvent.all':'전체','alertEvent.active':'발생 중','alertEvent.resolved':'복구됨','alertEvent.recovered':'복구','alert.enable':'활성화','alert.disable':'비활성화','alertEvent.empty':'알림 이벤트 없음','alertEvent.rule':'규칙 이름','alertEvent.message':'메시지','alertEvent.critical':'심각','alertEvent.warning':'경고','alertEvent.deleteConfirm':'이 알림 이벤트를 삭제하시겠습니까?','alert.threshold':'임계값','th.time':'시간','th.level':'수준' },
   'th': {'misc.noLogs':'ไม่มีบันทึกความปลอดภัย','misc.noPorts':'ไม่มีพอร์ตที่เปิดรับฟัง','misc.ports':'พอร์ตที่เปิดรับฟัง','misc.uptimeShort':'ทำงานแล้ว', 'brand.tagline':'AI ops agent บนเซิร์ฟเวอร์ของคุณ','login.lead':'ใส่ AI ลงในเซิร์ฟเวอร์ ให้มันดูแลตัวเอง','login.userPh':'ป้อนชื่อผู้ใช้','login.passPh':'ป้อนรหัสผ่าน',
     'misc.uptime':'ทำงานแล้ว','misc.cores':'คอร์','misc.load':'โหลด','misc.todayTotal':'สะสมวันนี้','misc.menu':'เมนู','misc.collapse':'ย่อเมนู','misc.expand':'ขยายเมนู','misc.goDashboard':'กลับแดชบอร์ด',
     'misc.connected':'เชื่อมต่อแล้ว','misc.ip':'ที่อยู่ IP','misc.mac':'ที่อยู่ MAC','misc.rxTx':'รับ / ส่ง',
@@ -4805,7 +4852,7 @@ const I18N2 = {
     'misc.systemResource':'ทรัพยากรระบบ','misc.alertRules':'กฎการแจ้งเตือน','misc.online':'ออนไลน์',
     'range.h30':'30 นาที','range.h1':'1 ชม.','range.h6':'6 ชม.','range.h24':'24 ชม.','range.d7':'7 วัน',
     'common.sleep':'พัก','common.admin':'ผู้ดูแล','common.kill':'สิ้นสุด','misc.me':'ฉัน',
-    'btn.refreshed':'รีเฟรชแล้ว','set.saved':'บันทึกแล้ว','set.saveFail':'บันทึกล้มเหลว','set.idleTimeout':'หมดเวลาว่างการเข้าสู่ระบบ','set.alertRetention':'ระยะเวลาเก็บการแจ้งเตือน','set.minutes':'นาที','set.days':'วัน','set.seconds':'วินาที','set.idleLogout':'ไม่มีการใช้งานนานเกินไป ออกจากระบบแล้ว','cron.taskKind':'ประเภทงาน','cron.readonly':'อ่านอย่างเดียว','cron.taskKindHint':'งานระบบ/ผู้ใช้จัดการโดย crontab ระบบ แผงสร้างได้เฉพาะงานแผง','monitor.eventsTab':'เหตุการณ์แจ้งเตือน','alertEvent.all':'ทั้งหมด','alertEvent.active':'กำลังแจ้งเตือน','alertEvent.resolved':'กู้คืนแล้ว','alertEvent.recovered':'กู้คืน','alert.enable':'เปิดใช้งาน','alert.disable':'ปิดใช้งาน','alertEvent.empty':'ยังไม่มีเหตุการณ์แจ้งเตือน','alertEvent.rule':'ชื่อกฎ','alertEvent.message':'ข้อความ','alertEvent.critical':'วิกฤต','alertEvent.warning':'คำเตือน','alertEvent.deleteConfirm':'ลบเหตุการณ์แจ้งเตือนนี้?','alert.threshold':'เกณฑ์','th.time':'เวลา','th.level':'ระดับ' },
+    'btn.refreshed':'รีเฟรชแล้ว','set.saved':'บันทึกแล้ว','set.saveFail':'บันทึกล้มเหลว','set.idleTimeout':'หมดเวลาว่างการเข้าสู่ระบบ','set.alertRetention':'ระยะเวลาเก็บการแจ้งเตือน','set.minutes':'นาที','set.days':'วัน','set.seconds':'วินาที','set.idleLogout':'ไม่มีการใช้งานนานเกินไป ออกจากระบบแล้ว','cron.backupTask':'งานสำรองข้อมูล','cron.backupKindHint':'สร้างสแนปช็อตตามเวลา ผลลัพธ์เหมือนปุ่มสำรองเลยทุกประการ หากล้มเหลวจะบันทึกในงานและแจ้งเตือน 「สำรองล้มเหลว」','cron.backupObjects':'รายการที่สำรอง','cron.backupObjectsHint':'หนึ่งบรรทัดต่อหนึ่งรายการ: ไดเรกทอรี, mysql:ชื่อฐานข้อมูล, redis:พาธ','cron.backupRetention':'จำนวนเก็บไว้','cron.backupRetentionHint':'เก็บ N ชุดล่าสุด, 0 คือเก็บทั้งหมด','cron.backupRemoteHint':'จะอัปโหลดไปยังปลายทางระยะไกลที่เลือกด้วย','cron.backupKeepLocal':'เก็บสำเนาในเครื่องหลังอัปโหลด','cron.backupKeepLocalHint':'ปิดเพื่อประหยัดพื้นที่ แต่การกู้คืนจะดาวน์โหลดจากระยะไกล','cron.backupNotifyHint':'การแจ้งเตือนเมื่อล้มเหลวใช้ช่องทางที่เลือกไว้','cron.needBackupObjects':'กรอกรายการสำรองอย่างน้อยหนึ่งรายการ','cron.taskKind':'ประเภทงาน','cron.readonly':'อ่านอย่างเดียว','cron.taskKindHint':'งานระบบ/ผู้ใช้จัดการโดย crontab ระบบ แผงสร้างได้เฉพาะงานแผง','monitor.eventsTab':'เหตุการณ์แจ้งเตือน','alertEvent.all':'ทั้งหมด','alertEvent.active':'กำลังแจ้งเตือน','alertEvent.resolved':'กู้คืนแล้ว','alertEvent.recovered':'กู้คืน','alert.enable':'เปิดใช้งาน','alert.disable':'ปิดใช้งาน','alertEvent.empty':'ยังไม่มีเหตุการณ์แจ้งเตือน','alertEvent.rule':'ชื่อกฎ','alertEvent.message':'ข้อความ','alertEvent.critical':'วิกฤต','alertEvent.warning':'คำเตือน','alertEvent.deleteConfirm':'ลบเหตุการณ์แจ้งเตือนนี้?','alert.threshold':'เกณฑ์','th.time':'เวลา','th.level':'ระดับ' },
   'de': {'misc.noLogs':'Keine Sicherheitsprotokolle','misc.noPorts':'Keine überwachten Ports','misc.ports':'Überwachte Ports','misc.uptimeShort':'Läuft seit', 'brand.tagline':'Der KI-Betriebsagent auf Ihrem Server','login.lead':'Die KI in den Server holen — er wartet sich selbst','login.userPh':'Benutzernamen eingeben','login.passPh':'Passwort eingeben',
     'misc.uptime':'Betriebszeit','misc.cores':'Kerne','misc.load':'Last','misc.todayTotal':'Heute gesamt','misc.menu':'Menü','misc.collapse':'Menü einklappen','misc.expand':'Menü ausklappen','misc.goDashboard':'Zum Dashboard',
     'misc.connected':'Verbunden','misc.ip':'IP-Adresse','misc.mac':'MAC-Adresse','misc.rxTx':'Empfangen / Senden',
@@ -4814,7 +4861,7 @@ const I18N2 = {
     'misc.systemResource':'Systemressourcen','misc.alertRules':'Alarmregeln','misc.online':'Online',
     'range.h30':'30 Min.','range.h1':'1 Std.','range.h6':'6 Std.','range.h24':'24 Std.','range.d7':'7 Tage',
     'common.sleep':'Schlafend','common.admin':'Admin','common.kill':'Beenden','misc.me':'Ich',
-    'btn.refreshed':'Aktualisiert','set.saved':'Gespeichert','set.saveFail':'Speichern fehlgeschlagen','set.idleTimeout':'Anmelde-Timeout bei Inaktivität','set.alertRetention':'Aufbewahrungsdauer für Alarme','set.minutes':'Min.','set.days':'Tage','set.seconds':'Sek.','set.idleLogout':'Wegen Inaktivität abgemeldet','cron.taskKind':'Aufgabentyp','cron.readonly':'Schreibgeschützt','cron.taskKindHint':'System-/Benutzeraufgaben werden von system-crontab verwaltet; Panel erstellt nur Panel-Aufgaben','monitor.eventsTab':'Alarmereignisse','alertEvent.all':'Alle','alertEvent.active':'Aktiv','alertEvent.resolved':'Behoben','alertEvent.recovered':'Wiederhergestellt','alert.enable':'Aktivieren','alert.disable':'Deaktivieren','alertEvent.empty':'Keine Alarmereignisse','alertEvent.rule':'Regel','alertEvent.message':'Nachricht','alertEvent.critical':'Kritisch','alertEvent.warning':'Warnung','alertEvent.deleteConfirm':'Dieses Alarmereignis löschen?','alert.threshold':'Schwellenwert','th.time':'Zeit','th.level':'Stufe' },
+    'btn.refreshed':'Aktualisiert','set.saved':'Gespeichert','set.saveFail':'Speichern fehlgeschlagen','set.idleTimeout':'Anmelde-Timeout bei Inaktivität','set.alertRetention':'Aufbewahrungsdauer für Alarme','set.minutes':'Min.','set.days':'Tage','set.seconds':'Sek.','set.idleLogout':'Wegen Inaktivität abgemeldet','cron.backupTask':'Sicherungsaufgabe','cron.backupKindHint':'Erstellt Snapshots nach Zeitplan; das Ergebnis ist identisch mit „Jetzt sichern“. Fehler werden an der Aufgabe vermerkt und lösen „Sicherung fehlgeschlagen“ aus.','cron.backupObjects':'Objekte','cron.backupObjectsHint':'Eines pro Zeile: Verzeichnis, mysql:DBNAME oder redis:PATH','cron.backupRetention':'Aufbewahrung','cron.backupRetentionHint':'Die neuesten N Snapshots behalten; 0 behält alle','cron.backupRemoteHint':'Ausgewählte Ziele erhalten zusätzlich ein Upload','cron.backupKeepLocal':'Lokale Kopie nach dem Upload behalten','cron.backupKeepLocalHint':'Ausschalten spart Platz, Wiederherstellungen laden dann vom Remote','cron.backupNotifyHint':'Fehlerbenachrichtigungen nutzen die hier gewählten Kanäle','cron.needBackupObjects':'Mindestens ein Sicherungsobjekt angeben','cron.taskKind':'Aufgabentyp','cron.readonly':'Schreibgeschützt','cron.taskKindHint':'System-/Benutzeraufgaben werden von system-crontab verwaltet; Panel erstellt nur Panel-Aufgaben','monitor.eventsTab':'Alarmereignisse','alertEvent.all':'Alle','alertEvent.active':'Aktiv','alertEvent.resolved':'Behoben','alertEvent.recovered':'Wiederhergestellt','alert.enable':'Aktivieren','alert.disable':'Deaktivieren','alertEvent.empty':'Keine Alarmereignisse','alertEvent.rule':'Regel','alertEvent.message':'Nachricht','alertEvent.critical':'Kritisch','alertEvent.warning':'Warnung','alertEvent.deleteConfirm':'Dieses Alarmereignis löschen?','alert.threshold':'Schwellenwert','th.time':'Zeit','th.level':'Stufe' },
 };
 
 const I18N3 = {
@@ -6797,12 +6844,20 @@ createApp({
       if(!f.taskName || !f.taskName.trim()){ this.toast(this.t('cron.needName')); return; }
       if(kind === 'agent' && !(f.prompt || '').trim()){ this.toast(this.t('cron.needPrompt')); return; }
       if(kind === 'panel' && !(f.command || '').trim()){ this.toast(this.t('cron.needCommand')); return; }
+      if(kind === 'backup' && !(f.backupObjects || '').trim()){ this.toast(this.t('cron.needBackupObjects')); return; }
       const body = { name: f.taskName, kind, user: f.user || 'root', schedule: f.schedule, command: f.command, enabled: true };
       if(kind === 'agent'){
         body.prompt = f.prompt;
         body.notify = (f.notifyList || []).join(',');
         body.max_steps = Number(f.maxSteps) || 0;
         body.timeout_seconds = 600;
+      }
+      if(kind === 'backup'){
+        body.backup_objects = f.backupObjects;
+        body.backup_retention = Number(f.backupRetention) || 0;
+        body.backup_remote = (f.backupRemoteList || []).join(',');
+        body.backup_keep_local = !!f.backupKeepLocal;
+        body.notify = (f.notifyList || ['面板']).join(',');
       }
       const editing = !!this.cronEditId;
       try{
@@ -6830,29 +6885,42 @@ createApp({
         if(!f.schedule || f.schedule === '0 3 * * *') f.schedule = '0 8 * * *';
         if(!f.maxSteps) f.maxSteps = 12;
         if(!f.notifyList || !f.notifyList.length) f.notifyList = ['面板'];
-      }else if(!f.schedule || f.schedule === '0 8 * * *'){
+      }else if(f.taskKind === 'backup'){
+        // 备份默认凌晨 2 点：在业务低谷、又早于大多数早班巡检
+        if(!f.schedule || f.schedule === '0 3 * * *' || f.schedule === '0 8 * * *') f.schedule = '0 2 * * *';
+        if(!f.backupRetention) f.backupRetention = 7;
+        if(!f.notifyList || !f.notifyList.length) f.notifyList = ['面板','邮件'];
+        this.loadBackups();
+      }else if(!f.schedule || f.schedule === '0 8 * * *' || f.schedule === '0 2 * * *'){
         f.schedule = '0 3 * * *';
       }
     },
     // cronKindLabel 任务类型的中文标签。
     cronKindLabel(kind){
       if(kind === 'agent') return this.t('cron.agentTask');
+      if(kind === 'backup') return this.t('cron.backupTask');
       if(kind === 'panel') return this.t('cron.panelTask');
       if(kind === 'system') return this.t('cron.systemTask');
       return this.t('cron.userTask');
     },
     // editCron 打开编辑弹窗并回填（仅面板任务与 Agent 任务可编辑）。
     editCron(c){
-      if(c.kind !== 'panel' && c.kind !== 'agent') return;
+      if(c.kind !== 'panel' && c.kind !== 'agent' && c.kind !== 'backup') return;
+      // 从列表回填，所以要先把默认表单铺一遍，避免沿用上一次的残留字段
+      const d = this.defaultForm();
       this.cronEditId = c.id;
-      this.form.taskKind = c.kind;
-      this.form.taskName = c.name;
-      this.form.schedule = c.schedule;
-      this.form.command = c.command || '';
-      this.form.prompt = c.prompt || '';
-      this.form.maxSteps = c.max_steps || 12;
-      this.form.notifyList = (c.notify || '面板').split(',').filter(Boolean);
+      this.form = Object.assign(d, {
+        taskKind: c.kind, taskName: c.name, schedule: c.schedule,
+        command: c.command || '', prompt: c.prompt || '',
+        maxSteps: c.max_steps || 12,
+        notifyList: (c.notify || '面板').split(',').filter(Boolean),
+        backupObjects: c.backup_objects || '',
+        backupRetention: c.backup_retention || 0,
+        backupRemoteList: (c.backup_remote || '').split(',').filter(Boolean),
+        backupKeepLocal: c.backup_keep_local !== false,
+      });
       if(c.kind === 'agent') this.loadReportsDir();
+      if(c.kind === 'backup') this.loadBackups();
       this.modal = 'cron';
     },
     // runCron 立即执行一次：Agent 任务耗时较长，触发后轮询任务状态直到有结果。
@@ -7525,7 +7593,7 @@ createApp({
     persistMenu(){ try{ localStorage.setItem('opsmini-menu', JSON.stringify(this.menuVisibility)); }catch(e){} },
     loadMenu(){ try{ const s=localStorage.getItem('opsmini-menu'); if(s){ const o=JSON.parse(s); if(o && typeof o==='object') this.menuVisibility=o; } }catch(e){} },
     // ===== 新建弹窗 =====
-    defaultForm(){ return { domain:'', path:'', env:'Nginx', runtime:'PHP 8.2', ssl:false, dbType:'MySQL', dbName:'', charset:'utf8mb4', containerName:'', image:'', ports:'', restart:'always', imageTag:'', volumeName:'', volumeDriver:'local', networkName:'', netDriver:'bridge', subnet:'', gateway:'', ruleName:'', metric:'CPU 使用率', operator:'>=', conditionValue:'90', duration:'5 分钟', notifyList:['面板'], folderName:'', fileName:'', renamePath:'', renameNewName:'', taskName:'', taskType:'备份', taskKind:'panel', schedule:'0 3 * * *', command:'', prompt:'', maxSteps:12, userName:'', userRole:'operator', userPass:'' }; },
+    defaultForm(){ return { domain:'', path:'', env:'Nginx', runtime:'PHP 8.2', ssl:false, dbType:'MySQL', dbName:'', charset:'utf8mb4', containerName:'', image:'', ports:'', restart:'always', imageTag:'', volumeName:'', volumeDriver:'local', networkName:'', netDriver:'bridge', subnet:'', gateway:'', ruleName:'', metric:'CPU 使用率', operator:'>=', conditionValue:'90', duration:'5 分钟', notifyList:['面板'], folderName:'', fileName:'', renamePath:'', renameNewName:'', taskName:'', taskType:'备份', taskKind:'panel', schedule:'0 3 * * *', command:'', prompt:'', maxSteps:12, backupObjects:'', backupRetention:7, backupRemoteList:[], backupKeepLocal:true, userName:'', userRole:'operator', userPass:'' }; },
     openModal(type){ this.form = this.defaultForm(); this.modal = type; if(type === 'cron') this.cronEditId = null; },
     closeModal(){ this.modal = null; },
     confirmDialog(msg, cb){ this.confirmMsg = msg; this.confirmCb = cb; },

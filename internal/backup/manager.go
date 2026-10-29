@@ -713,3 +713,35 @@ func (m *Manager) SnapshotDir(name string) (string, error) {
 	}
 	return dir, nil
 }
+
+// ParseObjects turns the panel's line syntax into typed objects.
+//
+//	/var/www/html              directory
+//	mysql:opsmini              database
+//	redis:/var/lib/redis/dump.rdb
+//
+// It lives here (not in the API layer) so a scheduled backup task parses its
+// object list exactly the same way a manual run does — two parsers would drift.
+func ParseObjects(raw, dbUser, dbPass string) []Object {
+	var out []Object
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(line, "mysql:"):
+			name := strings.TrimSpace(strings.TrimPrefix(line, "mysql:"))
+			if name == "" {
+				continue
+			}
+			out = append(out, Object{Kind: "mysql", Database: name, Name: "mysql-" + name, User: dbUser, Password: dbPass})
+		case strings.HasPrefix(line, "redis:"):
+			path := strings.TrimSpace(strings.TrimPrefix(line, "redis:"))
+			out = append(out, Object{Kind: "redis", Path: path, Name: "redis"})
+		default:
+			out = append(out, Object{Kind: "dir", Path: line, Name: strings.Trim(strings.ReplaceAll(line, "/", "_"), "_")})
+		}
+	}
+	return out
+}

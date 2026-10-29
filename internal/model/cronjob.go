@@ -12,6 +12,7 @@ const (
 	CronKindSystem = "system" // system crontab (/etc/crontab etc.)
 	CronKindUser   = "user"   // user crontab (/var/spool/cron/<user>)
 	CronKindAgent  = "agent"  // AI Agent jobs (prompt + tools, unattended)
+	CronKindBackup = "backup" // scheduled backups (objects + retention + remote)
 )
 
 // Cron execution outcomes.
@@ -58,4 +59,23 @@ type CronJob struct {
 	LastError  string `gorm:"size:512" json:"last_error"`
 	// FailCount counts consecutive failures; the task auto-disables at the limit.
 	FailCount int `json:"fail_count"`
+
+	// --- Backup tasks (kind=backup) ---
+
+	// BackupObjects uses the same line syntax as the backup page, so a task can be
+	// created by copying what the operator already typed there:
+	//   /var/www/html
+	//   mysql:opsmini
+	//   redis:/var/lib/redis/dump.rdb
+	BackupObjects string `gorm:"type:text" json:"backup_objects"`
+	// BackupRetention keeps the newest N snapshots (0 = keep all).
+	BackupRetention int `json:"backup_retention"`
+	// BackupRemote lists off-host target names, comma separated.
+	BackupRemote string `gorm:"size:255" json:"backup_remote"`
+	// BackupKeepLocal keeps the local copy after a successful upload.
+	//
+	// No `default:true` gorm tag on purpose: with a default tag GORM replaces the
+	// zero value (false) with the default on insert, so "explicitly turn it off"
+	// silently became "keep it on". The default lives in applyBackupFields instead.
+	BackupKeepLocal bool `json:"backup_keep_local"`
 }

@@ -410,6 +410,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	}
 	backupMgr.SetStores(backupStores)
 	backupHandler := v1.NewBackupHandler(backupMgr)
+	// Scheduled backup tasks reuse the same engine as the manual button.
+	cronSvc.SetBackupRunner(backupMgr)
 
 	// Wire the data sources that event-type alert rules need. Each one is
 	// nil-safe: on a host without docker those rules stay "unknown" instead of
