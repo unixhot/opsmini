@@ -114,7 +114,7 @@ func seedAlertRules(db *gorm.DB) error {
 		{Name: "TCP 连接数过高", Metric: "TCP 当前连接数", Condition: "> 1000", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "CPU 温度过高", Metric: "CPU 温度", Condition: "> 80°C", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "运行中进程数过多", Metric: "运行中进程数", Condition: "> 500", Duration: "5 分钟", Notify: "面板", Enabled: true},
-		{Name: "上下文切换过高", Metric: "上下文切换次数", Condition: "> 100000", Duration: "5 分钟", Notify: "面板", Enabled: true},
+		{Name: "上下文切换过高", Metric: "上下文切换频率", Condition: "> 100000", Duration: "5 分钟", Notify: "面板", Enabled: true},
 		{Name: "僵尸进程堆积", Metric: "僵尸进程数", Condition: "> 5", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "系统刚刚重启", Metric: "系统运行时长", Condition: "< 300", Duration: "0 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
 
@@ -132,6 +132,10 @@ func seedAlertRules(db *gorm.DB) error {
 		{Name: "备份任务失败", Metric: "备份失败数", Condition: "> 0", Duration: "5 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
 		{Name: "日志管道积压", Metric: "日志管道积压", Condition: "> 1000", Duration: "10 分钟", Notify: "面板", Enabled: true},
 	}
+	// 指标口径修正：/proc/stat 的 ctxt 是开机以来的累计值，按「次」比阈值会永久
+	// 告警；已部署的库里这条规则仍叫旧名字，这里就地改名，不新插一条。
+	db.Model(&model.AlertRule{}).Where("metric = ?", "上下文切换次数").Update("metric", "上下文切换频率")
+
 	inserted := 0
 	for _, r := range rules {
 		var count int64

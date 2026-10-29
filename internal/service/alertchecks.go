@@ -292,7 +292,9 @@ func absFloat(v float64) float64 {
 // alarming. Counters must print as integers with a countable unit.
 func eventMetricUnit(metric string) (string, bool) {
 	switch {
-	case strings.Contains(metric, "上下文切换"), strings.Contains(metric, "错误"):
+	case strings.Contains(metric, "上下文切换"):
+		return " 次/秒", true
+	case strings.Contains(metric, "错误"):
 		return " 次", true
 	case strings.Contains(metric, "连接数"), strings.Contains(metric, "进程数"):
 		return " 个", true

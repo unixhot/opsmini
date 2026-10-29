@@ -438,15 +438,25 @@ func procCount(kind string) (float64, bool) {
 		}
 		return float64(n), true
 	case "ctxt":
+		// /proc/stat counts context switches since boot, so the raw number is
+		// meaningless against a threshold (a two-week-old host reports ~1e11 and
+		// alerts forever). The rule is written as "switches per second", which is
+		// what actually indicates CPU thrashing, so convert with the uptime.
 		data, err := os.ReadFile("/proc/stat")
 		if err != nil {
 			return 0, false
 		}
 		for _, line := range strings.Split(string(data), "\n") {
 			if strings.HasPrefix(line, "ctxt ") {
-				if v, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimPrefix(line, "ctxt")), 64); err == nil {
-					return v, true
+				v, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimPrefix(line, "ctxt")), 64)
+				if err != nil {
+					return 0, false
 				}
+				up := uptimeSeconds()
+				if up <= 0 {
+					return 0, false
+				}
+				return v / up, true
 			}
 		}
 		return 0, false
