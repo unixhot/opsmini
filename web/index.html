@@ -567,6 +567,10 @@
     .chain-tbl td:nth-child(4), .chain-tbl td:nth-child(5), .chain-tbl td:nth-child(6){
       display:inline-block;margin-right:10px;padding-bottom:0}
   }
+  /* 变更判定：规则复核给出的结论块，比 diff 更需要被先看到 */
+  .review-box{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--bg3)}
+  .vsep{width:1px;height:16px;background:var(--border);margin:0 4px;align-self:center}
+
   /* 攻击链：阶段用 chip 依次排列，箭头靠 ::after 生成，避免模板里塞字符 */
   .stage-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:7px;font-size:11.5px;
     background:var(--bg3);color:var(--t2);border:1px solid var(--border);white-space:nowrap;line-height:1.6}
@@ -1749,18 +1753,30 @@
           <span v-for="k in chgKinds" :key="k.id" class="chip" :class="{active: chgFilter.kind===k.id}" @click="setChgKind(k.id)">
             <span class="dot" v-if="k.id" :style="{background: kindColor(k.id)}"></span>{{ t(k.label) }}
           </span>
+          <span class="vsep"></span>
+          <span class="chip" :class="{active: chgFilter.verdict===''}" @click="setChgVerdict('')">{{ t('chg.review.all') }}</span>
+          <span class="chip" :class="{active: chgFilter.verdict==='suspicious'}" @click="setChgVerdict('suspicious')">
+            <span class="dot" style="background:var(--danger)"></span>{{ t('chg.review.suspicious') }}
+          </span>
+          <span class="chip" :class="{active: chgFilter.verdict==='unclear'}" @click="setChgVerdict('unclear')">
+            <span class="dot" style="background:var(--warning)"></span>{{ t('chg.review.unclear') }}
+          </span>
+          <span class="chip" :class="{active: chgFilter.verdict==='normal'}" @click="setChgVerdict('normal')">
+            <span class="dot" style="background:#cbd5e1"></span>{{ t('chg.review.normal') }}
+          </span>
         </div>
 
         <div class="card">
           <div class="table-wrap" v-if="changes.length">
             <table class="st-tbl">
-              <colgroup><col style="width:100px"><col style="width:112px"><col><col style="width:104px"><col style="width:160px"><col style="width:88px"></colgroup>
+              <colgroup><col style="width:108px"><col style="width:104px"><col><col style="width:84px"><col style="width:140px"><col style="width:136px"><col style="width:88px"></colgroup>
               <thead><tr>
                 <th>{{ t('sentinel.col.time') }}</th>
                 <th>{{ t('sentinel.col.kind') }}</th>
                 <th>{{ t('chg.col.object') }}</th>
                 <th>{{ t('chg.col.delta') }}</th>
                 <th>{{ t('chg.col.actor') }}</th>
+                <th>{{ t('chg.review.col') }}</th>
                 <th>{{ t('chg.col.action') }}</th>
               </tr></thead>
               <tbody>
@@ -1784,6 +1800,14 @@
                     <span v-if="c.actor_user">{{ c.actor_user }}<span v-if="c.actor_ip" class="mute">@{{ c.actor_ip }}</span></span>
                     <span v-if="c.confidence==='inferred'" class="tag warn" style="margin-left:4px;font-size:10px">{{ t('chg.inferred') }}</span>
                     <span v-else-if="!c.actor_user" class="mute">{{ t('chg.unknown') }}</span>
+                  </td>
+                  <td style="white-space:nowrap">
+                    <span class="tag" :class="chgVerdictTag((chgReviewOf(c.id)||{}).verdict)">
+                      {{ chgVerdictName((chgReviewOf(c.id)||{}).verdict) }}
+                      <span v-if="chgReviewOf(c.id)" class="mute" style="font-weight:400"> {{ ((chgReviewOf(c.id)||{}).score||0).toFixed(2) }}</span>
+                    </span>
+                    <a class="link" v-if="chgIncidents[c.id]" style="margin-left:6px;font-size:11.5px"
+                       :title="chgAnalysisState(c.id)" @click="openChangeIncident(c.id)">{{ t('chg.review.analysis') }}</a>
                   </td>
                   <td>
                     <a class="link" style="white-space:nowrap;font-size:12.5px" @click="openChange(c.id)">{{ t('chg.detail') }}</a>
@@ -1834,6 +1858,21 @@
                   <div class="meta-k">{{ t('chg.col.fields') }}</div>
                   <div class="meta-v mono" style="font-weight:500;font-size:12px">{{ chgDetail.change.fields }}</div>
                 </div>
+              </div>
+              <div class="review-box" v-if="chgReviewOf(chgDetail.change.id)">
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+                  <span class="tag" :class="chgVerdictTag(chgReviewOf(chgDetail.change.id).verdict)">
+                    {{ chgVerdictName(chgReviewOf(chgDetail.change.id).verdict) }}
+                  </span>
+                  <span class="mute" style="font-size:11.5px">{{ t('chg.review.score') }} {{ (chgReviewOf(chgDetail.change.id).score||0).toFixed(2) }}</span>
+                  <span class="mute" style="font-size:11.5px" v-if="chgIncidents[chgDetail.change.id]">· {{ chgAnalysisState(chgDetail.change.id) }}</span>
+                  <button class="btn sm ghost" style="margin-left:auto" v-if="chgIncidents[chgDetail.change.id]"
+                          @click="openChangeIncident(chgDetail.change.id)">{{ t('chg.review.analysis') }}</button>
+                </div>
+                <div class="mute" style="font-size:11.5px;line-height:1.7">
+                  <div v-for="(r,i) in chgReviewReasons(chgDetail.change.id)" :key="'rr'+i">· {{ r }}</div>
+                </div>
+                <div class="mute" style="font-size:11px;margin-top:6px">{{ t('chg.review.hint') }}</div>
               </div>
               <div class="diff-view" v-if="chgDiffLines.length">
                 <div v-for="l in chgDiffLines" :key="l.n" class="dl" :class="l.k">
@@ -5017,6 +5056,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'忽略此类变更',
     'chg.ignore.added':'规则已添加',
     'chg.ignore.removed':'规则已删除',
+    'chg.review.all':'全部判定',
+    'chg.review.normal':'正常',
+    'chg.review.unclear':'待观察',
+    'chg.review.suspicious':'可疑',
+    'chg.review.col':'判定',
+    'chg.review.analysis':'分析',
+    'chg.review.analyzing':'Agent 分析中',
+    'chg.review.analyzed':'Agent 已分析',
+    'chg.review.queued':'等待分析',
+    'chg.review.score':'评分',
+    'chg.review.hint':'规则复核只看变更的形态（改了什么、谁改的、什么时候、同期发生了什么）。判为可疑的会交给 Agent 做深度分析——变更本身永远不会被自动修改。',
     'sent.shadow.v.would_help':'本可有用',
     'sent.shadow.v.unnecessary':'事后多余',
     'sent.shadow.v.unknown':'无法判定',
@@ -5072,6 +5122,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'忽略此類變更',
     'chg.ignore.added':'規則已新增',
     'chg.ignore.removed':'規則已刪除',
+    'chg.review.all':'全部判定',
+    'chg.review.normal':'正常',
+    'chg.review.unclear':'待觀察',
+    'chg.review.suspicious':'可疑',
+    'chg.review.col':'判定',
+    'chg.review.analysis':'分析',
+    'chg.review.analyzing':'Agent 分析中',
+    'chg.review.analyzed':'Agent 已分析',
+    'chg.review.queued':'等待分析',
+    'chg.review.score':'評分',
+    'chg.review.hint':'規則複核只看變更的形態（改了什麼、誰改的、什麼時候、同期發生什麼）。判為可疑的會交給 Agent 做深度分析——變更本身永遠不會被自動修改。',
     'sent.shadow.v.would_help':'本可有用',
     'sent.shadow.v.unnecessary':'事後多餘',
     'sent.shadow.v.unknown':'無法判定',
@@ -5127,6 +5188,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'Ignore this kind of change',
     'chg.ignore.added':'Rule added',
     'chg.ignore.removed':'Rule removed',
+    'chg.review.all':'All verdicts',
+    'chg.review.normal':'Normal',
+    'chg.review.unclear':'Unclear',
+    'chg.review.suspicious':'Suspicious',
+    'chg.review.col':'Verdict',
+    'chg.review.analysis':'Analysis',
+    'chg.review.analyzing':'Agent analysing',
+    'chg.review.analyzed':'Agent analysed',
+    'chg.review.queued':'Queued',
+    'chg.review.score':'Score',
+    'chg.review.hint':'The rule pass only looks at shape: what changed, who changed it, when, and what else happened around it. Suspicious changes are handed to the agent for deeper analysis — changes themselves are never modified automatically.',
     'sent.shadow.v.would_help':'would have helped',
     'sent.shadow.v.unnecessary':'unnecessary in hindsight',
     'sent.shadow.v.unknown':'cannot tell',
@@ -5182,6 +5254,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'この種の変更を除外',
     'chg.ignore.added':'ルールを追加しました',
     'chg.ignore.removed':'ルールを削除しました',
+    'chg.review.all':'すべての判定',
+    'chg.review.normal':'正常',
+    'chg.review.unclear':'要観察',
+    'chg.review.suspicious':'不審',
+    'chg.review.col':'判定',
+    'chg.review.analysis':'分析',
+    'chg.review.analyzing':'Agent 分析中',
+    'chg.review.analyzed':'Agent 分析済み',
+    'chg.review.queued':'分析待ち',
+    'chg.review.score':'スコア',
+    'chg.review.hint':'ルール判定は変更の形だけを見ます（何を・誰が・いつ・周辺で何が起きたか）。不審と判定されたものだけ Agent が深掘りします。変更自体が自動で書き換わることはありません。',
     'sent.shadow.v.would_help':'効果があった',
     'sent.shadow.v.unnecessary':'結果的に不要',
     'sent.shadow.v.unknown':'判定不能',
@@ -5237,6 +5320,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'이런 변경 제외',
     'chg.ignore.added':'규칙이 추가되었습니다',
     'chg.ignore.removed':'규칙이 삭제되었습니다',
+    'chg.review.all':'모든 판정',
+    'chg.review.normal':'정상',
+    'chg.review.unclear':'관찰 필요',
+    'chg.review.suspicious':'의심',
+    'chg.review.col':'판정',
+    'chg.review.analysis':'분석',
+    'chg.review.analyzing':'Agent 분석 중',
+    'chg.review.analyzed':'Agent 분석 완료',
+    'chg.review.queued':'분석 대기',
+    'chg.review.score':'점수',
+    'chg.review.hint':'규칙 판정은 변경의 형태만 봅니다(무엇을, 누가, 언제, 주변에서 무슨 일이 있었는지). 의심으로 판정된 것만 Agent가 심층 분석합니다. 변경 자체가 자동으로 수정되지는 않습니다.',
     'sent.shadow.v.would_help':'효과 있었음',
     'sent.shadow.v.unnecessary':'결과적으로 불필요',
     'sent.shadow.v.unknown':'판단 불가',
@@ -5292,6 +5386,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'ไม่เก็บการเปลี่ยนแปลงประเภทนี้',
     'chg.ignore.added':'เพิ่มกฎแล้ว',
     'chg.ignore.removed':'ลบกฎแล้ว',
+    'chg.review.all':'ทุกผลตัดสิน',
+    'chg.review.normal':'ปกติ',
+    'chg.review.unclear':'ต้องเฝ้าดู',
+    'chg.review.suspicious':'น่าสงสัย',
+    'chg.review.col':'ผลตัดสิน',
+    'chg.review.analysis':'วิเคราะห์',
+    'chg.review.analyzing':'เอเจนต์กำลังวิเคราะห์',
+    'chg.review.analyzed':'เอเจนต์วิเคราะห์แล้ว',
+    'chg.review.queued':'รอวิเคราะห์',
+    'chg.review.score':'คะแนน',
+    'chg.review.hint':'การตัดสินด้วยกฎดูเพียงรูปร่างของการเปลี่ยนแปลง (อะไร ใคร เมื่อไร และเกิดอะไรขึ้นรอบข้าง) เฉพาะที่ตัดสินว่าน่าสงสัยจะถูกส่งให้เอเจนต์วิเคราะห์เชิงลึก ตัวการเปลี่ยนแปลงจะไม่ถูกแก้ไขอัตโนมัติ',
     'sent.shadow.v.would_help':'น่าจะ有帮助',
     'sent.shadow.v.unnecessary':'ไม่จำเป็นเมื่อมองย้อนหลัง',
     'sent.shadow.v.unknown':'ตัดสินไม่ได้',
@@ -5347,6 +5452,17 @@ const I18N13 = {
     'chg.ignore.fromChange':'Diese Art Änderung ignorieren',
     'chg.ignore.added':'Regel hinzugefügt',
     'chg.ignore.removed':'Regel entfernt',
+    'chg.review.all':'Alle Bewertungen',
+    'chg.review.normal':'Normal',
+    'chg.review.unclear':'Beobachten',
+    'chg.review.suspicious':'Verdächtig',
+    'chg.review.col':'Bewertung',
+    'chg.review.analysis':'Analyse',
+    'chg.review.analyzing':'Agent analysiert',
+    'chg.review.analyzed':'Agent hat analysiert',
+    'chg.review.queued':'Wartet auf Analyse',
+    'chg.review.score':'Score',
+    'chg.review.hint':'Die Regelprüfung betrachtet nur die Form der Änderung: was, von wem, wann und was ringsherum passierte. Nur verdächtige Fälle gehen zur tieferen Analyse an den Agenten — die Änderung selbst wird nie automatisch verändert.',
     'sent.shadow.v.would_help':'hätte geholfen',
     'sent.shadow.v.unnecessary':'im Nachhinein unnötig',
     'sent.shadow.v.unknown':'nicht bewertbar',
@@ -6234,7 +6350,8 @@ createApp({
       termConnecting: false,
       // v1.4 变更感知
       changes: [], chgTotal: 0, chgPage: 1, chgPageSize: 30,
-      chgFilter: { kind: '' },
+      chgFilter: { kind: '', verdict: '' },
+      chgReviews: {}, chgIncidents: {}, chgIncidentState: {},
       chgKinds: [
         { id:'', label:'chg.kind.all' },
         { id:'config', label:'chg.kind.config' },
@@ -7338,15 +7455,55 @@ createApp({
       try{
         const q = new URLSearchParams({ page:String(this.chgPage), page_size:String(this.chgPageSize) });
         if(this.chgFilter.kind) q.set('kind', this.chgFilter.kind);
+        if(this.chgFilter.verdict) q.set('verdict', this.chgFilter.verdict);
         const d = await this.api('/changes?' + q.toString());
         this.changes = (d && d.list) || [];
         this.chgTotal = (d && d.total) || 0;
+        this.chgReviews = (d && d.reviews) || {};
+        this.chgIncidents = (d && d.change_incidents) || {};
+        this.chgIncidentState = (d && d.incident_state) || {};
       }catch(e){ this.changes = []; }
     },
     async loadChgStats(){
       try{ this.chgStats = await this.api('/changes/stats') || {}; }catch(e){ this.chgStats = {}; }
     },
     setChgKind(k){ this.chgFilter.kind = k; this.loadChanges(1); },
+    setChgVerdict(v){ this.chgFilter.verdict = v; this.loadChanges(1); },
+    chgReviewOf(id){ return this.chgReviews[id] || null; },
+    chgReviewReasons(id){
+      const r = this.chgReviews[id];
+      if(!r || !r.reasons) return [];
+      try{ const v = JSON.parse(r.reasons); return Array.isArray(v) ? v : []; }catch(e){ return []; }
+    },
+    chgVerdictTag(v){
+      if(v === 'suspicious') return 'err';
+      if(v === 'unclear') return 'warn';
+      return 'mute';
+    },
+    chgVerdictName(v){
+      if(v === 'suspicious') return this.t('chg.review.suspicious');
+      if(v === 'unclear') return this.t('chg.review.unclear');
+      if(v === 'normal') return this.t('chg.review.normal');
+      return '-';
+    },
+    // 分析状态：事件在跑=分析中，结束=已分析
+    chgAnalysisState(id){
+      const iid = this.chgIncidents[id];
+      if(!iid) return '';
+      const st = (this.chgIncidentState[iid] || {}).status || '';
+      if(st === 'triggered' || st === 'running') return this.t('chg.review.analyzing');
+      if(st === 'resolved' || st === 'failed') return this.t('chg.review.analyzed');
+      return this.t('chg.review.queued');
+    },
+    // 从变更直接跳到它触发的事件（那里有完整分析、动作链、报告）
+    async openChangeIncident(id){
+      const iid = this.chgIncidents[id];
+      if(!iid){ return; }
+      try{
+        const d = await this.api('/sentinel/incidents/' + encodeURIComponent(iid));
+        if(d && d.incident){ this.chgDetail = null; this.openIncident(d.incident); }
+      }catch(e){ this.toast(e.message || ''); }
+    },
     async openChange(id){
       this.chgRestoreArmed = false;
       try{ this.chgDetail = await this.api('/changes/' + encodeURIComponent(id)); }

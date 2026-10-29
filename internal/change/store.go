@@ -135,10 +135,12 @@ func (s *Store) appendDiffLocked(changeID string, d *Diff) {
 type Filter struct {
 	Kind      string
 	ObjectKey string
-	Since     time.Time
-	Until     time.Time
-	Page      int
-	PageSize  int
+	// Verdict filters by rule-review result (normal / unclear / suspicious).
+	Verdict  string
+	Since    time.Time
+	Until    time.Time
+	Page     int
+	PageSize int
 }
 
 // List returns change events (metadata only) and the total count.
@@ -146,6 +148,12 @@ func (s *Store) List(f Filter) ([]model.ChangeEvent, int64, error) {
 	q := s.db.Model(&model.ChangeEvent{})
 	if f.Kind != "" {
 		q = q.Where("kind = ?", f.Kind)
+	}
+	if f.Verdict != "" {
+		// Subquery rather than a join: the review table is small and this keeps the
+		// list query (and its count) on one indexed path.
+		q = q.Where("id IN (?)", s.db.Model(&model.ChangeReview{}).
+			Select("change_id").Where("verdict = ?", f.Verdict))
 	}
 	if f.ObjectKey != "" {
 		q = q.Where("object_key LIKE ?", "%"+f.ObjectKey+"%")
@@ -363,6 +371,38 @@ func (s *Store) SaveOffset(source string, inode uint64, offset int64) {
 	if err := s.db.Save(&rec).Error; err != nil {
 		log.Printf("change: save offset %s: %v", source, err)
 	}
+}
+
+// --- reviews ---------------------------------------------------------------
+
+// ReviewsFor returns the review verdicts for a set of change ids.
+func (s *Store) ReviewsFor(ids []string) map[string]model.ChangeReview {
+	out := make(map[string]model.ChangeReview, len(ids))
+	if len(ids) == 0 {
+		return out
+	}
+	var list []model.ChangeReview
+	s.db.Where("change_id IN ?", ids).Find(&list)
+	for _, r := range list {
+		out[r.ChangeID] = r
+	}
+	return out
+}
+
+// IncidentForChange maps a change id to the incident that folded it in, using the
+// signal id (which IS the change id). This is how the panel links a suspicious change
+// to the agent run that analysed it, without adding another FK to maintain.
+func (s *Store) IncidentForChange(ids []string) map[string]string {
+	out := map[string]string{}
+	if len(ids) == 0 {
+		return out
+	}
+	var rows []model.Signal
+	s.db.Select("id", "incident_id").Where("id IN ? AND incident_id <> ''", ids).Find(&rows)
+	for _, r := range rows {
+		out[r.ID] = r.IncidentID
+	}
+	return out
 }
 
 // --- ignore rules ----------------------------------------------------------

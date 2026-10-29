@@ -107,8 +107,17 @@ func buildSentinel(
 		if ai.agent != nil {
 			tools.RegisterChangeTools(ai.agent.Registry(), tools.Deps{Changes: changeStore})
 		}
+		// 变更复核：规则先判，判为可疑才把信号升到 high，让 change-review 策略接手。
+		// 顺序很关键——必须在 Publish 之前改严重级，否则事件会以 info 建好，
+		// 策略匹配不上，Agent 永远不会被唤醒。
+		changeReviewer := change.NewReviewer(changeStore)
 		changeWatcher, csErr = change.NewWatcher(ccfg, changeStore, snapshots, func(ev change.Event) {
-			mgr.Bus.Publish(changeSignal(ev))
+			sig := changeSignal(ev)
+			if rev, err := changeReviewer.Review(ev); err == nil && rev.Verdict == model.ChangeVerdictSuspicious {
+				sig.Severity = model.SeverityHigh
+				log.Printf("change: 可疑变更 %s（%.2f）→ 唤醒 Agent 分析", ev.Object.Key, rev.Score)
+			}
+			mgr.Bus.Publish(sig)
 		})
 		if csErr != nil {
 			log.Printf("sentinel: change watcher init failed: %v", csErr)

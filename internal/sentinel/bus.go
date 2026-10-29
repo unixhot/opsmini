@@ -285,6 +285,13 @@ func titleFor(s model.Signal) string {
 		return "异常外联 · " + s.Subject
 	case "metric":
 		return "指标告警 · " + s.Subject
+	case model.FamilyChange:
+		// 规则复核把可疑变更升到 high；标题要如实反映这一点，否则事件中心里
+		// 一条 high 的 "change · /etc/passwd" 看起来像分类错误。
+		if model.SeverityRank(s.Severity) >= model.SeverityRank(model.SeverityHigh) {
+			return "可疑变更 · " + s.Subject
+		}
+		return "变更 · " + s.Subject
 	}
 	return s.Family + " · " + s.Subject
 }

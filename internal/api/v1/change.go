@@ -48,6 +48,7 @@ func (h *ChangeHandler) List(c *gin.Context) {
 	list, total, err := h.Store.List(change.Filter{
 		Kind:      c.Query("kind"),
 		ObjectKey: c.Query("q"),
+		Verdict:   c.Query("verdict"),
 		Since:     since,
 		Page:      page,
 		PageSize:  size,
@@ -56,7 +57,42 @@ func (h *ChangeHandler) List(c *gin.Context) {
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
 	}
-	response.OK(c, gin.H{"list": list, "total": total, "page": page, "page_size": size})
+
+	// Attach verdicts and the analysing incident in two batch queries, so the row can
+	// show "可疑 0.72 · 分析中" without the client doing N+1 round trips.
+	ids := make([]string, 0, len(list))
+	for _, ev := range list {
+		ids = append(ids, ev.ID)
+	}
+	reviews := h.Store.ReviewsFor(ids)
+	incidents := h.Store.IncidentForChange(ids)
+	incState := map[string]gin.H{}
+	if iids := uniqueValues(incidents); len(iids) > 0 {
+		var rows []model.Incident
+		h.DB.Select("id", "status", "report_rel", "summary").Where("id IN ?", iids).Find(&rows)
+		for _, r := range rows {
+			incState[r.ID] = gin.H{"status": r.Status, "report_rel": r.ReportRel, "summary": r.Summary}
+		}
+	}
+
+	response.OK(c, gin.H{
+		"list": list, "total": total, "page": page, "page_size": size,
+		"reviews": reviews, "change_incidents": incidents, "incident_state": incState,
+	})
+}
+
+// uniqueValues dedupes a map's values.
+func uniqueValues(m map[string]string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(m))
+	for _, v := range m {
+		if v == "" || seen[v] {
+			continue
+		}
+		seen[v] = true
+		out = append(out, v)
+	}
+	return out
 }
 
 // Detail GET /changes/:id

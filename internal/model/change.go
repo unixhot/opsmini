@@ -119,3 +119,34 @@ type ChangeIgnore struct {
 
 // TableName for ChangeIgnore.
 func (ChangeIgnore) TableName() string { return "change_ignore" }
+
+// ChangeReview is the rule-based verdict on one change record.
+//
+// It exists because "let a human tick reviewed on every row" does not scale: 200
+// changes a day means nobody ticks anything and the column becomes a lie. The rule
+// pass judges every change for free, and only the suspicious ones cost tokens — the
+// agent is then asked to look at those, which is what makes the autonomy real
+// instead of decorative.
+type ChangeReview struct {
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	ChangeID string `gorm:"size:64;uniqueIndex" json:"change_id"`
+	// Verdict is normal / unclear / suspicious. Only "suspicious" wakes the agent.
+	Verdict string  `gorm:"size:16;index" json:"verdict"`
+	Score   float64 `json:"score"`
+	// Reasons is a JSON array of short, human-readable justifications. A score
+	// without reasons cannot be argued with, and an unexplainable security verdict
+	// gets ignored by operators — rightly so.
+	Reasons   string    `gorm:"type:text" json:"reasons"`
+	Source    string    `gorm:"size:16" json:"source"` // rule
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// TableName pins the table name.
+func (ChangeReview) TableName() string { return "change_reviews" }
+
+// Change review verdicts.
+const (
+	ChangeVerdictNormal     = "normal"
+	ChangeVerdictUnclear    = "unclear"
+	ChangeVerdictSuspicious = "suspicious"
+)
