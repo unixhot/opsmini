@@ -205,7 +205,7 @@ Jeder Lauf erzeugt **eine in sich geschlossene HTML-Datei** — das Artefakt, da
 <Datenverzeichnis>/reports/<Aufgabenname>/<Aufgabenname>-<Zeitstempel>.md     <- derselbe Inhalt als Markdown
 ```
 
-`<Datenverzeichnis>` ist das Datenverzeichnis des Panels (`appstore_data_dir`, Standard `/var/lib/opsmini/data`). **Jedes erzeugte Artefakt liegt darunter, ein Unterverzeichnis pro Funktion** — Berichte in `reports/`; künftige Generatoren fügen einfach Nachbarverzeichnisse hinzu.
+`<Datenverzeichnis>` ist das Datenverzeichnis des Panels (`appstore_data_dir`, Standard `/data/opsmini/data`). **Jedes erzeugte Artefakt liegt darunter, ein Unterverzeichnis pro Funktion** — Berichte in `reports/`; künftige Generatoren fügen einfach Nachbarverzeichnisse hinzu.
 
 „In sich geschlossen" heißt: Stile inline, kein Skript, kein externes Stylesheet, keine Web-Schrift, keine Bilder. Ein Bericht lässt sich daher von einem USB-Stick, als Mailanhang oder von einem beliebigen statischen Host aus darstellen. Das Panel bündelt bewusst **keine CJK-Schrift** (sie würde das einzelne Binary um mehr als 10 MB vergrößern), Berichte nutzen also die Systemschriften des Lesers, die jeder Desktop- und Mobilbrowser mitbringt.
 

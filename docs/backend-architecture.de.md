@@ -489,8 +489,8 @@ OpsMini v1.0 ist ein **Single-Machine-Panel**, das Fähigkeiten über standardis
 ### 11.1 Artefakte
 
 - `opsmini` als einzelnes Binärpaket (ca. 25~30 MB nach `-s -w`-Kompression), mit eingebettetem Frontend, SQLite und statischen Ressourcen;
-- Konfiguration: `/etc/opsmini/config.yaml` oder Umgebungsvariablen;
-- Standardport 8888, Datenverzeichnis `/var/lib/opsmini/` (opsmini.db).
+- Konfiguration: `/data/opsmini/config.yaml` oder Umgebungsvariablen;
+- Standardport 8888, Datenverzeichnis `/data/opsmini/` (opsmini.db).
 
 ### 11.1.1 Multi-Architektur-Releases (x64 + arm64)
 
@@ -526,7 +526,7 @@ Description=OpsMini Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/opsmini agent --config /etc/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=5
 

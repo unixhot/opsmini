@@ -20,7 +20,7 @@ TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
 DIST_DIR := dist
 BIN      := opsmini
 
-.PHONY: all build build-all clean version push release-check release
+.PHONY: all build build-all clean version push push-github release-check release
 
 ## build: 编译当前平台的二进制到 dist/
 build:
@@ -48,23 +48,38 @@ version:
 	@echo "version=$(VERSION) commit=$(GIT_COMMIT) time=$(BUILD_TIME)"
 	@if [ -n "$(GIT_DIRTY)" ]; then echo "⚠ 工作区有未提交改动（构建产物会带 -dirty）"; fi
 
-## push: 推送到两个远端——codeup（origin，主仓库）与 GitHub（github，公开镜像）
-## 曾经漏推 GitHub 导致公开仓库停在 v1.1.0，这里合成一条命令。
-## 若 HEAD 上有 tag，会自动一起推；tag 已存在且指向不同提交时 git 会拒绝，
-## 需要人工确认后再 --force，避免误改已发布的 tag。
+## push: 只推 codeup（origin）——内部主仓库，可随时推
+## ⚠️ GitHub（github）是**直接对外发布**的镜像，规则（2026-10-28 用户明确）：
+##   未经用户明确同意，**不得**推送 GitHub。所以默认 push 不碰它。
+##    需要更新对外版本时，先征得同意，再显式执行：make push-github
+## 若 HEAD 上有 tag，会随 push 一起推到 origin；tag 冲突时 git 会拒绝，需人工确认。
 push:
 	@set -e; \
 	git remote | grep -qx origin || { echo "✗ 缺少远端 origin"; exit 1; }; \
-	git remote | grep -qx github || { echo "✗ 缺少远端 github（git remote add github git@github.com:unixhot/opsmini.git）"; exit 1; }; \
 	echo "→ origin (codeup)"; git push origin main; \
-	echo "→ github"; git push github main; \
 	tags=$$(git tag --points-at HEAD | tr '\n' ' '); \
 	if [ -n "$$(echo $$tags | tr -d ' ')" ]; then \
-		echo "→ tags: $$tags"; git push origin --tags; git push github --tags; \
+		echo "→ tags: $$tags"; git push origin --tags; \
 	else \
 		echo "→ 当前提交没有 tag，跳过 tag 推送"; \
 	fi; \
-	echo "✓ 两个远端均已同步到 $$(git rev-parse --short HEAD)"
+	echo "✓ origin 已同步到 $$(git rev-parse --short HEAD)"; \
+	echo "  GitHub 未推送（对外版本，需用户同意后执行 make push-github）"
+
+## push-github: 更新 GitHub 公开镜像——**必须先获得用户同意**
+## 这是对外发布动作，会立刻被所有人看到，所以做成独立目标、不混在 push 里。
+push-github:
+	@set -e; \
+	git remote | grep -qx github || { echo "✗ 缺少远端 github（git remote add github git@github.com:unixhot/opsmini.git）"; exit 1; }; \
+	echo "⚠️  即将推送到 GitHub 公开仓库 git@github.com:unixhot/opsmini.git"; \
+	echo "→ github main"; git push github main; \
+	tags=$$(git tag --points-at HEAD | tr '\n' ' '); \
+	if [ -n "$$(echo $$tags | tr -d ' ')" ]; then \
+		echo "→ tags: $$tags"; git push github --tags; \
+	else \
+		echo "→ 当前提交没有 tag，跳过 tag 推送"; \
+	fi; \
+	echo "✓ GitHub 已同步到 $$(git rev-parse --short HEAD)"
 
 ## release-check: 发布前预检——工作区必须干净，且 HEAD 必须正好落在 tag 上
 ## 正确顺序：git commit → git tag vX.Y.Z → make push → make release

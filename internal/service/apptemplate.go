@@ -31,7 +31,7 @@ type OfficialManifest struct {
 
 // templateRoot returns the template file root directory (holds logo.png and files/).
 func (s *AppStoreService) templateRoot() string {
-	dir := "/var/lib/opsmini/data/templates"
+	dir := "data/templates"
 	if s.dataDir != nil {
 		if d := s.dataDir(); d != "" {
 			dir = filepath.Join(d, "templates")

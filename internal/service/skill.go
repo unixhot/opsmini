@@ -53,7 +53,7 @@ func NewSkillService(dataDir func() string) *SkillService {
 
 // root returns the skill root directory.
 func (s *SkillService) root() string {
-	dir := "/var/lib/opsmini/data/skills"
+	dir := "data/skills"
 	if s.dataDir != nil {
 		if d := s.dataDir(); d != "" {
 			dir = filepath.Join(d, "skills")

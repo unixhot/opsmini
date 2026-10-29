@@ -27,6 +27,8 @@ BINARY_URL=""
 VERSION="v1.3.0"                                                    # 默认下载的版本号（发布新版本时更新）
 DEFAULT_URL_BASE="https://opsmini.oss-cn-beijing.aliyuncs.com"     # 阿里云 OSS 下载地址
 NO_SYSTEMD=0
+UNINSTALL=0        # 1 = 执行卸载
+PURGE=0            # 1 = 卸载时连数据一起删
 SERVER_ADDR=""     # OpsAnt「OpsMini Server」地址（host:port），非空则写入 agent 段实现接入 OpsAnt
 SERVER_TOKEN=""    # 连接 OpsAnt 的认证 token（与 OpsAnt 的 OPSMINI_TOKEN 一致）
 
@@ -53,6 +55,8 @@ OpsMini 安装脚本
   -b, --binary <path>  opsmini 二进制路径
   -u, --url <url>      从 URL 下载二进制（支持 .tar.gz 或裸二进制）
   -n, --no-systemd     不注册 systemd 服务（仅解压 + 初始化）
+  -U, --uninstall      卸载：停止并移除 systemd 服务（默认保留数据目录）
+      --purge          配合 --uninstall 使用：连数据目录一并删除（不可恢复）
       --server-addr <host:port>  接入 OpsAnt 的 Server 地址（如 47.104.172.52:4507）
       --server-token <token>     接入 OpsAnt 的认证 token（与 OpsAnt 的 OPSMINI_TOKEN 一致）
   -h, --help           显示本帮助
@@ -73,6 +77,8 @@ while [ $# -gt 0 ]; do
     -b|--binary) BINARY="$2"; shift 2 ;;
     -u|--url)    BINARY_URL="$2"; shift 2 ;;
     -n|--no-systemd) NO_SYSTEMD=1; shift ;;
+    -U|--uninstall)  UNINSTALL=1; shift ;;
+    --purge)         PURGE=1; shift ;;
     --server-addr)   SERVER_ADDR="$2"; shift 2 ;;
     --server-token)  SERVER_TOKEN="$2"; shift 2 ;;
     -h|--help)   usage; exit 0 ;;
@@ -200,6 +206,10 @@ server:
 database:
   path: "${INSTALL_DIR}/opsmini.db"
 
+# 单目录原则：所有运行期数据都在这一个目录下，卸载 = rm -rf ${INSTALL_DIR}
+paths:
+  data: "${INSTALL_DIR}/data"
+
 jwt:
   access_ttl_seconds: 900
   refresh_ttl_seconds: 604800
@@ -261,8 +271,47 @@ EOF
   systemctl restart opsmini >/dev/null 2>&1 || warn "restart 失败（可能无 systemd）"
 }
 
+# ===== 卸载 =====
+# 单目录原则的兑现处：装了 systemd unit 之外没有别的东西散落在系统里，
+# 所以卸载只有两步——删 unit、删目录。数据默认保留，避免误删。
+do_uninstall() {
+  echo -e "${C_BOLD}OpsMini 卸载${C_RESET}"
+  echo "安装目录: ${INSTALL_DIR}"
+
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl stop opsmini >/dev/null 2>&1 || true
+    systemctl disable opsmini >/dev/null 2>&1 || true
+    rm -f /etc/systemd/system/opsmini.service
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    info "已移除 systemd 服务 opsmini"
+  fi
+
+  # 兜底：检查是否还有目录外的残留（正常应为空）
+  local stray=""
+  for d in /var/lib/opsmini /etc/opsmini /run/opsmini; do
+    [ -e "$d" ] && stray="${stray} $d"
+  done
+  [ -n "$stray" ] && warn "发现目录外残留在：${stray}（可手动删除）"
+
+  if [ "$PURGE" -eq 1 ]; then
+    if [ -d "$INSTALL_DIR" ]; then
+      rm -rf "$INSTALL_DIR"
+      info "已删除数据目录 ${INSTALL_DIR}"
+    fi
+    info "卸载完成"
+  else
+    info "卸载完成。数据目录 ${INSTALL_DIR} 已保留"
+    info "如需彻底删除：rm -rf ${INSTALL_DIR}"
+  fi
+}
+
 # ===== 主流程 =====
 main() {
+  if [ "$UNINSTALL" -eq 1 ]; then
+    do_uninstall
+    return 0
+  fi
+
   echo -e "${C_BOLD}OpsMini 安装${C_RESET}"
   echo "安装目录: ${INSTALL_DIR} | 端口: ${PORT}"
 

@@ -7,6 +7,7 @@ package tools
 
 import (
 	"github.com/opsmini/opsmini/internal/aiagent"
+	"github.com/opsmini/opsmini/internal/change"
 	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -32,6 +33,9 @@ type Deps struct {
 	// Safety provides the reversible action primitives (quarantine, snapshot,
 	// temporary IP bans). Nil disables the response tools.
 	Safety *safety.Manager
+	// Changes exposes the v1.4 change history (read-only). Nil disables the
+	// change tools.
+	Changes *change.Store
 
 	// DataDir returns the panel data directory (skills, uploaded files).
 	DataDir func() string
@@ -41,6 +45,16 @@ type Deps struct {
 	Setting func(key string) string
 }
 
+// RegisterChangeTools adds the v1.4 change-awareness tools to an existing
+// registry. Used after the change store is constructed (which happens later than
+// the main registry build).
+func RegisterChangeTools(reg *aiagent.Registry, d Deps) {
+	if reg == nil || d.Changes == nil {
+		return
+	}
+	reg.RegisterAll(changeTools(d))
+}
+
 // Build registers every built-in tool on the registry.
 //
 // OpsMini is a single-host panel: every tool here operates on the local machine
@@ -48,6 +62,7 @@ type Deps struct {
 // execution API (/api/opsant/v1/tasks/*) and the salt/ansible/opsmini engines.
 func Build(reg *aiagent.Registry, d Deps) {
 	reg.RegisterAll(readonlyTools(d))
+	reg.RegisterAll(changeTools(d))
 	reg.RegisterAll(lowRiskTools(d))
 	reg.RegisterAll(highRiskTools(d))
 	reg.RegisterAll(responseTools(d))

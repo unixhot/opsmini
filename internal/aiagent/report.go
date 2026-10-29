@@ -202,7 +202,7 @@ type ReportFile struct {
 // reportsRoot returns the reports directory under the panel data directory.
 func reportsRoot(dataDir string) string {
 	if strings.TrimSpace(dataDir) == "" {
-		dataDir = "/var/lib/opsmini/data"
+		dataDir = "data"
 	}
 	return filepath.Join(dataDir, "reports")
 }

@@ -184,7 +184,7 @@ initial admin account created: username=opsmini password=ggFKEX65ZVF6RNTm
 /opt/opsmini/
 ├── opsmini              # 二进制
 └── config.yaml          # 配置文件
-/var/lib/opsmini/
+/data/opsmini/
 └── opsmini.db           # 数据（自动生成，随 data 目录权限而定）
 ```
 
@@ -192,12 +192,12 @@ initial admin account created: username=opsmini password=ggFKEX65ZVF6RNTm
 
 ```bash
 # 1. 放置二进制与配置
-sudo mkdir -p /opt/opsmini /var/lib/opsmini
+sudo mkdir -p /opt/opsmini /data/opsmini
 sudo cp dist/opsmini-*-linux-amd64 /opt/opsmini/opsmini
 sudo cp configs/config.yaml /opt/opsmini/config.yaml
 
 # 2. 修改配置：JWT secret、数据库绝对路径
-sudo sed -i 's|path: "opsmini.db"|path: "/var/lib/opsmini/opsmini.db"|' /opt/opsmini/config.yaml
+sudo sed -i 's|path: "opsmini.db"|path: "/data/opsmini/opsmini.db"|' /opt/opsmini/config.yaml
 sudo sed -i 's|secret: "change-me"|secret: "<随机长串>"|' /opt/opsmini/config.yaml
 
 # 3. 赋权
@@ -232,7 +232,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin opsmini || true
-sudo chown -R opsmini:opsmini /var/lib/opsmini /opt/opsmini
+sudo chown -R opsmini:opsmini /data/opsmini /opt/opsmini
 sudo systemctl daemon-reload
 sudo systemctl enable --now opsmini
 sudo systemctl status opsmini
@@ -283,7 +283,7 @@ panel.example.com {
 ```bash
 # 1. 备份数据
 sudo systemctl stop opsmini
-cp /var/lib/opsmini/opsmini.db /var/lib/opsmini/opsmini.db.bak.$(date +%s)
+cp /data/opsmini/opsmini.db /data/opsmini/opsmini.db.bak.$(date +%s)
 
 # 2. 替换二进制
 sudo cp dist/opsmini-<new>-linux-amd64 /opt/opsmini/opsmini

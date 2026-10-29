@@ -104,7 +104,7 @@ func (m *AlertMonitor) evaluate() {
 		if compareValue(val, op, threshold) {
 			m.fire(rule, val, threshold, op)
 		} else {
-			m.resolve(rule)
+			m.resolve(rule, val, threshold)
 		}
 	}
 }
@@ -152,7 +152,7 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 
 // resolve recovers an alert: marks the rule's active event as resolved and creates a
 // linked recovery event so the history shows both when it fired and when it recovered.
-func (m *AlertMonitor) resolve(rule model.AlertRule) {
+func (m *AlertMonitor) resolve(rule model.AlertRule, val, threshold float64) {
 	ev, err := m.eventRepo.FindActiveByRule(rule.ID)
 	if err != nil {
 		return
@@ -169,7 +169,11 @@ func (m *AlertMonitor) resolve(rule model.AlertRule) {
 		RuleName:   rule.Name,
 		Metric:     rule.Metric,
 		Level:      ev.Level,
-		Message:    "已恢复：" + ev.Message,
+		// The recovery message must state the value that actually cleared the
+		// threshold. Reusing ev.Message printed the firing value, so the history
+		// read「已恢复：CPU 使用率 98.4% > 阈值 90.0%」— a recovered alert that
+		// still claimed to be over the limit.
+		Message:    "已恢复：" + rule.Metric + " " + formatMetricValue(rule.Metric, val) + "（阈值 " + formatMetricValue(rule.Metric, threshold) + "）",
 		Kind:       model.AlertKindRecovery,
 		RelatedID:  ev.ID,
 		Status:     model.AlertStatusResolved,
@@ -241,6 +245,14 @@ func compareValue(val float64, op string, threshold float64) bool {
 // metricValue returns the current metric value and whether it matched.
 func metricValue(metric string, sum *MonitorSummary, sys *SystemService) (float64, bool) {
 	switch {
+	// Temperature must be matched before "CPU": every temperature rule name
+	// contains "CPU" too, and matching it first made「CPU 温度」silently read the
+	// CPU utilisation percentage (98.4% "hot" while the box was merely busy).
+	case strings.Contains(metric, "温度") || strings.Contains(metric, "Temperature"):
+		if sys == nil {
+			return 0, false
+		}
+		return sys.CPUTemperature()
 	case strings.Contains(metric, "CPU"):
 		return sum.CPUPercent, true
 	case strings.Contains(metric, "内存") || strings.Contains(metric, "Mem") || strings.Contains(metric, "Memory"):
@@ -262,6 +274,8 @@ func metricValue(metric string, sum *MonitorSummary, sys *SystemService) (float6
 // formatMetricValue formats a metric value with the appropriate unit.
 func formatMetricValue(metric string, v float64) string {
 	switch {
+	case strings.Contains(metric, "温度") || strings.Contains(metric, "Temperature"):
+		return strconv.FormatFloat(v, 'f', 1, 64) + "°C"
 	case strings.Contains(metric, "进程") || strings.Contains(metric, "Process"):
 		return strconv.FormatFloat(v, 'f', 0, 64)
 	case strings.Contains(metric, "下载") || strings.Contains(metric, "上传") || strings.Contains(metric, "下行") || strings.Contains(metric, "上行"):

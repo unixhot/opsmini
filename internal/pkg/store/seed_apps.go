@@ -7,9 +7,9 @@ import (
 
 // seedAppList returns the default apps for the software store.
 // Each app is a Shell script that starts with docker run in one click (modeled after the 1Panel app store).
-// Scripts specify the data directory via the DATA_DIR environment variable (default /var/lib/opsmini/data).
+// Scripts specify the data directory via the DATA_DIR environment variable (default /data/opsmini/data).
 func seedAppList() []model.App {
-	scriptHeader := "#!/bin/bash\nset -e\nDATA_DIR=\"${DATA_DIR:-/var/lib/opsmini/data}\"\n"
+	scriptHeader := "#!/bin/bash\nset -e\nDATA_DIR=\"${DATA_DIR:-/data/opsmini/data}\"\n"
 	return []model.App{
 		{
 			Slug: "nginx", Name: "Nginx", Description: "高性能 Web 服务器与反向代理",

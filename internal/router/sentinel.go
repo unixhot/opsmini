@@ -5,29 +5,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/opsmini/opsmini/internal/aiagent"
+	"github.com/opsmini/opsmini/internal/change"
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/sentinel"
 	"github.com/opsmini/opsmini/internal/service"
+	"github.com/opsmini/opsmini/internal/aiagent/tools"
 	"github.com/opsmini/opsmini/internal/trigger"
 )
 
 // sentinelBundle groups the perception layer, the trigger engine and the HTTP
 // handler so the router can start/stop them together.
 type sentinelBundle struct {
-	handler *v1.SentinelHandler
-	manager *sentinel.Manager
-	engine   *trigger.Engine
-	safety   *safety.Manager
-	metricCh chan model.Signal
+	handler   *v1.SentinelHandler
+	manager   *sentinel.Manager
+	engine    *trigger.Engine
+	safety    *safety.Manager
+	metricCh  chan model.Signal
+	changes   *change.Watcher
+	changeDB  *change.Store
+	snapshots *change.Snapshots
+	correlate *change.Correlator
+	changeAPI *v1.ChangeHandler
 }
 
 // buildSentinel wires the v1.3.0 autonomous loop:
@@ -70,13 +79,49 @@ func buildSentinel(
 		log.Printf("sentinel: seed policies: %v", err)
 	}
 
+	// ---- v1.4 变更感知：采集 → 落库 → 扇出为 family=change 的 info 信号 ----
+	ccfg := change.DefaultConfig()
+	ccfg.Snapshot.Dir = filepath.Join(dataDir(), "changes")
+	// Watch dirs are overridable from the panel (and by env var for tests /
+	// containers where /etc is not the interesting tree).
+	if v, _ := settingSvc.Get("change_watch_dirs"); strings.TrimSpace(v) != "" {
+		ccfg.File.WatchDirs = splitCSV(v)
+	}
+	if v := os.Getenv("OPSMINI_CHANGE_WATCH_DIRS"); strings.TrimSpace(v) != "" {
+		ccfg.File.WatchDirs = splitCSV(v)
+	}
+	if v, _ := settingSvc.Get("change_realtime"); v == "false" || v == "0" {
+		ccfg.File.Realtime = false
+	}
+	changeStore, csErr := change.NewStore(db, ccfg.Quota.DiffTotalSize)
+	snapshots := change.NewSnapshots(ccfg.Snapshot.Dir, ccfg.Snapshot.MaxPerDay, ccfg.Snapshot.MaxTotalSize)
+	var correlator *change.Correlator
+	var changeWatcher *change.Watcher
+	if csErr != nil {
+		log.Printf("sentinel: change store init failed: %v", csErr)
+	} else {
+		correlator = change.NewCorrelator(changeStore)
+		// 把变更工具挂到已注册的 Agent 工具集上（store 在这里才构造出来）
+		if ai.agent != nil {
+			tools.RegisterChangeTools(ai.agent.Registry(), tools.Deps{Changes: changeStore})
+		}
+		changeWatcher, csErr = change.NewWatcher(ccfg, changeStore, snapshots, func(ev change.Event) {
+			mgr.Bus.Publish(changeSignal(ev))
+		})
+		if csErr != nil {
+			log.Printf("sentinel: change watcher init failed: %v", csErr)
+			changeWatcher = nil
+		}
+	}
+
 	eng.Runner = &incidentRunner{
-		agent:    ai.agent,
-		store:    ai.store,
-		db:       db,
-		safety:   sm,
-		dataDir:  dataDir,
+		agent:      ai.agent,
+		store:      ai.store,
+		db:         db,
+		safety:     sm,
+		dataDir:    dataDir,
 		settingSvc: settingSvc,
+		correlate:  correlator,
 	}
 	eng.Notify = func(inc model.Incident, text string) {
 		level := "warning"
@@ -97,6 +142,10 @@ func buildSentinel(
 	mgr.Agg.OnIncident(eng.OnIncident)
 
 	handler := v1.NewSentinelHandler(db, mgr, eng, sm)
+	var changeAPI *v1.ChangeHandler
+	if changeStore != nil {
+		changeAPI = v1.NewChangeHandler(db, changeStore, snapshots, changeWatcher, correlator)
+	}
 	handler.Setting = func(key, value string) error { return settingSvc.Set(map[string]string{key: value}) }
 
 	// Retention windows survive restarts via the panel settings table.
@@ -110,10 +159,15 @@ func buildSentinel(
 	}
 
 	bundle := &sentinelBundle{
-		handler: handler,
-		manager: mgr,
-		engine:  eng,
-		safety:  sm,
+		handler:   handler,
+		manager:   mgr,
+		engine:    eng,
+		safety:    sm,
+		changes:   changeWatcher,
+		changeDB:  changeStore,
+		snapshots: snapshots,
+		correlate: correlator,
+		changeAPI: changeAPI,
 	}
 	bundle.metricCh = metricCh
 	return bundle
@@ -128,6 +182,7 @@ type incidentRunner struct {
 	safety     *safety.Manager
 	dataDir    func() string
 	settingSvc *service.SettingService
+	correlate  *change.Correlator
 }
 
 // RunIncident executes one event-triggered run.
@@ -146,6 +201,16 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 			line += " 证据：" + compactEvidence(s.Evidence)
 		}
 		evidence = append(evidence, line)
+	}
+
+	// v1.4：把"事件发生前 30 分钟内相关的系统变更"作为证据注进去。
+	// 只注入元数据（路径/行数/字段名/归因/相关性），不给配置文件正文——
+	// 正文是不可信输入，也是提示注入的天然载体，要看细节必须走 change_diff
+	// 工具，那一步本身就是提高攻击成本。
+	if r.correlate != nil {
+		for _, rc := range r.correlate.Related(req.Incident, change.DefaultWindow) {
+			evidence = append(evidence, "变更｜"+rc.Brief())
+		}
 	}
 
 	opt := aiagent.RunOptions{
@@ -254,6 +319,38 @@ func compactEvidence(raw string) string {
 		}
 	}
 	return truncateStr(strings.Join(parts, " "), 300)
+}
+
+// changeSignal renders a change record as an info-level signal so it shows up in
+// the event centre and can be correlated. Severity is always info and family is
+// always "change": the trigger engine refuses to let this family write.
+func changeSignal(ev change.Event) model.Signal {
+	added, removed := 0, 0
+	if ev.Diff != nil {
+		added, removed = ev.Diff.Added, ev.Diff.Removed
+	}
+	payload := map[string]any{
+		"kind": ev.Kind, "object": ev.Object.Key,
+		"added": added, "removed": removed,
+		"actor": ev.Actor.User, "src_ip": ev.Actor.IP,
+		"how": ev.Actor.How, "confidence": ev.Actor.Confidence,
+	}
+	raw, _ := json.Marshal(payload)
+	return model.Signal{
+		ID:          ev.ID(),
+		Kind:        model.SignalKindChange,
+		Source:      ev.Source,
+		Subject:     ev.Object.Key,
+		Severity:    model.SeverityInfo,
+		Fingerprint: ev.Fingerprint(),
+		Family:      model.FamilyChange,
+		DedupKey:    ev.DedupKey(),
+		Message:     ev.Summary(),
+		Evidence:    string(raw),
+		Tags:        truncateStr(strings.Join(ev.Object.Labels, ","), 240),
+		ObservedAt:  ev.At,
+		CreatedAt:   time.Now(),
+	}
 }
 
 func splitCSV(s string) []string {

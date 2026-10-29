@@ -35,7 +35,18 @@ const (
 	SignalKindFile   = "file"
 	SignalKindProc   = "proc"
 	SignalKindNet    = "net"
+	// SignalKindChange carries change-awareness records (v1.4). They are facts,
+	// not anomalies: always severity=info, and never allowed to trigger a write.
+	SignalKindChange = "change"
 )
+
+// FamilyChange is the trigger family of change events.
+//
+// Security invariant: policies are matched by exact family, and no default
+// policy uses this family. Even if someone creates one, the trigger engine
+// forces such incidents into shadow mode — otherwise "write a config file" would
+// become a way to make the agent act, i.e. a remote trigger vector.
+const FamilyChange = "change"
 
 // Incident lifecycle.
 const (
@@ -94,6 +105,15 @@ type Incident struct {
 	Title       string     `gorm:"size:192" json:"title"`
 	Family      string     `gorm:"size:64;index" json:"family"`
 	Subject     string     `gorm:"size:256" json:"subject"`
+	// GroupKey is the aggregation key. Signals sharing it are folded into this
+	// row: a service that restarts 40 times is one incident with count=40, not
+	// 40 incidents that bury everything else on the page.
+	GroupKey string `gorm:"size:256;index" json:"group_key"`
+	// Members is a JSON array of the distinct subjects folded in (source IPs for
+	// a brute-force burst, units for a restart loop). Capped in length while
+	// MemberTotal keeps the true count.
+	Members     string `gorm:"type:text" json:"members"`
+	MemberTotal int    `json:"member_total"`
 	Severity    string     `gorm:"size:16;index" json:"severity"`
 	Status      string     `gorm:"size:16;index" json:"status"`
 	Count       int        `json:"count"`

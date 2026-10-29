@@ -489,8 +489,8 @@ v1.0의 OpsMini는 **단일 머신 패널**로, 표준 REST API를 통해 외부
 ### 11.1 산출물
 
 - `opsmini` 단일 바이너리（약 25~30MB, `-s -w` 압축 후）, 프런트엔드, SQLite, 정적 리소스 내장；
-- 설정：`/etc/opsmini/config.yaml` 또는 환경 변수；
-- 기본 포트 8888, 데이터 디렉터리 `/var/lib/opsmini/`（opsmini.db）.
+- 설정：`/data/opsmini/config.yaml` 또는 환경 변수；
+- 기본 포트 8888, 데이터 디렉터리 `/data/opsmini/`（opsmini.db）.
 
 ### 11.1.1 다중 아키텍처 릴리스（x64 + arm64）
 
@@ -526,7 +526,7 @@ Description=OpsMini Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/opsmini agent --config /etc/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=5
 

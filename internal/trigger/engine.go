@@ -16,6 +16,7 @@ import (
 
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/safety"
+	"github.com/opsmini/opsmini/internal/sentinel"
 )
 
 // RunRequest is what the engine hands to the agent runtime.
@@ -33,6 +34,17 @@ type RunRequest struct {
 	MaxTokens    int
 	Signals      []model.Signal
 	Verify       []safety.Assertion
+}
+
+// changeDeniedTools is the full write-tool set, denied unconditionally for
+// change-family incidents. Kept as an explicit list (not a risk lookup) so that
+// adding a new write tool without listing it here shows up in review.
+var changeDeniedTools = []string{
+	"write_file", "delete_path", "exec_command", "kill_process", "service_control",
+	"docker_control", "firewall_rule", "cron_write", "modify_sshd", "truncate_log",
+	"clean_logs", "clean_temp", "compress_dir", "snapshot_path", "quarantine_file",
+	"block_ip", "freeze_process", "restore_quarantine", "restore_snapshot",
+	"resume_process", "unblock_ip", "install_skill",
 }
 
 // RunResult is the outcome of one triggered run.
@@ -331,6 +343,12 @@ func (e *Engine) OnIncident(inc model.Incident, sig model.Signal) {
 		return
 	}
 
+	// 持续型聚合事件（例如一直在爆破的 SSH）在第一次调查之后只累加计数：
+	// 同一件事半小时再分析一遍既烧 token 又没有新信息，等人处置或攻击停止。
+	if inc.SessionID != "" && sentinel.IsOngoingGroup(inc.GroupKey) {
+		return
+	}
+
 	e.mu.Lock()
 	last := e.last[p.Name]
 	if p.CooldownSec > 0 && time.Since(last) < time.Duration(p.CooldownSec)*time.Second {
@@ -404,11 +422,27 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		Verify:       asserts,
 	}
 
+	// 安全红线（v1.4）：变更类事件只能引起"调查"，永远不能引起"动作"。
+	//
+	// 理由不是洁癖，是攻击面：如果写一个被监控的配置文件就能让 Agent 跑一次
+	// 任务，那么"能写配置"就等于"能远程触发 Agent 执行"，等于新增一条 RCE
+	// 路径。所以即便有人给 family=change 建了 auto 策略，这里也强制降级为
+	// shadow、清零写预算、禁掉全部写工具。
+	if inc.Family == model.FamilyChange {
+		req.Mode = model.ModeShadow
+		req.MaxWrites = 0
+		req.AutoTools = nil
+		req.DeniedTools = append(req.DeniedTools, changeDeniedTools...)
+		if req.MaxSteps <= 0 || req.MaxSteps > 8 {
+			req.MaxSteps = 8
+		}
+	}
+
 	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(map[string]any{
 		"status":      model.IncidentTriggered,
 		"policy_id":   p.ID,
 		"policy_name": p.Name,
-		"mode":        mode,
+		"mode":        req.Mode,
 	})
 	e.DB.Model(&model.TriggerPolicy{}).Where("id = ?", p.ID).Update("last_run_at", time.Now())
 
@@ -482,6 +516,12 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		"summary":      res.Summary,
 		"verify_state": verifyState,
 		"updated_at":   time.Now(),
+	}
+	// 攻击仍在继续、而且这次调查没动过任何东西：事件保持待处置，
+	// 让后续同源信号继续并入这一条，而不是另开一条新事件。
+	if status == model.IncidentResolved && res.Writes == 0 && sentinel.IsOngoingGroup(inc.GroupKey) {
+		status = model.IncidentOpen
+		incUpd["status"] = status
 	}
 	if status == model.IncidentResolved || status == model.IncidentFailed {
 		incUpd["closed_at"] = fin

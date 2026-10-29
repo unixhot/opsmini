@@ -4,6 +4,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -59,6 +61,37 @@ type Metrics struct {
 	Password string `yaml:"password"` // basic auth password
 }
 
+// Paths holds the on-disk layout.
+//
+// One-directory principle: everything OpsMini writes (reports, change snapshots,
+// quarantine copies, plugin packages, log-pipeline config and spool) lives under
+// Data. Uninstalling is `rm -rf /data/opsmini`, and there is never a stray file in
+// /var/lib or /etc to hunt down afterwards.
+type Paths struct {
+	// Data is the runtime data root. Empty means "a data/ directory next to the
+	// database file", which keeps a default install self-contained without any
+	// configuration.
+	Data string `yaml:"data"`
+}
+
+// LogPipeline configures the filebeat-compatible log collector.
+//
+// Disabled by default in spirit: the pipeline stays inert until a task file
+// appears in TasksDir, and a standalone host never gets one because only OpsAnt
+// distributes tasks. Enabled=false is the hard off switch.
+type LogPipeline struct {
+	Enabled bool `yaml:"enabled"`
+	// TasksDir overrides the default <data>/logs/tasks.d.
+	TasksDir string `yaml:"tasks_dir"`
+	// ConfigFile overrides the main filebeat-shaped config (output + tasks.d path).
+	ConfigFile string `yaml:"config_file"`
+	// Strict makes unknown fields in a task fail the task instead of warning.
+	Strict bool `yaml:"strict"`
+	// AgentType is what lands in the agent.type field: opsmini (default) or
+	// filebeat for reusing an existing index template.
+	AgentType string `yaml:"agent_type"`
+}
+
 // Log holds the application logging configuration.
 type Log struct {
 	Level string `yaml:"level"` // log level: info / warn / error (default error)
@@ -73,7 +106,29 @@ type Config struct {
 	AI       AI       `yaml:"ai"`
 	Agent    Agent    `yaml:"agent"`
 	Metrics  Metrics  `yaml:"metrics"`
+	Paths    Paths    `yaml:"paths"`
+	LogPipe  LogPipeline `yaml:"logpipeline"`
 	Log      Log      `yaml:"log"`
+}
+
+// DataDir returns the runtime data root, resolving the default from the database
+// location so that an install is always contained in one directory.
+//
+// The old code fell back to /var/lib/opsmini/data, which silently scattered files
+// outside the install directory whenever the panel setting was empty or cleared.
+func (c *Config) DataDir() string {
+	if d := strings.TrimSpace(c.Paths.Data); d != "" {
+		return filepath.Clean(d)
+	}
+	db := c.Database.Path
+	if db == "" {
+		db = "opsmini.db"
+	}
+	dir := filepath.Dir(db)
+	if dir == "" || dir == "." {
+		return filepath.Join("data")
+	}
+	return filepath.Join(dir, "data")
 }
 
 // Load loads the configuration from path; returns the default configuration when the file does not exist.
@@ -112,6 +167,10 @@ func defaultConfig() *Config {
 		},
 		Metrics: Metrics{
 			Enabled: true,
+		},
+		LogPipe: LogPipeline{
+			Enabled:   true,
+			AgentType: "opsmini",
 		},
 		Log: Log{
 			Level: "error",

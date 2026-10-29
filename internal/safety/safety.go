@@ -226,7 +226,7 @@ func procName(pid int) string {
 func (m *Manager) IncidentDir(incidentID, sub string) (string, error) {
 	base := m.DataDir()
 	if base == "" {
-		base = "/var/lib/opsmini/data"
+		base = "data"
 	}
 	if incidentID == "" {
 		incidentID = "manual"

@@ -489,8 +489,8 @@ OpsMini v1.0 เป็น**แผงเครื่องเดียว** เ�
 ### 11.1 ผลลัพธ์
 
 - ไบนารีเดียว `opsmini`（ประมาณ 25~30MB หลังบีบอัด `-s -w`）มีหน้าเว็บ SQLite ทรัพยากรคงที่ในตัว；
-- การตั้งค่า：`/etc/opsmini/config.yaml` หรือตัวแปรสภาพแวดล้อม；
-- พอร์ตเริ่มต้น 8888 ไดเรกทอรีข้อมูล `/var/lib/opsmini/`（opsmini.db）
+- การตั้งค่า：`/data/opsmini/config.yaml` หรือตัวแปรสภาพแวดล้อม；
+- พอร์ตเริ่มต้น 8888 ไดเรกทอรีข้อมูล `/data/opsmini/`（opsmini.db）
 
 ### 11.1.1 การเผยแพร่หลายสถาปัตยกรรม（x64 + arm64）
 
@@ -526,7 +526,7 @@ Description=OpsMini Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/opsmini agent --config /etc/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=5
 

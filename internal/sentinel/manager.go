@@ -40,7 +40,7 @@ func DefaultConfig() Config {
 	return Config{
 		Enabled:              true,
 		Learning:             false,
-		DataDir:              "/var/lib/opsmini/data",
+		DataDir:              "data",
 		LogPaths:             []string{"/var/log"},
 		WebRoots:             []string{"/var/www", "/var/www/html", "/www/wwwroot", "/data/www"},
 		OffHoursStart:        0,

@@ -261,7 +261,7 @@ Each run produces **one self-contained HTML file** — the artifact you open or 
 ```
 
 `<data dir>` is the panel's data directory (`appstore_data_dir`, default
-`/var/lib/opsmini/data`). **Every generated artifact lives under it, one subdirectory
+`/data/opsmini/data`). **Every generated artifact lives under it, one subdirectory
 per feature** — reports in `reports/`; add sibling directories for future generators.
 
 "Self-contained" means: inline styles, no script, no external stylesheet, no web font,

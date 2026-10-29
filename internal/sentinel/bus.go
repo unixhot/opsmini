@@ -133,13 +133,24 @@ func (b *Bus) sweep() {
 
 // --- incident aggregation ----------------------------------------------------
 
-// Aggregator folds signals that share a family and subject inside a time window
-// into one Incident, raising its severity instead of creating noise.
+// Aggregator folds signals that describe the same thing into one Incident,
+// raising its severity and its counter instead of creating noise.
+//
+// Grouping is per-family (see groupOf): change signals and brute-force bursts
+// keep folding while the incident stays active, everything else keeps the
+// classic "same subject inside a short window" behaviour.
 type Aggregator struct {
 	db     *gorm.DB
 	window time.Duration
 	mu     sync.Mutex
 	subs   []func(model.Incident, model.Signal)
+}
+
+// activeStatuses are the states in which an incident may still absorb signals.
+// Once a human ignored it or it resolved, the next signal starts a new row —
+// otherwise a parked incident would swallow the future silently.
+var activeStatuses = []string{
+	model.IncidentOpen, model.IncidentTriggered, model.IncidentRunning,
 }
 
 // NewAggregator creates an aggregator with the given grouping window.
@@ -163,29 +174,49 @@ func (a *Aggregator) Add(s model.Signal) (model.Incident, bool) {
 	if a.db == nil {
 		return model.Incident{}, false
 	}
+	g := groupOf(s, a.window)
+	now := time.Now()
+
 	var inc model.Incident
-	cut := time.Now().Add(-a.window)
-	err := a.db.Where(
-		"family = ? AND subject = ? AND status IN ? AND last_seen > ?",
-		s.Family, s.Subject,
-		[]string{model.IncidentOpen, model.IncidentTriggered, model.IncidentRunning},
-		cut,
-	).Order("last_seen DESC").First(&inc).Error
+	q := a.db.Where("group_key = ? AND status IN ?", g.Key, activeStatuses)
+	if g.Window > 0 {
+		q = q.Where("last_seen > ?", now.Add(-g.Window))
+	}
+	err := q.Order("last_seen DESC").First(&inc).Error
+	if err != nil {
+		// Rows written before group_key existed. Adopt the open one that already
+		// covers this family+subject rather than starting a duplicate cluster.
+		err = a.db.Where(
+			"(group_key = '' OR group_key IS NULL) AND family = ? AND subject = ? AND status IN ?",
+			s.Family, s.Subject, activeStatuses,
+		).Order("last_seen DESC").First(&inc).Error
+		if err == nil {
+			a.db.Model(&model.Incident{}).Where("id = ?", inc.ID).Update("group_key", g.Key)
+			inc.GroupKey = g.Key
+		}
+	}
 
 	created := false
 	if err != nil {
+		subject := s.Subject
+		if g.Label != "" {
+			subject = g.Label
+		}
 		inc = model.Incident{
-			ID:        newIncidentID(s.ID),
-			Title:     titleFor(s),
-			Family:    s.Family,
-			Subject:   s.Subject,
-			Severity:  s.Severity,
-			Status:    model.IncidentOpen,
-			Count:     1,
-			FirstSeen: s.ObservedAt,
-			LastSeen:  s.ObservedAt,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			ID:          newIncidentID(s.ID),
+			Title:       g.titleForGroup(s, 1),
+			Family:      s.Family,
+			Subject:     subject,
+			GroupKey:    g.Key,
+			Members:     memberJSON(s.Subject),
+			MemberTotal: 1,
+			Severity:    s.Severity,
+			Status:      model.IncidentOpen,
+			Count:       1,
+			FirstSeen:   s.ObservedAt,
+			LastSeen:    s.ObservedAt,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		}
 		if err := a.db.Create(&inc).Error; err != nil {
 			log.Printf("sentinel: create incident: %v", err)
@@ -198,13 +229,22 @@ func (a *Aggregator) Add(s model.Signal) (model.Incident, bool) {
 		if model.SeverityRank(s.Severity) > model.SeverityRank(inc.Severity) {
 			inc.Severity = s.Severity
 		}
+		if g.Collect {
+			inc.Members, inc.MemberTotal = mergeMember(inc.Members, inc.MemberTotal, s.Subject)
+		} else if inc.MemberTotal == 0 {
+			inc.MemberTotal = 1
+		}
+		inc.Title = g.titleForGroup(s, inc.MemberTotal)
 		inc.UpdatedAt = time.Now()
 		if err := a.db.Model(&model.Incident{}).Where("id = ?", inc.ID).
 			Updates(map[string]any{
-				"count":      inc.Count,
-				"last_seen":  inc.LastSeen,
-				"severity":   inc.Severity,
-				"updated_at": inc.UpdatedAt,
+				"count":        inc.Count,
+				"last_seen":    inc.LastSeen,
+				"severity":     inc.Severity,
+				"title":        inc.Title,
+				"members":      inc.Members,
+				"member_total": inc.MemberTotal,
+				"updated_at":   inc.UpdatedAt,
 			}).Error; err != nil {
 			log.Printf("sentinel: update incident: %v", err)
 		}

@@ -489,8 +489,8 @@ v1.0 的 OpsMini 是**单机面板**，通过标准 REST API 对外暴露能力�
 ### 11.1 产物
 
 - `opsmini` 单二进制（约 25~30MB，`-s -w` 压缩后），内置前端、SQLite、静态资源；
-- 配置：`/etc/opsmini/config.yaml` 或环境变量；
-- 默认端口 8888，数据目录 `/var/lib/opsmini/`（opsmini.db）。
+- 配置：`/data/opsmini/config.yaml` 或环境变量；
+- 默认端口 8888，数据目录 `/data/opsmini/`（opsmini.db）。
 
 ### 11.1.1 多架构发布（x64 + arm64）
 
@@ -526,7 +526,7 @@ Description=OpsMini Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/opsmini agent --config /etc/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=5
 

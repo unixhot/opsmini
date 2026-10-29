@@ -51,6 +51,10 @@ const settingKeyToolPolicy = "ai_tool_policy"
 type aiAgentBundle struct {
 	handler   *v1.AgentHandler
 	mcpServer *aiagent.MCPServer
+	// mcpStatus / reloadMCP are exposed so the MCP configuration page can show
+	// whether each server actually connected, and reconnect right after a save.
+	mcpStatus func() []aiagent.MCPStatus
+	reloadMCP func()
 	// Exposed for the v1.3.0 autonomous loop (event-triggered runs reuse the same
 	// agent kernel, store and notifier as scheduled tasks).
 	agent    *aiagent.Agent
@@ -81,7 +85,7 @@ func buildAIAgent(
 		if v := getSetting("appstore_data_dir"); v != "" {
 			return v
 		}
-		return "/var/lib/opsmini/data"
+		return cfg.DataDir()
 	}
 
 	// Resolve the model configuration on every call so the panel's AI settings
@@ -317,6 +321,8 @@ func buildAIAgent(
 	return aiAgentBundle{
 		handler:   v1.NewAgentHandler(agentDeps),
 		mcpServer: mcpServer,
+		mcpStatus: agentDeps.MCPStatus,
+		reloadMCP: reloadMCP,
 		agent:     a,
 		store:     store,
 		notifier:  notifier,

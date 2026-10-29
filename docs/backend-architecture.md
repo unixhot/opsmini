@@ -489,8 +489,8 @@ In v1.0, OpsMini is a **single-machine panel** that exposes capabilities via sta
 ### 11.1 Artifacts
 
 - `opsmini` single binary (about 25~30MB after `-s -w` compression), with embedded frontend, SQLite, and static assets;
-- Config: `/etc/opsmini/config.yaml` or environment variables;
-- Default port 8888, data directory `/var/lib/opsmini/` (opsmini.db).
+- Config: `/data/opsmini/config.yaml` or environment variables;
+- Default port 8888, data directory `/data/opsmini/` (opsmini.db).
 
 ### 11.1.1 Multi-architecture releases (x64 + arm64)
 
@@ -526,7 +526,7 @@ Description=OpsMini Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/opsmini agent --config /etc/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=5
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/opsmini/opsmini/internal/aiagent"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/response"
 	"github.com/opsmini/opsmini/internal/service"
@@ -13,6 +14,11 @@ import (
 // McpHandler MCP configuration handler.
 type McpHandler struct {
 	svc *service.McpService
+	// Status reports the live state of each outbound MCP connection. Configured
+	// but disconnected is the normal failure mode (wrong command, unreachable
+	// URL), and it used to be invisible: the panel showed a green switch whether
+	// or not the connection existed.
+	Status func() []aiagent.MCPStatus
 }
 
 // NewMcpHandler constructor.
@@ -28,6 +34,15 @@ type mcpReq struct {
 	Headers   string `json:"headers"` // JSON array of {name, value} for sse/http custom headers
 	Timeout   int    `json:"timeout"` // request timeout in seconds
 	Enabled   *bool  `json:"enabled"`
+}
+
+// StatusList GET /mcp/status — live connection state per configured server.
+func (h *McpHandler) StatusList(c *gin.Context) {
+	if h.Status == nil {
+		response.OK(c, []aiagent.MCPStatus{})
+		return
+	}
+	response.OK(c, h.Status())
 }
 
 // List GET /mcp

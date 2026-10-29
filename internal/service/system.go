@@ -18,6 +18,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	gnet "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
+	"github.com/shirou/gopsutil/v4/sensors"
 )
 
 // SystemService provides real-time collection of host system information.
@@ -362,6 +363,33 @@ func countUsers() (total, login int) {
 		}
 	}
 	return total, login
+}
+
+// CPUTemperature returns the hottest CPU sensor reading in Celsius.
+//
+// The boolean is false when the host exposes no sensor at all (most cloud VMs
+// and every container). Callers must treat that as "unknown", never as zero and
+// never as some other metric: an alert rule for CPU temperature that silently
+// watched CPU utilisation is how "CPU 温度 98%" became a permanent fake alarm.
+func (s *SystemService) CPUTemperature() (float64, bool) {
+	temps, err := sensors.SensorsTemperatures()
+	if err != nil || len(temps) == 0 {
+		return 0, false
+	}
+	best, ok := 0.0, false
+	for _, t := range temps {
+		// Skip the odd composite/critical threshold entries some drivers expose
+		// as a "temperature"; they are usually a constant and would pin the
+		// maximum permanently.
+		key := strings.ToLower(t.SensorKey)
+		if strings.Contains(key, "critical") || strings.Contains(key, "max") || strings.Contains(key, "emergency") {
+			continue
+		}
+		if !ok || t.Temperature > best {
+			best, ok = t.Temperature, true
+		}
+	}
+	return best, ok
 }
 
 // Overview returns the dashboard overview (CPU/memory/load/disk/network rate).

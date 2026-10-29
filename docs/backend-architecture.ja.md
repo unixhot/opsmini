@@ -489,8 +489,8 @@ v1.0 の OpsMini は**単一マシンパネル**で、標準 REST API を通じ�
 ### 11.1 成果物
 
 - `opsmini` 単一バイナリ（`-s -w` 圧縮後およそ 25~30MB）、フロントエンド、SQLite、静的リソースを内蔵；
-- 設定：`/etc/opsmini/config.yaml` または環境変数；
-- デフォルトポート 8888、データディレクトリ `/var/lib/opsmini/`（opsmini.db）。
+- 設定：`/data/opsmini/config.yaml` または環境変数；
+- デフォルトポート 8888、データディレクトリ `/data/opsmini/`（opsmini.db）。
 
 ### 11.1.1 マルチアーキテクチャリリース（x64 + arm64）
 
@@ -526,7 +526,7 @@ Description=OpsMini Agent
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/opsmini agent --config /etc/opsmini/config.yaml
+ExecStart=/data/opsmini/opsmini -config /data/opsmini/config.yaml
 Restart=always
 RestartSec=5
 

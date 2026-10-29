@@ -101,7 +101,7 @@ func (s *AppStoreService) Install(slug string) (string, error) {
 		return "", fmt.Errorf("docker daemon unavailable: %w", err)
 	}
 	cmd := exec.Command("bash", "-c", app.InstallScript)
-	dir := "/var/lib/opsmini/data"
+	dir := "data"
 	if s.dataDir != nil {
 		if d := s.dataDir(); d != "" {
 			dir = d

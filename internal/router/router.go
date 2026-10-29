@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/opsmini/opsmini/internal/agent"
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/config"
+	"github.com/opsmini/opsmini/internal/logpipe"
 	"github.com/opsmini/opsmini/internal/middleware"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
@@ -255,7 +257,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		if v, _ := settingSvc.Get("appstore_data_dir"); v != "" {
 			return v
 		}
-		return "/var/lib/opsmini/data"
+		// Never fall back to an absolute path outside the install directory:
+		// everything OpsMini writes must stay under one root so that uninstall is
+		// a single rm -rf and no stray files are left in /var/lib.
+		return cfg.DataDir()
 	}
 	safetyMgr := safety.New(db, panelDataDir, cfg.Server.Port)
 
@@ -267,6 +272,12 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		safety: safetyMgr,
 	})
 
+	// MCP: the configuration page must show whether each server really connected,
+	// and a saved change must reconnect immediately instead of waiting for the
+	// 2-minute reconcile tick.
+	mcpHandler.Status = agentBundle.mcpStatus
+	mcpSvc.OnChange = agentBundle.reloadMCP
+
 	// v1.3.0 perception + trigger: collectors -> incidents -> agent runs.
 	sharedNotifier := service.NewNotifier(repository.NewNotificationRepo(db), func() map[string]string {
 		kv, _ := settingSvc.List()
@@ -275,6 +286,25 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	sentinelBundle := buildSentinel(cfg, db, settingSvc, sharedNotifier, agentBundle, panelDataDir, metricSigCh)
 	sentinelHandler := sentinelBundle.handler
 	sentinelBundle.manager.Start(context.Background())
+	// v1.4 变更感知：与感知层同生命周期启动。任一采集源失败都只降级它自己，
+	// 不影响事件链路。
+	if sentinelBundle.changes != nil {
+		sentinelBundle.changes.Start(context.Background())
+		go func() {
+			t := time.NewTicker(6 * time.Hour)
+			defer t.Stop()
+			for range t.C {
+				if sentinelBundle.changeDB != nil {
+					if n, err := sentinelBundle.changeDB.Purge(180, 30); err == nil && n > 0 {
+						log.Printf("change: purged %d expired rows", n)
+					}
+				}
+				if sentinelBundle.snapshots != nil {
+					_, _ = sentinelBundle.snapshots.Prune(30)
+				}
+			}
+		}()
+	}
 	// Release expired IP bans even if nobody clicks anything.
 	go func() {
 		t := time.NewTicker(2 * time.Minute)
@@ -300,6 +330,36 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	}
 
 	// Prometheus metrics (node_exporter compatible, for monitoring systems to scrape).
+	// 日志管道（filebeat 兼容）：任务只从 tasks.d 加载，单机没有任务时零开销。
+	// 输出与任务路径可以由 <data>/logs/opsmini.yml（filebeat 原生结构）覆盖。
+	logMain, lerr := logpipe.LoadMain(
+		filepath.Join(cfg.DataDir(), "logs", "opsmini.yml"),
+		logpipe.DefaultMainConfig(cfg.DataDir()),
+	)
+	if lerr != nil {
+		log.Printf("logpipe: main config: %v", lerr)
+	}
+	if !cfg.LogPipe.Enabled {
+		logMain.Enabled = false
+	}
+	if cfg.LogPipe.TasksDir != "" {
+		logMain.TasksDir = cfg.LogPipe.TasksDir
+	}
+	if cfg.LogPipe.ConfigFile != "" {
+		if m2, err := logpipe.LoadMain(cfg.LogPipe.ConfigFile, logMain); err == nil {
+			logMain = m2
+		}
+	}
+	if cfg.LogPipe.AgentType != "" {
+		logMain.AgentType = cfg.LogPipe.AgentType
+	}
+	if cfg.LogPipe.Strict {
+		logMain.Strict = true
+	}
+	logMgr := logpipe.NewManager(logMain, db, version)
+	logMgr.Start(context.Background())
+	logPipeHandler := v1.NewLogPipeHandler(logMgr)
+
 	// Basic-auth credentials priority: panel setting metrics_user/metrics_pass > config.yaml metrics.user/password; empty username means no authentication.
 	metricsCreds := func() (string, string) {
 		if u, err := settingSvc.Get("metrics_user"); err == nil && u != "" {
@@ -309,7 +369,11 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return cfg.Metrics.User, cfg.Metrics.Password
 	}
 	if cfg.Metrics.Enabled {
-		root.GET("/metrics", middleware.MetricsAuth(metricsCreds), systemHandler.Metrics)
+		root.GET("/metrics", middleware.MetricsAuth(metricsCreds), func(c *gin.Context) {
+			// 日志管道指标与系统指标拼在一起，Prometheus 侧只抓一个端点。
+			c.Data(200, "text/plain; version=0.0.4; charset=utf-8",
+				[]byte(sysSvc.PrometheusMetrics()+logMgr.Metrics()))
+		})
 	}
 
 	api := root.Group("/api/v1")
@@ -443,7 +507,26 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/sentinel/blocks", permMw("ai.agent"), sentinelHandler.BlockedIPs)
 			authed.DELETE("/sentinel/blocks/:ip", permMw("ai.agent"), sentinelHandler.UnblockIP)
 
+			// v1.4 变更感知
+			if sentinelBundle.changeAPI != nil {
+				ch := sentinelBundle.changeAPI
+				authed.GET("/changes", permMw("ai.agent"), ch.List)
+				authed.GET("/changes/stats", permMw("ai.agent"), ch.Stats)
+				authed.GET("/changes/related", permMw("ai.agent"), ch.Related)
+				authed.GET("/changes/ignore", permMw("ai.agent"), ch.ListIgnore)
+				authed.POST("/changes/verify", permMw("settings.edit"), ch.Verify)
+				authed.POST("/changes/ignore", permMw("settings.edit"), ch.AddIgnore)
+				authed.DELETE("/changes/ignore/:id", permMw("settings.edit"), ch.DeleteIgnore)
+				authed.GET("/changes/:id", permMw("ai.agent"), ch.Detail)
+				authed.POST("/changes/:id/restore", permMw("settings.edit"), ch.Restore)
+			}
+
+			// 日志管道：只读视图 + 手动重扫（任务只从 OpsAnt 下发）
+			authed.GET("/logpipe/status", permMw("ai.agent"), logPipeHandler.Status)
+			authed.POST("/logpipe/reload", permMw("settings.edit"), logPipeHandler.Reload)
+
 			authed.GET("/mcp", mcpHandler.List)
+			authed.GET("/mcp/status", permMw("ai.agent"), mcpHandler.StatusList)
 			authed.POST("/mcp", permMw("mcp.manage"), mcpHandler.Create)
 			authed.PUT("/mcp/:id", permMw("mcp.manage"), mcpHandler.Update)
 			authed.DELETE("/mcp/:id", permMw("mcp.manage"), mcpHandler.Delete)

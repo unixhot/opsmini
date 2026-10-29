@@ -29,7 +29,12 @@ type MCPClientManager struct {
 	mu       sync.Mutex
 	registry *Registry
 	conns    map[uint]*mcpConn
-	version  string
+	// lastErr keeps the reason the last connection attempt failed. Without it a
+	// broken server only said "未连接", which is the same thing the UI shows
+	// before the first attempt — the one piece of information an operator needs
+	// (wrong command? unreachable URL?) was only in the log.
+	lastErr map[uint]string
+	version string
 }
 
 // mcpConn is one live MCP server connection.
@@ -42,7 +47,7 @@ type mcpConn struct {
 
 // NewMCPClientManager creates a manager bound to a tool registry.
 func NewMCPClientManager(reg *Registry, version string) *MCPClientManager {
-	return &MCPClientManager{registry: reg, conns: map[uint]*mcpConn{}, version: version}
+	return &MCPClientManager{registry: reg, conns: map[uint]*mcpConn{}, lastErr: map[uint]string{}, version: version}
 }
 
 // Reload reconciles the live connections with the panel configuration: new and
@@ -80,7 +85,14 @@ func (m *MCPClientManager) Reload(servers []model.McpServer) {
 			// A broken MCP server must never take the agent down.
 			log.Printf("ai agent: connect MCP server %q failed: %v", s.Name, err)
 			m.registry.UnregisterSource("mcp:" + s.Name + ":")
+			m.mu.Lock()
+			m.lastErr[id] = err.Error()
+			m.mu.Unlock()
+			continue
 		}
+		m.mu.Lock()
+		delete(m.lastErr, id)
+		m.mu.Unlock()
 	}
 }
 
@@ -286,7 +298,10 @@ func (m *MCPClientManager) Statuses(servers []model.McpServer) []MCPStatus {
 			st.ToolCount = len(conn.tools)
 			st.Tools = append([]string{}, conn.tools...)
 		} else if s.Enabled {
-			st.Error = "未连接"
+			st.Error = m.lastErr[s.ID]
+			if st.Error == "" {
+				st.Error = "尚未连接"
+			}
 		}
 		out = append(out, st)
 	}
