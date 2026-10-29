@@ -74,6 +74,38 @@ type Paths struct {
 	Data string `yaml:"data"`
 }
 
+// BackupTarget is one off-host storage destination.
+//
+// S3 and SFTP share one flat struct instead of nested blocks: the file is meant to
+// be edited by hand, and a nested `s3:` block under a target that only ever uses
+// one type is more typing for no clarity.
+type BackupTarget struct {
+	Name string `yaml:"name"`
+	Type string `yaml:"type"` // s3 | sftp
+
+	// S3 / S3-compatible (MinIO, OSS, Ceph, B2)
+	Endpoint  string `yaml:"endpoint"`
+	Region    string `yaml:"region"`
+	Bucket    string `yaml:"bucket"`
+	Prefix    string `yaml:"prefix"`
+	AccessKey string `yaml:"access_key"`
+	SecretKey string `yaml:"secret_key"`
+	PathStyle bool   `yaml:"path_style"`
+
+	// SFTP
+	Host           string `yaml:"host"`
+	User           string `yaml:"user"`
+	Password       string `yaml:"password"`
+	PrivateKey     string `yaml:"private_key"`
+	BaseDir        string `yaml:"base_dir"`
+	KnownHostsFile string `yaml:"known_hosts_file"`
+}
+
+// Backup holds the off-host targets available to backup jobs.
+type Backup struct {
+	Targets []BackupTarget `yaml:"targets"`
+}
+
 // LogPipeline configures the filebeat-compatible log collector.
 //
 // Disabled by default in spirit: the pipeline stays inert until a task file
@@ -107,6 +139,7 @@ type Config struct {
 	Agent    Agent    `yaml:"agent"`
 	Metrics  Metrics  `yaml:"metrics"`
 	Paths    Paths    `yaml:"paths"`
+	Backup   Backup   `yaml:"backup"`
 	LogPipe  LogPipeline `yaml:"logpipeline"`
 	Log      Log      `yaml:"log"`
 }

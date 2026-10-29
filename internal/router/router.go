@@ -380,6 +380,35 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 	// 备份恢复：快照落在 <data>/backups；恢复带预检与自动回滚。
 	backupMgr := backup.NewManager(filepath.Join(cfg.DataDir(), "backups"), version)
+	// Off-host targets from config.yaml. A target that fails to build is logged and
+	// skipped instead of aborting startup: one bad bucket credential must not take
+	// the whole panel down.
+	backupStores := map[string]backup.RemoteStore{}
+	for _, t := range cfg.Backup.Targets {
+		if t.Name == "" {
+			log.Printf("backup: 忽略未命名的备份目标（type=%s）", t.Type)
+			continue
+		}
+		st, err := backup.NewRemote(backup.TargetSpec{
+			Name: t.Name,
+			Type: t.Type,
+			S3: &backup.S3Config{
+				Name: t.Name, Endpoint: t.Endpoint, Region: t.Region, Bucket: t.Bucket,
+				Prefix: t.Prefix, AccessKey: t.AccessKey, SecretKey: t.SecretKey, PathStyle: t.PathStyle,
+			},
+			SFTP: &backup.SFTPConfig{
+				Name: t.Name, Host: t.Host, User: t.User, Password: t.Password,
+				PrivateKey: t.PrivateKey, BaseDir: t.BaseDir, KnownHostsFile: t.KnownHostsFile,
+			},
+		})
+		if err != nil {
+			log.Printf("backup: 备份目标 %s 配置无效：%v", t.Name, err)
+			continue
+		}
+		backupStores[t.Name] = st
+		log.Printf("backup: 已加载远端目标 %s (%s)", t.Name, st.Describe())
+	}
+	backupMgr.SetStores(backupStores)
 	backupHandler := v1.NewBackupHandler(backupMgr)
 
 	// Wire the data sources that event-type alert rules need. Each one is
@@ -589,6 +618,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 			// 备份恢复
 			authed.GET("/backup/snapshots", permMw("ai.agent"), backupHandler.Snapshots)
+			authed.GET("/backup/remote/:name/snapshots", permMw("ai.agent"), backupHandler.RemoteSnapshots)
 			authed.POST("/backup/run", permMw("settings.edit"), backupHandler.Run)
 			authed.POST("/backup/restore", permMw("settings.edit"), backupHandler.Restore)
 

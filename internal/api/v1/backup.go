@@ -31,11 +31,13 @@ func NewBackupHandler(mgr *backup.Manager) *BackupHandler {
 }
 
 type backupRunReq struct {
-	Name      string `json:"name"`
-	Objects   string `json:"objects"`
-	Retention int    `json:"retention"`
-	Database  string `json:"database_user"`
-	Password  string `json:"database_password"`
+	Name      string   `json:"name"`
+	Objects   string   `json:"objects"`
+	Retention int      `json:"retention"`
+	Database  string   `json:"database_user"`
+	Password  string   `json:"database_password"`
+	Remote    []string `json:"remote"`     // 远端目标名，空=只备份到本地
+	KeepLocal *bool    `json:"keep_local"` // 上传成功后是否保留本地副本，默认保留
 }
 
 // Snapshots GET /backup/snapshots
@@ -49,7 +51,7 @@ func (h *BackupHandler) Snapshots(c *gin.Context) {
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
 	}
-	response.OK(c, gin.H{"snapshots": list, "root": h.Mgr.Root()})
+	response.OK(c, gin.H{"snapshots": list, "root": h.Mgr.Root(), "stores": h.Mgr.Stores()})
 }
 
 // Run POST /backup/run
@@ -72,6 +74,8 @@ func (h *BackupHandler) Run(c *gin.Context) {
 		Name:      orDefaultStr(req.Name, "manual"),
 		Objects:   objs,
 		Retention: req.Retention,
+		Remote:    req.Remote,
+		KeepLocal: req.KeepLocal,
 	})
 	if err != nil {
 		response.Error(c, 400, response.CodeInvalidParam, err.Error())
@@ -84,6 +88,10 @@ type restoreReq struct {
 	Snapshot string `json:"snapshot"`
 	Confirm  string `json:"confirm"`
 	DryRun   bool   `json:"dry_run"`
+	// Remote pulls the snapshot from a named remote target when it is not present
+	// locally. Dry-run does not download: preflight on a remote snapshot would mean
+	// transferring gigabytes just to say "the target directory is writable".
+	Remote string `json:"remote"`
 }
 
 // Restore POST /backup/restore
@@ -97,7 +105,17 @@ func (h *BackupHandler) Restore(c *gin.Context) {
 		response.Error(c, 400, response.CodeInvalidParam, err.Error())
 		return
 	}
-	dir, err := h.Mgr.SnapshotDir(req.Snapshot)
+	var dir string
+	var err error
+	if req.Remote != "" {
+		if req.DryRun {
+			response.Error(c, 400, response.CodeInvalidParam, "远端快照需先下载才能预检：请取消预检直接恢复，或先执行一次恢复")
+			return
+		}
+		dir, err = h.Mgr.Fetch(c.Request.Context(), req.Remote, req.Snapshot)
+	} else {
+		dir, err = h.Mgr.SnapshotDir(req.Snapshot)
+	}
 	if err != nil {
 		response.Error(c, 400, response.CodeInvalidParam, err.Error())
 		return
@@ -108,6 +126,20 @@ func (h *BackupHandler) Restore(c *gin.Context) {
 		return
 	}
 	response.OK(c, res)
+}
+
+// RemoteSnapshots GET /backup/remote/:name/snapshots
+func (h *BackupHandler) RemoteSnapshots(c *gin.Context) {
+	if h.Mgr == nil {
+		response.OK(c, []any{})
+		return
+	}
+	list, err := h.Mgr.ListRemote(c.Request.Context(), c.Param("name"))
+	if err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"snapshots": list})
 }
 
 // parseBackupObjects turns the panel's line syntax into typed objects.

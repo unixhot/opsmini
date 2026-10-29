@@ -19,8 +19,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"context"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -41,6 +43,13 @@ type Job struct {
 	Objects   []Object `json:"objects"`
 	TargetDir string   `json:"target_dir"` // where snapshots are written
 	Retention int      `json:"retention"`  // keep N snapshots, 0 = keep all
+	// Remote targets to upload the finished snapshot to (names registered via
+	// SetStores). Uploads happen after the snapshot is complete on disk, so a
+	// failed upload never leaves a half-written backup on the remote side.
+	Remote []string `json:"remote,omitempty"`
+	// KeepLocal controls whether the local copy survives a successful upload.
+	// Default true: the local copy is what makes a restore fast.
+	KeepLocal *bool `json:"keep_local,omitempty"`
 }
 
 // Manifest describes one snapshot.
@@ -69,6 +78,10 @@ type ManifestEntry struct {
 type Manager struct {
 	root    string // default target root: <data>/backups
 	version string
+	// mu guards stores; the backup engine itself is stateless per run.
+	mu sync.RWMutex
+	// stores are the configured off-host targets, keyed by name.
+	stores map[string]RemoteStore
 	// RunCmd is injectable so tests do not need mysqldump.
 	RunCmd func(name string, args ...string) ([]byte, error)
 }
@@ -76,7 +89,7 @@ type Manager struct {
 // NewManager builds a manager rooted at the given directory.
 func NewManager(root, version string) *Manager {
 	_ = os.MkdirAll(root, 0o700)
-	return &Manager{root: root, version: version, RunCmd: func(name string, args ...string) ([]byte, error) {
+	return &Manager{root: root, version: version, stores: map[string]RemoteStore{}, RunCmd: func(name string, args ...string) ([]byte, error) {
 		return exec.Command(name, args...).CombinedOutput()
 	}}
 }
@@ -151,6 +164,23 @@ func (m *Manager) Run(job Job) (man *Manifest, err error) {
 		return nil, err
 	}
 	m.applyRetention(target, job.Retention)
+
+	// Upload after the snapshot is complete on disk, never during: a failed upload
+	// must not leave a partial backup on the remote side.
+	for _, storeName := range job.Remote {
+		st, serr := m.store(storeName)
+		if serr != nil {
+			return man, serr
+		}
+		if uerr := m.uploadSnapshot(context.Background(), st, dir, name, job.Retention); uerr != nil {
+			return man, fmt.Errorf("上传到 %s 失败：%w", storeName, uerr)
+		}
+	}
+	if len(job.Remote) > 0 && job.KeepLocal != nil && !*job.KeepLocal {
+		// The whole reason to drop the local copy is disk space; the remote copy has
+		// already been verified by a successful upload.
+		_ = os.RemoveAll(dir)
+	}
 	return man, nil
 }
 
@@ -666,9 +696,16 @@ func orDefault(s, def string) string {
 }
 
 // SnapshotDir resolves a snapshot name under the default root, refusing escapes.
+func validSnapshotName(name string) error {
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\") || strings.HasPrefix(name, ".") {
+		return errors.New("非法快照名")
+	}
+	return nil
+}
+
 func (m *Manager) SnapshotDir(name string) (string, error) {
-	if strings.ContainsAny(name, "/\\") || name == "" || name == "." || name == ".." {
-		return "", errors.New("非法快照名")
+	if err := validSnapshotName(name); err != nil {
+		return "", err
 	}
 	dir := filepath.Join(m.root, name)
 	if _, err := os.Stat(dir); err != nil {
