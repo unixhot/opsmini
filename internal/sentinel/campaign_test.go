@@ -341,7 +341,7 @@ func TestCampaignChangeSkipsChainsWithoutFoothold(t *testing.T) {
 	camp := model.Campaign{
 		ID: "cp-noexec", Title: "疑似攻击链", Severity: model.SeverityHigh,
 		Status: model.CampaignOpen, Score: 0.3, StageCount: 1, IncidentCount: 1,
-		Stages: encodeStrings([]string{"persistence"}),
+		Stages:    encodeStrings([]string{"persistence"}),
 		CreatedAt: now.Add(-time.Hour), UpdatedAt: now, FirstSeen: now.Add(-time.Hour), LastSeen: now.Add(-5 * time.Minute),
 	}
 	db.Create(&camp)

@@ -258,7 +258,43 @@ func (h *SentinelHandler) Campaigns(c *gin.Context) {
 	for _, r := range rows {
 		counts[r.CampaignID] = r.N
 	}
-	response.OK(c, gin.H{"list": list, "counts": counts, "total": total, "page": page, "page_size": size})
+
+	// Stage provenance: which collector put each stage into the chain. Derived from
+	// the incidents rather than stored on the campaign, so existing chains answer
+	// the question immediately and no migration is needed.
+	type occ struct {
+		CampaignID string
+		Family     string
+		N          int64
+	}
+	var occs []occ
+	if ids := campaignIDs(list); len(ids) > 0 {
+		h.DB.Model(&model.Incident{}).Select("campaign_id, family, count(*) as n").
+			Where("campaign_id IN ?", ids).Group("campaign_id, family").Scan(&occs)
+	}
+	sources := map[string]map[string][]string{}
+	for _, o := range occs {
+		stage, ok := sentinel.StageOfFamily(o.Family)
+		if !ok {
+			continue
+		}
+		if sources[o.CampaignID] == nil {
+			sources[o.CampaignID] = map[string][]string{}
+		}
+		sources[o.CampaignID][stage] = append(sources[o.CampaignID][stage], o.Family)
+	}
+
+	response.OK(c, gin.H{"list": list, "counts": counts, "sources": sources,
+		"total": total, "page": page, "page_size": size})
+}
+
+// campaignIDs collects the ids of one page of campaigns.
+func campaignIDs(list []model.Campaign) []string {
+	out := make([]string, 0, len(list))
+	for _, c := range list {
+		out = append(out, c.ID)
+	}
+	return out
 }
 
 // Campaign GET /sentinel/campaigns/:id

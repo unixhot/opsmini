@@ -553,19 +553,25 @@
   /* 窄屏：六列的固定宽度加起来超过 390px，标题列会被压到 1 个字宽。
      这里把行改成卡片块，让每格各自占一行，比横向滚动更容易读。 */
   @media(max-width:700px){
-    .chain-tbl colgroup, .chain-tbl thead{display:none}
-    .chain-tbl, .chain-tbl tbody, .chain-tbl tr, .chain-tbl td{display:block;width:auto!important}
-    .chain-tbl tr{position:relative;padding:12px 14px 12px 18px;border-bottom:1px solid var(--border)}
-    .chain-tbl tr:last-child{border-bottom:none}
-    .chain-tbl td{border:none;padding:0 0 6px}
+    :is(.chain-tbl,.chg-tbl) colgroup, :is(.chain-tbl,.chg-tbl) thead{display:none}
+    :is(.chain-tbl,.chg-tbl), :is(.chain-tbl,.chg-tbl) tbody,
+    :is(.chain-tbl,.chg-tbl) tr, :is(.chain-tbl,.chg-tbl) td{display:block;width:auto!important}
+    :is(.chain-tbl,.chg-tbl) tr{position:relative;padding:12px 14px 12px 18px;border-bottom:1px solid var(--border)}
+    :is(.chain-tbl,.chg-tbl) tr:last-child{border-bottom:none}
+    :is(.chain-tbl,.chg-tbl) td{border:none;padding:0 0 6px}
     /* 色条跟着时间那格走，只把 ::before 挪到卡片左内边距里；
        整格做绝对定位会让时间文字失去宽度、压到标题上 */
-    .chain-tbl td.sev-rail{padding-left:0}
-    .chain-tbl td.sev-rail::before{left:-12px;top:2px;bottom:2px;height:auto}
-    .chain-tbl .tc-time{display:flex;gap:8px;align-items:baseline}
-    .chain-tbl .tc-time .d{font-size:11.5px;color:var(--t3)}
+    :is(.chain-tbl,.chg-tbl) td.sev-rail{padding-left:0}
+    :is(.chain-tbl,.chg-tbl) td.sev-rail::before{left:-12px;top:2px;bottom:2px;height:auto}
+    :is(.chain-tbl,.chg-tbl) .tc-time{display:flex;gap:8px;align-items:baseline}
+    :is(.chain-tbl,.chg-tbl) .tc-time .d{font-size:11.5px;color:var(--t3)}
     .chain-tbl td:nth-child(4), .chain-tbl td:nth-child(5), .chain-tbl td:nth-child(6){
       display:inline-block;margin-right:10px;padding-bottom:0}
+    /* 变更表：变化/操作者并排，判定与操作并排；对象路径允许断行 */
+    .chg-tbl td:nth-child(3){word-break:break-all}
+    .chg-tbl td:nth-child(4), .chg-tbl td:nth-child(5),
+    .chg-tbl td:nth-child(6), .chg-tbl td:nth-child(7){
+      display:inline-block;margin-right:12px;padding-bottom:0}
   }
   /* 变更判定：规则复核给出的结论块，比 diff 更需要被先看到 */
   .review-box{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:var(--bg3)}
@@ -576,7 +582,15 @@
     background:var(--bg3);color:var(--t2);border:1px solid var(--border);white-space:nowrap;line-height:1.6}
   .stage-chip + .stage-chip{margin-left:14px;position:relative}
   .stage-chip + .stage-chip::before{content:'→';position:absolute;left:-12px;color:var(--t3);font-size:11px}
-  .chain-box{background:linear-gradient(180deg,#fffafa,#fff);border-color:#f3d6d6}
+  /* 环节来源：同一格 chip 里的小字，说明这个阶段是谁贡献的（WebShell/可疑进程/变更…） */
+  .stage-src{margin-left:5px;font-size:10px;color:var(--t3);font-weight:400}
+  /* 变更↔攻击链的关联标记，两个方向都要能点回去 */
+  .chain-link{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-size:11.5px;
+    color:var(--primary);cursor:pointer;white-space:nowrap;text-decoration:none}
+  .chain-link:hover{text-decoration:underline}
+  .chain-tbl tr.hl td{background:#eef4ff}
+  .chain-box{background:linear-gradient(180deg,#fffafa,#fff);border:1px solid #f3d6d6;
+    border-radius:10px;padding:10px 12px;margin-bottom:12px}
   .chg-badge{cursor:pointer;font-size:10px;padding:1px 5px;vertical-align:middle}
 
   /* 模型选择：从服务拉回来的列表要「看得见、点得到」，不能只塞进 datalist */
@@ -1768,8 +1782,8 @@
 
         <div class="card">
           <div class="table-wrap" v-if="changes.length">
-            <table class="st-tbl">
-              <colgroup><col style="width:108px"><col style="width:104px"><col><col style="width:84px"><col style="width:140px"><col style="width:136px"><col style="width:88px"></colgroup>
+            <table class="st-tbl chg-tbl">
+              <colgroup><col style="width:108px"><col style="width:104px"><col><col style="width:84px"><col style="width:140px"><col style="width:196px"><col style="width:88px"></colgroup>
               <thead><tr>
                 <th>{{ t('sentinel.col.time') }}</th>
                 <th>{{ t('sentinel.col.kind') }}</th>
@@ -1806,6 +1820,11 @@
                       {{ chgVerdictName((chgReviewOf(c.id)||{}).verdict) }}
                       <span v-if="chgReviewOf(c.id)" class="mute" style="font-weight:400"> {{ ((chgReviewOf(c.id)||{}).score||0).toFixed(2) }}</span>
                     </span>
+                    <a class="chain-link" v-if="chgCampaignOf(c.id)" :title="chgCampaignOf(c.id).title"
+                       @click="openCampaign(chgCampaignOf(c.id).id)">
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 9.5a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5l-.8.8"/><path d="M9.5 6.5a2.5 2.5 0 0 0-3.5 0l-2 2a2.5 2.5 0 0 0 3.5 3.5l.8-.8"/></svg>
+                      {{ t('chg.inChain') }}
+                    </a>
                     <a class="link" v-if="chgIncidents[c.id]" style="margin-left:6px;font-size:11.5px"
                        :title="chgAnalysisState(c.id)" @click="openChangeIncident(c.id)">{{ t('chg.review.analysis') }}</a>
                   </td>
@@ -1873,6 +1892,18 @@
                   <div v-for="(r,i) in chgReviewReasons(chgDetail.change.id)" :key="'rr'+i">· {{ r }}</div>
                 </div>
                 <div class="mute" style="font-size:11px;margin-top:6px">{{ t('chg.review.hint') }}</div>
+              </div>
+              <div class="chain-box" v-if="chgCampaignOf(chgDetail.change.id)">
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+                  <span class="chain-link" style="cursor:default">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 9.5a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5l-.8.8"/><path d="M9.5 6.5a2.5 2.5 0 0 0-3.5 0l-2 2a2.5 2.5 0 0 0 3.5 3.5l.8-.8"/></svg>
+                    {{ t('chg.inChain') }}
+                  </span>
+                  <span style="font-size:12.5px;font-weight:600">{{ chgCampaignOf(chgDetail.change.id).title }}</span>
+                  <button class="btn sm ghost" style="margin-left:auto"
+                          @click="openCampaign(chgCampaignOf(chgDetail.change.id).id)">{{ t('sent.chain.open') }}</button>
+                </div>
+                <div class="mute" style="font-size:11.5px;line-height:1.7;margin-top:6px">{{ t('chg.inChain.hint') }}</div>
               </div>
               <div class="diff-view" v-if="chgDiffLines.length">
                 <div v-for="l in chgDiffLines" :key="l.n" class="dl" :class="l.k">
@@ -2134,7 +2165,7 @@
           <div class="table-wrap">
             <table class="st-tbl chain-tbl">
               <colgroup>
-                <col style="width:104px"><col style="width:auto"><col style="width:206px">
+                <col style="width:104px"><col style="width:auto"><col style="width:262px">
                 <col style="width:78px"><col style="width:96px"><col style="width:118px">
               </colgroup>
               <thead><tr>
@@ -2146,7 +2177,7 @@
                 <th>{{ t('common.actions') }}</th>
               </tr></thead>
               <tbody>
-                <tr v-for="c in campaigns" :key="c.id">
+                <tr v-for="c in campaigns" :key="c.id" :class="{hl: campaignHighlight===c.id}">
                   <td class="sev-rail" :style="{'--rail': sevColor(c.severity)}">
                     <div class="tc-time">
                       <div class="h">{{ fmtHMS(c.last_seen) }}</div>
@@ -2158,7 +2189,9 @@
                     <div class="mute" style="font-size:11.5px;line-height:1.5;margin-top:2px">{{ chainSubjects(c) }}</div>
                   </td>
                   <td>
-                    <span v-for="st in chainStages(c)" :key="st" class="stage-chip">{{ t('sent.stage.'+st) }}</span>
+                    <span v-for="st in chainStages(c)" :key="st" class="stage-chip">
+                      {{ t('sent.stage.'+st) }}<span v-if="stageSources(c,st).length" class="stage-src">{{ stageSources(c,st).join(' · ') }}</span>
+                    </span>
                   </td>
                   <td><span class="tag info">{{ campaignCount(c) }}</span></td>
                   <td><span class="tag" :class="sevTag(c.severity)"><span class="tdot"></span>{{ c.severity }}</span></td>
@@ -5011,6 +5044,13 @@ const I18N13 = {
     'sent.chain.tab':'攻击链',
     'sent.chain.title':'疑似攻击链',
     'sent.chain.hint':'把「WebShell 落地 → 可疑进程 → 异常外联」这类分阶段的事件串成一次入侵来看；可疑变更若改的是 authorized_keys / cron / systemd 这类能扛过重启的位置，会作为「持久化」环节并入。关联依据是时间与共享指标，属推断，不是因果定论；它只提高关注优先级，不会放大 Agent 的权限。',
+    'sent.chain.open':'查看攻击链',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'可疑进程',
+    'sent.fam.net.anomaly':'网络外联',
+    'sent.fam.auth.anomaly':'登录异常',
+    'sent.fam.file.integrity':'文件完整性',
+    'sent.fam.change':'变更',
     'sent.chain.badge':'攻击链',
     'sent.chain.col.title':'攻击链',
     'sent.chain.col.stages':'覆盖环节',
@@ -5067,6 +5107,8 @@ const I18N13 = {
     'chg.review.queued':'等待分析',
     'chg.review.score':'评分',
     'chg.review.hint':'规则复核只看变更的形态（改了什么、谁改的、什么时候、同期发生了什么）。判为可疑的会交给 Agent 做深度分析——变更本身永远不会被自动修改。',
+    'chg.inChain':'已并入攻击链',
+    'chg.inChain.hint':'这次变更已被并入一条疑似攻击链（见 事件中心 → 攻击链）。链路是关联推断：它说明这次变更出现在入侵时间线上，不等于已确认是攻击行为。',
     'sent.shadow.v.would_help':'本可有用',
     'sent.shadow.v.unnecessary':'事后多余',
     'sent.shadow.v.unknown':'无法判定',
@@ -5077,6 +5119,13 @@ const I18N13 = {
     'sent.chain.tab':'攻擊鏈',
     'sent.chain.title':'疑似攻擊鏈',
     'sent.chain.hint':'把「WebShell 落地 → 可疑行程 → 異常外聯」這類分階段的事件串成一次入侵來看；可疑變更若改的是 authorized_keys / cron / systemd 這類能撐過重啟的位置，會作為「持久化」環節併入。關聯依據是時間與共享指標，屬推斷，非因果定論；只提高關注優先級，不會放大 Agent 的權限。',
+    'sent.chain.open':'查看攻擊鏈',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'可疑行程',
+    'sent.fam.net.anomaly':'網路外聯',
+    'sent.fam.auth.anomaly':'登入異常',
+    'sent.fam.file.integrity':'檔案完整性',
+    'sent.fam.change':'變更',
     'sent.chain.badge':'攻擊鏈',
     'sent.chain.col.title':'攻擊鏈',
     'sent.chain.col.stages':'涵蓋環節',
@@ -5133,6 +5182,8 @@ const I18N13 = {
     'chg.review.queued':'等待分析',
     'chg.review.score':'評分',
     'chg.review.hint':'規則複核只看變更的形態（改了什麼、誰改的、什麼時候、同期發生什麼）。判為可疑的會交給 Agent 做深度分析——變更本身永遠不會被自動修改。',
+    'chg.inChain':'已併入攻擊鏈',
+    'chg.inChain.hint':'這次變更已被併入一條疑似攻擊鏈（見 事件中心 → 攻擊鏈）。鏈路是關聯推斷：它說明這次變更出現在入侵時間軸上，不等於已確認是攻擊行為。',
     'sent.shadow.v.would_help':'本可有用',
     'sent.shadow.v.unnecessary':'事後多餘',
     'sent.shadow.v.unknown':'無法判定',
@@ -5143,6 +5194,13 @@ const I18N13 = {
     'sent.chain.tab':'Attack chains',
     'sent.chain.title':'Suspected attack chains',
     'sent.chain.hint':'Groups staged incidents (webshell dropped, suspicious process, outbound connection) so they read as one intrusion. A suspicious change to a location that survives a reboot (authorized_keys, cron, systemd…) joins as the persistence stage. The link is temporal plus shared indicators — an inference, not proof. It only raises priority; it never widens what the agent may do.',
+    'sent.chain.open':'View chain',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'Suspicious process',
+    'sent.fam.net.anomaly':'Outbound connection',
+    'sent.fam.auth.anomaly':'Login anomaly',
+    'sent.fam.file.integrity':'File integrity',
+    'sent.fam.change':'Change',
     'sent.chain.badge':'chain',
     'sent.chain.col.title':'Chain',
     'sent.chain.col.stages':'Stages',
@@ -5199,6 +5257,8 @@ const I18N13 = {
     'chg.review.queued':'Queued',
     'chg.review.score':'Score',
     'chg.review.hint':'The rule pass only looks at shape: what changed, who changed it, when, and what else happened around it. Suspicious changes are handed to the agent for deeper analysis — changes themselves are never modified automatically.',
+    'chg.inChain':'In attack chain',
+    'chg.inChain.hint':'This change was folded into a suspected attack chain (see Events → Attack chain). The link is an inference: it places the change on an intrusion timeline, it does not confirm malicious intent.',
     'sent.shadow.v.would_help':'would have helped',
     'sent.shadow.v.unnecessary':'unnecessary in hindsight',
     'sent.shadow.v.unknown':'cannot tell',
@@ -5209,6 +5269,13 @@ const I18N13 = {
     'sent.chain.tab':'攻撃チェーン',
     'sent.chain.title':'疑わしい攻撃チェーン',
     'sent.chain.hint':'WebShell 設置 → 不審プロセス → 外部通信のように段階的に起きた事象を 1 件の侵入としてまとめます。再起動を生き延びる箇所（authorized_keys / cron / systemd など）への不審な変更は「永続化」段階として加わります。関連付けは時刻と共有指標による推測で、因果の断定ではありません。優先度を上げるだけで、Agent の権限は広げません。',
+    'sent.chain.open':'攻撃チェーンを見る',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'不審プロセス',
+    'sent.fam.net.anomaly':'外部通信',
+    'sent.fam.auth.anomaly':'ログイン異常',
+    'sent.fam.file.integrity':'ファイル整合性',
+    'sent.fam.change':'変更',
     'sent.chain.badge':'チェーン',
     'sent.chain.col.title':'チェーン',
     'sent.chain.col.stages':'段階',
@@ -5265,6 +5332,8 @@ const I18N13 = {
     'chg.review.queued':'分析待ち',
     'chg.review.score':'スコア',
     'chg.review.hint':'ルール判定は変更の形だけを見ます（何を・誰が・いつ・周辺で何が起きたか）。不審と判定されたものだけ Agent が深掘りします。変更自体が自動で書き換わることはありません。',
+    'chg.inChain':'攻撃チェーンに統合済み',
+    'chg.inChain.hint':'この変更は不審な攻撃チェーンに統合されました（イベントセンター → 攻撃チェーン）。関連付けは推測であり、侵入の時系列に位置するという意味で、悪意が確定したわけではありません。',
     'sent.shadow.v.would_help':'効果があった',
     'sent.shadow.v.unnecessary':'結果的に不要',
     'sent.shadow.v.unknown':'判定不能',
@@ -5275,6 +5344,13 @@ const I18N13 = {
     'sent.chain.tab':'공격 체인',
     'sent.chain.title':'의심 공격 체인',
     'sent.chain.hint':'웹셸 설치 → 의심 프로세스 → 외부 통신처럼 단계적으로 발생한 사건을 하나의 침입으로 묶습니다. 재부팅 후에도 남는 위치(authorized_keys / cron / systemd 등)에 대한 의심스러운 변경은 "지속성" 단계로 함께 묶입니다. 연관성은 시간과 공유 지표에 근거한 추정이며 인과 확정이 아닙니다. 우선순위만 높이고 Agent 권한은 넓히지 않습니다.',
+    'sent.chain.open':'공격 체인 보기',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'의심 프로세스',
+    'sent.fam.net.anomaly':'외부 통신',
+    'sent.fam.auth.anomaly':'로그인 이상',
+    'sent.fam.file.integrity':'파일 무결성',
+    'sent.fam.change':'변경',
     'sent.chain.badge':'체인',
     'sent.chain.col.title':'체인',
     'sent.chain.col.stages':'단계',
@@ -5331,6 +5407,8 @@ const I18N13 = {
     'chg.review.queued':'분석 대기',
     'chg.review.score':'점수',
     'chg.review.hint':'규칙 판정은 변경의 형태만 봅니다(무엇을, 누가, 언제, 주변에서 무슨 일이 있었는지). 의심으로 판정된 것만 Agent가 심층 분석합니다. 변경 자체가 자동으로 수정되지는 않습니다.',
+    'chg.inChain':'공격 체인에 병합됨',
+    'chg.inChain.hint':'이 변경은 의심 공격 체인에 병합되었습니다(이벤트 센터 → 공격 체인). 연관성은 추정이며 침입 타임라인에 위치한다는 뜻으로 악의가 확정된 것은 아닙니다.',
     'sent.shadow.v.would_help':'효과 있었음',
     'sent.shadow.v.unnecessary':'결과적으로 불필요',
     'sent.shadow.v.unknown':'판단 불가',
@@ -5341,6 +5419,13 @@ const I18N13 = {
     'sent.chain.tab':'ห่วงโซ่โจมตี',
     'sent.chain.title':'ห่วงโซ่โจมตีที่สงสัย',
     'sent.chain.hint':'รวมเหตุการณ์ที่เกิดเป็นลำดับ (วางเว็บเชลล์ → กระบวนการต้องสงสัย → เชื่อมต่อภายนอก) ให้อ่านเป็นการบุกรุกครั้งเดียว การเปลี่ยนแปลงที่น่าสงสัยในตำแหน่งที่อยู่รอดหลังรีบูต (authorized_keys / cron / systemd ฯลฯ) จะถูกรวมเป็นขั้น "ฝังตัวถาวร" การเชื่อมโยงอาศัยเวลาและตัวชี้วัดร่วม เป็นการอนุมาน ไม่ใช่ข้อสรุปเชิงสาเหตุ และไม่เพิ่มสิทธิ์ของ Agent',
+    'sent.chain.open':'ดูเชนการโจมตี',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'กระบวนการต้องสงสัย',
+    'sent.fam.net.anomaly':'เชื่อมต่อภายนอก',
+    'sent.fam.auth.anomaly':'การเข้าสู่ระบบผิดปกติ',
+    'sent.fam.file.integrity':'ความสมบูรณ์ไฟล์',
+    'sent.fam.change':'การเปลี่ยนแปลง',
     'sent.chain.badge':'ห่วงโซ่',
     'sent.chain.col.title':'ห่วงโซ่',
     'sent.chain.col.stages':'ขั้นตอน',
@@ -5397,6 +5482,8 @@ const I18N13 = {
     'chg.review.queued':'รอวิเคราะห์',
     'chg.review.score':'คะแนน',
     'chg.review.hint':'การตัดสินด้วยกฎดูเพียงรูปร่างของการเปลี่ยนแปลง (อะไร ใคร เมื่อไร และเกิดอะไรขึ้นรอบข้าง) เฉพาะที่ตัดสินว่าน่าสงสัยจะถูกส่งให้เอเจนต์วิเคราะห์เชิงลึก ตัวการเปลี่ยนแปลงจะไม่ถูกแก้ไขอัตโนมัติ',
+    'chg.inChain':'รวมเข้าเชนการโจมตีแล้ว',
+    'chg.inChain.hint':'การเปลี่ยนแปลงนี้ถูกรวมเข้าเชนการโจมตีที่ต้องสงสัย (ศูนย์เหตุการณ์ → เชนการโจมตี) การเชื่อมโยงเป็นการอนุมาน หมายความว่าอยู่ในไทม์ไลน์การบุกรุก ไม่ได้ยืนยันว่าเป็นอันตราย',
     'sent.shadow.v.would_help':'น่าจะ有帮助',
     'sent.shadow.v.unnecessary':'ไม่จำเป็นเมื่อมองย้อนหลัง',
     'sent.shadow.v.unknown':'ตัดสินไม่ได้',
@@ -5407,6 +5494,13 @@ const I18N13 = {
     'sent.chain.tab':'Angriffsketten',
     'sent.chain.title':'Vermutete Angriffsketten',
     'sent.chain.hint':'Fasst stufenweise auftretende Ereignisse (Webshell abgelegt, verdächtiger Prozess, ausgehende Verbindung) zu einem Eindringen zusammen. Eine verdächtige Änderung an einem Ort, der einen Neustart übersteht (authorized_keys, cron, systemd …), kommt als Stufe "Persistenz" hinzu. Die Verknüpfung beruht auf Zeit und gemeinsamen Indikatoren — eine Vermutung, kein Beweis. Sie hebt nur die Priorität, nie die Rechte des Agenten.',
+    'sent.chain.open':'Angriffskette ansehen',
+    'sent.fam.webshell':'WebShell',
+    'sent.fam.proc.anomaly':'Verdächtiger Prozess',
+    'sent.fam.net.anomaly':'Ausgehende Verbindung',
+    'sent.fam.auth.anomaly':'Anmeldeauffälligkeit',
+    'sent.fam.file.integrity':'Dateiintegrität',
+    'sent.fam.change':'Änderung',
     'sent.chain.badge':'Kette',
     'sent.chain.col.title':'Kette',
     'sent.chain.col.stages':'Stufen',
@@ -5463,6 +5557,8 @@ const I18N13 = {
     'chg.review.queued':'Wartet auf Analyse',
     'chg.review.score':'Score',
     'chg.review.hint':'Die Regelprüfung betrachtet nur die Form der Änderung: was, von wem, wann und was ringsherum passierte. Nur verdächtige Fälle gehen zur tieferen Analyse an den Agenten — die Änderung selbst wird nie automatisch verändert.',
+    'chg.inChain':'In Angriffskette aufgenommen',
+    'chg.inChain.hint':'Diese Änderung wurde in eine verdächtige Angriffskette aufgenommen (Ereignisse → Angriffskette). Die Verknüpfung ist eine Vermutung: Sie ordnet die Änderung einer Intrusion zu, bestätigt aber keine böswillige Absicht.',
     'sent.shadow.v.would_help':'hätte geholfen',
     'sent.shadow.v.unnecessary':'im Nachhinein unnötig',
     'sent.shadow.v.unknown':'nicht bewertbar',
@@ -6351,7 +6447,7 @@ createApp({
       // v1.4 变更感知
       changes: [], chgTotal: 0, chgPage: 1, chgPageSize: 30,
       chgFilter: { kind: '', verdict: '' },
-      chgReviews: {}, chgIncidents: {}, chgIncidentState: {},
+      chgReviews: {}, chgIncidents: {}, chgIncidentState: {}, chgCampaigns: {},
       chgKinds: [
         { id:'', label:'chg.kind.all' },
         { id:'config', label:'chg.kind.config' },
@@ -6485,7 +6581,7 @@ createApp({
       incMembersLoading: false,
       incMembersTruncated: false,
       incFilter:{status:'unresolved',family:'',severity:'',q:'',campaign:'',page:1}, incPageSize:20, incTotal:0,
-      campaigns:[], campaignCounts:{}, campaignTitles:{}, campaignsTotal:0, campaignPage:1,
+      campaigns:[], campaignCounts:{}, campaignTitles:{}, campaignSources:{}, campaignHighlight:'', campaignsTotal:0, campaignPage:1,
       campaignPageSize:20,
       rollbackBusy:false, shadowBusy:false,
       takeoverArmed:false, takeoverBusy:false,
@@ -6823,6 +6919,7 @@ createApp({
         const d = await this.api('/sentinel/campaigns?page='+p+'&page_size='+this.campaignPageSize+'&status=all');
         this.campaigns = (d && d.list) || [];
         this.campaignCounts = (d && d.counts) || {};
+        this.campaignSources = (d && d.sources) || {};
         this.campaignsTotal = (d && d.total) || 0;
         const map = Object.assign({}, this.campaignTitles);
         this.campaigns.forEach(c => { map[c.id] = c.title; });
@@ -6830,6 +6927,14 @@ createApp({
       }catch(e){}
     },
     campaignCount(c){ return this.campaignCounts[c.id] || c.incident_count || 0; },
+    // 某个环节是哪些采集源贡献的（WebShell / 可疑进程 / 网络外联 / 变更…）。
+    // 链路列表里所有 chip 长得一样时，运维会以为「持久化」只能来自文件完整性，
+    // 看不到其实是一次可疑变更并进来的。
+    stageSources(c, st){
+      const m = (this.campaignSources || {})[c.id] || {};
+      const fams = (m[st] || []).slice().sort();
+      return fams.map(f => this.t('sent.fam.' + f));
+    },
     // 标题与摘要按当前语言拼：库里存的那份是给 Agent 提示词用的中文，
     // 直接渲染会让英文界面里冒出一句中文。
     chainTitle(c){
@@ -7462,6 +7567,7 @@ createApp({
         this.chgReviews = (d && d.reviews) || {};
         this.chgIncidents = (d && d.change_incidents) || {};
         this.chgIncidentState = (d && d.incident_state) || {};
+        this.chgCampaigns = (d && d.campaigns) || {};
       }catch(e){ this.changes = []; }
     },
     async loadChgStats(){
@@ -7470,6 +7576,23 @@ createApp({
     setChgKind(k){ this.chgFilter.kind = k; this.loadChanges(1); },
     setChgVerdict(v){ this.chgFilter.verdict = v; this.loadChanges(1); },
     chgReviewOf(id){ return this.chgReviews[id] || null; },
+    // 这次变更是否已经并进某条攻击链。链路是拒绝变更侧唯一能反查到的强关联，
+    // 没有它，面板上一条「可疑 0.90」和 20 分钟前的 WebShell 看起来毫无关系。
+    chgCampaignOf(id){
+      const iid = this.chgIncidents[id];
+      if(!iid) return null;
+      const cid = (this.chgIncidentState[iid] || {}).campaign_id;
+      if(!cid) return null;
+      return this.chgCampaigns[cid] || { id: cid, title: '' };
+    },
+    // 从变更跳到它所属的攻击链
+    openCampaign(id){
+      if(!id) return;
+      this.chgDetail = null;
+      this.go('sentinel');
+      this.campaignHighlight = id;
+      this.gototab('campaigns');
+    },
     chgReviewReasons(id){
       const r = this.chgReviews[id];
       if(!r || !r.reasons) return [];

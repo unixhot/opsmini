@@ -435,9 +435,9 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 	}
 
 	req := RunRequest{
-		Incident:     inc,
-		Policy:       p,
-		Mode:         mode,
+		Incident: inc,
+		Policy:   p,
+		Mode:     mode,
 		// {title} carries the incident subject, which for change events is an
 		// attacker-writable path: keep it on one line and strip our section markers.
 		Prompt:       strings.ReplaceAll(p.Prompt, "{title}", inline(inc.Title, 160)) + e.campaignContext(inc) + e.changeContext(inc),

@@ -3,6 +3,7 @@ package sentinel
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/model"
@@ -36,24 +37,59 @@ type aggGroup struct {
 
 const (
 	familyAuthAnomaly = "auth.anomaly"
+	familyMetric      = "metric"
+	familyLogGrowth   = "log_growth"
 	// authBruteGroupKey folds every failed-login burst on this host into one
 	// incident, whatever address it came from.
 	authBruteGroupKey = "auth.anomaly|bruteforce"
 	// memberCap bounds the stored member list so one row cannot grow without
 	// limit; MemberTotal still reports the real number.
 	memberCap = 50
+	// authLoginWindow keeps successful-login anomalies per address per half day:
+	// the same operator logging in at an odd hour again is the same thing to
+	// look at, but tomorrow's login is a new observation.
+	authLoginWindow = 12 * time.Hour
 )
 
-// IsOngoingGroup reports whether an incident covers a condition that is still
-// happening (an attack in progress) rather than a single finished event.
+// foldWhileOpen are the families whose signal means "a condition still holds"
+// rather than "something just happened": a CPU alert, a log file still growing.
 //
-// Such an incident must not be closed by the end of an investigation: the
-// attack has not stopped, so closing it only makes the next burst open a second
-// row and the noise comes straight back. It also only gets investigated once —
+// An alert nobody has handled is ONE alert, not one per window — nine separate
+// "指标告警 · CPU 使用率" rows is exactly how a real alert becomes noise the
+// operator learns to scroll past. So these fold for as long as the incident stays
+// open, regardless of how far apart the signals are.
+var foldWhileOpen = map[string]bool{
+	familyMetric:    true,
+	familyLogGrowth: true,
+}
+
+// ongoingFamilies is the narrower set that also changes how the incident is
+// treated after a run: investigate once, and do not close it when the
+// investigation ends (see IsOngoingGroup).
+//
+// metric only. A threshold condition keeps holding whether or not anyone looked,
+// so re-running the analysis costs tokens for no new information. log_growth is
+// deliberately NOT here: rolling the log over does end the condition, and a
+// log-growth incident that refuses to close reads like a bug.
+var ongoingFamilies = map[string]bool{
+	familyMetric: true,
+}
+
+// IsOngoingGroup reports whether an incident covers a condition that is still
+// happening (an attack in progress, or a threshold still exceeded) rather than a
+// single finished event.
+//
+// Such an incident must not be closed by the end of an investigation: the attack
+// has not stopped, so closing it only makes the next burst open a second row and
+// the noise comes straight back. It also only gets investigated once —
 // re-analysing the same unchanged situation every half hour burns tokens for
 // nothing.
 func IsOngoingGroup(groupKey string) bool {
-	return groupKey == authBruteGroupKey
+	if groupKey == authBruteGroupKey {
+		return true
+	}
+	family, _, _ := strings.Cut(groupKey, "|")
+	return ongoingFamilies[family]
 }
 
 // groupOf decides how a signal is clustered. defWindow is the fallback window
@@ -65,13 +101,17 @@ func groupOf(s model.Signal, defWindow time.Duration) aggGroup {
 		// edited five times this hour is one change story. The agent is barred
 		// from acting on this family anyway, so a long window costs nothing.
 		return aggGroup{Key: "change|" + s.Subject}
+	case familyMetric, familyLogGrowth:
+		// Window 0 = fold while the incident stays active. A CPU rule that keeps
+		// firing must not produce one incident per 10 minutes.
+		return aggGroup{Key: s.Family + "|" + s.Subject}
 	case familyAuthAnomaly:
 		if s.Fingerprint == "auth.failed_burst" {
 			return aggGroup{Key: authBruteGroupKey, Collect: true, Label: "SSH 爆破"}
 		}
 		// Successful logins stay per-address: "root logged in from somewhere new"
 		// must never be diluted into a bucket.
-		return aggGroup{Key: s.Family + "|" + s.Subject, Window: time.Hour}
+		return aggGroup{Key: s.Family + "|" + s.Subject, Window: authLoginWindow}
 	}
 	return aggGroup{Key: s.Family + "|" + s.Subject, Window: defWindow}
 }

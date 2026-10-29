@@ -149,3 +149,113 @@ func TestAcceptedLoginsStayPerAddress(t *testing.T) {
 		}
 	}
 }
+
+// --- noise control: status-shaped signals ---
+
+func metricSignalFor(subject string, at time.Time) model.Signal {
+	s := newSignal(model.SignalKindMetric, "metric/rule", subject, familyMetric,
+		"metric|"+subject, model.SeverityHigh, "指标告警：CPU 使用率").Signal
+	s.ObservedAt = at
+	return s
+}
+
+// A CPU rule left unhandled fires all day. That is ONE alert the operator has not
+// got to yet, not one incident per 10-minute window — nine of those rows is how a
+// real alert gets scrolled past.
+func TestMetricFoldsWhileOpen(t *testing.T) {
+	db := newDB(t)
+	agg := NewAggregator(db, 10*time.Minute)
+
+	base := time.Now().Add(-8 * time.Hour)
+	var first model.Incident
+	for i := 0; i < 9; i++ {
+		s := metricSignalFor("CPU 使用率", base.Add(time.Duration(i)*time.Hour))
+		s.ID = "met_sig_" + string(rune('a'+i))
+		inc, created := agg.Add(s)
+		if i == 0 {
+			first = inc
+			if !created {
+				t.Fatal("first metric signal must create the incident")
+			}
+			continue
+		}
+		if created {
+			t.Fatalf("signal %d opened a second incident (window leak)", i)
+		}
+		if inc.ID != first.ID {
+			t.Fatalf("signal %d landed on %s, want %s", i, inc.ID, first.ID)
+		}
+	}
+
+	var incidents []model.Incident
+	db.Where("family = ?", familyMetric).Find(&incidents)
+	if len(incidents) != 1 {
+		t.Fatalf("expected 1 incident for 9 alerts across 8 hours, got %d", len(incidents))
+	}
+	if incidents[0].Count != 9 {
+		t.Fatalf("count = %d, want 9", incidents[0].Count)
+	}
+}
+
+// The fold must stop the moment a human dealt with it: an ignored alert that
+// folds forever would swallow tomorrow's genuine recurrence.
+func TestMetricFoldsOnlyWhileActive(t *testing.T) {
+	db := newDB(t)
+	agg := NewAggregator(db, 10*time.Minute)
+	now := time.Now()
+
+	s1 := metricSignalFor("CPU 使用率", now.Add(-2*time.Hour))
+	s1.ID = "met_a"
+	first, _ := agg.Add(s1)
+	db.Model(&model.Incident{}).Where("id = ?", first.ID).
+		Update("status", model.IncidentIgnored)
+
+	s2 := metricSignalFor("CPU 使用率", now)
+	s2.ID = "met_b"
+	second, created := agg.Add(s2)
+	if !created {
+		t.Fatal("a handled incident must not absorb the next occurrence")
+	}
+	if second.ID == first.ID {
+		t.Fatal("recurrence after handling must be a new incident")
+	}
+}
+
+// Status-shaped groups are investigated once: re-running the same analysis on an
+// unchanged condition is pure token burn. log_growth folds like them but is not
+// "ongoing": rolling the log over does end the condition, so it must still close.
+func TestIsOngoingGroupCoversStatefulFamilies(t *testing.T) {
+	for _, key := range []string{"metric|CPU 使用率", authBruteGroupKey} {
+		if !IsOngoingGroup(key) {
+			t.Errorf("%q should be an ongoing group", key)
+		}
+	}
+	for _, key := range []string{
+		"log_growth|/var/log/app.log",
+		"webshell|/var/www/x.php", "proc.anomaly|minerd", "change|/etc/hosts",
+	} {
+		if IsOngoingGroup(key) {
+			t.Errorf("%q must not be treated as ongoing", key)
+		}
+	}
+}
+
+// Both status-shaped families fold while open, even though only one of them is
+// "ongoing" for investigation purposes.
+func TestStatefulFamiliesFoldWhileOpen(t *testing.T) {
+	for _, fam := range []string{familyMetric, familyLogGrowth} {
+		g := groupOf(model.Signal{Family: fam, Subject: "/var/log/x"}, 10*time.Minute)
+		if g.Window != 0 {
+			t.Errorf("%s window = %v, want 0 (fold while open)", fam, g.Window)
+		}
+	}
+}
+
+// Successful-login anomalies use a half-day window: the same operator at another
+// odd hour is the same thing to look at, tomorrow's is a new observation.
+func TestAuthLoginWindowIsHalfDay(t *testing.T) {
+	g := groupOf(model.Signal{Family: familyAuthAnomaly, Fingerprint: "auth.new_ip_login", Subject: "45.9.1.2"}, 10*time.Minute)
+	if g.Window != authLoginWindow {
+		t.Fatalf("window = %v, want %v", g.Window, authLoginWindow)
+	}
+}

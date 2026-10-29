@@ -106,6 +106,21 @@ func stageIndex(stage string) int {
 	return -1
 }
 
+// StageOfFamily is the read-only view of stageOfFamily for API callers that need
+// to report which family put a stage into a chain.
+//
+// Change is reported as persistence unconditionally: an incident of that family
+// only ever reaches a campaign through Campaigner.ChangeStage, which has already
+// established that it is a persistence mechanism touching the object. Asking the
+// same question twice would require loading the review row again for a label.
+func StageOfFamily(family string) (string, bool) {
+	if family == model.FamilyChange {
+		return "persistence", true
+	}
+	stage, ok := stageOfFamily[family]
+	return stage, ok
+}
+
 // Attach links one incident into a campaign, creating one if needed.
 //
 // Idempotent: an incident already in a campaign is left alone, and it is called on
@@ -342,7 +357,6 @@ func sharedIndicator(camp model.Campaign, subject string) string {
 	}
 	return ""
 }
-
 
 // Everything is measured against the incident's own timestamp, not "now": during a
 // backfill, "now" is hours later than the events and every comparison would say

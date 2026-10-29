@@ -103,11 +103,11 @@ func TestInlineTruncatesOnRuneBoundary(t *testing.T) {
 
 func TestFenceForCountsLineLeadingBackticks(t *testing.T) {
 	cases := map[string]int{
-		"plain":        3,
-		"```\ncode":    4,
-		"``````\nx":    7,
-		"a ``` b":      3, // mid-line backticks cannot close a fence
-		"  ```\ncode":  4,
+		"plain":       3,
+		"```\ncode":   4,
+		"``````\nx":   7,
+		"a ``` b":     3, // mid-line backticks cannot close a fence
+		"  ```\ncode": 4,
 	}
 	for in, want := range cases {
 		if got := len(fenceFor(in)); got != want {

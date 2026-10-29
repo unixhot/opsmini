@@ -66,18 +66,67 @@ func (h *ChangeHandler) List(c *gin.Context) {
 	}
 	reviews := h.Store.ReviewsFor(ids)
 	incidents := h.Store.IncidentForChange(ids)
+	// Fallback for changes whose signal row is gone: signals are pruned after the
+	// retention window, and with them the change→incident pointer, which would make
+	// the verdict column silently lose its "analysed / in attack chain" state a week
+	// later. The grouping key already encodes the relationship
+	// (group_key = "change|"+object), so the latest incident for the same object is
+	// the right answer whenever the exact pointer is missing.
+	if len(incidents) < len(ids) {
+		byObject := make([]string, 0, len(list))
+		pending := map[string][]string{}
+		for _, ev := range list {
+			if _, ok := incidents[ev.ID]; ok || ev.ObjectKey == "" {
+				continue
+			}
+			byObject = append(byObject, ev.ObjectKey)
+			pending[ev.ObjectKey] = append(pending[ev.ObjectKey], ev.ID)
+		}
+		if len(byObject) > 0 {
+			var rows []model.Incident
+			h.DB.Select("id", "subject").Where("family = ? AND subject IN ?", model.FamilyChange, byObject).
+				Order("last_seen DESC").Find(&rows)
+			for _, r := range rows {
+				for _, cid := range pending[r.Subject] {
+					if _, ok := incidents[cid]; !ok {
+						incidents[cid] = r.ID
+					}
+				}
+			}
+		}
+	}
 	incState := map[string]gin.H{}
+	campaigns := map[string]gin.H{}
 	if iids := uniqueValues(incidents); len(iids) > 0 {
 		var rows []model.Incident
-		h.DB.Select("id", "status", "report_rel", "summary").Where("id IN ?", iids).Find(&rows)
+		h.DB.Select("id", "status", "report_rel", "summary", "campaign_id").
+			Where("id IN ?", iids).Find(&rows)
+		cids := make([]string, 0, len(rows))
 		for _, r := range rows {
-			incState[r.ID] = gin.H{"status": r.Status, "report_rel": r.ReportRel, "summary": r.Summary}
+			incState[r.ID] = gin.H{"status": r.Status, "report_rel": r.ReportRel,
+				"summary": r.Summary, "campaign_id": r.CampaignID}
+			if r.CampaignID != "" {
+				cids = append(cids, r.CampaignID)
+			}
+		}
+		// A change that became a stage of an attack chain must say so in the change
+		// list, otherwise the operator reads "可疑 0.90" and never learns it was
+		// already correlated with the webshell twenty minutes earlier.
+		if len(cids) > 0 {
+			var camps []model.Campaign
+			h.DB.Select("id", "title", "severity", "stage_count").
+				Where("id IN ?", cids).Find(&camps)
+			for _, cp := range camps {
+				campaigns[cp.ID] = gin.H{"id": cp.ID, "title": cp.Title,
+					"severity": cp.Severity, "stage_count": cp.StageCount}
+			}
 		}
 	}
 
 	response.OK(c, gin.H{
 		"list": list, "total": total, "page": page, "page_size": size,
 		"reviews": reviews, "change_incidents": incidents, "incident_state": incState,
+		"campaigns": campaigns,
 	})
 }
 
