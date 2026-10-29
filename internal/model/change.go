@@ -94,6 +94,19 @@ type ChangeOffset struct {
 // TableName for ChangeOffset.
 func (ChangeOffset) TableName() string { return "change_offsets" }
 
+// ChangeChainMeta stores small key/value state for the hash chain. The only key in
+// use is "anchor": the ChainHash of the newest record removed by retention. Without
+// it, the first record after a purge would always look tampered with, and the panel
+// would report "chain broken" forever simply because old rows aged out.
+type ChangeChainMeta struct {
+	Key       string    `gorm:"primaryKey;size:64" json:"key"`
+	Value     string    `json:"value"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// TableName for ChangeChainMeta.
+func (ChangeChainMeta) TableName() string { return "change_chain_meta" }
+
 // ChangeIgnore is a user-editable glob that suppresses noisy paths.
 // Hard-coded security blocks are NOT stored here — they live in code and cannot
 // be removed through this table.

@@ -3,6 +3,7 @@ package v1
 import (
 	"io"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -130,7 +131,13 @@ func (h *FileHandler) Upload(c *gin.Context) {
 
 // Du GET /files/du?path=... — directory recursive size + filesystem usage (for the download dialog).
 func (h *FileHandler) Du(c *gin.Context) {
+	// 空 path 会退化成「扫描整个文件系统」：实测一台普通云主机要 15 秒，
+	// 大磁盘上会拖住整个面板，而且这个接口谁都能反复调。必须显式给路径。
 	p := c.Query("path")
+	if strings.TrimSpace(p) == "" {
+		response.Error(c, 400, response.CodeInvalidParam, "path is required")
+		return
+	}
 	u, err := h.svc.DirUsage(p)
 	if err != nil {
 		response.Error(c, 500, response.CodeInternal, err.Error())

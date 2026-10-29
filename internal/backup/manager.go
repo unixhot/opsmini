@@ -125,6 +125,12 @@ func (m *Manager) Run(job Job) (man *Manifest, err error) {
 	if len(job.Objects) == 0 {
 		return nil, errors.New("备份任务没有对象")
 	}
+	// Validate every object before creating the snapshot directory. Without this a
+	// typo in the second of five paths fails after four archives have already been
+	// written, leaving a half-finished snapshot to clean up.
+	if err := validateObjects(job.Objects); err != nil {
+		return nil, err
+	}
 	target := job.TargetDir
 	if target == "" {
 		target = m.root
@@ -184,14 +190,63 @@ func (m *Manager) Run(job Job) (man *Manifest, err error) {
 	return man, nil
 }
 
+// validateObjects is the backup preflight: it answers "can this job run at all"
+// without touching the disk. Messages name the offending object so a cron failure
+// notification is actionable on its own.
+func validateObjects(objs []Object) error {
+	if len(objs) == 0 {
+		return errors.New("备份任务没有对象")
+	}
+	for _, obj := range objs {
+		label := obj.Name
+		if label == "" {
+			label = obj.Path
+		}
+		switch obj.Kind {
+		case "dir":
+			if strings.TrimSpace(obj.Path) == "" {
+				return fmt.Errorf("%s：目录路径为空", label)
+			}
+			st, err := os.Stat(obj.Path)
+			if os.IsNotExist(err) {
+				return fmt.Errorf("%s：路径不存在 %s", label, obj.Path)
+			}
+			if err != nil {
+				return fmt.Errorf("%s：无法访问 %s（%v）", label, obj.Path, err)
+			}
+			if !st.IsDir() {
+				return fmt.Errorf("%s：%s 是文件，备份对象只能是目录（请填它所在的目录）", label, obj.Path)
+			}
+		case "mysql":
+			if strings.TrimSpace(obj.Database) == "" {
+				return fmt.Errorf("%s：未指定数据库名（写成 mysql:库名）", label)
+			}
+		case "redis":
+			if strings.TrimSpace(obj.Path) == "" {
+				return fmt.Errorf("%s：未指定 Redis 快照路径（写成 redis:/var/lib/redis/dump.rdb）", label)
+			}
+		default:
+			return fmt.Errorf("%s：不支持的对象类型 %q（支持目录、mysql:库名、redis:路径）", label, obj.Kind)
+		}
+	}
+	return nil
+}
+
 func (m *Manager) backupObject(obj Object, dir string) (*ManifestEntry, error) {
 	switch obj.Kind {
 	case "dir":
 		if obj.Path == "" {
 			return nil, errors.New("目录路径为空")
 		}
-		if st, err := os.Stat(obj.Path); err != nil || !st.IsDir() {
-			return nil, fmt.Errorf("目录不存在: %s", obj.Path)
+		st, statErr := os.Stat(obj.Path)
+		if os.IsNotExist(statErr) {
+			return nil, fmt.Errorf("路径不存在: %s", obj.Path)
+		}
+		if statErr != nil {
+			return nil, fmt.Errorf("无法访问 %s: %w", obj.Path, statErr)
+		}
+		if !st.IsDir() {
+			return nil, fmt.Errorf("%s 是文件，备份对象只能是目录", obj.Path)
 		}
 		file := filepath.Join(dir, "data", sanitize(orDefault(obj.Name, filepath.Base(obj.Path)))+".tar.gz")
 		size, sum, err := archiveDir(obj.Path, file)

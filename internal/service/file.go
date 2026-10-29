@@ -182,7 +182,23 @@ type DirUsage struct {
 	DiskUsed    int64   `json:"disk_used"`    // filesystem used bytes
 	DiskTotal   int64   `json:"disk_total"`   // filesystem total bytes
 	DiskPercent float64 `json:"disk_percent"` // 0-100
+	// Partial is true when the walk hit its entry budget, so Size is a lower bound
+	// rather than the exact total. Silently reporting a wrong number would be worse
+	// than admitting the cut-off.
+	Partial bool `json:"partial"`
 }
+
+// pseudoFS lists virtual trees whose entry sizes are not disk usage: /proc/kcore
+// alone claims 128 TB, so walking them turns "300 MB" into "140 TB". They are
+// skipped entirely rather than counted and then corrected.
+var pseudoFS = map[string]bool{"/proc": true, "/sys": true, "/dev": true}
+
+func isPseudoFS(p string) bool { return pseudoFS[filepath.Clean(p)] }
+
+// maxWalkEntries bounds one directory-size request. /proc, /sys and huge data
+// directories can hold millions of entries; without a cap a single request can
+// occupy a worker for minutes and a user can trigger it repeatedly.
+const maxWalkEntries = 200000
 
 // DirUsage computes the directory's recursive size and its filesystem usage.
 func (s *FileService) DirUsage(path string) (*DirUsage, error) {
@@ -198,10 +214,23 @@ func (s *FileService) DirUsage(path string) (*DirUsage, error) {
 		return nil, errors.New("not a directory")
 	}
 	u := &DirUsage{}
-	_ = filepath.Walk(full, func(_ string, fi os.FileInfo, err error) error {
-		if err == nil && !fi.IsDir() {
-			u.Size += fi.Size()
+	seen := 0
+	_ = filepath.Walk(full, func(p string, fi os.FileInfo, err error) error {
+		if err != nil || fi == nil {
+			return nil
 		}
+		if fi.IsDir() {
+			if isPseudoFS(p) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		seen++
+		if seen > maxWalkEntries {
+			u.Partial = true
+			return filepath.SkipAll
+		}
+		u.Size += fi.Size()
 		return nil
 	})
 	var st syscall.Statfs_t

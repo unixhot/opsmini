@@ -218,7 +218,10 @@ func (s *Store) VerifyChain(limit int) ChainStatus {
 	var list []model.ChangeEvent
 	s.db.Order("created_at asc, rowid asc").Limit(limit).Find(&list)
 	st := ChainStatus{OK: true}
-	prev := ""
+	// Start from the anchor left behind by retention, not from "". Otherwise the first
+	// record after any purge inherits a PrevHash that points at a deleted row and the
+	// status would read "chain broken" forever.
+	prev := s.chainAnchor()
 	for i := range list {
 		st.Checked++
 		ev := list[i]
@@ -256,6 +259,12 @@ func (s *Store) Purge(metaDays, diffDays int) (int64, error) {
 		if len(ids) > 0 {
 			s.db.Where("change_id IN ?", ids).Delete(&model.ChangeDiff{})
 		}
+		// Remember where the chain stopped before dropping the rows: the surviving
+		// records still point at them through PrevHash.
+		var newest model.ChangeEvent
+		if err := s.db.Where("at < ?", cut).Order("created_at desc, rowid desc").Limit(1).Find(&newest).Error; err == nil && newest.ChainHash != "" {
+			s.setChainAnchor(newest.ChainHash)
+		}
 		res := s.db.Where("at < ?", cut).Delete(&model.ChangeEvent{})
 		metas = res.RowsAffected
 	}
@@ -281,6 +290,28 @@ func (s *Store) Usage() Usage {
 		u.OldestAt = oldest.At.Format(time.RFC3339)
 	}
 	return u
+}
+
+// --- chain anchor ----------------------------------------------------------
+
+const chainAnchorKey = "anchor"
+
+// chainAnchor returns the ChainHash of the newest record removed by retention.
+func (s *Store) chainAnchor() string {
+	var m model.ChangeChainMeta
+	if err := s.db.Where("key = ?", chainAnchorKey).Limit(1).Find(&m).Error; err != nil {
+		return ""
+	}
+	return m.Value
+}
+
+// setChainAnchor records that key. Failures are silent: a missing anchor only makes
+// the chain report one extra break, it never fabricates an OK.
+func (s *Store) setChainAnchor(hash string) {
+	rec := model.ChangeChainMeta{Key: chainAnchorKey, Value: hash, UpdatedAt: time.Now()}
+	if err := s.db.Save(&rec).Error; err != nil {
+		return
+	}
 }
 
 // --- offsets ---------------------------------------------------------------
