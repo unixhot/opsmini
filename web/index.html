@@ -360,6 +360,10 @@
   .ai-input{padding:14px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end}
   .ai-input textarea{flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;resize:none;outline:none;font-size:13.5px;font-family:inherit;min-height:42px;max-height:120px;line-height:1.5}
   .ai-input textarea:focus{border-color:var(--primary)}
+  /* 输入行整条都是「可输入」区域：行内空白/间隙点一下也能聚焦，
+     光标统一 I 型，避免出现一块看着像输入框、实际点不进去的死区 */
+  .ai-input, .ai-input-row{cursor:text}
+  .ai-input button, .ai-input-row button, .ai-input .dt-btn, .ai-input-row .dt-btn{cursor:pointer}
   .ai-send{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
 
   /* ===== 浮动 AI 按钮 ===== */
@@ -524,6 +528,114 @@
   .form-hint{font-size:12px;color:var(--t3);margin-top:5px}
   .form-item .row{justify-content:space-between}
   @media(max-width:768px){.form-grid{grid-template-columns:1fr}}
+
+  /* ===== 事件中心 / 变更页（v1.4）=====
+     两块页面的共同问题：数据密度高但缺乏视觉分层——数字、等级、时间、对象
+     全是一个灰度。这里只加"读得更快"的东西：左侧色标、双行时间、色点、
+     数字等宽，不放装饰性渐变和大圆角。 */
+  .kpi{position:relative;padding:15px 16px 13px;display:flex;flex-direction:column;gap:7px;cursor:pointer;
+    overflow:hidden;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(17,24,39,.09);border-color:#dbe2ee}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--kpi-color,var(--primary))}
+  .kpi-head{display:flex;align-items:center;gap:9px;min-width:0}
+  .kpi-ico{width:27px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;
+    background:var(--kpi-soft,var(--primary-soft));color:var(--kpi-color,var(--primary))}
+  .kpi-label{font-size:12.5px;color:var(--t2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kpi-value{font-size:27px;font-weight:750;letter-spacing:-.9px;line-height:1.05;color:var(--t1);
+    font-variant-numeric:tabular-nums}
+  .kpi-foot{font-size:11.5px;color:var(--t3);display:flex;align-items:center;gap:6px;min-height:15px}
+  .kpi.alert{background:linear-gradient(180deg,#fffefa,#fff)}
+  .kpi.alert .kpi-value{color:var(--warning)}
+  .kpi-value .live-dot{display:inline-block;vertical-align:6px;margin-left:7px}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--warning);flex:none;animation:kpiPulse 2.2s infinite}
+  @keyframes kpiPulse{0%{box-shadow:0 0 0 0 rgba(217,119,6,.5)}70%{box-shadow:0 0 0 5px rgba(217,119,6,0)}100%{box-shadow:0 0 0 0 rgba(217,119,6,0)}}
+
+  /* 模型选择：从服务拉回来的列表要「看得见、点得到」，不能只塞进 datalist */
+  .model-list{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow:auto;margin-top:8px;
+    padding:2px 0}
+  .model-chip{display:inline-flex;align-items:center;padding:5px 10px;border:1px solid var(--border);
+    border-radius:8px;font-size:12px;font-family:var(--mono);cursor:pointer;background:var(--card);
+    color:var(--t2);transition:.15s;line-height:1.5}
+  .model-chip:hover{border-color:#c7d2e4;color:var(--t1)}
+  .model-chip.on{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);font-weight:600}
+  .ai-status{font-size:12px;margin-top:7px;line-height:1.55;word-break:break-word}
+  .ai-status.ok{color:var(--success)}
+  .ai-status.err{color:var(--danger)}
+
+  /* 事件详情里的小行：标签一律不换行，窄屏整体折行而不是把「high」拆成 hi/gh */
+  .st-detail-row .tag{flex:none;white-space:nowrap}
+  @media(max-width:640px){
+    .st-detail-row{flex-wrap:wrap;gap:4px 8px}
+    .st-detail-row>span:first-child{width:100%;min-width:0!important;font-size:11px}
+    .st-detail-row .btn{flex:none}
+  }
+
+  /* 筛选 chip：比 page-tabs 轻，可容纳计数，避免两层 tab 视觉打架 */
+  .chip-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;font-size:12.5px;
+    color:var(--t2);background:var(--card);border:1px solid var(--border);cursor:pointer;transition:.15s;
+    font-weight:500;user-select:none;line-height:1.5}
+  .chip:hover{border-color:#c7d2e4;color:var(--t1)}
+  .chip.active{background:var(--primary-soft);border-color:rgba(37,99,235,.42);color:var(--primary);font-weight:600}
+  .chip .n{font-size:10.5px;font-weight:700;padding:0 6px;border-radius:9px;background:var(--bg);color:var(--t3);
+    min-width:18px;text-align:center;font-variant-numeric:tabular-nums}
+  .chip.active .n{background:rgba(37,99,235,.13);color:var(--primary)}
+  .chip .dot{width:6px;height:6px;border-radius:50%;flex:none}
+
+  /* 表格内的时间：日期在上（弱）、时刻在下（强），扫读时先看"什么时候" */
+  .tc-time{font-variant-numeric:tabular-nums;line-height:1.4}
+  .tc-time .h{font-size:12.5px;font-weight:600;color:var(--t1)}
+  .tc-time .d{font-size:11px;color:var(--t3)}
+  /* 等级色标：贴在首列左侧的竖条，整屏扫一眼就能分出轻重 */
+  .sev-rail{position:relative}
+  .sev-rail::before{content:"";position:absolute;left:7px;top:12px;bottom:12px;width:3px;border-radius:2px;
+    background:var(--rail,transparent)}
+  .fam-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;flex:none}
+  .lvl{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;letter-spacing:.2px}
+  .lvl .d{width:6px;height:6px;border-radius:50%;flex:none}
+
+  /* 变更增减量：用底色 chip 代替裸的 +3/−2，扫读时颜色先于数字 */
+  .delta{display:inline-flex;align-items:center;padding:1px 7px;border-radius:6px;font-size:11.5px;font-weight:700;
+    font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  .delta.up{background:var(--success-soft);color:var(--success)}
+  .delta.down{background:var(--danger-soft);color:var(--danger)}
+
+  /* 空状态：图标 + 一句话，别让 36px 的空白把页面撑出一个洞 */
+  .empty-state{padding:42px 20px;text-align:center}
+  .empty-ico{width:42px;height:42px;border-radius:50%;background:var(--bg);border:1px solid var(--border);
+    display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;color:#c3cbd8}
+  .empty-state .et{font-size:13px;color:var(--t2);font-weight:600}
+  .empty-state .es{font-size:12px;color:var(--t3);margin-top:4px}
+
+  /* 变更详情：diff 逐行着色 + 元信息网格 */
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+  .meta-cell{background:var(--bg);border:1px solid var(--divider);border-radius:9px;padding:9px 11px;min-width:0}
+  .meta-k{font-size:11px;color:var(--t3);margin-bottom:3px}
+  .meta-v{font-size:12.5px;color:var(--t1);font-weight:600;word-break:break-all}
+  .diff-view{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:420px;
+    font-family:var(--mono);font-size:12px;line-height:1.7;padding:6px 0}
+  .dl{display:flex;gap:10px;padding:0 12px 0 8px;white-space:pre-wrap;word-break:break-all}
+  .dl .ln{flex:none;width:30px;text-align:right;color:#c9d1de;user-select:none;font-size:11px}
+  .dl .tx{flex:1;min-width:0}
+  .dl.add{background:#f0fdf4}
+  .dl.add .tx{color:#15803d}
+  .dl.del{background:#fef2f2}
+  .dl.del .tx{color:#b91c1c}
+  .dl.hunk{background:#f0f9ff}
+  .dl.hunk .tx{color:#0369a1;font-weight:600}
+  .dl.ctx .tx{color:var(--t2)}
+  @media(max-width:768px){
+    .kpi-value{font-size:23px}
+    .meta-grid{grid-template-columns:1fr 1fr}
+  }
+  /* 手机上四张大卡会把首屏吃光，两列足够放「标签 + 数字」 */
+  @media(max-width:640px){
+    .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+    .kpi{padding:12px 12px 10px;gap:5px}
+    .kpi-ico{width:24px;height:24px;border-radius:7px}
+    .kpi-label{font-size:11.5px}
+    .kpi-value{font-size:21px}
+  }
 </style>
 </head>
 <body>
@@ -1256,12 +1368,12 @@
                   </div>
                 </div>
             </div>
-            <div style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);align-items:center">
+            <div class="ai-input-row" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);align-items:center" @click="focusComposer($event)">
               <button type="button" class="dt-btn" :class="{on: aiDeepThink}" :data-tip="t('ai.deepThinkTip')" @click="aiDeepThink=!aiDeepThink">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-4 10.5V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3.5A6 6 0 0 0 12 3z"/><path d="M10 21h4"/><path d="M9 14h6"/></svg>
                 <span>{{ t('ai.deepThink') }}</span>
               </button>
-              <textarea v-model="aiInput" :placeholder="t('ai.placeholder')" @keydown.enter.exact.prevent="send()" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:none;height:44px;background:var(--card);color:var(--t1)"></textarea>
+              <textarea ref="aiComposer" v-model="aiInput" :placeholder="t('ai.placeholder')" @keydown.enter.exact.prevent="send()" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:none;height:44px;background:var(--card);color:var(--t1);cursor:text"></textarea>
               <button class="btn primary" @click="send()" :disabled="aiLoading">{{ aiLoading ? '…' : t('ai.send') }}</button>
             </div>
           </div>
@@ -1582,41 +1694,41 @@
           </div>
         </div>
 
-        <!-- 采集健康度 -->
-        <div class="card" style="margin-bottom:14px">
-          <div class="card-head">
-            <div class="card-title">{{ t('chg.health') }}</div>
-            <div class="row" style="gap:8px;align-items:center">
-              <span class="tag" :class="chgStats.chain && chgStats.chain.ok ? 'ok' : 'err'">
-                {{ chgStats.chain && chgStats.chain.ok ? t('chg.chainOk') : t('chg.chainBad') }}
-                <span v-if="chgStats.chain">· {{ chgStats.chain.checked }}</span>
-              </span>
-              <button class="btn sm ghost" @click="verifyChain">{{ t('chg.verify') }}</button>
-            </div>
+        <!-- 采集健康度：链路 / 用量 / 来源三块，替代原来一堆平铺的 tag -->
+        <div class="card" style="margin-bottom:14px;padding:14px 16px">
+          <div class="mute" style="font-size:11.5px;letter-spacing:.4px;margin-bottom:9px">{{ t('chg.health') }}</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="tag" :class="chgStats.chain && chgStats.chain.ok ? 'ok' : 'err'">
+              <span class="tdot"></span>{{ chgStats.chain && chgStats.chain.ok ? t('chg.chainOk') : t('chg.chainBad') }}
+            </span>
+            <button class="btn sm ghost" @click="verifyChain">{{ t('chg.verify') }}</button>
+            <span class="mute" style="font-size:12px" v-if="chgStats.chain">{{ chgStats.chain.checked }} {{ t('chg.records') }}</span>
+            <span style="flex:1"></span>
+            <span class="mute" style="font-size:12px" v-if="chgStats.usage">
+              {{ t('chg.usage') }} <b class="mono" style="color:var(--t1)">{{ chgStats.usage.events }}</b>
+              / <b class="mono" style="color:var(--t1)">{{ fmtBytes(chgStats.usage.diff_bytes) }}</b>
+            </span>
           </div>
-          <div style="padding:0 16px 12px;display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;padding-top:11px;border-top:1px dashed var(--divider)">
             <span v-for="s in (chgStats.sources||[])" :key="s.name" class="tag" :class="s.running?'ok':'mute'">
-              {{ t('chg.source.'+s.name) }} · {{ s.running ? t('chg.srcOn') : t('chg.srcOff') }}
-            </span>
-            <span class="tag info" v-if="chgStats.usage">
-              {{ t('chg.usage') }}: {{ chgStats.usage.events }} / {{ fmtBytes(chgStats.usage.diff_bytes) }}
+              <span class="tdot"></span>{{ t('chg.source.'+s.name) }} · {{ s.running ? t('chg.srcOn') : t('chg.srcOff') }}
             </span>
           </div>
-          <div style="padding:0 16px 12px;font-size:12px;color:var(--t3);line-height:1.7">
+          <div style="font-size:11.5px;color:var(--t3);line-height:1.65;margin-top:10px">
             {{ t('chg.safetyHint') }}
           </div>
         </div>
 
-        <div class="page-tabs" style="margin-bottom:12px">
-          <span v-for="k in chgKinds" :key="k.id" :class="{active: chgFilter.kind===k.id}" @click="setChgKind(k.id)">
-            {{ t(k.label) }}
+        <div class="chip-row" style="margin-bottom:12px">
+          <span v-for="k in chgKinds" :key="k.id" class="chip" :class="{active: chgFilter.kind===k.id}" @click="setChgKind(k.id)">
+            <span class="dot" v-if="k.id" :style="{background: kindColor(k.id)}"></span>{{ t(k.label) }}
           </span>
         </div>
 
         <div class="card">
-          <div class="table-wrap">
+          <div class="table-wrap" v-if="changes.length">
             <table class="st-tbl">
-              <colgroup><col style="width:160px"><col style="width:96px"><col><col style="width:96px"><col style="width:160px"><col style="width:100px"></colgroup>
+              <colgroup><col style="width:100px"><col style="width:112px"><col><col style="width:104px"><col style="width:160px"><col style="width:88px"></colgroup>
               <thead><tr>
                 <th>{{ t('sentinel.col.time') }}</th>
                 <th>{{ t('sentinel.col.kind') }}</th>
@@ -1627,12 +1739,19 @@
               </tr></thead>
               <tbody>
                 <tr v-for="c in changes" :key="c.id">
-                  <td class="mono" style="font-size:12px;white-space:nowrap">{{ fmtDT(c.at) }}</td>
-                  <td><span class="tag info" style="white-space:nowrap">{{ t('chg.kind.'+c.kind) }}</span></td>
+                  <td :style="{'--rail': kindColor(c.kind)}" class="sev-rail">
+                    <div class="tc-time">
+                      <div class="h">{{ fmtHMS(c.at) }}</div>
+                      <div class="d">{{ fmtYMD(c.at) }}</div>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;white-space:nowrap">
+                    <span class="fam-dot" :style="{background: kindColor(c.kind)}"></span>{{ t('chg.kind.'+c.kind) }}
+                  </td>
                   <td class="mono" style="font-size:12px;word-break:break-all">{{ c.object_key }}</td>
-                  <td class="mono" style="font-size:12px">
-                    <span style="color:var(--success)" v-if="c.added">+{{ c.added }}</span>
-                    <span style="color:var(--danger);margin-left:4px" v-if="c.removed">−{{ c.removed }}</span>
+                  <td style="white-space:nowrap">
+                    <span class="delta up" v-if="c.added">+{{ c.added }}</span>
+                    <span class="delta down" v-if="c.removed" style="margin-left:4px">−{{ c.removed }}</span>
                     <span v-if="!c.added && !c.removed" class="mute">—</span>
                   </td>
                   <td style="font-size:12px">
@@ -1641,12 +1760,16 @@
                     <span v-else-if="!c.actor_user" class="mute">{{ t('chg.unknown') }}</span>
                   </td>
                   <td>
-                    <button class="btn sm ghost" style="white-space:nowrap" @click="openChange(c.id)">{{ t('chg.detail') }}</button>
+                    <a class="link" style="white-space:nowrap;font-size:12.5px" @click="openChange(c.id)">{{ t('chg.detail') }}</a>
                   </td>
                 </tr>
-                <tr v-if="changes.length===0"><td colspan="6" style="text-align:center;color:var(--t3);padding:24px">{{ t('sentinel.empty') }}</td></tr>
               </tbody>
             </table>
+          </div>
+          <div class="empty-state" v-else>
+            <div class="empty-ico"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 8a5.8 5.8 0 1 1 1.7 4.1"/><path d="M2 12.4V9.2h3.2"/><path d="M8 5.4V8l2 1.2"/></svg></div>
+            <div class="et">{{ t('sentinel.empty') }}</div>
+            <div class="es">{{ t('chg.desc') }}</div>
           </div>
           <div class="row" style="justify-content:space-between;padding:10px 16px" v-if="chgTotal > chgPageSize">
             <span class="mute" style="font-size:12px">{{ chgTotal }} {{ t('chg.records') }}</span>
@@ -1666,14 +1789,33 @@
               <button class="btn ghost sm" @click="chgDetail=null">✕</button>
             </div>
             <div class="modal-body" style="font-size:13px">
-              <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:10px">
-                <span class="mute">{{ t('sentinel.col.kind') }}: {{ t('chg.kind.'+chgDetail.change.kind) }}</span>
-                <span class="mute">{{ t('sentinel.col.time') }}: {{ fmtDT(chgDetail.change.at) }}</span>
-                <span class="mute" v-if="chgDetail.change.actor_user">{{ t('chg.col.actor') }}: {{ chgDetail.change.actor_user }}</span>
-                <span class="mute" v-if="chgDetail.change.fields">{{ t('chg.col.fields') }}: {{ chgDetail.change.fields }}</span>
+              <div class="meta-grid">
+                <div class="meta-cell">
+                  <div class="meta-k">{{ t('sentinel.col.kind') }}</div>
+                  <div class="meta-v">
+                    <span class="fam-dot" :style="{background: kindColor(chgDetail.change.kind)}"></span>{{ t('chg.kind.'+chgDetail.change.kind) }}
+                  </div>
+                </div>
+                <div class="meta-cell">
+                  <div class="meta-k">{{ t('sentinel.col.time') }}</div>
+                  <div class="meta-v mono" style="font-weight:500">{{ fmtDT(chgDetail.change.at) }}</div>
+                </div>
+                <div class="meta-cell" v-if="chgDetail.change.actor_user">
+                  <div class="meta-k">{{ t('chg.col.actor') }}</div>
+                  <div class="meta-v">{{ chgDetail.change.actor_user }}<span v-if="chgDetail.change.actor_ip" class="mute" style="font-weight:400">@{{ chgDetail.change.actor_ip }}</span></div>
+                </div>
+                <div class="meta-cell" v-if="chgDetail.change.fields">
+                  <div class="meta-k">{{ t('chg.col.fields') }}</div>
+                  <div class="meta-v mono" style="font-weight:500;font-size:12px">{{ chgDetail.change.fields }}</div>
+                </div>
               </div>
-              <pre style="background:var(--bg3);border-radius:8px;padding:12px;font-size:12px;line-height:1.6;max-height:420px;overflow:auto;white-space:pre-wrap;word-break:break-all">{{ chgDetail.diff || t('chg.noDiff') }}</pre>
-              <div v-if="chgDetail.change.truncated" class="mute" style="font-size:12px;margin-top:6px">{{ t('chg.truncated') }}</div>
+              <div class="diff-view" v-if="chgDiffLines.length">
+                <div v-for="l in chgDiffLines" :key="l.n" class="dl" :class="l.k">
+                  <span class="ln">{{ l.n }}</span><span class="tx">{{ l.s }}</span>
+                </div>
+              </div>
+              <div v-else class="explain-strip"><span class="ei">i</span><span>{{ t('chg.noDiff') }}</span></div>
+              <div v-if="chgDetail.change.truncated" class="mute" style="font-size:12px;margin-top:8px">{{ t('chg.truncated') }}</div>
             </div>
             <div class="modal-foot">
               <button class="btn ghost" @click="chgDetail=null">{{ t('common.cancel') }}</button>
@@ -1705,22 +1847,34 @@
           </div>
         </div>
 
-        <div class="grid grid-4" style="margin-bottom:16px">
-          <div class="card stat" @click="gotoSignals()" style="cursor:pointer">
-            <div class="stat-top"><span class="stat-label">{{ t('sentinel.signals24') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
-            <div class="stat-value" style="color:var(--info)">{{ sentinelStats.signals_24h || 0 }}</div>
+        <div class="grid grid-4 kpi-grid" style="margin-bottom:16px">
+          <div class="card kpi" @click="gotoSignals()" style="--kpi-color:var(--info);--kpi-soft:var(--info-soft)">
+            <div class="kpi-head">
+              <span class="kpi-ico"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8h2.2l1.6-4.2 2.3 8.4 1.9-5 1.3 2.8h2.7"/></svg></span>
+              <span class="kpi-label">{{ t('sentinel.signals24') }}</span>
+            </div>
+            <div class="kpi-value">{{ sentinelStats.signals_24h || 0 }}</div>
           </div>
-          <div class="card stat" @click="gotoIncidents('unresolved')" style="cursor:pointer">
-            <div class="stat-top"><span class="stat-label">{{ t('sentinel.openIncidents') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
-            <div class="stat-value" style="color:var(--warning)">{{ sentinelStats.incidents_unresolved || 0 }}</div>
+          <div class="card kpi" :class="{alert: (sentinelStats.incidents_unresolved||0)>0}" @click="gotoIncidents('unresolved')" style="--kpi-color:var(--warning);--kpi-soft:var(--warning-soft)">
+            <div class="kpi-head">
+              <span class="kpi-ico"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.3 14.1 13H1.9L8 2.3Z"/><path d="M8 6.2v3M8 11.4h.01"/></svg></span>
+              <span class="kpi-label">{{ t('sentinel.openIncidents') }}</span>
+            </div>
+            <div class="kpi-value">{{ sentinelStats.incidents_unresolved || 0 }}<span class="live-dot" v-if="(sentinelStats.incidents_unresolved||0)>0"></span></div>
           </div>
-          <div class="card stat" @click="gotoIncidents('all')" style="cursor:pointer">
-            <div class="stat-top"><span class="stat-label">{{ t('sentinel.incidents24') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
-            <div class="stat-value" style="color:var(--primary)">{{ sentinelStats.incidents_24h || 0 }}</div>
+          <div class="card kpi" @click="gotoIncidents('all')" style="--kpi-color:var(--primary);--kpi-soft:var(--primary-soft)">
+            <div class="kpi-head">
+              <span class="kpi-ico"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.9 14 5 8 8.1 2 5l6-3.1Z"/><path d="M2.7 7.7 8 10.4l5.3-2.7M2.7 10.4 8 13.1l5.3-2.7"/></svg></span>
+              <span class="kpi-label">{{ t('sentinel.incidents24') }}</span>
+            </div>
+            <div class="kpi-value">{{ sentinelStats.incidents_24h || 0 }}</div>
           </div>
-          <div class="card stat" @click="gototab('actions')" style="cursor:pointer">
-            <div class="stat-top"><span class="stat-label">{{ t('sentinel.actions24') }}</span><span class="mute" style="font-size:11px">{{ t('sentinel.clickToView') }}</span></div>
-            <div class="stat-value" style="color:var(--success)">{{ sentinelStats.actions_24h || 0 }}</div>
+          <div class="card kpi" @click="gototab('actions')" style="--kpi-color:var(--success);--kpi-soft:var(--success-soft)">
+            <div class="kpi-head">
+              <span class="kpi-ico"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.7 1.6 3.3 9.1h3.5l-.8 5.3L11.4 7H7.6l1.1-5.4Z"/></svg></span>
+              <span class="kpi-label">{{ t('sentinel.actions24') }}</span>
+            </div>
+            <div class="kpi-value">{{ sentinelStats.actions_24h || 0 }}</div>
           </div>
         </div>
 
@@ -1734,31 +1888,25 @@
 
         <!-- ================= 事件 ================= -->
         <div class="card" v-if="sentinelTab==='incidents'">
-          <div class="card-head" style="flex-wrap:wrap;gap:10px">
-            <div class="page-tabs" style="margin:0">
-              <span :class="{active: incFilter.status==='unresolved'}" @click="setIncStatus('unresolved')">
-                {{ t('sentinel.filter.unresolved') }}
-                <span class="tag warn tab-count">{{ incCount('unresolved') }}</span>
+          <div class="card-head" style="flex-wrap:wrap;gap:10px;padding-bottom:12px">
+            <div class="chip-row">
+              <span class="chip" :class="{active: incFilter.status==='unresolved'}" @click="setIncStatus('unresolved')">
+                <span class="dot" style="background:var(--warning)"></span>{{ t('sentinel.filter.unresolved') }}<span class="n">{{ incCount('unresolved') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='open'}" @click="setIncStatus('open')">
-                {{ t('sentinel.filter.pending') }}
-                <span class="tag info tab-count">{{ incCount('open') }}</span>
+              <span class="chip" :class="{active: incFilter.status==='open'}" @click="setIncStatus('open')">
+                <span class="dot" style="background:var(--info)"></span>{{ t('sentinel.filter.pending') }}<span class="n">{{ incCount('open') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='all'}" @click="setIncStatus('all')">
-                {{ t('sentinel.filter.all') }}
-                <span class="tag mute tab-count">{{ incCount('all') }}</span>
+              <span class="chip" :class="{active: incFilter.status==='all'}" @click="setIncStatus('all')">
+                {{ t('sentinel.filter.all') }}<span class="n">{{ incCount('all') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='resolved'}" @click="setIncStatus('resolved')">
-                {{ t('sentinel.filter.resolved') }}
-                <span class="tag ok tab-count">{{ incCount('resolved') }}</span>
+              <span class="chip" :class="{active: incFilter.status==='resolved'}" @click="setIncStatus('resolved')">
+                <span class="dot" style="background:var(--success)"></span>{{ t('sentinel.filter.resolved') }}<span class="n">{{ incCount('resolved') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='failed'}" @click="setIncStatus('failed')">
-                {{ t('sentinel.filter.failed') }}
-                <span class="tag err tab-count">{{ incCount('failed') }}</span>
+              <span class="chip" :class="{active: incFilter.status==='failed'}" @click="setIncStatus('failed')">
+                <span class="dot" style="background:var(--danger)"></span>{{ t('sentinel.filter.failed') }}<span class="n">{{ incCount('failed') }}</span>
               </span>
-              <span :class="{active: incFilter.status==='ignored'}" @click="setIncStatus('ignored')">
-                {{ t('sentinel.filter.ignored') }}
-                <span class="tag mute tab-count">{{ incCount('ignored') }}</span>
+              <span class="chip" :class="{active: incFilter.status==='ignored'}" @click="setIncStatus('ignored')">
+                <span class="dot" style="background:#cbd5e1"></span>{{ t('sentinel.filter.ignored') }}<span class="n">{{ incCount('ignored') }}</span>
               </span>
             </div>
           </div>
@@ -1789,8 +1937,8 @@
           <div class="table-wrap">
             <table class="st-tbl">
               <colgroup>
-                <col style="width:130px"><col style="width:124px"><col style="width:auto">
-                <col style="width:88px"><col style="width:92px"><col style="width:86px"><col style="width:146px">
+                <col style="width:104px"><col style="width:118px"><col style="width:auto">
+                <col style="width:96px"><col style="width:92px"><col style="width:80px"><col style="width:152px">
               </colgroup>
               <thead><tr>
                 <th>{{ t('sentinel.col.time') }}</th>
@@ -1803,17 +1951,24 @@
               </tr></thead>
               <tbody>
                 <tr v-for="i in sentinelIncidents" :key="i.id">
-                  <td class="mono">{{ fmtDT(i.last_seen) }}</td>
-                  <td><span class="tag mute">{{ famName(i.family) }}</span></td>
+                  <td class="sev-rail" :style="{'--rail': sevColor(i.severity)}">
+                    <div class="tc-time">
+                      <div class="h">{{ fmtHMS(i.last_seen) }}</div>
+                      <div class="d">{{ fmtYMD(i.last_seen) }}</div>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;white-space:nowrap">
+                    <span class="fam-dot" :style="{background: famColor(i.family)}"></span>{{ famName(i.family) }}
+                  </td>
                   <td>
-                    <div style="font-weight:500">{{ i.title }}
+                    <div style="font-weight:600;font-size:13px;line-height:1.45;word-break:break-word">{{ i.title }}
                       <span v-if="i.count>1" class="tag warn agg-badge">×{{ i.count }}</span>
                     </div>
-                    <div class="mute" style="font-size:11.5px;line-height:1.5">{{ incHint(i) }}</div>
+                    <div class="mute" style="font-size:11.5px;line-height:1.5;margin-top:2px">{{ incHint(i) }}</div>
                   </td>
-                  <td><span class="tag" :class="sevTag(i.severity)">{{ i.severity }}</span></td>
+                  <td><span class="tag" :class="sevTag(i.severity)"><span class="tdot"></span>{{ i.severity }}</span></td>
                   <td><span class="tag" :class="stTag(i.status)">{{ stName(i.status) }}</span></td>
-                  <td>{{ i.mode || '-' }}</td>
+                  <td style="font-size:12px;color:var(--t2)">{{ i.mode || '-' }}</td>
                   <td style="white-space:nowrap">
                     <a class="link" @click="openIncident(i)">{{ t('sentinel.detail') }}</a>
                     <a class="link" v-if="i.report_rel" @click="openSentinelReport(i)" style="margin-left:8px">{{ t('sentinel.report') }}</a>
@@ -1823,7 +1978,11 @@
               </tbody>
             </table>
           </div>
-          <div v-if="!sentinelIncidents.length" style="padding:36px;text-align:center;color:var(--t3)">{{ t('sentinel.empty') }}</div>
+          <div v-if="!sentinelIncidents.length" class="empty-state">
+            <div class="empty-ico"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2 14.1 13H1.9L8 2.2Z"/><path d="M8 6.2v3M8 11.4h.01"/></svg></div>
+            <div class="et">{{ t('sentinel.empty') }}</div>
+            <div class="es">{{ t('sentinel.desc') }}</div>
+          </div>
           <div class="row" style="justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)">
             <span class="mute" style="font-size:12px">{{ t('sentinel.total') }} {{ incTotal }}</span>
             <div class="row" style="gap:8px">
@@ -3048,28 +3207,35 @@
         <!-- AI 大模型 -->
         <div v-if="settingsTab==='ai'">
           <div class="card" style="max-width:560px">
-            <div class="card-head"><div class="card-title">{{ t('set.ai') }} <span class="tag info">{{ t('misc.coreDiff') }}</span></div></div>
+            <div class="card-head"><div class="card-title">{{ t('set.ai') }}</div></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
               <div class="kv"><span class="k">{{ t('set.aiEnable') }}</span><span class="switch" :class="{on:ai.enabled}" @click="ai.enabled=!ai.enabled"></span></div>
               <div><label class="form-label">{{ t('set.aiProvider') }}</label>
                 <select class="input" v-model="ai.provider" @change="onAiProviderChange">
                   <option value="openai">{{ t('set.aiProviderOpenai') }}</option>
+                  <option value="deepseek">{{ t('set.aiProviderDeepseek') }}</option>
                   <option value="anthropic">{{ t('set.aiProviderAnthropic') }}</option>
-                  <option value="azure">{{ t('set.aiProviderAzure') }}</option>
                   <option value="gemini">{{ t('set.aiProviderGemini') }}</option>
+                  <option value="azure">{{ t('set.aiProviderAzure') }}</option>
+                  <option value="ollama">{{ t('set.aiProviderOllama') }}</option>
+                  <option value="vllm">{{ t('set.aiProviderVllm') }}</option>
                 </select>
                 <div class="mute" style="font-size:11.5px;margin-top:4px;line-height:1.5">{{ t('set.aiProviderHint') }}</div>
               </div>
+              <div><label class="form-label">{{ t('set.apiBase') }}</label><input class="input" v-model="ai.base" placeholder="https://api.openai.com/v1" @input="resetAiProbe()"></div>
+              <div><label class="form-label">API Key <span class="mute" style="font-weight:400" v-if="aiKeyOptional">· {{ t('set.aiKeyOptional') }}</span></label><div class="pass-wrap"><input class="input" :type="ai.showKey ? 'text' : 'password'" v-model="ai.key" @input="resetAiProbe()" placeholder="sk-..." style="padding-right:40px"><button type="button" class="pass-eye" @click="ai.showKey=!ai.showKey" :title="ai.showKey ? t('login.hidePass') : t('login.showPass')" tabindex="-1"><svg v-if="!ai.showKey" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></button></div></div>
               <div><label class="form-label">{{ t('set.model') }}</label>
-                <input class="input" v-model="ai.model" list="ai-model-list" :placeholder="t('set.aiModelPh')">
-                <datalist id="ai-model-list">
-                  <option v-for="m in aiModelOptions" :key="m" :value="m"></option>
-                </datalist>
+                <div class="row" style="gap:8px">
+                  <input class="input" v-model="ai.model" :placeholder="aiModelPlaceholder" style="flex:1" @input="aiFetchState={kind:'',msg:''}">
+                  <button class="btn sm ghost" style="flex:none" :disabled="!aiCanFetch || aiModelLoading" @click="fetchAiModels">{{ aiModelLoading ? '…' : t('set.aiFetchModels') }}</button>
+                </div>
+                <div class="model-list" v-if="aiFetchedModels.length">
+                  <span v-for="m in aiFetchedModels" :key="m" class="model-chip" :class="{on: ai.model===m}" @click="pickAiModel(m)">{{ m }}</span>
+                </div>
+                <div class="ai-status" :class="aiFetchState.kind" v-if="aiFetchState.msg">{{ aiFetchState.msg }}</div>
+                <div class="form-hint" v-else>{{ t('set.aiFetchOrder') }}</div>
               </div>
-              <div><label class="form-label">API Key</label><div class="pass-wrap"><input class="input" :type="ai.showKey ? 'text' : 'password'" v-model="ai.key" placeholder="sk-..." style="padding-right:40px"><button type="button" class="pass-eye" @click="ai.showKey=!ai.showKey" :title="ai.showKey ? t('login.hidePass') : t('login.showPass')" tabindex="-1"><svg v-if="!ai.showKey" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg><svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></button></div></div>
-              <div><label class="form-label">{{ t('set.apiBase') }}</label><input class="input" v-model="ai.base" placeholder="https://api.openai.com/v1"></div>
               <div class="row" style="justify-content:flex-end">
-                <button class="btn" @click="testAi">{{ t('btn.test') }}</button>
                 <button class="btn primary" @click="saveAiSettings">{{ t('btn.save') }}</button>
               </div>
             </div>
@@ -4121,12 +4287,12 @@
           </div>
         </div>
       </div>
-      <div class="ai-input">
+      <div class="ai-input" @click="focusComposer($event)">
         <button type="button" class="dt-btn" :class="{on: aiDeepThink}" :data-tip="t('ai.deepThinkTip')" @click="aiDeepThink=!aiDeepThink">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-4 10.5V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3.5A6 6 0 0 0 12 3z"/><path d="M10 21h4"/><path d="M9 14h6"/></svg>
           <span>{{ t('ai.deepThink') }}</span>
         </button>
-        <textarea v-model="aiInput" :placeholder="t('ai.placeholder')" @keydown.enter.exact.prevent="send()"></textarea>
+        <textarea ref="aiComposer" v-model="aiInput" :placeholder="t('ai.placeholder')" @keydown.enter.exact.prevent="send()"></textarea>
         <button class="ai-send" @click="send()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
     </div>
@@ -4585,6 +4751,131 @@ const I18N = {
     'qa.website':'Website hinzufügen','qa.websiteSub':'Schnell eine Site erstellen','qa.db':'Datenbank erstellen','qa.dbSub':'MySQL / PostgreSQL',
     'qa.store':'App installieren','qa.storeSub':'Mit einem Klick aus dem Store','qa.container':'Neuer Container','qa.containerSub':'Docker-Container',
     'qa.files':'Dateiverwaltung','qa.filesSub':'Serverdateien durchsuchen','qa.terminal':'Web-Terminal','qa.terminalSub':'SSH-Befehlszeile',
+  },
+};
+
+// 大模型接入按「服务商」而不是「协议」呈现：DeepSeek / Ollama / vLLM 都走 OpenAI
+// 协议，但地址、默认模型、要不要 Key 各不相同。放在这里单独成一块，既不改动
+// 上面那一堆巨型字典，也方便以后再加服务商。
+const I18N12 = {
+  'zh-CN': {
+    'set.aiProvider':'服务商',
+    'set.aiProviderOpenai':'OpenAI 兼容（官方 / 中转服务）',
+    'set.aiProviderDeepseek':'DeepSeek（官方 API）',
+    'set.aiProviderOllama':'Ollama（本地部署）',
+    'set.aiProviderVllm':'vLLM（自建服务）',
+    'set.aiKeyOptional':'可留空，本地/内网服务通常不校验',
+        'set.aiFetchModels':'测试连接并获取模型',
+    'set.aiFetchFail':'连接失败',
+    'set.aiFetchOrder':'先填 API 地址与 Key，再点「测试连接并获取模型」，从列表里选一个后保存',
+    'set.aiFetchNeedBase':'请先填写 API 地址',
+    'set.aiFetchNeedKey':'请先填写 API Key',
+    'set.aiTestOk':'连接成功，共 {n} 个模型，请选择一个',
+    'set.aiTestOkStale':'连接成功，共 {n} 个模型；原来的模型已不在列表里，请重新选择',
+    'set.aiModelRequired':'请先选择或填写模型',
+    'set.aiPicked':'已选择 {m}',
+  },
+  'zh-TW': {
+    'set.aiProvider':'服務商',
+    'set.aiProviderOpenai':'OpenAI 相容（官方 / 中轉服務）',
+    'set.aiProviderDeepseek':'DeepSeek（官方 API）',
+    'set.aiProviderOllama':'Ollama（本機部署）',
+    'set.aiProviderVllm':'vLLM（自建服務）',
+    'set.aiKeyOptional':'可留空，本機/內網服務通常不校驗',
+        'set.aiFetchModels':'測試連線並取得模型',
+    'set.aiFetchFail':'連線失敗',
+    'set.aiFetchOrder':'先填 API 位址與 Key，再點「測試連線並取得模型」，從清單選一個後儲存',
+    'set.aiFetchNeedBase':'請先填寫 API 位址',
+    'set.aiFetchNeedKey':'請先填寫 API Key',
+    'set.aiTestOk':'連線成功，共 {n} 個模型，請選擇一個',
+    'set.aiTestOkStale':'連線成功，共 {n} 個模型；原來的模型已不在清單中，請重新選擇',
+    'set.aiModelRequired':'請先選擇或填寫模型',
+    'set.aiPicked':'已選擇 {m}',
+  },
+  'en': {
+    'set.aiProvider':'Provider',
+    'set.aiProviderOpenai':'OpenAI-compatible (official or relay)',
+    'set.aiProviderDeepseek':'DeepSeek (official API)',
+    'set.aiProviderOllama':'Ollama (local)',
+    'set.aiProviderVllm':'vLLM (self-hosted)',
+    'set.aiKeyOptional':'optional, local services usually skip auth',
+        'set.aiFetchModels':'Test & fetch models',
+    'set.aiFetchFail':'Connection failed',
+    'set.aiFetchOrder':'Fill in the base URL and API key first, then test and pick a model from the list before saving',
+    'set.aiFetchNeedBase':'Enter the API base URL first',
+    'set.aiFetchNeedKey':'Enter the API key first',
+    'set.aiTestOk':'Connected — {n} models available, pick one',
+    'set.aiTestOkStale':'Connected — {n} models available; the previous model is gone from the list, pick again',
+    'set.aiModelRequired':'Pick or type a model first',
+    'set.aiPicked':'Selected {m}',
+  },
+  'ja': {
+    'set.aiProvider':'プロバイダ',
+    'set.aiProviderOpenai':'OpenAI 互換（公式 / リレー）',
+    'set.aiProviderDeepseek':'DeepSeek（公式 API）',
+    'set.aiProviderOllama':'Ollama（ローカル）',
+    'set.aiProviderVllm':'vLLM（自前構築）',
+    'set.aiKeyOptional':'空欄可 — ローカル/社内は通常認証なし',
+        'set.aiFetchModels':'接続テストしてモデル取得',
+    'set.aiFetchFail':'接続に失敗しました',
+    'set.aiFetchOrder':'まず API アドレスと Key を入力し、このボタンで接続を確認して一覧からモデルを選び、最後に保存してください',
+    'set.aiFetchNeedBase':'API アドレスを入力してください',
+    'set.aiFetchNeedKey':'API Key を入力してください',
+    'set.aiTestOk':'接続成功：{n} 件のモデルがあります。1 つ選択してください',
+    'set.aiTestOkStale':'接続成功：{n} 件のモデルがあります。以前のモデルは一覧にないため選び直してください',
+    'set.aiModelRequired':'モデルを選択または入力してください',
+    'set.aiPicked':'{m} を選択しました',
+  },
+  'ko': {
+    'set.aiProvider':'공급자',
+    'set.aiProviderOpenai':'OpenAI 호환(공식/중계)',
+    'set.aiProviderDeepseek':'DeepSeek(공식 API)',
+    'set.aiProviderOllama':'Ollama(로컬)',
+    'set.aiProviderVllm':'vLLM(자체 구축)',
+    'set.aiKeyOptional':'비워 두어도 됨, 로컬/내부 서비스는 보통 인증 없음',
+        'set.aiFetchModels':'연결 테스트 후 모델 가져오기',
+    'set.aiFetchFail':'연결 실패',
+    'set.aiFetchOrder':'먼저 API 주소와 Key를 입력하고 이 버튼으로 연결을 확인한 뒤 목록에서 모델을 선택하고 저장하세요',
+    'set.aiFetchNeedBase':'API 주소를 먼저 입력하세요',
+    'set.aiFetchNeedKey':'API Key를 먼저 입력하세요',
+    'set.aiTestOk':'연결 성공: 모델 {n}개, 하나를 선택하세요',
+    'set.aiTestOkStale':'연결 성공: 모델 {n}개, 이전 모델이 목록에 없으니 다시 선택하세요',
+    'set.aiModelRequired':'모델을 선택하거나 입력하세요',
+    'set.aiPicked':'{m} 선택됨',
+  },
+  'th': {
+    'set.aiProvider':'ผู้ให้บริการ',
+    'set.aiProviderOpenai':'OpenAI ที่เข้ากันได้ (ทางการ/รีเลย์)',
+    'set.aiProviderDeepseek':'DeepSeek (API ทางการ)',
+    'set.aiProviderOllama':'Ollama (ในเครื่อง)',
+    'set.aiProviderVllm':'vLLM (ติดตั้งเอง)',
+    'set.aiKeyOptional':'เว้นว่างได้ บริการในเครื่อง/ในเครือข่ายมักไม่ตรวจสอบ',
+        'set.aiFetchModels':'ทดสอบเชื่อมต่อและดึงโมเดล',
+    'set.aiFetchFail':'เชื่อมต่อไม่สำเร็จ',
+    'set.aiFetchOrder':'กรอกที่อยู่ API และ Key ก่อน กดปุ่มนี้เพื่อตรวจการเชื่อมต่อ เลือกโมเดลจากรายการ แล้วจึงบันทึก',
+    'set.aiFetchNeedBase':'กรุณากรอกที่อยู่ API ก่อน',
+    'set.aiFetchNeedKey':'กรุณากรอก API Key ก่อน',
+    'set.aiTestOk':'เชื่อมต่อสำเร็จ มี {n} โมเดล โปรดเลือกหนึ่งรายการ',
+    'set.aiTestOkStale':'เชื่อมต่อสำเร็จ มี {n} โมเดล โมเดลเดิมไม่อยู่ในรายการ โปรดเลือกใหม่',
+    'set.aiModelRequired':'โปรดเลือกหรือกรอกโมเดลก่อน',
+    'set.aiPicked':'เลือก {m} แล้ว',
+  },
+  'de': {
+    'set.aiProvider':'Anbieter',
+    'set.aiProviderOpenai':'OpenAI-kompatibel (offiziell oder Relay)',
+    'set.aiProviderDeepseek':'DeepSeek (offizielle API)',
+    'set.aiProviderOllama':'Ollama (lokal)',
+    'set.aiProviderVllm':'vLLM (selbst betrieben)',
+    'set.aiKeyOptional':'optional, lokale Dienste verlangen meist keinen Key',
+        'set.aiFetchModels':'Verbindung testen & Modelle laden',
+    'set.aiFetchFail':'Verbindung fehlgeschlagen',
+    'set.aiFetchOrder':'Zuerst API-Adresse und Key eintragen, dann testen, ein Modell aus der Liste wählen und erst danach speichern',
+    'set.aiFetchNeedBase':'Bitte zuerst die API-Adresse eintragen',
+    'set.aiFetchNeedKey':'Bitte zuerst den API Key eintragen',
+    'set.aiTestOk':'Verbunden — {n} Modelle verfügbar, bitte eines wählen',
+    'set.aiTestOkStale':'Verbunden — {n} Modelle verfügbar; das bisherige Modell fehlt in der Liste, bitte neu wählen',
+    'set.aiModelRequired':'Bitte zuerst ein Modell wählen oder eintragen',
+    'set.aiPicked':'{m} ausgewählt',
   },
 };
 
@@ -5333,6 +5624,9 @@ createApp({
       net: { down:'2.4 MB/s', up:'860 KB/s', total:12.6, iface:'eth0' },
       uptime: '23 天 14 小时',
       ai: { enabled:true, provider:'openai', model:'deepseek-chat', key:'', base:'https://api.deepseek.com/v1', exec:true, logAna:true, diag:true, showKey:false },
+      aiFetchedModels: [],   // 「测试连接并获取模型」从当前服务读回来的列表
+      aiModelLoading: false,
+      aiFetchState: { kind:'', msg:'' },   // kind: '' | 'ok' | 'err'
       set: { autoup:true, allowOpsantSso:true },
       agentCfg: { server_addr:'', server_token:'', running:false, showToken:false },
       services: [
@@ -5445,6 +5739,39 @@ createApp({
     }
   },
   computed: {
+    // ---- AI 接入表单（computed：模板里不能带括号，误放 methods 会渲染出函数源码）----
+    aiModelPlaceholder(){
+      const p = this.aiProviderPresets()[this.ai.provider];
+      return (p && p.model) ? p.model : this.t('set.aiModelPh');
+    },
+    aiKeyOptional(){ return ['ollama','vllm','gemini'].indexOf(this.ai.provider) >= 0; },
+    aiNeedsKey(){
+      if(this.aiKeyOptional) return false;
+      const base = (this.ai.base || '').trim();
+      if(!base) return true;
+      return !/^https?:\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\])/.test(base);
+    },
+    // 地址没填、或该服务商需要 Key 却没填 → 不让点。先填地址和 Key，再测试、再选模型。
+    aiCanFetch(){
+      const base = (this.ai.base || '').trim();
+      if(!base) return false;
+      if(this.aiNeedsKey && !(this.ai.key || '').trim()) return false;
+      return true;
+    },
+
+    // 变更详情正文按行拆开，交给模板逐行着色（+ 绿 / − 红 / @@ 分节）。
+    // 先判 +++/--- 文件头，再判增删，否则文件头会被当成新增行染绿。
+    chgDiffLines(){
+      const raw = (this.chgDetail && this.chgDetail.diff) || '';
+      if(!raw) return [];
+      return raw.split('\n').map((line,i)=>{
+        let k='ctx';
+        if(line.startsWith('@@') || line.startsWith('+++') || line.startsWith('---')) k='hunk';
+        else if(line.startsWith('+')) k='add';
+        else if(line.startsWith('-')) k='del';
+        return { n:i+1, k, s:line };
+      });
+    },
     metricsUrl(){ return (location.origin || (location.protocol + '//' + location.host)) + '/metrics'; },
     panelHost(){ return location.hostname; },
     panelPort(){ return location.port || (location.protocol === 'https:' ? '443' : '80'); },
@@ -5548,6 +5875,15 @@ createApp({
   },
   methods: {
     fmtDT(v){ if(!v) return '-'; const d=new Date(v); if(isNaN(d.getTime())) return String(v); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; },
+    // 双行时间：秒级时间戳（<1e12）按秒处理，避免直接 new Date(秒) 掉到 1970。
+    // 名字必须避开已有的 fmtTime（终端/文件页面的同名方法在后面定义，会静默覆盖掉这里）。
+    _dt(v){ if(!v) return null; const d = (typeof v==='number' && v<1e12) ? new Date(v*1000) : new Date(v); return isNaN(d.getTime()) ? null : d; },
+    fmtYMD(v){ const d=this._dt(v); if(!d) return ''; const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; },
+    fmtHMS(v){ const d=this._dt(v); if(!d) return '-'; const p=n=>String(n).padStart(2,'0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; },
+    // 等级/场景/变更类型的固定色：只用于左侧色标和圆点，不改变 tag 语义
+    sevColor(s){ return {critical:'#dc2626',high:'#ea580c',medium:'#d97706',low:'#0284c7',info:'#9ca3af'}[s] || '#cbd5e1'; },
+    famColor(k){ return {'webshell':'#dc2626','auth.anomaly':'#d97706','proc.anomaly':'#7c3aed','net.anomaly':'#0284c7','log_growth':'#0891b2','metric':'#2563eb'}[k] || '#9ca3af'; },
+    kindColor(k){ return {config:'#2563eb',package:'#7c3aed',service:'#0891b2',account:'#d97706',firewall:'#dc2626',cron:'#16a34a'}[k] || '#9ca3af'; },
     sevTag(s){ return s==='critical'||s==='high' ? 'err' : (s==='medium' ? 'warn' : 'info'); },
     stTag(s){ return s==='resolved' ? 'ok' : (s==='failed' ? 'err' : (s==='running' ? 'warn' : 'info')); },
     verdictTag(v){ return v==='deny' ? 'err' : (v==='shadow' ? 'warn' : (v==='confirm' ? 'warn' : 'ok')); },
@@ -5931,7 +6267,7 @@ createApp({
       else if(p==='changes'){ this.loadChanges(1); this.loadChgStats(); }
     },
     // ===== 多语言 =====
-    t(key){ const dicts=[I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
+    t(key){ const dicts=[I18N12,I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
     setDocTitle(){
       document.title = this.loggedIn
         ? 'OpsMini · ' + (location.hostname || location.host || 'localhost')
@@ -5996,23 +6332,28 @@ createApp({
     // 但两者都可手填——中转服务几乎不会用官方地址。
     aiProviderPresets(){
       return {
-        openai:    { base:'https://api.openai.com/v1', model:'gpt-4o', models:['gpt-4o','gpt-4o-mini','deepseek-chat','qwen-plus','moonshot-v1-8k','glm-4-plus','llama3','qwen2.5'] },
+        openai:    { base:'https://api.openai.com/v1', model:'gpt-4o', models:['gpt-4o','gpt-4o-mini','qwen-plus','moonshot-v1-8k','glm-4-plus'] },
+        // DeepSeek 走 OpenAI 协议，但地址与模型名都独立，单独列出来省得用户自己拼
+        // 模型名不预设：DeepSeek 换过代（deepseek-chat 已下线），只能以接口返回为准
+        deepseek:  { base:'https://api.deepseek.com/v1', model:'', models:[] },
         anthropic: { base:'https://api.anthropic.com', model:'claude-sonnet-4-5', models:['claude-sonnet-4-5','claude-opus-4-1','claude-haiku-4-5','claude-3-5-sonnet-20241022'] },
         azure:     { base:'https://YOUR-RESOURCE.openai.azure.com', model:'gpt-4o', models:['gpt-4o','gpt-4o-mini','gpt-35-turbo'] },
         gemini:    { base:'https://generativelanguage.googleapis.com', model:'gemini-2.5-pro', models:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'] },
+        // 本地/自建：默认端口，Key 可空，模型名建议点「拉取模型」直接从服务读
+        ollama:    { base:'http://127.0.0.1:11434/v1', model:'qwen2.5:7b', models:['qwen2.5:7b','qwen2.5:14b','llama3.1:8b','deepseek-r1:7b'] },
+        vllm:      { base:'http://127.0.0.1:8000/v1', model:'', models:[] },
       };
     },
-    aiModelOptions(){
-      const p = this.aiProviderPresets()[this.ai.provider];
-      return p ? p.models : [];
-    },
+    // 预设模型只做占位提示，不预先写进输入框：厂商会下线/改名（deepseek-chat 就是
+    // 例子），预填一个猜出来的名字，用户会以为「点了获取模型但没变化」。
     onAiProviderChange(){
       const p = this.aiProviderPresets()[this.ai.provider];
       if(!p) return;
       // 只在地址还是别的协议默认值时替换，避免覆盖用户手填的中转地址
       const defaults = Object.values(this.aiProviderPresets()).map(x=>x.base);
       if(!this.ai.base || defaults.indexOf(this.ai.base) >= 0) this.ai.base = p.base;
-      this.ai.model = p.model;
+      this.ai.model = '';    // 换服务就清空：模型名必须来自新服务的列表，不能沿用上一家
+      this.resetAiProbe();   // 上一家的模型列表与测试结论也一并作废
     },
     async loadAiSettings(){
       try{
@@ -6025,6 +6366,7 @@ createApp({
       }catch(e){ /* 忽略 */ }
     },
     async saveAiSettings(){
+      if(!(this.ai.model||'').trim()){ this.toast(this.t('set.aiModelRequired')); return; }
       try{
         await this.api('/settings', { method:'PUT', body: JSON.stringify({ ai_enabled: this.ai.enabled ? 'true' : 'false', ai_provider:this.ai.provider, ai_model:this.ai.model, ai_base_url:this.ai.base, ai_api_key:(this.ai.key||'').trim() }) });
         this.toast(this.t('set.aiSaved'));
@@ -6259,8 +6601,55 @@ createApp({
         return qr.createDataURL(4);
       }catch(e){ return ''; }
     },
+    // 点输入行里的空白处也算点输入框（按钮除外）
+    focusComposer(e){
+      const tag=(e.target && e.target.tagName) || '';
+      if(tag==='TEXTAREA' || tag==='BUTTON' || tag==='SVG' || tag==='PATH' || tag==='INPUT') return;
+      const ta=this.$refs.aiComposer;
+      if(ta) ta.focus();
+    },
+    pickAiModel(m){
+      this.ai.model = m;
+      if(this.aiFetchState.kind === 'ok'){
+        this.aiFetchState = { kind:'ok', msg:this.t('set.aiPicked').replace('{m}', m) };
+      }
+    },
+    // 地址 / Key 一改，之前那次探测的结论就作废
+    resetAiProbe(){
+      this.aiFetchedModels = [];
+      this.aiFetchState = { kind:'', msg:'' };
+    },
+    // 一次动作完成三件事：验证地址与 Key 能不能连上、把服务真实的模型列出来、
+    // 让用户从列表里挑一个。用的是「当前表单里的值」，不先落库 —— 否则测试失败
+    // 或用户中途离开，会留下一份半截配置。
+    async fetchAiModels(){
+      const base = (this.ai.base || '').trim();
+      if(!base){ this.aiFetchState = { kind:'err', msg:this.t('set.aiFetchNeedBase') }; return; }
+      if(this.aiNeedsKey && !(this.ai.key||'').trim()){
+        this.aiFetchState = { kind:'err', msg:this.t('set.aiFetchNeedKey') }; return;
+      }
+      this.aiModelLoading = true;
+      this.aiFetchState = { kind:'', msg:'' };
+      try{
+        const d = await this.api('/ai/models', { method:'POST', body: JSON.stringify({ provider:this.ai.provider, base, key:(this.ai.key||'').trim() }) });
+        this.aiFetchedModels = (d && d.models) || [];
+        // 手里这个模型名如果不在服务返回的列表里（比如预设里的 deepseek-chat 早已下线），
+        // 就清空并要求用户从列表里选 —— 否则会出现「点了获取模型，模型名还是旧的」这种错觉。
+        const stale = this.ai.model && this.aiFetchedModels.indexOf(this.ai.model) < 0;
+        if(stale) this.ai.model = '';
+        this.aiFetchState = {
+          kind:'ok',
+          msg: this.t(stale ? 'set.aiTestOkStale' : 'set.aiTestOk').replace('{n}', this.aiFetchedModels.length)
+        };
+      }catch(e){
+        this.aiFetchedModels = [];
+        this.aiFetchState = { kind:'err', msg:this.t('set.aiFetchFail') + ': ' + e.message };
+      }finally{
+        this.aiModelLoading = false;
+      }
+    },
     async testAi(){
-      if(!(this.ai.key||'').trim()){ this.toast(this.t('set.aiKeyEmpty')); return; }
+      if(!(this.ai.key||'').trim() && !this.aiKeyOptional && !/^https?:\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0)/.test(this.ai.base||'')){ this.toast(this.t('set.aiKeyEmpty')); return; }
       try{
         await this.api('/settings', { method:'PUT', body: JSON.stringify({ ai_provider:this.ai.provider, ai_model:this.ai.model, ai_base_url:this.ai.base, ai_api_key:this.ai.key.trim() }) });
         const data = await this.api('/ai/chat', { method:'POST', body: JSON.stringify({ message:'请只回复"连接成功"四个字，不要其他内容', context:'连接测试' }) });
@@ -7552,7 +7941,8 @@ createApp({
       this.dirDl = { visible:true, path:f.path, name:f.name, sizeText:'-', diskPercent:'0.0', diskUsedText:'-', diskTotalText:'-' };
       try{
         const u = await this.api('/files/du?path=' + encodeURIComponent(f.path));
-        this.dirDl.sizeText = this.fmtBytes(u.size);
+        // 超大目录会在服务端被截断，截断时只能说「至少」多少
+        this.dirDl.sizeText = (u.partial ? '≥ ' : '') + this.fmtBytes(u.size);
         this.dirDl.diskPercent = (u.disk_percent || 0).toFixed(1);
         this.dirDl.diskUsedText = this.fmtBytes(u.disk_used);
         this.dirDl.diskTotalText = this.fmtBytes(u.disk_total);
