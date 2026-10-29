@@ -20,15 +20,53 @@ package llm
 import "strings"
 
 // Provider identifiers (stored in settings, so they are stable strings).
+//
+// DeepSeek, Ollama and vLLM speak OpenAI's wire format but are kept as separate
+// ids on purpose: the panel needs to prefill a different base URL, treat the API
+// key as optional (both are commonly run without auth on localhost or a private
+// network), and list models from a different place. Collapsing them into "openai"
+// would force users to know all of that.
 const (
 	ProviderOpenAI    = "openai"
+	ProviderDeepSeek  = "deepseek"
+	ProviderOllama    = "ollama"
+	ProviderVLLM      = "vllm"
 	ProviderAnthropic = "anthropic"
 	ProviderAzure     = "azure"
 	ProviderGemini    = "gemini"
 )
 
 // KnownProviders lists the values the panel may send, in display order.
-var KnownProviders = []string{ProviderOpenAI, ProviderAnthropic, ProviderAzure, ProviderGemini}
+var KnownProviders = []string{
+	ProviderOpenAI, ProviderDeepSeek, ProviderAnthropic, ProviderAzure, ProviderGemini,
+	ProviderOllama, ProviderVLLM,
+}
+
+// Protocol maps a provider id to the wire protocol it speaks. Anything not listed
+// explicitly is OpenAI-compatible, which is also the right answer for relays and
+// for provider ids added by a newer panel build.
+func Protocol(p string) string {
+	switch p {
+	case ProviderAnthropic:
+		return ProviderAnthropic
+	case ProviderAzure:
+		return ProviderAzure
+	case ProviderGemini:
+		return ProviderGemini
+	default: // openai, deepseek, ollama, vllm, relays
+		return ProviderOpenAI
+	}
+}
+
+// KeyOptional reports whether a missing API key is acceptable. Ollama and vLLM are
+// routinely started without auth; Gemini accepts the key in the query string.
+func KeyOptional(p string) bool {
+	switch p {
+	case ProviderOllama, ProviderVLLM, ProviderGemini:
+		return true
+	}
+	return false
+}
 
 // Message is one turn of a conversation, provider-neutral.
 type Message struct {

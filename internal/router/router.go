@@ -563,6 +563,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/system/firewall", systemHandler.Firewall)
 
 			// AI assistant + MCP
+			authed.POST("/ai/models", permMw("settings.edit"), aiHandler.Models)
 			authed.POST("/ai/chat", permMw("ai.use"), aiHandler.Chat)
 			authed.POST("/ai/chat/stream", permMw("ai.use"), aiHandler.ChatStream)
 

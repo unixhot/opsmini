@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -239,13 +240,52 @@ func fromLLMToolCalls(in []llm.ToolCall) []ToolCall {
 	return out
 }
 
+// requireKey keeps the "no key" error readable while letting Ollama and vLLM run
+// keyless: they are normally bound to localhost or a private network and have no
+// auth at all, so demanding a key would make the common case impossible.
+func (s *AIService) requireKey() error {
+	if s.apiKey() != "" {
+		return nil
+	}
+	if llm.KeyOptional(s.provider()) {
+		return nil
+	}
+	if u, err := url.Parse(s.baseURL()); err == nil {
+		h := u.Hostname()
+		if h == "127.0.0.1" || h == "localhost" || h == "::1" ||
+			strings.HasPrefix(h, "10.") || strings.HasPrefix(h, "192.168.") ||
+			strings.HasPrefix(h, "172.") {
+			return nil
+		}
+	}
+	return errors.New("AI API key not configured (set OPSMINI_AI_KEY or ai.api_key)")
+}
+
+// ListModels returns the models the configured endpoint advertises, so the panel can
+// offer a list instead of a free-text field for servers whose model names are opaque.
+func (s *AIService) ListModels(ctx context.Context) ([]string, error) {
+	return s.llmClient.ListModels(ctx)
+}
+
+// ListModelsFor probes a configuration the user has typed but not saved yet.
+//
+// This is what makes "test the connection, then pick a model, then save" possible:
+// persisting first would leave a half-configured AI section behind whenever the test
+// fails or the user walks away.
+func (s *AIService) ListModelsFor(ctx context.Context, provider, base, key string) ([]string, error) {
+	probe := llm.New(func() llm.Config {
+		return llm.Config{Provider: provider, BaseURL: base, APIKey: key}
+	})
+	return probe.ListModels(ctx)
+}
+
 // Chat sends a conversation and returns the model's reply (supports function calling tool calls).
 func (s *AIService) Chat(messages []ChatMessage, deepThink bool) (string, error) {
 	if !s.enabled() {
 		return "", errors.New("AI assistant is disabled")
 	}
-	if s.apiKey() == "" {
-		return "", errors.New("AI API key not configured (set OPSMINI_AI_KEY or ai.api_key)")
+	if err := s.requireKey(); err != nil {
+		return "", err
 	}
 
 	// inject system prompt + host system info collected in real time by built-in MCP tools
@@ -308,8 +348,8 @@ func (s *AIService) ChatStream(ctx context.Context, messages []ChatMessage, deep
 	if !s.enabled() {
 		return errors.New("AI assistant is disabled")
 	}
-	if s.apiKey() == "" {
-		return errors.New("AI API key not configured (set OPSMINI_AI_KEY or ai.api_key)")
+	if err := s.requireKey(); err != nil {
+		return err
 	}
 
 	msgs := append([]ChatMessage{{Role: "system", Content: s.buildSystemPrompt(deepThink)}}, messages...)

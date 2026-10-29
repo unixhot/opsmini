@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -26,6 +27,42 @@ type chatReq struct {
 	Message   string `json:"message" binding:"required"`
 	Context   string `json:"context"`    // current page context (optional)
 	DeepThink bool   `json:"deep_think"` // whether deep thinking is enabled
+}
+
+// Models GET /ai/models
+//
+// Lists what the configured endpoint actually serves. Local deployments name their
+// models freely (`qwen2.5:7b-instruct-q4_K_M`, or whatever --served-model-name was
+// set), so a free-text field is a guessing game — the panel fills its dropdown from
+// this instead.
+// Models probes a provider and returns the models it serves.
+//
+// The body is optional: send {provider, base, key} to test the values currently in
+// the form (they are not saved), or send nothing to use the saved configuration.
+// POST rather than GET on purpose — the API key must not end up in an access log or
+// a proxy URL.
+func (h *AIHandler) Models(c *gin.Context) {
+	var req struct {
+		Provider string `json:"provider"`
+		Base     string `json:"base"`
+		Key      string `json:"key"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	var (
+		models []string
+		err    error
+	)
+	if strings.TrimSpace(req.Base) != "" {
+		models, err = h.svc.ListModelsFor(c.Request.Context(), req.Provider, req.Base, req.Key)
+	} else {
+		models, err = h.svc.ListModels(c.Request.Context())
+	}
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"models": models})
 }
 
 // Chat POST /ai/chat

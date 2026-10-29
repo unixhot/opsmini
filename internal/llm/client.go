@@ -39,15 +39,26 @@ func (c *Client) Config() Config { return c.cfg().Normalized() }
 // Validate reports configuration problems before a request is attempted.
 func (c *Client) Validate() error {
 	cfg := c.Config()
-	if cfg.BaseURL == "" {
-		return errors.New("AI 接口地址未配置")
+	if err := validateEndpoint(cfg); err != nil {
+		return err
 	}
 	if cfg.Model == "" {
 		return errors.New("AI 模型未配置")
 	}
-	// Gemini can authenticate with an API key in the query string, and local
-	// deployments (Ollama, vLLM) need no key at all.
-	if cfg.APIKey == "" && cfg.Provider != ProviderGemini && !isLocalEndpoint(cfg.BaseURL) {
+	return nil
+}
+
+// validateEndpoint checks the transport-level settings only. Listing models must
+// use this instead of Validate: the model name is exactly what the user is still
+// trying to pick, so requiring it there would block the feature that helps.
+func validateEndpoint(cfg Config) error {
+	if cfg.BaseURL == "" {
+		return errors.New("AI 接口地址未配置")
+	}
+	// Gemini authenticates with a key in the query string; Ollama and vLLM are
+	// usually started without any auth. Everything else needs a key, unless the
+	// endpoint is on this machine or a private relay the user knows is open.
+	if cfg.APIKey == "" && !KeyOptional(cfg.Provider) && !isLocalEndpoint(cfg.BaseURL) {
 		return errors.New("AI API Key 未配置")
 	}
 	return nil
@@ -70,7 +81,7 @@ func (c *Client) Chat(ctx context.Context, msgs []Message, tools []Tool) (*Messa
 		return nil, nil, err
 	}
 	cfg := c.Config()
-	switch cfg.Provider {
+	switch Protocol(cfg.Provider) {
 	case ProviderAnthropic:
 		return c.chatAnthropic(ctx, cfg, msgs, tools)
 	case ProviderGemini:
@@ -87,7 +98,7 @@ func (c *Client) ChatStream(ctx context.Context, msgs []Message, tools []Tool, o
 		return nil, nil, err
 	}
 	cfg := c.Config()
-	switch cfg.Provider {
+	switch Protocol(cfg.Provider) {
 	case ProviderAnthropic:
 		return c.streamAnthropic(ctx, cfg, msgs, tools, onDelta)
 	case ProviderGemini:
