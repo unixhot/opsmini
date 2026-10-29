@@ -63,6 +63,11 @@ func (m *Manager) ApplyTask(filename string, content []byte, wantSHA string, str
 		return "failed", nil, fmt.Errorf("内容摘要不匹配：期望 %s，实际 %s", wantSHA, got)
 	}
 
+	// A task arriving is itself the request to collect: wake the pipeline up before
+	// the reload below, otherwise the task loads with no sender behind it and
+	// nothing ever reaches the output.
+	m.Enable()
+
 	if err := os.MkdirAll(m.cfg.TasksDir, 0o755); err != nil {
 		return "failed", nil, err
 	}

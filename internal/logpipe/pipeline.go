@@ -40,6 +40,10 @@ type Manager struct {
 	sp     *spool
 	// pre keeps the last processed events per task for the panel preview.
 	pre *previewRing
+	// ctx is kept so Enable can start workers after Start returned early.
+	ctx context.Context
+	// started guards the one-time goroutine launch.
+	started atomic.Bool
 
 	sendQ chan batch
 	stop  chan struct{}
@@ -75,6 +79,8 @@ type PipelineStatus struct {
 	Output    string       `json:"output"`
 	OutputErr string       `json:"output_error"`
 	Spool     map[string]any `json:"spool,omitempty"`
+	// Running distinguishes "configured on" from "goroutines actually alive".
+	Running bool `json:"running"`
 	Warnings  []string     `json:"warnings"`
 	LoadedAt  time.Time    `json:"loaded_at"`
 	Stats     OutputStats  `json:"output_stats"`
@@ -125,15 +131,79 @@ func NewManager(cfg MainConfig, db *gorm.DB, version string) *Manager {
 }
 
 // Start launches the scanner and the sender. It returns immediately.
+//
+// Collection is opt-in per host. Three things can turn it on, in this order:
+//  1. a task file already sitting in tasks.d — the file *is* the request, whether
+//     it was written by OpsAnt or dropped in by hand for debugging;
+//  2. `logpipeline.enabled: true` in config.yaml — the escape hatch;
+//  3. a LogTask arriving later over gRPC (see Enable).
+//
+// A standalone install has none of those, so nothing starts: no goroutine, no
+// memory, no directory scan.
 func (m *Manager) Start(ctx context.Context) {
+	m.ctx = ctx
 	if !m.cfg.Enabled {
+		n := countTaskFiles(m.cfg.TasksDir)
+		if n == 0 {
+			log.Printf("logpipe: 未启用（默认关闭），tasks.d 无任务，不启动采集")
+			return
+		}
+		log.Printf("logpipe: 配置未启用，但 tasks.d 有 %d 个任务，自动启动采集", n)
+		m.cfg.Enabled = true
+	}
+	m.startWorkers()
+}
+
+// startWorkers starts the goroutines exactly once.
+func (m *Manager) startWorkers() {
+	if !m.started.CompareAndSwap(false, true) {
 		return
 	}
 	if err := os.MkdirAll(m.cfg.TasksDir, 0o755); err != nil {
 		log.Printf("logpipe: create tasks dir: %v", err)
 	}
+	ctx := m.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	go m.sender(ctx)
 	go m.loop(ctx)
+}
+
+// Running reports whether the collector goroutines are alive. The panel shows it
+// so "配置已下发" and "真的在采" stay distinguishable.
+func (m *Manager) Running() bool { return m.started.Load() }
+
+// Enable turns collection on at runtime. Called when a LogTask arrives: the
+// platform distributing a task is the explicit request to collect on this host,
+// and requiring a config edit plus a restart first would make distribution
+// useless.
+func (m *Manager) Enable() {
+	if m.started.Load() {
+		m.cfg.Enabled = true
+		return
+	}
+	m.cfg.Enabled = true
+	m.startWorkers()
+	log.Printf("logpipe: 收到采集任务，已启用日志采集")
+}
+
+// countTaskFiles reports how many task files exist.
+func countTaskFiles(dir string) int {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(e.Name(), ".yml") || strings.HasSuffix(e.Name(), ".yaml") {
+			n++
+		}
+	}
+	return n
 }
 
 // loop reloads tasks.d and reconciles running readers.
@@ -424,6 +494,7 @@ func (m *Manager) Status() PipelineStatus {
 		OutputErr: m.outErr,
 		Warnings:  append([]string{}, m.warnings...),
 		Spool:     m.sp.Stats(),
+		Running:   m.started.Load(),
 		LoadedAt:  m.loadedAt,
 		Tasks:     make([]TaskStatus, 0, len(m.tasks)),
 	}

@@ -112,6 +112,8 @@ type Backup struct {
 // appears in TasksDir, and a standalone host never gets one because only OpsAnt
 // distributes tasks. Enabled=false is the hard off switch.
 type LogPipeline struct {
+	// Enabled forces the collector on even without any task file. The default is
+	// false: collection is opt-in per host, driven by distributed tasks.
 	Enabled bool `yaml:"enabled"`
 	// TasksDir overrides the default <data>/logs/tasks.d.
 	TasksDir string `yaml:"tasks_dir"`
@@ -202,7 +204,10 @@ func defaultConfig() *Config {
 			Enabled: true,
 		},
 		LogPipe: LogPipeline{
-			Enabled:   true,
+			// Off by default: a standalone install has no log platform to ship to,
+			// so the collector must not start unless something explicitly asks for
+			// it (a task file in tasks.d, or a LogTask from OpsAnt).
+			Enabled:   false,
 			AgentType: "opsmini",
 		},
 		Log: Log{

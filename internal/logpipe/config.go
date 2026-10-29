@@ -113,7 +113,9 @@ type MainConfig struct {
 // a task exists, everything under the install directory.
 func DefaultMainConfig(dataDir string) MainConfig {
 	return MainConfig{
-		Enabled:      true,
+		// Off unless something asks for it: a task file in tasks.d, an explicit
+		// `logpipeline.enabled: true`, or a LogTask over gRPC. See Manager.Start.
+		Enabled:      false,
 		TasksDir:     filepath.Join(dataDir, "logs", "tasks.d"),
 		RegistryPath: filepath.Join(dataDir, "logs", "registry.db"),
 		SpoolDir:     filepath.Join(dataDir, "logs", "spool"),
