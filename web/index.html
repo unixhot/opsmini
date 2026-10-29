@@ -1715,6 +1715,7 @@
             <div class="page-desc">{{ t('chg.desc') }}</div>
           </div>
           <div class="row" style="gap:8px">
+            <button class="btn ghost" @click="openChgIgnores('')">{{ t('chg.ignore.open') }}</button>
             <button class="btn ghost" @click="loadChanges(1)">{{ t('btn.refresh') }}</button>
           </div>
         </div>
@@ -1844,6 +1845,9 @@
             </div>
             <div class="modal-foot">
               <button class="btn ghost" @click="chgDetail=null">{{ t('common.cancel') }}</button>
+              <button class="btn ghost" @click="openChgIgnores(ignorePatternFor(chgDetail.change.object_key))">
+                {{ t('chg.ignore.fromChange') }}
+              </button>
               <button class="btn" :class="chgRestoreArmed ? 'danger' : 'ghost'"
                       v-if="chgDetail.change.kind==='config' || chgDetail.change.kind==='account'"
                       @click="restoreChange">
@@ -1854,6 +1858,59 @@
         </div>
       </div>
 
+
+      <!-- ============ 变更忽略规则 ============ -->
+      <div v-if="chgIgnoreOpen" class="modal-mask" @click.self="chgIgnoreOpen=false">
+        <div class="modal-card" style="max-width:620px">
+          <div class="modal-head">
+            <div class="modal-title">{{ t('chg.ignore.title') }}</div>
+            <button class="btn ghost sm" @click="chgIgnoreOpen=false">✕</button>
+          </div>
+          <div style="padding:0 20px 18px;max-height:70vh;overflow:auto">
+            <div class="explain-strip" style="margin:0 0 12px">
+              <span class="ei">i</span>
+              <span>{{ t('chg.ignore.hint') }}</span>
+            </div>
+            <div class="row" style="gap:8px;align-items:flex-start;margin-bottom:6px">
+              <input class="input mono" style="flex:1.4;font-size:12.5px" v-model="chgIgnorePattern"
+                     :placeholder="t('chg.ignore.patternPh')" @keyup.enter="addChgIgnore">
+              <input class="input" style="flex:1;font-size:12.5px" v-model="chgIgnoreNote"
+                     :placeholder="t('chg.ignore.notePh')" @keyup.enter="addChgIgnore">
+              <button class="btn sm" style="flex:none" :disabled="chgIgnoreBusy || !chgIgnorePattern.trim()" @click="addChgIgnore">
+                {{ t('chg.ignore.add') }}
+              </button>
+            </div>
+            <div class="mute" style="font-size:11.5px;line-height:1.6;margin-bottom:12px">{{ t('chg.ignore.effect') }}</div>
+
+            <div class="table-wrap">
+              <table class="st-tbl">
+                <colgroup><col style="width:auto"><col style="width:190px"><col style="width:64px"></colgroup>
+                <thead><tr>
+                  <th>{{ t('chg.ignore.pattern') }}</th>
+                  <th>{{ t('chg.ignore.note') }}</th>
+                  <th>{{ t('common.actions') }}</th>
+                </tr></thead>
+                <tbody>
+                  <tr v-for="g in chgIgnores" :key="g.id">
+                    <td class="mono" style="font-size:12px;word-break:break-all">{{ g.pattern }}</td>
+                    <td class="mute" style="font-size:12px">{{ g.note || '-' }}</td>
+                    <td><a class="link" style="font-size:12.5px" @click="delChgIgnore(g)">{{ t('common.delete') }}</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-if="!chgIgnores.length" class="mute" style="padding:14px 0;font-size:12.5px">{{ t('chg.ignore.empty') }}</div>
+
+            <div style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--divider)">
+              <div style="font-size:12.5px;font-weight:600;margin-bottom:6px">{{ t('chg.ignore.blocked') }}</div>
+              <div class="mute" style="font-size:11.5px;line-height:1.75">
+                <div v-for="(b,i) in chgIgnoreBlocked" :key="'b'+i">· {{ b }}</div>
+              </div>
+              <div class="mute" style="font-size:11.5px;line-height:1.6;margin-top:6px">{{ t('chg.ignore.blockedHint') }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ============ 事件中心（自主 Agent v1.3.0） ============ -->
       <div v-if="page==='sentinel'">
@@ -2375,6 +2432,10 @@
               <button class="btn sm ghost" :disabled="incFeedbackBusy" @click="sendIncidentFeedback('true_positive')">{{ t('sent.feedback.correct') }}</button>
               <button class="btn sm ghost" :disabled="incFeedbackBusy" @click="sendIncidentFeedback('false_positive')">{{ t('sent.feedback.falsePositive') }}</button>
               <span class="tag ok" v-if="incFeedbackSent">{{ t('sent.feedback.saved') }}</span>
+              <button class="btn sm" :class="takeoverArmed ? 'danger' : 'ghost'"
+                      v-if="incCanTakeover" :disabled="takeoverBusy" @click="armTakeover">
+                {{ takeoverArmed ? t('sent.takeover.confirm') : t('sent.takeover') }}
+              </button>
               <button class="btn ghost sm" @click="incDetail=null">✕</button>
             </div>
           </div>
@@ -4938,6 +4999,24 @@ const I18N13 = {
     'sent.tx.pending':'待处理',
     'sent.tx.hint':'验证未通过时引擎会自动回滚；这里的按钮用于人工否决一次已完成的处置。不可撤销的操作会明确列出，不会假装已撤销。',
     'sent.tx.done':'回滚完成',
+    'sent.takeover':'我来接管',
+    'sent.takeover.confirm':'确认接管？',
+    'sent.takeover.done':'已接管，Agent 不再处置{by}',
+    'chg.ignore.open':'忽略规则',
+    'chg.ignore.title':'变更忽略规则',
+    'chg.ignore.hint':'命中规则的路径不再采集。* 只匹配一级目录，** 匹配任意层级（如 /var/log/**）。规则只对之后产生的变更生效。',
+    'chg.ignore.effect':'保存后立即生效，但不会删除已有记录——想清掉历史请到保留策略里清理。',
+    'chg.ignore.patternPh':'路径规则，如 /var/log/**/*.log',
+    'chg.ignore.notePh':'备注（可选）',
+    'chg.ignore.add':'添加',
+    'chg.ignore.pattern':'规则',
+    'chg.ignore.note':'备注',
+    'chg.ignore.empty':'还没有忽略规则',
+    'chg.ignore.blocked':'无论怎么配置都不会采集的内容',
+    'chg.ignore.blockedHint':'这些是编译进程序的硬规则，不提供开关——采集密码哈希和私钥本身就是风险。',
+    'chg.ignore.fromChange':'忽略此类变更',
+    'chg.ignore.added':'规则已添加',
+    'chg.ignore.removed':'规则已删除',
     'sent.shadow.v.would_help':'本可有用',
     'sent.shadow.v.unnecessary':'事后多余',
     'sent.shadow.v.unknown':'无法判定',
@@ -4975,6 +5054,24 @@ const I18N13 = {
     'sent.tx.pending':'待處理',
     'sent.tx.hint':'驗證未通過時引擎會自動回滾；這裡的按鈕用於人工否決一次已完成的處置。不可撤銷的操作會明確列出，不會假裝已撤銷。',
     'sent.tx.done':'回滾完成',
+    'sent.takeover':'我來接管',
+    'sent.takeover.confirm':'確認接管？',
+    'sent.takeover.done':'已接管，Agent 不再處置{by}',
+    'chg.ignore.open':'忽略規則',
+    'chg.ignore.title':'變更忽略規則',
+    'chg.ignore.hint':'命中規則的路徑不再採集。* 只匹配一層目錄，** 匹配任意層級（如 /var/log/**）。規則只對之後產生的變更生效。',
+    'chg.ignore.effect':'儲存後立即生效，但不會刪除既有記錄——想清掉歷史請到保留策略裡清理。',
+    'chg.ignore.patternPh':'路徑規則，如 /var/log/**/*.log',
+    'chg.ignore.notePh':'備註（選填）',
+    'chg.ignore.add':'新增',
+    'chg.ignore.pattern':'規則',
+    'chg.ignore.note':'備註',
+    'chg.ignore.empty':'還沒有忽略規則',
+    'chg.ignore.blocked':'無論怎麼設定都不會採集的內容',
+    'chg.ignore.blockedHint':'這些是編譯進程式的硬規則，不提供開關——採集密碼雜湊與私鑰本身就是風險。',
+    'chg.ignore.fromChange':'忽略此類變更',
+    'chg.ignore.added':'規則已新增',
+    'chg.ignore.removed':'規則已刪除',
     'sent.shadow.v.would_help':'本可有用',
     'sent.shadow.v.unnecessary':'事後多餘',
     'sent.shadow.v.unknown':'無法判定',
@@ -5012,6 +5109,24 @@ const I18N13 = {
     'sent.tx.pending':'pending',
     'sent.tx.hint':'The engine rolls back automatically when verification fails; this button is for a human vetoing a response that already completed. Irreversible steps are listed explicitly instead of being silently ignored.',
     'sent.tx.done':'Rollback finished',
+    'sent.takeover':'Take over',
+    'sent.takeover.confirm':'Confirm takeover?',
+    'sent.takeover.done':'Taken over by {by}; the agent will not act on this incident',
+    'chg.ignore.open':'Ignore rules',
+    'chg.ignore.title':'Change ignore rules',
+    'chg.ignore.hint':'Paths matching a rule stop being collected. * matches one level, ** matches any depth (for example /var/log/**). Rules apply to changes collected after they are saved.',
+    'chg.ignore.effect':'Takes effect immediately, but existing records are kept — use the retention policy if you want them gone.',
+    'chg.ignore.patternPh':'Path pattern, e.g. /var/log/**/*.log',
+    'chg.ignore.notePh':'Note (optional)',
+    'chg.ignore.add':'Add',
+    'chg.ignore.pattern':'Pattern',
+    'chg.ignore.note':'Note',
+    'chg.ignore.empty':'No ignore rules yet',
+    'chg.ignore.blocked':'Never collected, whatever you configure',
+    'chg.ignore.blockedHint':'These are compiled-in limits with no toggle — reading password hashes and private keys is a risk in itself.',
+    'chg.ignore.fromChange':'Ignore this kind of change',
+    'chg.ignore.added':'Rule added',
+    'chg.ignore.removed':'Rule removed',
     'sent.shadow.v.would_help':'would have helped',
     'sent.shadow.v.unnecessary':'unnecessary in hindsight',
     'sent.shadow.v.unknown':'cannot tell',
@@ -5049,6 +5164,24 @@ const I18N13 = {
     'sent.tx.pending':'未処理',
     'sent.tx.hint':'検証に失敗するとエンジンが自動でロールバックします。このボタンは完了済みの対応を人が取り消すためのものです。取消不可の操作は明示され、取り消したふりはしません。',
     'sent.tx.done':'ロールバック完了',
+    'sent.takeover':'引き継ぐ',
+    'sent.takeover.confirm':'引き継ぎますか？',
+    'sent.takeover.done':'{by} が引き継ぎました。Agent はこの事象に行動しません',
+    'chg.ignore.open':'除外ルール',
+    'chg.ignore.title':'変更の除外ルール',
+    'chg.ignore.hint':'一致したパスは収集しません。* は 1 階層のみ、** は任意の階層（/var/log/** など）。ルールは保存後に発生した変更にのみ適用されます。',
+    'chg.ignore.effect':'保存後すぐ有効になりますが、既存の記録は削除しません。履歴を消したい場合は保持ポリシーで整理してください。',
+    'chg.ignore.patternPh':'パス規則 例: /var/log/**/*.log',
+    'chg.ignore.notePh':'メモ（任意）',
+    'chg.ignore.add':'追加',
+    'chg.ignore.pattern':'規則',
+    'chg.ignore.note':'メモ',
+    'chg.ignore.empty':'除外ルールはまだありません',
+    'chg.ignore.blocked':'設定に関係なく収集しないもの',
+    'chg.ignore.blockedHint':'プログラムに組み込まれた制限で、切り替えはありません。パスワードハッシュや秘密鍵の読み取り自体がリスクです。',
+    'chg.ignore.fromChange':'この種の変更を除外',
+    'chg.ignore.added':'ルールを追加しました',
+    'chg.ignore.removed':'ルールを削除しました',
     'sent.shadow.v.would_help':'効果があった',
     'sent.shadow.v.unnecessary':'結果的に不要',
     'sent.shadow.v.unknown':'判定不能',
@@ -5086,6 +5219,24 @@ const I18N13 = {
     'sent.tx.pending':'대기',
     'sent.tx.hint':'검증에 실패하면 엔진이 자동으로 롤백합니다. 이 버튼은 이미 완료된 대응을 사람이 취소할 때 사용합니다. 취소 불가 작업은 명시되며, 취소한 것처럼 표시하지 않습니다.',
     'sent.tx.done':'롤백 완료',
+    'sent.takeover':'인계받기',
+    'sent.takeover.confirm':'인계받을까요?',
+    'sent.takeover.done':'{by} 님이 인계받았습니다. Agent는 이 사건에 조치하지 않습니다',
+    'chg.ignore.open':'제외 규칙',
+    'chg.ignore.title':'변경 제외 규칙',
+    'chg.ignore.hint':'규칙에 맞는 경로는 수집하지 않습니다. * 는 한 단계, ** 는 임의 깊이(예: /var/log/**)를 뜻합니다. 규칙은 저장 이후 발생한 변경에만 적용됩니다.',
+    'chg.ignore.effect':'저장 즉시 적용되지만 기존 기록은 삭제하지 않습니다. 기록을 지우려면 보존 정책에서 정리하세요.',
+    'chg.ignore.patternPh':'경로 규칙 예: /var/log/**/*.log',
+    'chg.ignore.notePh':'메모(선택)',
+    'chg.ignore.add':'추가',
+    'chg.ignore.pattern':'규칙',
+    'chg.ignore.note':'메모',
+    'chg.ignore.empty':'제외 규칙이 없습니다',
+    'chg.ignore.blocked':'설정과 무관하게 수집하지 않는 항목',
+    'chg.ignore.blockedHint':'프로그램에 내장된 제한이며 끌 수 없습니다. 비밀번호 해시와 개인 키 수집 자체가 위험입니다.',
+    'chg.ignore.fromChange':'이런 변경 제외',
+    'chg.ignore.added':'규칙이 추가되었습니다',
+    'chg.ignore.removed':'규칙이 삭제되었습니다',
     'sent.shadow.v.would_help':'효과 있었음',
     'sent.shadow.v.unnecessary':'결과적으로 불필요',
     'sent.shadow.v.unknown':'판단 불가',
@@ -5123,6 +5274,24 @@ const I18N13 = {
     'sent.tx.pending':'รอดำเนินการ',
     'sent.tx.hint':'เมื่อการตรวจสอบไม่ผ่าน ระบบจะย้อนกลับอัตโนมัติ ปุ่มนี้สำหรับให้คนยกเลิกงานที่ทำเสร็จแล้ว ขั้นตอนที่ย้อนกลับไม่ได้จะถูกระบุอย่างชัดเจน',
     'sent.tx.done':'ย้อนกลับเสร็จสิ้น',
+    'sent.takeover':'รับช่วงดูแล',
+    'sent.takeover.confirm':'ยืนยันรับช่วง?',
+    'sent.takeover.done':'{by} รับช่วงแล้ว เอเจนต์จะไม่ดำเนินการกับเหตุการณ์นี้',
+    'chg.ignore.open':'กฎการไม่เก็บ',
+    'chg.ignore.title':'กฎการไม่เก็บการเปลี่ยนแปลง',
+    'chg.ignore.hint':'พาธที่ตรงกับกฎจะไม่ถูกเก็บ * ตรงกับหนึ่งระดับ ** ตรงกับทุกระดับ (เช่น /var/log/**) กฎมีผลกับการเปลี่ยนแปลงที่เกิดหลังจากบันทึก',
+    'chg.ignore.effect':'มีผลทันทีหลังบันทึก แต่ไม่ลบระเบียนเดิม หากต้องการลบให้ใช้นโยบายการเก็บรักษา',
+    'chg.ignore.patternPh':'รูปแบบพาธ เช่น /var/log/**/*.log',
+    'chg.ignore.notePh':'หมายเหตุ (ไม่บังคับ)',
+    'chg.ignore.add':'เพิ่ม',
+    'chg.ignore.pattern':'กฎ',
+    'chg.ignore.note':'หมายเหตุ',
+    'chg.ignore.empty':'ยังไม่มีกฎ',
+    'chg.ignore.blocked':'สิ่งที่ไม่ถูกเก็บไม่ว่าจะตั้งค่าอย่างไร',
+    'chg.ignore.blockedHint':'เป็นข้อจำกัดที่ฝังในโปรแกรมและปิดไม่ได้ การอ่านแฮชรหัสผ่านและคีย์ส่วนตัวเป็นความเสี่ยงในตัวเอง',
+    'chg.ignore.fromChange':'ไม่เก็บการเปลี่ยนแปลงประเภทนี้',
+    'chg.ignore.added':'เพิ่มกฎแล้ว',
+    'chg.ignore.removed':'ลบกฎแล้ว',
     'sent.shadow.v.would_help':'น่าจะ有帮助',
     'sent.shadow.v.unnecessary':'ไม่จำเป็นเมื่อมองย้อนหลัง',
     'sent.shadow.v.unknown':'ตัดสินไม่ได้',
@@ -5160,6 +5329,24 @@ const I18N13 = {
     'sent.tx.pending':'offen',
     'sent.tx.hint':'Scheitert die Verifikation, rollt die Engine automatisch zurück. Diese Schaltfläche ist für den menschlichen Widerruf einer bereits abgeschlossenen Reaktion. Nicht umkehrbare Schritte werden ausdrücklich genannt.',
     'sent.tx.done':'Rollback abgeschlossen',
+    'sent.takeover':'Übernehmen',
+    'sent.takeover.confirm':'Übernahme bestätigen?',
+    'sent.takeover.done':'Von {by} übernommen; der Agent handelt bei diesem Vorfall nicht mehr',
+    'chg.ignore.open':'Ignorierregeln',
+    'chg.ignore.title':'Ignorierregeln für Änderungen',
+    'chg.ignore.hint':'Passende Pfade werden nicht mehr erfasst. * gilt für eine Ebene, ** für beliebige Tiefe (z. B. /var/log/**). Regeln gelten nur für Änderungen nach dem Speichern.',
+    'chg.ignore.effect':'Wirkt sofort, löscht aber keine bestehenden Datensätze — dafür ist die Aufbewahrungsrichtlinie zuständig.',
+    'chg.ignore.patternPh':'Pfadmuster, z. B. /var/log/**/*.log',
+    'chg.ignore.notePh':'Notiz (optional)',
+    'chg.ignore.add':'Hinzufügen',
+    'chg.ignore.pattern':'Muster',
+    'chg.ignore.note':'Notiz',
+    'chg.ignore.empty':'Noch keine Ignorierregeln',
+    'chg.ignore.blocked':'Wird nie erfasst, egal wie konfiguriert',
+    'chg.ignore.blockedHint':'Diese Grenzen sind einkompiliert und nicht abschaltbar — Passwort-Hashes und private Schlüssel zu lesen ist selbst ein Risiko.',
+    'chg.ignore.fromChange':'Diese Art Änderung ignorieren',
+    'chg.ignore.added':'Regel hinzugefügt',
+    'chg.ignore.removed':'Regel entfernt',
     'sent.shadow.v.would_help':'hätte geholfen',
     'sent.shadow.v.unnecessary':'im Nachhinein unnötig',
     'sent.shadow.v.unknown':'nicht bewertbar',
@@ -6184,6 +6371,9 @@ createApp({
       campaigns:[], campaignCounts:{}, campaignTitles:{}, campaignsTotal:0, campaignPage:1,
       campaignPageSize:20,
       rollbackBusy:false, shadowBusy:false,
+      takeoverArmed:false, takeoverBusy:false,
+      chgIgnoreOpen:false, chgIgnores:[], chgIgnoreBlocked:[], chgIgnoreBusy:false,
+      chgIgnorePattern:'', chgIgnoreNote:'',
       actFilter:{tool:'',verdict:'',q:'',page:1}, actPageSize:20, actTotal:0,
       sigFilter:{kind:'',severity:'',q:'',page:1}, sigPageSize:20, sigTotal:0,
       quePage:1, quePageSize:10, queTotal:0,
@@ -6228,6 +6418,12 @@ createApp({
       return list.filter(a => a.verdict === 'shadow');
     },
     campaignPages(){ return Math.max(1, Math.ceil((this.campaignsTotal||0) / this.campaignPageSize)); },
+    // 接管是单向的（没有「解除接管」接口），所以只对还在流程里的事件开放：
+    // 已解决/已失败/已忽略/已被别人接管的事件给这个按钮只会制造困惑。
+    incCanTakeover(){
+      const st = this.incDetail && this.incDetail.incident.status;
+      return ['open','triggered','running'].indexOf(st) >= 0;
+    },
     // 全部处理过就不给按钮：点了只会弹「没有可回滚的操作」
     hasPendingRollback(){
       return ((this.incDetail && this.incDetail.journal) || []).some(j => !j.undone && j.undoable);
@@ -6803,6 +6999,7 @@ createApp({
       this.incMembersAll = [];
       this.incMembersTruncated = false;
       this.incFeedbackSent = false;
+      this.takeoverArmed = false;
       try{
         const d = await this.api('/sentinel/incidents/'+i.id);
         if(d) this.incDetail = d;
@@ -6829,12 +7026,70 @@ createApp({
         this.loadSentinel();
       }catch(e){ this.toast(e.message||''); }
     },
+    // 两段式：接管之后 Agent 不再对这个事件动手，且没有「解除接管」接口，
+    // 一次点击就生效太容易误触。
+    armTakeover(){
+      if(!this.takeoverArmed){ this.takeoverArmed = true; return; }
+      this.takeoverArmed = false;
+      if(this.incDetail) this.takeoverIncident(this.incDetail.incident);
+    },
     async takeoverIncident(i){
+      this.takeoverBusy = true;
       try{
-        await this.api('/sentinel/incidents/'+i.id+'/takeover', {method:'POST', body: JSON.stringify({
+        const d = await this.api('/sentinel/incidents/'+i.id+'/takeover', {method:'POST', body: JSON.stringify({
           by:(this.profile&&this.profile.username)||''})});
-        this.toast(this.t('common.saved'));
+        this.toast(this.t('sent.takeover.done').replace('{by}', (d&&d.by) || ''));
+        if(this.incDetail && this.incDetail.incident.id === i.id){
+          this.incDetail = Object.assign({}, this.incDetail, {
+            incident: Object.assign({}, this.incDetail.incident, {
+              status:'taken_over', ignored_by: (d&&d.by)||'' })
+          });
+        }
         this.loadIncidents(this.incFilter.page);
+      }catch(e){ this.toast(e.message||''); }
+      finally{ this.takeoverBusy = false; }
+    },
+    // ---- 变更忽略规则 ----
+    // 从一条变更的路径推导出默认规则：忽略它所在目录的一级内容，
+    // 这是「这个目录一直在变」最常见的诉求；要连子目录一起忽略就把 * 改成 **。
+    ignorePatternFor(path){
+      if(!path) return '';
+      const i = path.lastIndexOf('/');
+      if(i <= 0) return path;
+      return path.slice(0, i) + '/*';
+    },
+    openChgIgnores(prefill){
+      this.chgIgnoreOpen = true;
+      this.chgIgnorePattern = prefill || '';
+      this.chgIgnoreNote = '';
+      this.loadChgIgnores();
+    },
+    async loadChgIgnores(){
+      try{
+        const d = await this.api('/changes/ignore');
+        this.chgIgnores = (d && d.list) || [];
+        this.chgIgnoreBlocked = (d && d.blocked) || [];
+      }catch(e){ this.toast(e.message||''); }
+    },
+    async addChgIgnore(){
+      const pattern = (this.chgIgnorePattern||'').trim();
+      if(!pattern) return;
+      this.chgIgnoreBusy = true;
+      try{
+        await this.api('/changes/ignore', {method:'POST', body: JSON.stringify({
+          pattern, note:(this.chgIgnoreNote||'').trim()})});
+        this.chgIgnorePattern = '';
+        this.chgIgnoreNote = '';
+        await this.loadChgIgnores();
+        this.toast(this.t('chg.ignore.added'));
+      }catch(e){ this.toast(e.message||''); }
+      finally{ this.chgIgnoreBusy = false; }
+    },
+    async delChgIgnore(g){
+      try{
+        await this.api('/changes/ignore/'+g.id, {method:'DELETE'});
+        await this.loadChgIgnores();
+        this.toast(this.t('chg.ignore.removed'));
       }catch(e){ this.toast(e.message||''); }
     },
     openSentinelReport(i){

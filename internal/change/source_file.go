@@ -213,7 +213,9 @@ func (s *fileSource) accept(path string) bool {
 		return false
 	}
 	for _, pat := range append(s.cfg.File.IgnoreGlobs, s.userIgnores()...) {
-		if ok, _ := filepath.Match(pat, p); ok {
+		// matchGlob, not filepath.Match: user rules are written with "**" and must
+		// behave the way people expect from rsync/gitignore.
+		if matchGlob(pat, p) {
 			return false
 		}
 	}

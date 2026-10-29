@@ -488,13 +488,36 @@ func (h *SentinelHandler) Feedback(c *gin.Context) {
 // Takeover POST /sentinel/incidents/:id/takeover
 func (h *SentinelHandler) Takeover(c *gin.Context) {
 	id := c.Param("id")
+	var inc model.Incident
+	if err := h.DB.First(&inc, "id = ?", id).Error; err != nil {
+		response.Error(c, 404, response.CodeNotFound, "事件不存在")
+		return
+	}
 	var req struct {
 		By string `json:"by"`
 	}
 	_ = c.ShouldBindJSON(&req)
-	h.DB.Model(&model.Incident{}).Where("id = ?", id).
-		Updates(map[string]any{"status": model.IncidentTakenOver, "ignored_by": req.By})
-	response.OK(c, gin.H{"status": "taken_over"})
+	by := strings.TrimSpace(req.By)
+	if by == "" {
+		// Same reason as the feedback endpoint: the middleware only puts the numeric
+		// id on the context, and a handover without a name is not auditable.
+		if uid, ok := c.Get("userID"); ok {
+			var u model.User
+			if err := h.DB.Select("username").First(&u, "id = ?", uid).Error; err == nil {
+				by = u.Username
+			}
+		}
+	}
+	upd := map[string]any{"status": model.IncidentTakenOver, "ignored_by": by, "updated_at": time.Now()}
+	if inc.PolicyName != "" {
+		// Keep the policy name for history; takeover does not rewrite what happened.
+		upd["policy_name"] = inc.PolicyName
+	}
+	if err := h.DB.Model(&model.Incident{}).Where("id = ?", id).Updates(upd).Error; err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"status": model.IncidentTakenOver, "by": by})
 }
 
 // Policies GET /sentinel/policies

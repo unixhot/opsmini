@@ -185,7 +185,8 @@ func (h *ChangeHandler) AddIgnore(c *gin.Context) {
 		return
 	}
 	if err := h.Store.AddIgnore(req.Pattern, req.Note); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		// A duplicate is a user mistake, not a server fault.
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
 		return
 	}
 	response.OK(c, gin.H{"ok": true})

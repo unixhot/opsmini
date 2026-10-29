@@ -382,9 +382,20 @@ func (s *Store) IgnorePatterns() []string {
 func (s *Store) AddIgnore(pattern, note string) error {
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
-		return errors.New("pattern required")
+		return errors.New("请填写路径规则")
 	}
-	return s.db.Create(&model.ChangeIgnore{Pattern: pattern, Note: note}).Error
+	// Check first: letting the unique index raise turns a duplicate into
+	// "constraint failed: UNIQUE constraint failed: change_ignore.pattern (2067)",
+	// which is both unreadable and leaks storage details to the panel.
+	var n int64
+	s.db.Model(&model.ChangeIgnore{}).Where("pattern = ?", pattern).Count(&n)
+	if n > 0 {
+		return fmt.Errorf("规则已存在：%s", pattern)
+	}
+	if err := s.db.Create(&model.ChangeIgnore{Pattern: pattern, Note: note}).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 // RemoveIgnore deletes a glob.

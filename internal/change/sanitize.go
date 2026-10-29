@@ -56,7 +56,7 @@ func IsBlocked(path string, extra []string) bool {
 		}
 	}
 	for _, pat := range extra {
-		if ok, _ := filepath.Match(pat, p); ok {
+		if matchGlob(pat, p) {
 			return true
 		}
 	}
