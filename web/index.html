@@ -2917,6 +2917,7 @@
             <span :class="{active: settingsTab==='theme'}" @click="settingsTab='theme'">{{ t('set.theme') }}</span>
             <span :class="{active: settingsTab==='menu'}" @click="settingsTab='menu'">{{ t('set.menu') }}</span>
             <span :class="{active: settingsTab==='metrics'}" @click="settingsTab='metrics'">{{ t('set.metrics') }}</span>
+            <span :class="{active: settingsTab==='plugins'}" @click="settingsTab='plugins'; loadPlugins()">{{ t('set.plugins') }}</span>
             <span :class="{active: settingsTab==='retention'}" @click="setSettingsTab('retention')">{{ t('set.retention') }}</span>
             <span :class="{active: settingsTab==='notify'}" @click="setSettingsTab('notify')">{{ t('set.notify') }}</span>
             <!-- v1.0 暂隐藏应用模版 Tab（下个版本发布），恢复时取消注释
@@ -3141,6 +3142,59 @@
               <div class="form-hint" style="margin-top:0">{{ t('set.metricsHint') }}</div>
               <div class="row" style="justify-content:flex-end;position:relative;z-index:1">
                 <button class="btn primary" @click="saveMetricsSettings">{{ t('btn.save') }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 插件（本地执行端：包校验 + 独立进程 + socket 上报） -->
+        <div v-if="settingsTab==='plugins'">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">{{ t('plugin.title') }}</div>
+              <div class="row" style="gap:8px">
+                <button class="btn sm ghost" @click="loadPlugins()">{{ t('btn.refresh') }}</button>
+                <label class="btn sm primary" style="cursor:pointer" v-if="hasPerm('settings.edit')">
+                  {{ t('plugin.install') }}
+                  <input type="file" accept=".gz,.tgz,application/gzip" style="display:none" @change="installPlugin($event)">
+                </label>
+              </div>
+            </div>
+            <div class="card-body p0">
+              <div class="explain-strip" style="margin:14px 16px">
+                <span class="ei">i</span><span>{{ t('plugin.hint') }}</span>
+              </div>
+              <div class="table-wrap" v-if="(plugins||[]).length">
+                <table class="st-tbl">
+                  <thead><tr>
+                    <th>{{ t('plugin.name') }}</th><th>{{ t('plugin.version') }}</th><th>{{ t('plugin.kind') }}</th>
+                    <th>{{ t('plugin.state') }}</th><th>{{ t('plugin.restarts') }}</th><th>{{ t('plugin.error') }}</th><th>{{ t('common.actions') }}</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr v-for="p in plugins" :key="p.id">
+                      <td><div style="font-weight:500">{{ p.name }}</div><div class="mute mono" style="font-size:11px">{{ p.id }}</div></td>
+                      <td class="mono">{{ p.version }}</td>
+                      <td><span class="tag info">{{ p.kind }}</span></td>
+                      <td>
+                        <span class="tag" :class="p.state==='running' ? 'ok' : (p.state==='failed' ? 'err' : 'mute')">{{ plugStateName(p.state) }}</span>
+                        <span class="switch" style="margin-left:8px" :class="{on:p.enabled}" @click="togglePlugin(p)" v-if="hasPerm('settings.edit')"></span>
+                      </td>
+                      <td class="mono">{{ p.restarts }}</td>
+                      <td class="mute" style="font-size:11.5px" :title="p.last_error">{{ p.last_error || '-' }}</td>
+                      <td style="white-space:nowrap">
+                        <a class="link" @click="restartPlugin(p.id)" v-if="hasPerm('settings.edit')">{{ t('plugin.restart') }}</a>
+                        <a class="link" style="margin-left:8px" @click="deletePlugin(p.id)" v-if="hasPerm('settings.edit')">{{ t('common.delete') }}</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else style="padding:24px;text-align:center;color:var(--t3)">{{ t('plugin.empty') }}</div>
+              <div v-if="(pluginEvents||[]).length" style="padding:10px 16px;border-top:1px solid var(--border)">
+                <div class="mute" style="font-size:11.5px;margin-bottom:4px">{{ t('plugin.events') }}</div>
+                <div v-for="(e,i) in pluginEvents.slice(0,10)" :key="i" class="mute mono" style="font-size:11px;line-height:1.7">
+                  · [{{ e.plugin }}] {{ e.level }} {{ e.message }}
+                </div>
               </div>
             </div>
           </div>
@@ -4382,7 +4436,7 @@ const I18N11 = {
     'menu.changes':'变更','chg.desc':'主机上发生过的修改：配置改动、软件包安装升级、服务状态变化、账号与权限变更、防火墙规则、定时任务。它是排查故障的上下文，不是告警。','chg.health':'采集状态','chg.chainOk':'变更链完整','chg.chainBad':'变更链异常','chg.verify':'校验','chg.srcOn':'运行中','chg.srcOff':'未运行','chg.source.file':'配置文件','chg.source.package':'软件包','chg.source.service':'服务','chg.source.account':'账号权限','chg.source.firewall':'防火墙','chg.source.cron':'定时任务','chg.usage':'已记录','chg.safetyHint':'变更记录只用于提供线索，永远不会触发自动处置——这是防止攻击者通过修改配置诱导 Agent 的安全设计。敏感文件（shadow、私钥、命令历史）不采集内容；配置文件里的密码在入库前已脱敏。','chg.kind.all':'全部','chg.kind.config':'配置','chg.kind.package':'软件包','chg.kind.service':'服务','chg.kind.account':'账号','chg.kind.firewall':'防火墙','chg.kind.cron':'定时任务','chg.col.object':'对象','chg.col.delta':'变化','chg.col.actor':'操作者','chg.col.action':'操作','chg.col.fields':'涉及字段','chg.score':'相关性','chg.inferred':'推测','chg.unknown':'未知','chg.detail':'详情','chg.records':'条记录','chg.noDiff':'（没有保存正文：可能是含敏感内容的文件，或正文已过保留期）','chg.truncated':'正文过长已截断','chg.restore':'回滚到变更前','chg.confirmRestore':'确认回滚？','chg.restored':'已回滚','chg.restoreFail':'回滚失败','chg.related':'相关变更（最近 30 分钟）','chg.relatedHint':'这些只是时间上接近的变更，不等于原因。',
     'term.reconnecting':'[正在重新连接…]','term.reconnected':'[已重新连接]','term.disconnected':'[连接已断开]',
     'sentinel.st.open':'待唤醒','sent.unresolved.hint':'待处置 = 所有还没有结束的事件，它是「待唤醒 + 执行中 + 失败」三项之和，不是独立状态。所以这里的数字大于等于「待唤醒」和「失败」两个页签，那些事件也会同时出现在这里。','sent.open.tip':'待唤醒 = 事件已成型，但策略条件没同时满足（分类匹配 / 等级达标 / 不在冷却），Agent 还没被唤醒，不消耗模型额度。','sent.open.hint':'待唤醒 = 信号已经聚合成事件，但 Agent 还没被叫醒。策略要同时满足三个条件才会唤醒它：分类匹配、等级达到阈值、不在冷却期内；只要有一条不满足，事件就只记录、不消耗模型额度——扫描探测这类噪音会一直堆在这里。打开事件详情能看到关联信号，确实不用管的可以点「忽略」。',
-    'set.retention':'数据保留',
+    'set.plugins':'插件','plugin.title':'插件','plugin.install':'上传安装','plugin.hint':'插件以独立进程运行，只能通过 unix socket 上报指标与事件；包必须带 sha256，配了公钥时还会校验签名。','plugin.name':'名称','plugin.version':'版本','plugin.kind':'类型','plugin.state.running':'运行中','plugin.state.stopped':'已停止','plugin.state.failed':'失败','plugin.state.installed':'已安装','plugin.state':'状态','plugin.restarts':'重启次数','plugin.error':'错误','plugin.restart':'重启','plugin.empty':'还没有安装插件','plugin.events':'最近事件','plugin.installed':'已安装','plugin.deleteTitle':'删除插件','plugin.deleteConfirm':'删除后该插件的程序文件会被移除（数据目录保留）。','set.retention':'数据保留',
     'ret.title':'事件数据保留',
     'ret.hint':'采集器每小时清理一次过期数据。清理只针对已处置事件；待处置事件连同它的信号与动作链永不自动删除。填 0 表示永久保留。想让历史彻底干净，用页面底部的「清空事件历史」。',
     'ret.eventsLabel':'事件与信号保留',
@@ -4409,7 +4463,7 @@ const I18N11 = {
     'menu.changes':'變更','chg.desc':'主機上發生過的修改：設定改動、套件安裝升級、服務狀態變化、帳號與權限變更、防火牆規則、排程任務。它是排查故障的背景，不是告警。','chg.health':'採集狀態','chg.chainOk':'變更鏈完整','chg.chainBad':'變更鏈異常','chg.verify':'校驗','chg.srcOn':'執行中','chg.srcOff':'未執行','chg.source.file':'設定檔','chg.source.package':'套件','chg.source.service':'服務','chg.source.account':'帳號權限','chg.source.firewall':'防火牆','chg.source.cron':'排程任務','chg.usage':'已記錄','chg.safetyHint':'變更記錄只用於提供線索，永遠不會觸發自動處置——這是防止攻擊者透過修改設定誘導 Agent 的安全設計。敏感檔案（shadow、私鑰、指令歷史）不採集內容；設定檔裡的密碼在入庫前已脫敏。','chg.kind.all':'全部','chg.kind.config':'設定','chg.kind.package':'套件','chg.kind.service':'服務','chg.kind.account':'帳號','chg.kind.firewall':'防火牆','chg.kind.cron':'排程任務','chg.col.object':'對象','chg.col.delta':'變化','chg.col.actor':'操作者','chg.col.action':'操作','chg.col.fields':'涉及欄位','chg.score':'相關性','chg.inferred':'推測','chg.unknown':'未知','chg.detail':'詳情','chg.records':'筆記錄','chg.noDiff':'（沒有保存正文：可能是含敏感內容的檔案，或正文已過保留期）','chg.truncated':'正文過長已截斷','chg.restore':'還原到變更前','chg.confirmRestore':'確認還原？','chg.restored':'已還原','chg.restoreFail':'還原失敗','chg.related':'相關變更（最近 30 分鐘）','chg.relatedHint':'這些只是時間上接近的變更，不等於原因。',
     'term.reconnecting':'[正在重新連線…]','term.reconnected':'[已重新連線]','term.disconnected':'[連線已中斷]',
     'sentinel.st.open':'待喚醒','sent.unresolved.hint':'待處置 = 所有還沒結束的事件，它是「待喚醒 + 執行中 + 失敗」三項之和，不是獨立狀態。所以這裡的數字大於等於「待喚醒」和「失敗」兩個頁籤，那些事件也會同時出現在這裡。','sent.open.tip':'待喚醒 = 事件已成形，但策略條件沒有同時滿足（分類符合 / 等級達標 / 不在冷卻），Agent 還沒被喚醒，不消耗模型額度。','sent.open.hint':'待喚醒 = 訊號已經聚合成事件，但 Agent 還沒被叫醒。策略要同時滿足三個條件才會喚醒它：分類符合、等級達到閾值、不在冷卻期內；只要有一條不滿足，事件就只記錄、不消耗模型額度——掃描探測這類噪音會一直堆在這裡。開啟事件詳情能看到關聯訊號，確定不用管的可以點「忽略」。',
-    'set.retention':'資料保留',
+    'set.plugins':'外掛','plugin.title':'外掛','plugin.install':'上傳安裝','plugin.hint':'外掛以獨立程序執行，只能透過 unix socket 上報指標與事件；套件必須帶 sha256，設定公鑰時還會驗證簽章。','plugin.name':'名稱','plugin.version':'版本','plugin.kind':'類型','plugin.state.running':'運行中','plugin.state.stopped':'已停止','plugin.state.failed':'失敗','plugin.state.installed':'已安裝','plugin.state':'狀態','plugin.restarts':'重啟次數','plugin.error':'錯誤','plugin.restart':'重啟','plugin.empty':'還沒有安裝外掛','plugin.events':'最近事件','plugin.installed':'已安裝','plugin.deleteTitle':'刪除外掛','plugin.deleteConfirm':'刪除後該外掛的程式檔案會被移除（資料目錄保留）。','set.retention':'資料保留',
     'ret.title':'事件資料保留',
     'ret.hint':'採集器每小時清理一次過期資料。清理只針對已處置事件；待處置事件連同它的訊號與動作鏈永不自動刪除。填 0 表示永久保留。想讓歷史徹底乾淨，用頁面底部的「清空事件歷史」。',
     'ret.eventsLabel':'事件與訊號保留',
@@ -4436,7 +4490,7 @@ const I18N11 = {
     'menu.changes':'Changes','chg.desc':'Every modification made to this host: config edits, package installs and upgrades, service state changes, account and permission changes, firewall rules, scheduled jobs. It is context for diagnosis, not an alert.','chg.health':'Collection status','chg.chainOk':'Chain intact','chg.chainBad':'Chain broken','chg.verify':'Verify','chg.srcOn':'running','chg.srcOff':'stopped','chg.source.file':'Config files','chg.source.package':'Packages','chg.source.service':'Services','chg.source.account':'Accounts','chg.source.firewall':'Firewall','chg.source.cron':'Scheduled jobs','chg.usage':'Recorded','chg.safetyHint':'Change records only provide leads and never trigger automated actions — that is a deliberate safeguard against an attacker who edits a config file to steer the agent. Sensitive files (shadow, private keys, shell history) are never read; secrets inside config files are redacted before storage.','chg.kind.all':'All','chg.kind.config':'Config','chg.kind.package':'Package','chg.kind.service':'Service','chg.kind.account':'Account','chg.kind.firewall':'Firewall','chg.kind.cron':'Cron','chg.col.object':'Object','chg.col.delta':'Delta','chg.col.actor':'Actor','chg.col.action':'Action','chg.col.fields':'Fields','chg.score':'relevance','chg.inferred':'inferred','chg.unknown':'unknown','chg.detail':'Details','chg.records':'records','chg.noDiff':'(no body kept: file contained secrets, or the body has expired)','chg.truncated':'Body truncated','chg.restore':'Roll back','chg.confirmRestore':'Confirm rollback?','chg.restored':'Rolled back','chg.restoreFail':'Rollback failed','chg.related':'Related changes (last 30 min)','chg.relatedHint':'These are changes close in time, not proven causes.',
     'term.reconnecting':'[Reconnecting…]','term.reconnected':'[Reconnected]','term.disconnected':'[Disconnected]',
     'sentinel.st.open':'Awaiting agent','sent.unresolved.hint':'To handle = every incident that has not finished yet: the sum of awaiting agent, running and failed, not a state of its own. That is why this number is at least as large as the awaiting and failed tabs, and those incidents appear here too.','sent.open.tip':'Awaiting agent = the incident exists, but the policy conditions (category match, severity, cooldown) are not all met, so the agent was never woken and no tokens are spent.','sent.open.hint':'Awaiting agent means the signals have been clustered into an incident but the agent has not been woken. A policy fires only when all three hold at once: matching category, severity at or above the threshold, and outside the cooldown window. If any one fails, the incident is merely recorded and no model tokens are spent, which is why scanning noise piles up here. Open an incident to see its related signals, or ignore it if it needs no action.',
-    'set.retention':'Retention',
+    'set.plugins':'Plugins','plugin.title':'Plugins','plugin.install':'Upload & install','plugin.hint':'Plugins run as separate processes and can only report metrics and events over a unix socket. A package must carry a sha256; when a public key is configured the signature is verified too.','plugin.name':'Name','plugin.version':'Version','plugin.kind':'Kind','plugin.state.running':'Running','plugin.state.stopped':'Stopped','plugin.state.failed':'Failed','plugin.state.installed':'Installed','plugin.state':'State','plugin.restarts':'Restarts','plugin.error':'Error','plugin.restart':'Restart','plugin.empty':'No plugins installed','plugin.events':'Recent events','plugin.installed':'Installed','plugin.deleteTitle':'Delete plugin','plugin.deleteConfirm':'Removes the plugin program files (its data directory is kept).','set.retention':'Retention',
     'ret.title':'Event data retention',
     'ret.hint':'Collectors clean up once an hour, and only ever touch handled incidents; an open incident and its signals and action chain are never removed automatically. Set 0 to keep forever. To start from a blank history, use "Clear event history" at the bottom.',
     'ret.eventsLabel':'Keep events and signals',
@@ -4463,7 +4517,7 @@ const I18N11 = {
     'menu.changes':'変更','chg.desc':'このホストで行われた変更：設定の変更、パッケージの導入・更新、サービスの状態変化、アカウントと権限の変更、ファイアウォール規則、定期実行ジョブ。これは診断の文脈であり、アラートではありません。','chg.health':'収集状態','chg.chainOk':'変更チェーン正常','chg.chainBad':'変更チェーン異常','chg.verify':'検証','chg.srcOn':'稼働中','chg.srcOff':'停止','chg.source.file':'設定ファイル','chg.source.package':'パッケージ','chg.source.service':'サービス','chg.source.account':'アカウント','chg.source.firewall':'ファイアウォール','chg.source.cron':'定期ジョブ','chg.usage':'記録済み','chg.safetyHint':'変更記録は手がかりの提供のみに使い、自動処理を起動することは決してありません。設定ファイルを書き換えてエージェントを誘導する攻撃への対策です。機密ファイル（shadow、秘密鍵、コマンド履歴）は内容を収集せず、設定内のパスワードは保存前に伏せ字化します。','chg.kind.all':'すべて','chg.kind.config':'設定','chg.kind.package':'パッケージ','chg.kind.service':'サービス','chg.kind.account':'アカウント','chg.kind.firewall':'ファイアウォール','chg.kind.cron':'定期ジョブ','chg.col.object':'対象','chg.col.delta':'差分','chg.col.actor':'実行者','chg.col.action':'操作','chg.col.fields':'対象項目','chg.score':'関連度','chg.inferred':'推定','chg.unknown':'不明','chg.detail':'詳細','chg.records':'件','chg.noDiff':'（本文なし：機密内容を含むファイルか、保存期間を過ぎています）','chg.truncated':'本文は切り詰められました','chg.restore':'変更前に戻す','chg.confirmRestore':'戻しますか？','chg.restored':'戻しました','chg.restoreFail':'戻せませんでした','chg.related':'関連する変更（直近 30 分）','chg.relatedHint':'時間的に近いというだけで、原因と確定したわけではありません。',
     'term.reconnecting':'[再接続中…]','term.reconnected':'[再接続しました]','term.disconnected':'[接続が切れました]',
     'sentinel.st.open':'起動待ち','sent.unresolved.hint':'未処理 = まだ終わっていないインシデントすべてで、「起動待ち + 実行中 + 失敗」の合計です。独立した状態ではありません。そのためこの数は「起動待ち」「失敗」の各タブ以上になり、それらもここに表示されます。','sent.open.tip':'起動待ち = インシデントは出来ていますが、ポリシー条件（分類一致 / しきい値 / クールダウン）が揃わず、エージェントは起動していません。トークンは消費しません。','sent.open.hint':'起動待ちとは、シグナルが 1 つのインシデントにまとまったものの、まだエージェントを起動していない状態です。ポリシーは 3 条件が同時に成立したときだけ起動します：分類の一致、しきい値以上の重要度、クールダウン外。1 つでも欠けると記録だけが残り、トークンは消費しません。そのためスキャン等のノイズがここに溜まります。詳細を開けば関連シグナルを確認でき、対応不要なら「無視」できます。',
-    'set.retention':'データ保持',
+    'set.plugins':'プラグイン','plugin.title':'プラグイン','plugin.install':'アップロードして導入','plugin.hint':'プラグインは独立したプロセスとして動作し、unix socket 経由でのみメトリクスとイベントを報告できます。パッケージには sha256 が必須で、公開鍵が設定されていれば署名も検証します。','plugin.name':'名前','plugin.version':'バージョン','plugin.kind':'種類','plugin.state.running':'稼働中','plugin.state.stopped':'停止','plugin.state.failed':'失敗','plugin.state.installed':'導入済み','plugin.state':'状態','plugin.restarts':'再起動回数','plugin.error':'エラー','plugin.restart':'再起動','plugin.empty':'プラグインは未導入です','plugin.events':'最近のイベント','plugin.installed':'導入済み','plugin.deleteTitle':'プラグインを削除','plugin.deleteConfirm':'プラグインのプログラムを削除します（データディレクトリは残ります）。','set.retention':'データ保持',
     'ret.title':'イベントデータの保持',
     'ret.hint':'コレクタは 1 時間ごとに期限切れデータを削除します。対象は処理済みインシデントのみで、未処理インシデントとそのシグナル・アクション履歴は自動削除されません。0 は永久保持です。完全に初期化したい場合は下部の「イベント履歴を消去」を使います。',
     'ret.eventsLabel':'イベントとシグナルの保持',
@@ -4490,7 +4544,7 @@ const I18N11 = {
     'menu.changes':'변경','chg.desc':'이 호스트에서 발생한 모든 수정: 설정 변경, 패키지 설치/업그레이드, 서비스 상태 변화, 계정 및 권한 변경, 방화벽 규칙, 예약 작업. 진단을 위한 맥락이며 경고가 아닙니다.','chg.health':'수집 상태','chg.chainOk':'체인 정상','chg.chainBad':'체인 이상','chg.verify':'검증','chg.srcOn':'실행 중','chg.srcOff':'중지','chg.source.file':'설정 파일','chg.source.package':'패키지','chg.source.service':'서비스','chg.source.account':'계정 권한','chg.source.firewall':'방화벽','chg.source.cron':'예약 작업','chg.usage':'기록됨','chg.safetyHint':'변경 기록은 단서 제공에만 쓰이며 자동 조치를 절대 유발하지 않습니다. 설정 파일을 고쳐 에이전트를 유도하는 공격에 대한 방어입니다. 민감 파일(shadow, 개인 키, 명령 기록)은 내용을 수집하지 않고, 설정 내 비밀번호는 저장 전에 마스킹합니다.','chg.kind.all':'전체','chg.kind.config':'설정','chg.kind.package':'패키지','chg.kind.service':'서비스','chg.kind.account':'계정','chg.kind.firewall':'방화벽','chg.kind.cron':'예약 작업','chg.col.object':'대상','chg.col.delta':'변화','chg.col.actor':'작업자','chg.col.action':'작업','chg.col.fields':'관련 필드','chg.score':'관련도','chg.inferred':'추정','chg.unknown':'알 수 없음','chg.detail':'상세','chg.records':'건','chg.noDiff':'(본문 없음: 민감 내용이 있거나 보관 기간이 지났습니다)','chg.truncated':'본문이 잘렸습니다','chg.restore':'변경 전으로 되돌리기','chg.confirmRestore':'되돌릴까요?','chg.restored':'되돌렸습니다','chg.restoreFail':'되돌리기 실패','chg.related':'관련 변경(최근 30분)','chg.relatedHint':'시간적으로 가까울 뿐 원인이라고 단정할 수 없습니다.',
     'term.reconnecting':'[다시 연결 중…]','term.reconnected':'[다시 연결됨]','term.disconnected':'[연결이 끊어졌습니다]',
     'sentinel.st.open':'대기 중','sent.unresolved.hint':'처리 필요 = 아직 끝나지 않은 모든 이벤트로, 대기 중 + 실행 중 + 실패의 합계입니다. 별도의 상태가 아닙니다. 그래서 이 숫자는 대기 중·실패 탭보다 크거나 같고, 그 이벤트들도 여기에 함께 표시됩니다.','sent.open.tip':'대기 중 = 이벤트는 생성되었지만 정책 조건(분류 일치 / 등급 / 쿨다운)이 모두 충족되지 않아 에이전트가 호출되지 않았고, 토큰도 소모되지 않았습니다.','sent.open.hint':'대기 중은 신호가 하나의 이벤트로 묶였지만 아직 에이전트가 호출되지 않은 상태입니다. 정책은 세 조건이 동시에 충족될 때만 실행됩니다: 분류 일치, 등급이 임계값 이상, 쿨다운 밖. 하나라도 어긋나면 기록만 남고 모델 토큰은 소모되지 않습니다. 그래서 스캔 같은 노이즈가 여기에 쌓입니다. 이벤트 상세에서 관련 신호를 확인하고, 조치가 필요 없으면 무시할 수 있습니다.',
-    'set.retention':'데이터 보존',
+    'set.plugins':'플러그인','plugin.title':'플러그인','plugin.install':'업로드 설치','plugin.hint':'플러그인은 별도 프로세스로 실행되며 unix socket으로만 지표와 이벤트를 보고할 수 있습니다. 패키지에는 sha256이 필요하고, 공개 키가 설정되어 있으면 서명도 검증합니다.','plugin.name':'이름','plugin.version':'버전','plugin.kind':'유형','plugin.state.running':'실행 중','plugin.state.stopped':'중지됨','plugin.state.failed':'실패','plugin.state.installed':'설치됨','plugin.state':'상태','plugin.restarts':'재시작 횟수','plugin.error':'오류','plugin.restart':'재시작','plugin.empty':'설치된 플러그인이 없습니다','plugin.events':'최근 이벤트','plugin.installed':'설치됨','plugin.deleteTitle':'플러그인 삭제','plugin.deleteConfirm':'플러그인 프로그램 파일을 삭제합니다(데이터 디렉터리는 유지).','set.retention':'데이터 보존',
     'ret.title':'이벤트 데이터 보존',
     'ret.hint':'수집기는 1시간마다 만료된 데이터를 정리합니다. 정리 대상은 처리된 이벤트뿐이며, 미처리 이벤트와 그 신호·동작 기록은 자동 삭제되지 않습니다. 0은 영구 보존입니다. 기록을 완전히 초기화하려면 하단의 "이벤트 기록 비우기"를 사용하세요.',
     'ret.eventsLabel':'이벤트 및 신호 보존',
@@ -4517,7 +4571,7 @@ const I18N11 = {
     'menu.changes':'การเปลี่ยนแปลง','chg.desc':'ทุกการแก้ไขบนโฮสต์นี้: แก้ไขคอนฟิก ติดตั้ง/อัปเกรดแพ็กเกจ สถานะบริการเปลี่ยน แก้ไขบัญชีและสิทธิ์ กฎไฟร์วอลล์ งานตั้งเวลา เป็นบริบทสำหรับวินิจฉัย ไม่ใช่การแจ้งเตือน','chg.health':'สถานะการเก็บข้อมูล','chg.chainOk':'เชนสมบูรณ์','chg.chainBad':'เชนผิดปกติ','chg.verify':'ตรวจสอบ','chg.srcOn':'ทำงานอยู่','chg.srcOff':'หยุด','chg.source.file':'ไฟล์คอนฟิก','chg.source.package':'แพ็กเกจ','chg.source.service':'บริการ','chg.source.account':'บัญชีและสิทธิ์','chg.source.firewall':'ไฟร์วอลล์','chg.source.cron':'งานตั้งเวลา','chg.usage':'บันทึกแล้ว','chg.safetyHint':'บันทึกการเปลี่ยนแปลงใช้เป็นเบาะแสเท่านั้น และจะไม่กระตุ้นการจัดการอัตโนมัติเลย — เป็นการป้องกันผู้โจมตีที่แก้ไฟล์คอนฟิกเพื่อชี้นำเอเจนต์ ไฟล์อ่อนไหว (shadow, กุญแจส่วนตัว, ประวัติคำสั่ง) จะไม่ถูกอ่าน และรหัสผ่านในคอนฟิกจะถูกปิดบังก่อนบันทึก','chg.kind.all':'ทั้งหมด','chg.kind.config':'คอนฟิก','chg.kind.package':'แพ็กเกจ','chg.kind.service':'บริการ','chg.kind.account':'บัญชี','chg.kind.firewall':'ไฟร์วอลล์','chg.kind.cron':'งานตั้งเวลา','chg.col.object':'วัตถุ','chg.col.delta':'ส่วนต่าง','chg.col.actor':'ผู้กระทำ','chg.col.action':'การกระทำ','chg.col.fields':'ฟิลด์ที่เกี่ยวกับ','chg.score':'ความเกี่ยวข้อง','chg.inferred':'คาดเดา','chg.unknown':'ไม่ทราบ','chg.detail':'รายละเอียด','chg.records':'รายการ','chg.noDiff':'(ไม่เก็บบันทึกเนื้อหา: ไฟล์มีข้อมูลอ่อนไหว หรือหมดอายุการเก็บ)','chg.truncated':'เนื้อหาถูกตัด','chg.restore':'ย้อนกลับก่อนการเปลี่ยนแปลง','chg.confirmRestore':'ยืนยันย้อนกลับ?','chg.restored':'ย้อนกลับแล้ว','chg.restoreFail':'ย้อนกลับไม่สำเร็จ','chg.related':'การเปลี่ยนแปลงที่เกี่ยวข้อง (30 นาทีล่าสุด)','chg.relatedHint':'เป็นเพียงการเปลี่ยนแปลงที่ใกล้เคียงเวลา ไม่ได้ยืนยันว่าเป็นสาเหตุ',
     'term.reconnecting':'[กำลังเชื่อมต่อใหม่…]','term.reconnected':'[เชื่อมต่อใหม่แล้ว]','term.disconnected':'[การเชื่อมต่อถูกตัด]',
     'sentinel.st.open':'รอปลุก','sent.unresolved.hint':'รอจัดการ = เหตุการณ์ทั้งหมดที่ยังไม่จบ คือผลรวมของรอปลุก + กำลังทำงาน + ล้มเหลว ไม่ใช่สถานะแยก ดังนั้นตัวเลขนี้จะมากกว่าหรือเท่ากับแท็บรอปลุกและล้มเหลว และเหตุการณ์เหล่านั้นจะปรากฏที่นี่ด้วย','sent.open.tip':'รอปลุก = เหตุการณ์ถูกสร้างแล้ว แต่เงื่อนไขนโยบาย (หมวดตรง / ระดับถึงเกณฑ์ / ไม่อยู่ในคูลดาวน์) ไม่ครบ จึงยังไม่ปลุกเอเจนต์และไม่เสียโทเคน','sent.open.hint':'รอปลุกหมายถึงสัญญาณถูกรวมเป็นเหตุการณ์แล้ว แต่เอเจนต์ยังไม่ถูกปลุก นโยบายจะทำงานเมื่อครบทั้งสามข้อพร้อมกัน: หมวดตรง ระดับถึงเกณฑ์ และอยู่นอกช่วงคูลดาวน์ ถ้าข้อใดข้อหนึ่งไม่ครบ จะเพียงบันทึกเหตุการณ์และไม่เสียโทเคน ทำให้เสียงรบกวนจากการสแกนกองอยู่ที่นี่ เปิดรายละเอียดเพื่อดูสัญญาณที่เกี่ยวข้อง หรือกด ไม่สนใจ หากไม่ต้องจัดการ',
-    'set.retention':'การเก็บข้อมูล',
+    'set.plugins':'ปลั๊กอิน','plugin.title':'ปลั๊กอิน','plugin.install':'อัปโหลดและติดตั้ง','plugin.hint':'ปลั๊กอินทำงานเป็นโปรเซสแยก และรายงานตัวชี้วัดกับเหตุการณ์ผ่าน unix socket เท่านั้น แพ็กเกจต้องมี sha256 และหากตั้งค่ากุญแจสาธารณะจะตรวจสอบลายเซ็นด้วย','plugin.name':'ชื่อ','plugin.version':'เวอร์ชัน','plugin.kind':'ชนิด','plugin.state.running':'กำลังทำงาน','plugin.state.stopped':'หยุดแล้ว','plugin.state.failed':'ล้มเหลว','plugin.state.installed':'ติดตั้งแล้ว','plugin.state':'สถานะ','plugin.restarts':'จำนวนรีสตาร์ท','plugin.error':'ข้อผิดพลาด','plugin.restart':'รีสตาร์ท','plugin.empty':'ยังไม่ได้ติดตั้งปลั๊กอิน','plugin.events':'เหตุการณ์ล่าสุด','plugin.installed':'ติดตั้งแล้ว','plugin.deleteTitle':'ลบปลั๊กอิน','plugin.deleteConfirm':'ลบไฟล์โปรแกรมของปลั๊กอิน (เก็บไดเรกทอรีข้อมูลไว้)','set.retention':'การเก็บข้อมูล',
     'ret.title':'การเก็บข้อมูลเหตุการณ์',
     'ret.hint':'ตัวเก็บข้อมูลจะล้างข้อมูลที่หมดอายุทุกชั่วโมง เฉพาะเหตุการณ์ที่จัดการแล้วเท่านั้น เหตุการณ์ที่ยังไม่จัดการพร้อมสัญญาณและบันทึกการกระทำจะไม่ถูกลบอัตโนมัติ ใส่ 0 เพื่อเก็บถาวร หากต้องการเริ่มประวัติใหม่ทั้งหมดให้ใช้ "ล้างประวัติเหตุการณ์" ด้านล่าง',
     'ret.eventsLabel':'เก็บเหตุการณ์และสัญญาณ',
@@ -4544,7 +4598,7 @@ const I18N11 = {
     'menu.changes':'Änderungen','chg.desc':'Alle Änderungen an diesem Host: Konfigurationsänderungen, Paketinstallationen und -upgrades, Dienststatus, Konten und Rechte, Firewall-Regeln, geplante Aufgaben. Kontext für die Diagnose, keine Warnung.','chg.health':'Erfassungsstatus','chg.chainOk':'Kette intakt','chg.chainBad':'Kette unterbrochen','chg.verify':'Prüfen','chg.srcOn':'läuft','chg.srcOff':'gestoppt','chg.source.file':'Konfigurationsdateien','chg.source.package':'Pakete','chg.source.service':'Dienste','chg.source.account':'Konten','chg.source.firewall':'Firewall','chg.source.cron':'Geplante Aufgaben','chg.usage':'Erfasst','chg.safetyHint':'Änderungsdatensätze liefern nur Hinweise und lösen nie automatische Aktionen aus — das ist Absicht, damit ein Angreifer nicht über eine Konfigurationsdatei den Agenten steuern kann. Sensible Dateien (shadow, private Schlüssel, Befehlsverlauf) werden nicht gelesen; Passwörter in Konfigurationen werden vor dem Speichern unkenntlich gemacht.','chg.kind.all':'Alle','chg.kind.config':'Konfiguration','chg.kind.package':'Paket','chg.kind.service':'Dienst','chg.kind.account':'Konto','chg.kind.firewall':'Firewall','chg.kind.cron':'Geplante Aufgabe','chg.col.object':'Objekt','chg.col.delta':'Änderung','chg.col.actor':'Akteur','chg.col.action':'Aktion','chg.col.fields':'Felder','chg.score':'Relevanz','chg.inferred':'vermutet','chg.unknown':'unbekannt','chg.detail':'Details','chg.records':'Einträge','chg.noDiff':'(kein Inhalt gespeichert: Datei enthielt Geheimnisse oder Inhalt ist abgelaufen)','chg.truncated':'Inhalt gekürzt','chg.restore':'Zurücksetzen','chg.confirmRestore':'Zurücksetzen bestätigen?','chg.restored':'Zurückgesetzt','chg.restoreFail':'Zurücksetzen fehlgeschlagen','chg.related':'Zugehörige Änderungen (letzte 30 Min.)','chg.relatedHint':'Nur zeitliche Nähe, kein bewiesener Zusammenhang.',
     'term.reconnecting':'[Verbindung wird wiederhergestellt…]','term.reconnected':'[Wieder verbunden]','term.disconnected':'[Verbindung getrennt]',
     'sentinel.st.open':'Wartet auf Agent','sent.unresolved.hint':'Zu erledigen = alle noch offenen Vorfälle, also die Summe aus Wartet auf Agent, Läuft und Fehlgeschlagen — kein eigener Status. Deshalb ist diese Zahl mindestens so groß wie die Tabs Wartet auf Agent und Fehlgeschlagen, und deren Vorfälle erscheinen auch hier.','sent.open.tip':'Wartet auf Agent = der Vorfall existiert, aber die Richtlinienbedingungen (Kategorie, Stufe, Abklingzeit) sind nicht alle erfüllt — der Agent wurde nie geweckt, es werden keine Tokens verbraucht.','sent.open.hint':'Wartet auf Agent heißt: Die Signale sind zu einem Vorfall gebündelt, aber der Agent wurde noch nicht geweckt. Eine Richtlinie greift nur, wenn alles drei zugleich zutrifft: passende Kategorie, Stufe über der Schwelle und außerhalb der Abklingzeit. Fehlt eines, wird der Vorfall nur protokolliert und es werden keine Tokens verbraucht — deshalb sammelt sich Scan-Rauschen hier. Details öffnen zeigt die zugehörigen Signale; was niemanden interessiert, lässt sich ignorieren.',
-    'set.retention':'Aufbewahrung',
+    'set.plugins':'Plugins','plugin.title':'Plugins','plugin.install':'Hochladen & installieren','plugin.hint':'Plugins laufen als eigene Prozesse und melden Metriken und Ereignisse ausschließlich über einen Unix-Socket. Ein Paket muss eine sha256 haben; ist ein öffentlicher Schlüssel konfiguriert, wird zusätzlich die Signatur geprüft.','plugin.name':'Name','plugin.version':'Version','plugin.kind':'Art','plugin.state.running':'Läuft','plugin.state.stopped':'Gestoppt','plugin.state.failed':'Fehler','plugin.state.installed':'Installiert','plugin.state':'Status','plugin.restarts':'Neustarts','plugin.error':'Fehler','plugin.restart':'Neu starten','plugin.empty':'Keine Plugins installiert','plugin.events':'Letzte Ereignisse','plugin.installed':'Installiert','plugin.deleteTitle':'Plugin löschen','plugin.deleteConfirm':'Entfernt die Programmdateien des Plugins (Datenverzeichnis bleibt erhalten).','set.retention':'Aufbewahrung',
     'ret.title':'Aufbewahrung der Ereignisdaten',
     'ret.hint':'Collectors räumen stündlich ab, und zwar nur behandelte Vorfälle; ein offener Vorfall samt Signalen und Aktionskette wird nie automatisch gelöscht. 0 bedeutet unbegrenzt. Für einen komplett leeren Verlauf den Knopf "Ereignisverlauf löschen" unten verwenden.',
     'ret.eventsLabel':'Ereignisse und Signale behalten',
@@ -5030,6 +5084,8 @@ createApp({
       appFilter: '',
       logType: 'panel',
       logPipe: { enabled:false, tasks: [], warnings: [] },
+      plugins: [],
+      pluginEvents: [],
       logSources: [],
       logLines: { panel: [], website: [], sys: [] },
       logSourcePath: '',
@@ -7056,6 +7112,49 @@ createApp({
     // 采集管道是只读视图：任务由 OpsAnt 下发，面板只负责看状态
     async loadLogPipe(){
       try{ const d = await this.api('/logpipe/status'); if(d) this.logPipe = d; }catch(e){ this.toast(e.message); }
+    },
+    // 插件：安装走 multipart，其余是普通 JSON 调用
+    async loadPlugins(){
+      try{
+        const d = await this.api('/plugins');
+        this.plugins = (d && d.plugins) || [];
+        this.pluginEvents = (d && d.events) || [];
+      }catch(e){ this.toast(e.message); }
+    },
+    async installPlugin(ev){
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if(!file) return;
+      const fd = new FormData();
+      fd.append('package', file);
+      try{
+        const res = await fetch('/api/v1/plugins/install', {
+          method:'POST',
+          headers: { 'Authorization': 'Bearer ' + this.token },
+          body: fd,
+        });
+        const body = await res.json().catch(()=>({}));
+        if(!res.ok){ throw new Error(body.message || ('HTTP ' + res.status)); }
+        this.toast(this.t('plugin.installed'));
+        this.loadPlugins();
+      }catch(e){ this.toast(e.message); }
+    },
+    async togglePlugin(p){
+      try{
+        await this.api('/plugins/' + p.id + '/enable', { method:'POST', body: JSON.stringify({ enabled: !p.enabled }) });
+        this.loadPlugins();
+      }catch(e){ this.toast(e.message); }
+    },
+    async restartPlugin(id){
+      try{ await this.api('/plugins/' + id + '/restart', { method:'POST' }); this.loadPlugins(); }
+      catch(e){ this.toast(e.message); }
+    },
+    plugStateName(st){ return this.t('plugin.state.'+(st||'installed')); },
+    deletePlugin(id){
+      this.askConfirm(this.t('plugin.deleteTitle'), this.t('plugin.deleteConfirm'), async () => {
+        try{ await this.api('/plugins/' + id, { method:'DELETE' }); this.loadPlugins(); }
+        catch(e){ this.toast(e.message); }
+      }, true);
     },
     parseLogText(text){
       if(!text) return [];

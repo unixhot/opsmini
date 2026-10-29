@@ -21,6 +21,7 @@ import (
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/logpipe"
 	"github.com/opsmini/opsmini/internal/middleware"
+	"github.com/opsmini/opsmini/internal/plugin"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
 	"github.com/opsmini/opsmini/internal/repository"
@@ -360,6 +361,22 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	logMgr.Start(context.Background())
 	logPipeHandler := v1.NewLogPipeHandler(logMgr)
 
+	// 插件运行时：包校验（sha256 + ed25519）+ 独立进程 + unix socket 上报。
+	// 公钥从设置读取；未配置且未开启 unsigned 时拒绝安装。
+	pluginPub, _ := settingSvc.Get("plugin_public_key")
+	unsigned := false
+	if v, _ := settingSvc.Get("plugin_allow_unsigned"); v == "true" || v == "1" {
+		unsigned = true
+	}
+	pluginMgr := plugin.NewManager(plugin.Options{
+		Root:          filepath.Join(cfg.DataDir(), "plugins"),
+		PublicKey:     pluginPub,
+		AllowUnsigned: unsigned,
+		AgentVersion:  version,
+	})
+	pluginMgr.Start(context.Background())
+	pluginHandler := v1.NewPluginHandler(pluginMgr)
+
 	// Basic-auth credentials priority: panel setting metrics_user/metrics_pass > config.yaml metrics.user/password; empty username means no authentication.
 	metricsCreds := func() (string, string) {
 		if u, err := settingSvc.Get("metrics_user"); err == nil && u != "" {
@@ -372,7 +389,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		root.GET("/metrics", middleware.MetricsAuth(metricsCreds), func(c *gin.Context) {
 			// 日志管道指标与系统指标拼在一起，Prometheus 侧只抓一个端点。
 			c.Data(200, "text/plain; version=0.0.4; charset=utf-8",
-				[]byte(sysSvc.PrometheusMetrics()+logMgr.Metrics()))
+				[]byte(sysSvc.PrometheusMetrics()+logMgr.Metrics()+pluginMgr.MetricsText()))
 		})
 	}
 
@@ -520,6 +537,13 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 				authed.GET("/changes/:id", permMw("ai.agent"), ch.Detail)
 				authed.POST("/changes/:id/restore", permMw("settings.edit"), ch.Restore)
 			}
+
+			// 插件：安装/卸载/启停（本地执行端；下发在 B5 接 OpsAnt）
+			authed.GET("/plugins", permMw("ai.agent"), pluginHandler.List)
+			authed.POST("/plugins/install", permMw("settings.edit"), pluginHandler.Install)
+			authed.POST("/plugins/:id/enable", permMw("settings.edit"), pluginHandler.Enable)
+			authed.POST("/plugins/:id/restart", permMw("settings.edit"), pluginHandler.Restart)
+			authed.DELETE("/plugins/:id", permMw("settings.edit"), pluginHandler.Delete)
 
 			// 日志管道：只读视图 + 手动重扫（任务只从 OpsAnt 下发）
 			authed.GET("/logpipe/status", permMw("ai.agent"), logPipeHandler.Status)
