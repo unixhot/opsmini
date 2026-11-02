@@ -16,6 +16,36 @@ OpsMini 各功能模块的使用说明。
 
     自然语言运维、日志分析、MCP 管理。
 
+-   :material-shield-search: **[自主 Agent（事件中心）](autonomous-agent.md)**
+
+    ---
+
+    采集 → 聚合 → 策略 → 调查 → 验证的闭环，攻击链、处置事务、影子复盘。
+
+-   :material-file-document-alert-outline: **[变更感知](change-awareness.md)**
+
+    ---
+
+    谁改了什么、从什么样改成什么样；规则复核 + Agent 深度分析。
+
+-   :material-pipe: **[日志管道](log-pipeline.md)**
+
+    ---
+
+    与 Filebeat 配置兼容的采集执行端，默认关闭，支持 ES / Kafka / Logstash。
+
+-   :material-puzzle-outline: **[插件系统](plugin-system.md)**
+
+    ---
+
+    独立进程 + Unix socket，签名校验，业务能力按需扩展。
+
+-   :material-backup-restore: **[备份与恢复](backup-restore.md)**
+
+    ---
+
+    目录 / MySQL / Redis 备份，恢复带预检、自动快照与回滚。
+
 -   :material-apps: **[应用管理](apps.md)**
 
     ---

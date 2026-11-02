@@ -16,6 +16,36 @@ OpsMini の各機能モジュールの利用方法。
 
     自然言語運用、ログ分析、MCP 管理。
 
+-   :material-shield-search: **[自律エージェント（イベントセンター）](autonomous-agent.md)**
+
+    ---
+
+    収集 → 集約 → ポリシー → 調査 → 検証のループ。攻撃チェーン、処理トランザクション、シャドウレビュー。
+
+-   :material-file-document-alert-outline: **[変更検知](change-awareness.md)**
+
+    ---
+
+    誰が何をどう変えたか。ルール判定 + Agent による深掘り分析。
+
+-   :material-pipe: **[ログパイプライン](log-pipeline.md)**
+
+    ---
+
+    Filebeat 設定互換の収集実行側。既定で無効、ES / Kafka / Logstash に対応。
+
+-   :material-puzzle-outline: **[プラグインシステム](plugin-system.md)**
+
+    ---
+
+    独立プロセス + Unix socket、署名検証。業務機能を必要に応じて拡張。
+
+-   :material-backup-restore: **[バックアップと復元](backup-restore.md)**
+
+    ---
+
+    ディレクトリ / MySQL / Redis のバックアップ。復元は事前チェック・自動スナップショット・ロールバック付き。
+
 -   :material-apps: **[アプリケーション管理](apps.md)**
 
     ---

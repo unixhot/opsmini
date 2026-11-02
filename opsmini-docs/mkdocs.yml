@@ -96,6 +96,11 @@ plugins:
             面板多语言: 面板多語言
             仪表盘与监控: 儀表板與監控
             AI Agent（自主执行）: AI Agent（自主執行）
+            自主 Agent（事件中心）: 自主 Agent（事件中心）
+            变更感知: 變更感知
+            日志管道: 日誌管道
+            插件系统: 外掛系統
+            备份与恢复: 備份與還原
             应用管理: 應用管理
             文件 / 终端 / 计划任务 / 日志: 檔案 / 終端 / 排程 / 日誌
             系统管理: 系統管理
@@ -147,6 +152,11 @@ plugins:
             面板多语言: Panel Languages
             仪表盘与监控: Dashboard & Monitoring
             AI Agent（自主执行）: AI Agent (autonomous)
+            自主 Agent（事件中心）: Autonomous Agent (Event Center)
+            变更感知: Change Awareness
+            日志管道: Log Pipeline
+            插件系统: Plugin System
+            备份与恢复: Backup & Restore
             应用管理: Apps
             文件 / 终端 / 计划任务 / 日志: Files / Terminal / Cron / Logs
             系统管理: System
@@ -198,6 +208,11 @@ plugins:
             面板多语言: パネル多言語
             仪表盘与监控: ダッシュボードと監視
             AI Agent（自主执行）: AI Agent（自律実行）
+            自主 Agent（事件中心）: 自律エージェント（イベントセンター）
+            变更感知: 変更検知
+            日志管道: ログパイプライン
+            插件系统: プラグインシステム
+            备份与恢复: バックアップと復元
             应用管理: アプリ管理
             文件 / 终端 / 计划任务 / 日志: ファイル / 端末 / クロン / ログ
             系统管理: システム管理
@@ -249,6 +264,11 @@ plugins:
             面板多语言: 패널 다국어
             仪表盘与监控: 대시보드 및 모니터링
             AI Agent（自主执行）: AI Agent(자율 실행)
+            自主 Agent（事件中心）: 자율 에이전트(이벤트 센터)
+            变更感知: 변경 감지
+            日志管道: 로그 파이프라인
+            插件系统: 플러그인 시스템
+            备份与恢复: 백업 및 복구
             应用管理: 앱 관리
             文件 / 终端 / 计划任务 / 日志: 파일 / 터미널 / 크론 / 로그
             系统管理: 시스템 관리
@@ -300,6 +320,11 @@ plugins:
             面板多语言: หลายภาษาของแผง
             仪表盘与监控: แดชบอร์ดและการตรวจสอบ
             AI Agent（自主执行）: AI Agent (ทำงานเอง)
+            自主 Agent（事件中心）: เอเจนต์อัตโนมัติ (ศูนย์เหตุการณ์)
+            变更感知: การตรวจจับการเปลี่ยนแปลง
+            日志管道: ท่อส่งบันทึก
+            插件系统: ระบบปลั๊กอิน
+            备份与恢复: สำรองและกู้คืน
             应用管理: การจัดการแอป
             文件 / 终端 / 计划任务 / 日志: ไฟล์ / เทอร์มินัล / Cron / บันทึก
             系统管理: การจัดการระบบ
@@ -351,6 +376,11 @@ plugins:
             面板多语言: Panel-Sprachen
             仪表盘与监控: Dashboard & Monitoring
             AI Agent（自主执行）: KI-Agent (autonom)
+            自主 Agent（事件中心）: Autonomer Agent (Ereigniszentrale)
+            变更感知: Änderungserkennung
+            日志管道: Log-Pipeline
+            插件系统: Plugin-System
+            备份与恢复: Backup & Wiederherstellung
             应用管理: App-Verwaltung
             文件 / 终端 / 计划任务 / 日志: Dateien / Terminal / Cron / Logs
             系统管理: Systemverwaltung
@@ -465,6 +495,11 @@ nav:
       - 概览: features/index.md
       - 仪表盘与监控: features/dashboard-monitoring.md
       - AI Agent（自主执行）: features/ai-assistant.md
+      - 自主 Agent（事件中心）: features/autonomous-agent.md
+      - 变更感知: features/change-awareness.md
+      - 日志管道: features/log-pipeline.md
+      - 插件系统: features/plugin-system.md
+      - 备份与恢复: features/backup-restore.md
       - 应用管理: features/apps.md
       - 文件 / 终端 / 计划任务 / 日志: features/files-terminal-cron.md
       - 系统管理: features/system.md

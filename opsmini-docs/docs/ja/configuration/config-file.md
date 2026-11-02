@@ -101,6 +101,50 @@ metrics:
 
 > 認証情報の優先順位：パネル「設定 → 監視エクスポート」のユーザー名/パスワードがここでの `user`/`password` **より優先**されます。ユーザー名を空にするとアクセスが開放されます。
 
+### logpipeline（ログ収集パイプライン）
+
+```yaml
+logpipeline:
+  enabled: false           # ハードスイッチ；true の場合はタスクファイルがなくても起動する
+  tasks_dir: ""            # タスクディレクトリ、デフォルト <データディレクトリ>/logs/tasks.d
+  config_file: ""           # メイン設定（filebeat 形式）、デフォルト <データディレクトリ>/logs/main.yml
+  strict: false            # タスク内の未知のフィールド：false 警告 / true エラー
+  agent_type: opsmini      # agent.type に書き込む；filebeat に設定すると既存のインデックステンプレートを再利用できる
+```
+
+| パラメータ | 説明 | デフォルト |
+|------|------|------|
+| `enabled` | 収集パイプラインを強制起動するかどうか | `false` |
+| `tasks_dir` | 収集タスクディレクトリ | `<数据目录>/logs/tasks.d` |
+| `config_file` | メイン設定（出力 + グローバルパラメータ） | `<数据目录>/logs/main.yml` |
+| `strict` | タスクフィールドを厳密に解析する | `false` |
+| `agent_type` | `agent.type` フィールド値 | `opsmini` |
+
+> **デフォルトではログを一切収集しません**。三段的な有効化：`tasks.d` にタスクファイルが存在する / `enabled: true` / プラットフォームから LogTask を受信する。詳細は [ログパイプライン]](../features/log-pipeline.md) を参照。
+
+### backup（リモートバックアップターゲット、オプション）
+
+```yaml
+backup:
+  targets:
+    - name: oss-bj           # ターゲット名、パネルでこの名前で選択する
+      type: s3               # s3 | sftp
+      endpoint: oss-cn-beijing.aliyuncs.com
+      bucket: my-backup
+      region: cn-beijing
+      access_key: ""
+      secret_key: ""
+```
+
+| パラメータ | 説明 |
+|------|------|
+| `name` | ターゲット名、バックアップタスクで名前により参照する |
+| `type` | `s3`（OSS / MinIO / AWS 互換）または `sftp` |
+| `endpoint` / `bucket` / `region` | S3 互換ストレージパラメータ |
+| `access_key` / `secret_key` | アクセス認証情報（SFTP では `host` / `user` / `password` / `key_file` を使用） |
+
+> v1.4.0 では**リモートバックアップは提供内容に含まれません**：設定後にのみ有効になり、実機での連携テストは未実施です。ローカルバックアップには設定は不要です。詳細は [バックアップと復元]](../features/backup-restore.md) を参照。
+
 ## パネル設定へ移行済みの設定
 
 以下の設定項目は `config.yaml` から移行され、パネルの「設定」ページで一元管理されます（SQLite に保存され、ランタイムで即時反映）：

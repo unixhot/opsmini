@@ -101,6 +101,50 @@ metrics:
 
 > 인증 자격 증명 우선순위: 패널「설정 → 모니터링 내보내기」의 사용자 이름/비밀번호가 여기의 `user`/`password`보다 **우선합니다**. 사용자 이름이 비어 있으면 공개 액세스입니다.
 
+### logpipeline (로그 수집 파이프라인)
+
+```yaml
+logpipeline:
+  enabled: false           # 하드 스위치; true 이면 작업 파일이 없어도 시작
+  tasks_dir: ""            # 작업 디렉터리, 기본값 <데이터 디렉터리>/logs/tasks.d
+  config_file: ""           # 메인 설정 (filebeat 형태), 기본값 <데이터 디렉터리>/logs/main.yml
+  strict: false            # 작업 내 알 수 없는 필드: false 경고 / true 오류
+  agent_type: opsmini      # agent.type 에 기록; filebeat 로 설정하면 기존 인덱스 템플릿 재사용 가능
+```
+
+| 파라미터 | 설명 | 기본값 |
+|------|------|------|
+| `enabled` | 수집 파이프라인 강제 시작 여부 | `false` |
+| `tasks_dir` | 수집 작업 디렉터리 | `<数据目录>/logs/tasks.d` |
+| `config_file` | 메인 설정 (출력 + 전역 파라미터) | `<数据目录>/logs/main.yml` |
+| `strict` | 작업 필드 엄격 파싱 | `false` |
+| `agent_type` | `agent.type` 필드 값 | `opsmini` |
+
+> **기본적으로 어떤 로그도 수집하지 않습니다**. 3단계 활성화: `tasks.d` 에 작업 파일 존재 / `enabled: true` / 플랫폼에서 발급된 LogTask 수신. 자세한 내용은 [로그 파이프라인]](../features/log-pipeline.md) 참조.
+
+### backup (원격 백업 대상, 선택 사항)
+
+```yaml
+backup:
+  targets:
+    - name: oss-bj           # 대상 이름, 패널에서 이 이름으로 선택
+      type: s3               # s3 | sftp
+      endpoint: oss-cn-beijing.aliyuncs.com
+      bucket: my-backup
+      region: cn-beijing
+      access_key: ""
+      secret_key: ""
+```
+
+| 파라미터 | 설명 |
+|------|------|
+| `name` | 대상 이름, 백업 작업에서 이름으로 참조 |
+| `type` | `s3` (OSS / MinIO / AWS 호환) 또는 `sftp` |
+| `endpoint` / `bucket` / `region` | S3 호환 스토리지 파라미터 |
+| `access_key` / `secret_key` | 접근 자격 증명 (SFTP 는 `host` / `user` / `password` / `key_file` 사용) |
+
+> v1.4.0 은 **원격 백업을 제공 내용으로 포함하지 않습니다**: 설정해야만 적용되며, 실제 장비 연동 테스트를 거치지 않았습니다. 로컬 백업은 별도 설정이 필요 없습니다. 자세한 내용은 [백업과 복구]](../features/backup-restore.md) 참조.
+
 ## 패널 설정으로 이전된 설정
 
 다음 설정 항목은 `config.yaml`에서 제외되어 패널「설정」페이지에서 통합 관리됩니다（SQLite에 저장, 런타임 즉시 적용）:

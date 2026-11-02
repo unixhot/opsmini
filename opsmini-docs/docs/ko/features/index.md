@@ -16,6 +16,36 @@ OpsMini 각 기능 모듈의 사용 설명.
 
     자연어 운영, 로그 분석, MCP 관리.
 
+-   :material-shield-search: **[자율 에이전트(이벤트 센터)](autonomous-agent.md)**
+
+    ---
+
+    수집 → 집계 → 정책 → 조사 → 검증의 순환. 공격 체인, 처리 트랜잭션, 섀도 리뷰.
+
+-   :material-file-document-alert-outline: **[변경 감지](change-awareness.md)**
+
+    ---
+
+    누가 무엇을 어떻게 바꿨는지. 규칙 판정 + Agent 심층 분석.
+
+-   :material-pipe: **[로그 파이프라인](log-pipeline.md)**
+
+    ---
+
+    Filebeat 설정과 호환되는 수집 실행단. 기본 비활성, ES / Kafka / Logstash 지원.
+
+-   :material-puzzle-outline: **[플러그인 시스템](plugin-system.md)**
+
+    ---
+
+    독립 프로세스 + Unix socket, 서명 검증. 필요에 따라 기능 확장.
+
+-   :material-backup-restore: **[백업 및 복구](backup-restore.md)**
+
+    ---
+
+    디렉터리 / MySQL / Redis 백업. 복구는 사전 점검, 자동 스냅샷, 롤백 포함.
+
 -   :material-apps: **[앱 관리](apps.md)**
 
     ---

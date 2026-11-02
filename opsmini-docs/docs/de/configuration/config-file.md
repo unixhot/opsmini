@@ -101,6 +101,50 @@ metrics:
 
 > Priorität der Authentifizierungsdaten: Benutzername/Passwort auf der Seite „Einstellungen → Monitoring-Export" des Panels haben **Vorrang** vor `user`/`password` hier. Ein leerer Benutzername bedeutet offenen Zugriff.
 
+### logpipeline (Protokoll-Erfassungspipeline)
+
+```yaml
+logpipeline:
+  enabled: false           # Hard-Switch; bei true wird auch ohne Aufgabendatei gestartet
+  tasks_dir: ""            # Aufgabenverzeichnis, Standard <Datenverzeichnis>/logs/tasks.d
+  config_file: ""           # Hauptkonfiguration (filebeat-Form), Standard <Datenverzeichnis>/logs/main.yml
+  strict: false            # Unbekannte Felder in Aufgaben: false Warnung / true Fehler
+  agent_type: opsmini      # Schreibt agent.type; auf filebeat setzen, um vorhandene Index-Templates wiederzuverwenden
+```
+
+| Parameter | Beschreibung | Standard |
+|------|------|------|
+| `enabled` | Ob die Erfassungspipeline zwangsweise gestartet wird | `false` |
+| `tasks_dir` | Verzeichnis der Erfassungsaufgaben | `<数据目录>/logs/tasks.d` |
+| `config_file` | Hauptkonfiguration (Ausgabe + globale Parameter) | `<数据目录>/logs/main.yml` |
+| `strict` | Strikte Analyse der Aufgabenfelder | `false` |
+| `agent_type` | `agent.type` Feldwert | `opsmini` |
+
+> **Standardmäßig werden keine Protokolle erfasst**. Dreistufige Aktivierung: Aufgabendatei erscheint in `tasks.d` / `enabled: true` / Empfang einer von der Plattform übermittelten LogTask. Siehe [Protokoll-Pipeline]](../features/log-pipeline.md).
+
+### backup (Remote-Backup-Ziel, optional)
+
+```yaml
+backup:
+  targets:
+    - name: oss-bj           # Zielname, im Panel wird danach ausgewählt
+      type: s3               # s3 | sftp
+      endpoint: oss-cn-beijing.aliyuncs.com
+      bucket: my-backup
+      region: cn-beijing
+      access_key: ""
+      secret_key: ""
+```
+
+| Parameter | Beschreibung |
+|------|------|
+| `name` | Zielname, wird in Backup-Aufgaben per Name referenziert |
+| `type` | `s3` (kompatibel mit OSS / MinIO / AWS) oder `sftp` |
+| `endpoint` / `bucket` / `region` | S3-kompatible Speicherparameter |
+| `access_key` / `secret_key` | Zugangsdaten (SFTP verwendet `host` / `user` / `password` / `key_file`) |
+
+> v1.4.0 **liefert Remote-Backup nicht als Lieferumfang**: Es wird erst nach Konfiguration wirksam und wurde nicht auf echter Hardware abgestimmt. Lokales Backup erfordert keine Konfiguration. Siehe [Backup und Wiederherstellung]](../features/backup-restore.md).
+
 ## In die Panel-Einstellungen verlagerte Konfiguration
 
 Die folgenden Konfigurationselemente wurden aus `config.yaml` entfernt und werden einheitlich auf der Seite „Einstellungen" des Panels verwaltet (in SQLite gespeichert, zur Laufzeit sofort wirksam):

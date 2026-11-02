@@ -101,6 +101,50 @@ metrics:
 
 > 認證憑據優先順序：面板「設定 → 監控匯出」中的使用者名稱/密碼 **優先於** 這裡的 `user`/`password`。使用者名稱留空即開放訪問。
 
+### logpipeline（日誌採集管道）
+
+```yaml
+logpipeline:
+  enabled: false           # 硬開關；true 時即使沒有任務檔案也啟動
+  tasks_dir: ""            # 任務目錄，預設 <資料目錄>/logs/tasks.d
+  config_file: ""           # 主配置（filebeat 形狀），預設 <資料目錄>/logs/main.yml
+  strict: false            # 任務裡的未知欄位：false 警告 / true 報錯
+  agent_type: opsmini      # 寫入 agent.type；設為 filebeat 可複用已有索引模板
+```
+
+| 引數 | 說明 | 預設 |
+|------|------|------|
+| `enabled` | 是否強制啟動採集管道 | `false` |
+| `tasks_dir` | 採集任務目錄 | `<資料目錄>/logs/tasks.d` |
+| `config_file` | 主配置（出口 + 全域性引數） | `<資料目錄>/logs/main.yml` |
+| `strict` | 嚴格解析任務欄位 | `false` |
+| `agent_type` | `agent.type` 欄位值 | `opsmini` |
+
+> **預設不採集任何日誌**。三級啟用：`tasks.d` 裡出現任務檔案 / `enabled: true` / 收到平臺下發的 LogTask。詳見 [日誌管道](../features/log-pipeline.md)。
+
+### backup（遠端備份目標，可選）
+
+```yaml
+backup:
+  targets:
+    - name: oss-bj           # 目標名，面板裡按此名選擇
+      type: s3               # s3 | sftp
+      endpoint: oss-cn-beijing.aliyuncs.com
+      bucket: my-backup
+      region: cn-beijing
+      access_key: ""
+      secret_key: ""
+```
+
+| 引數 | 說明 |
+|------|------|
+| `name` | 目標名，備份任務裡按名字引用 |
+| `type` | `s3`（相容 OSS / MinIO / AWS）或 `sftp` |
+| `endpoint` / `bucket` / `region` | S3 相容儲存引數 |
+| `access_key` / `secret_key` | 訪問憑據（SFTP 用 `host` / `user` / `password` / `key_file`） |
+
+> v1.4.0 **不把遠端備份作為交付內容**：配置後才會生效，且未經真機聯調。本地備份不需要任何配置。詳見 [備份與恢復](../features/backup-restore.md)。
+
 ## 已遷移到面板設定的配置
 
 以下配置項已從 `config.yaml` 遷出，統一在面板「設定」頁管理（儲存於 SQLite，執行時即時生效）：
