@@ -24,7 +24,7 @@ PORT=8888
 HOST="0.0.0.0"
 BINARY=""
 BINARY_URL=""
-VERSION="v1.3.0"                                                    # 默认下载的版本号（发布新版本时更新）
+VERSION="v1.4.0"                                                    # 默认下载的版本号（发布新版本时更新）
 DEFAULT_URL_BASE="https://opsmini.oss-cn-beijing.aliyuncs.com"     # 阿里云 OSS 下载地址
 NO_SYSTEMD=0
 UNINSTALL=0        # 1 = 执行卸载
