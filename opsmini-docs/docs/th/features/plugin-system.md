@@ -25,10 +25,10 @@ foo-collector-1.2.0-linux-amd64.tar.gz
 ```yaml
 apiVersion: opsmini.plugin/v1
 id: foo-collector              # ไม่ซ้ำทั่วโลก, ^[a-z0-9][a-z0-9-]{2,40}$
-name: Foo 采集器
+name: Foo คอลเลกเตอร์
 version: 1.2.0                 # semver
-vendor: 速云科技
-description: 采集 Foo 服务的队列深度与消费速率
+vendor: ซูยุนเทค
+description: เก็บความลึกของคิวและอัตราการบริโภคของบริการ Foo
 kind: collector                # collector | action | panel
 entry: bin/plugin              # พาธสัมพัทธ์ภายในแพ็กเกจ
 platform: [linux/amd64, linux/arm64]
@@ -115,7 +115,7 @@ requires:
 # วิธีที่หนึ่ง: กำหนดค่าคีย์สาธารณะ ed25519 (แนะนำ สำหรับสภาพแวดล้อมจริง)
 curl -X POST http://127.0.0.1:8888/api/v1/settings \
   -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
-  -d '{"plugin_public_key":"<hex 编码的 32 字节公钥>"}'
+  -d '{"plugin_public_key":"<คีย์สาธารณะ 32 ไบต์ที่เข้ารหัสแบบ hex>"}'
 
 # วิธีที่สอง: สำหรับสภาพแวดล้อมการพัฒนา/เครือข่ายภายใน อนุญาตแพ็กเกจที่ไม่ได้ลงนามชั่วคราว
 curl -X POST http://127.0.0.1:8888/api/v1/settings \

@@ -74,9 +74,9 @@ Der Wert dieses Schritts: Die „300 Änderungen durch ein apt-Upgrade" werden a
 Als verdächtig eingestufte Änderungen gelangen mit dem **ursprünglichen Diff** direkt in den Untersuchungskontext des Agenten (zusammen mit dem Ausführenden, der Quell-IP, den betroffenen Feldern und der Anzahl hinzugefügter/entfernter Zeilen). Die Aufgabe, die der Agent erhält, lautet nicht „Ist diese Änderung gefährlich?", sondern:
 
 ```
-【判定】正常运维 / 需人工确认 / 高度可疑
-【依据】不超过 5 条，每条一句话
-【建议】放行 / 建议回滚某个具体对象（由人执行，你没有写权限）
+【Bewertung】Normaler Betrieb / Manuelle Bestätigung erforderlich / Hochgradig verdächtig
+【Grundlage】Nicht mehr als 5 Punkte, jeder Punkt ein Satz
+【Empfehlung】Freigeben / Rückabwicklung eines konkreten Objekts empfohlen (durch Menschen auszuführen, du hast keine Schreibberechtigung)
 ```
 
 Er wird angeleitet, nach Priorität Beweise zu sammeln: zuerst den Diff selbst prüfen, dann die letzten Anmeldungen des Ausführenden abgleichen und nur bei Bedarf zusätzlich Persistenzorte nachprüfen (`authorized_keys`, cron, systemd, `ld.so.preload`), um abschließend zu beurteilen, ob es sich um eine isolierte Betriebsaktion oder um ein Glied einer Angriffskette handelt.

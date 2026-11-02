@@ -25,10 +25,10 @@ Manifest-Beispiel:
 ```yaml
 apiVersion: opsmini.plugin/v1
 id: foo-collector              # global eindeutig, ^[a-z0-9][a-z0-9-]{2,40}$
-name: Foo 采集器
+name: Foo Collector
 version: 1.2.0                 # semver
-vendor: 速云科技
-description: 采集 Foo 服务的队列深度与消费速率
+vendor: Suyun Technology
+description: Erfasst die Warteschlangentiefe und Verbrauchsrate des Foo-Dienstes
 kind: collector                # collector | action | panel
 entry: bin/plugin              # relativer Pfad innerhalb des Pakets
 platform: [linux/amd64, linux/arm64]
@@ -112,12 +112,12 @@ Bei der Installation wird der Reihe nach geprüft: `sha256` → Signatur → Man
 Zwei Lösungswege, wählen Sie einen (nach dem Eintragen in die Einstellungen ist **ein Neustart des Panels erforderlich**, damit die Änderung wirksam wird, da der öffentliche Schlüssel beim Start gelesen wird):
 
 ```bash
-# 方式一：配置 ed25519 公钥（推荐，正式环境）
+# Methode 1: ed25519 öffentlichen Schlüssel konfigurieren (empfohlen, Produktionsumgebung)
 curl -X POST http://127.0.0.1:8888/api/v1/settings \
   -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
-  -d '{"plugin_public_key":"<hex 编码的 32 字节公钥>"}'
+  -d '{"plugin_public_key":"<hex-codierter 32-Byte öffentlicher Schlüssel>"}'
 
-# 方式二：开发/内网环境临时允许未签名包
+# Methode 2: Entwicklungs-/Intranetumgebung erlaubt vorübergehend unsignierte Pakete
 curl -X POST http://127.0.0.1:8888/api/v1/settings \
   -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
   -d '{"plugin_allow_unsigned":"true"}'

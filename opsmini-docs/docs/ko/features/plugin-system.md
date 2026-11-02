@@ -27,7 +27,7 @@ apiVersion: opsmini.plugin/v1
 id: foo-collector              # 전역 고유, ^[a-z0-9][a-z0-9-]{2,40}$
 name: Foo 수집기
 version: 1.2.0                 # semver
-vendor: 速云科技
+vendor: 속운과학기술
 description: Foo 서비스의 큐 깊이와 소비 속도를 수집
 kind: collector                # collector | action | panel
 entry: bin/plugin              # 패키지 내 상대 경로
@@ -115,7 +115,7 @@ requires:
 # 방식 1: ed25519 공개 키 구성(권장, 운영 환경)
 curl -X POST http://127.0.0.1:8888/api/v1/settings \
   -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
-  -d '{"plugin_public_key":"<hex 编码的 32 字节公钥>"}'
+  -d '{"plugin_public_key":"<hex 인코딩된 32바이트 공개키>"}'
 
 # 방식 2: 개발/내부 네트워크 환경에서 서명되지 않은 패키지 임시 허용
 curl -X POST http://127.0.0.1:8888/api/v1/settings \
