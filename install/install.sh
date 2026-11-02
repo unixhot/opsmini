@@ -7,6 +7,7 @@
 #   - 默认端口 8888
 #   - 默认从阿里云 OSS（opsmini.oss-cn-beijing.aliyuncs.com）下载对应架构的二进制
 #   - 首次安装：随机生成管理员密码，写入 <安装目录>/.init_passwd 并展示
+#     （-n 模式不启动服务，密码由程序首次启动时生成，安装完成后从 .init_passwd 读取）
 #   - 重复执行 = 升级：检测到已安装时只替换二进制并重启，不重置密码、不覆盖配置
 #   - 注册 systemd 服务 opsmini.service（开机自启）
 #
@@ -54,7 +55,7 @@ OpsMini 安装脚本
   -p, --port <port>    面板监听端口（默认 ${PORT}）
   -b, --binary <path>  opsmini 二进制路径
   -u, --url <url>      从 URL 下载二进制（支持 .tar.gz 或裸二进制）
-  -n, --no-systemd     不注册 systemd 服务（仅解压 + 初始化）
+  -n, --no-systemd     不注册 systemd 服务（仅安装 + 写配置，不启动；密码在首次启动后写入 .init_passwd）
   -U, --uninstall      卸载：停止并移除 systemd 服务（默认保留数据目录）
       --purge          配合 --uninstall 使用：连数据目录一并删除（不可恢复）
       --server-addr <host:port>  接入 OpsAnt 的 Server 地址（如 47.104.172.52:4507）
@@ -65,7 +66,7 @@ OpsMini 安装脚本
   curl -fsSL https://opsmini.com/install.sh | sudo bash
   curl -fsSL https://opsmini.com/install.sh | sudo bash -s -- --server-addr 47.104.172.52:4507 --server-token mytoken
   $0 -b ./dist/opsmini-dev-linux-amd64
-  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.3.0-linux-amd64
+  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.4.0-linux-amd64
 EOF
 }
 
@@ -389,20 +390,24 @@ main() {
   prepare_binary
   write_config
 
-  local password
-  password="$(write_password)"
-
+  local password=""
   if [ "$NO_SYSTEMD" -eq 0 ] && command -v systemctl >/dev/null 2>&1; then
+    password="$(write_password)"
     install_systemd "$password"
   else
-    warn "未注册 systemd（手动启动：OPSMINI_INIT_PASSWORD='${password}' ${INSTALL_DIR}/opsmini -config ${INSTALL_DIR}/config.yaml）"
+    # -n（不注册 systemd）不预生成密码：本模式不启动服务，程序首次启动会自己
+    # 生成密码并写入 .init_passwd。预生成只会让下面展示的密码与实际生效的密码
+    # 不一致——用户手动启动时若没带 OPSMINI_INIT_PASSWORD，程序会重新生成并覆盖。
+    rm -f "${INSTALL_DIR}/.init_passwd"
+    warn "未注册 systemd，服务未启动。手动启动：${INSTALL_DIR}/opsmini -config ${INSTALL_DIR}/config.yaml"
+    info "首次启动会生成管理员密码并写入 ${INSTALL_DIR}/.init_passwd"
   fi
 
   # 等待启动并探测
   sleep 2
   if curl -sf "http://127.0.0.1:${PORT}/api/v1/healthz" >/dev/null 2>&1; then
     info "服务已启动并响应"
-  else
+  elif [ "$NO_SYSTEMD" -eq 0 ]; then
     warn "服务暂未响应，请稍候检查：systemctl status opsmini 或日志"
   fi
 
@@ -412,8 +417,12 @@ main() {
   echo "=============================================================="
   echo "  访问地址 : http://<服务器IP>:${PORT}"
   echo "  用户名   : opsmini"
-  echo -e "  密码     : ${C_BOLD}${password}${C_RESET}"
-  echo "  密码文件 : ${INSTALL_DIR}/.init_passwd"
+  if [ -n "$password" ]; then
+    echo -e "  密码     : ${C_BOLD}${password}${C_RESET}"
+    echo "  密码文件 : ${INSTALL_DIR}/.init_passwd"
+  else
+    echo "  密码     : 服务首次启动后写入 ${INSTALL_DIR}/.init_passwd"
+  fi
   echo "  配置文件 : ${INSTALL_DIR}/config.yaml"
   echo "  日志文件 : ${INSTALL_DIR}/opsmini.log"
   echo "  服务管理 : systemctl {start|stop|restart|status} opsmini"
