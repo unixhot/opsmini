@@ -36,7 +36,7 @@
 ## 三、产品事实（供文档维护参考）
 
 - 品牌主色 `#4f6ef7`；公司「北京速云科技有限公司」；协议 Apache 2.0；GitHub `unixhot/opsmini`
-- 产品源码位置：`/Users/vicky/WorkBuddy/2026-08-13-09-06-05/`
+- 产品源码位置：`/Users/vicky/Desktop/code/opsmini/`
 - 产品功能远超早期 README：含主机安全（基线检查/FIM/威胁检测/防火墙/登录安全）、RBAC 权限点、MCP、Prometheus `/metrics`、双 API（`/api/v1` + `/agent/v1`）
 
 ## 四、文档维护历史
