@@ -12,6 +12,7 @@ import (
 	"github.com/opsmini/opsmini/internal/agent"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/pkg/store"
+	"github.com/opsmini/opsmini/internal/repository"
 	"github.com/opsmini/opsmini/internal/router"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -72,7 +73,18 @@ func main() {
 	// gRPC Agent lifecycle: managed by the router so the panel can reconnect it at
 	// runtime (empty server_addr means disconnected; config.yaml is the fallback).
 	hostname, _ := os.Hostname()
-	agentMgr := agent.NewManager(hostname, version)
+
+	// 实例 ID：面板启动时读取或生成（settings 表为准，数据目录 agent_id 为副本）。
+	// 它与主机名、IP 解耦，用于主机名重复时唯一标识一台主机。
+	settingSvc := service.NewSettingService(repository.NewSettingRepo(db))
+	instanceID, persisted := agent.LoadOrCreateInstanceID(settingSvc, cfg.DataDir())
+	if !persisted {
+		log.Printf("warning: 实例 ID %s 未能持久化（settings 表与 %s 均不可写），进程重启后会变化",
+			instanceID, cfg.DataDir())
+	}
+	log.Printf("OpsMini instance id: %s", instanceID)
+
+	agentMgr := agent.NewManager(hostname, version, instanceID)
 
 	r := router.New(cfg, db, metrics, version, agentMgr)
 	log.Printf("OpsMini agent listening on %s", cfg.Server.Addr())

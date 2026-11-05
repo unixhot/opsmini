@@ -62,19 +62,27 @@ func (c Config) withDefaults() Config {
 
 // Client is the Agent gRPC client. Run blocks until ctx is cancelled.
 type Client struct {
-	cfg       Config
-	hostname  string
-	version   string
-	panelPort int32
-	agentID   string
+	cfg        Config
+	hostname   string
+	version    string
+	panelPort  int32
+	instanceID string // 面板实例 ID（本机持久化），注册时上报，用于主机名/IP 重复时区分主机
+	agentID    string // Server 回执的 Agent ID
 	// ctrl holds the subsystems that platform tasks act on (log pipeline and
 	// plugin manager). Nil means the feature is not wired.
 	ctrl controls
 }
 
-// New creates an Agent client. hostname is usually os.Hostname(); version is the build version.
-func New(cfg Config, hostname, version string) *Client {
-	return &Client{cfg: cfg.withDefaults(), hostname: hostname, version: version, panelPort: cfg.PanelPort}
+// New creates an Agent client. hostname is usually os.Hostname(); version is the build
+// version; instanceID is the panel's persisted instance ID (opsmini-xxxxxxxxxxxx).
+func New(cfg Config, hostname, version, instanceID string) *Client {
+	return &Client{
+		cfg:        cfg.withDefaults(),
+		hostname:   hostname,
+		version:    version,
+		panelPort:  cfg.PanelPort,
+		instanceID: instanceID,
+	}
 }
 
 // Run connects and reconnects until ctx is cancelled. Safe to call once per process.
@@ -130,6 +138,7 @@ func (c *Client) connect(ctx context.Context) error {
 			Os:        runtime.GOOS,
 			Arch:      runtime.GOARCH,
 			PanelPort: c.panelPort,
+			AgentId:   c.instanceID,
 		},
 	}}); err != nil {
 		return err

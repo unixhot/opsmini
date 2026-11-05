@@ -10,20 +10,22 @@ import (
 // configuration (OpsAnt "OpsMini Server" address + token) can be changed
 // at runtime from the panel's settings page without restarting the process.
 type Manager struct {
-	mu       sync.Mutex
-	cfg      Config
-	hostname string
-	version  string
-	cancel   context.CancelFunc
-	running  bool
+	mu         sync.Mutex
+	cfg        Config
+	hostname   string
+	version    string
+	instanceID string
+	cancel     context.CancelFunc
+	running    bool
 	// ctrl is carried across reconnects so a restart of the link keeps the
 	// subsystems wired to the new client.
 	ctrl controls
 }
 
-// NewManager creates an Agent lifecycle manager.
-func NewManager(hostname, version string) *Manager {
-	return &Manager{hostname: hostname, version: version}
+// NewManager creates an Agent lifecycle manager. instanceID is the panel's
+// persisted instance ID (opsmini-xxxxxxxxxxxx) reported on every registration.
+func NewManager(hostname, version, instanceID string) *Manager {
+	return &Manager{hostname: hostname, version: version, instanceID: instanceID}
 }
 
 // Start (re)starts the Agent with the given config. An empty ServerAddr
@@ -49,7 +51,7 @@ func (m *Manager) Start(cfg Config) {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	cl := New(cfg, m.hostname, m.version)
+	cl := New(cfg, m.hostname, m.version, m.instanceID)
 	cl.SetControls(m.ctrl.log, m.ctrl.plugin)
 	go cl.Run(ctx)
 	m.cancel = cancel

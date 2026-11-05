@@ -125,7 +125,7 @@ func TestLogTaskReachesPipelineAndReportsBack(t *testing.T) {
 	addr, stop := startFake(t, f)
 	defer stop()
 
-	cl := New(Config{ServerAddr: addr, Token: "t", Heartbeat: time.Second}, "test-host", "test")
+	cl := New(Config{ServerAddr: addr, Token: "t", Heartbeat: time.Second}, "test-host", "test", "opsmini-testhost01")
 	cl.SetControls(logAdapter{mgr: mgr}, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -161,7 +161,7 @@ func TestLogTaskWithoutPipelineFailsLoudly(t *testing.T) {
 	addr, stop := startFake(t, f)
 	defer stop()
 
-	cl := New(Config{ServerAddr: addr, Token: "t", Heartbeat: time.Second}, "test-host", "test")
+	cl := New(Config{ServerAddr: addr, Token: "t", Heartbeat: time.Second}, "test-host", "test", "opsmini-testhost01")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go cl.Run(ctx)
@@ -190,7 +190,7 @@ func TestPluginTaskWithoutManagerFailsLoudly(t *testing.T) {
 	addr, stop := startFake(t, f)
 	defer stop()
 
-	cl := New(Config{ServerAddr: addr, Token: "t", Heartbeat: time.Second}, "test-host", "test")
+	cl := New(Config{ServerAddr: addr, Token: "t", Heartbeat: time.Second}, "test-host", "test", "opsmini-testhost01")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go cl.Run(ctx)

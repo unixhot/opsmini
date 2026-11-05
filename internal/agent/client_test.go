@@ -24,7 +24,7 @@ func md5sum(b []byte) string {
 
 // TestExecuteCommand verifies command execution produces a success result.
 func TestExecuteCommand(t *testing.T) {
-	c := New(Config{}, "testhost", "test")
+	c := New(Config{}, "testhost", "test", "opsmini-abcdef123456")
 	task := &agentpb.ExecuteTask{
 		JobId: "job-cmd",
 		Kind:  &agentpb.ExecuteTask_Command{Command: &agentpb.CommandSpec{Command: "echo hello"}},
@@ -40,7 +40,7 @@ func TestExecuteCommand(t *testing.T) {
 
 // TestExecuteScript verifies a shell script runs via a temp file.
 func TestExecuteScript(t *testing.T) {
-	c := New(Config{}, "testhost", "test")
+	c := New(Config{}, "testhost", "test", "opsmini-abcdef123456")
 	task := &agentpb.ExecuteTask{
 		JobId: "job-script",
 		Kind: &agentpb.ExecuteTask_Script{Script: &agentpb.ScriptSpec{
@@ -61,7 +61,7 @@ func TestExecuteScript(t *testing.T) {
 func TestReceiveFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "sub", "f.txt")
-	c := New(Config{}, "testhost", "test")
+	c := New(Config{}, "testhost", "test", "opsmini-abcdef123456")
 
 	content := []byte("hello world")
 	sum := md5sum(content)
@@ -120,7 +120,7 @@ func TestClientStream(t *testing.T) {
 		ServerAddr: lis.Addr().String(),
 		Token:      "secret",
 		Heartbeat:  time.Hour, // disable periodic heartbeat during test
-	}, "testhost", "test")
+	}, "testhost", "test", "opsmini-abcdef123456")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})

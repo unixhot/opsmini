@@ -53,6 +53,9 @@ message Register {
   string os = 4;        // 操作系统，如 linux
   string arch = 5;      // 架构，如 amd64 / arm64
   int32 panel_port = 6; // 面板 Web 端口（默认 8888，用户可改，用于 OpsAnt 免认证跳转）
+  // Agent 本地持久化的实例 ID（opsmini-xxxxxxxxxxxx），用于在主机名/IP 重复时唯一标识主机。
+  // 空值表示旧版 Agent 未上报，Server 会临时回落到 hostname 作为索引键。
+  string agent_id = 7;
 }
 
 // RegisterAck 注册确认（Server -> Agent）。
