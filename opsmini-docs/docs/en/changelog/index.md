@@ -2,6 +2,26 @@
 
 Change records for each version.
 
+## v1.4.1 (2026-11-06)
+
+Patch release. Three fixes for things you run into day to day, plus a way to tell hosts apart in multi-machine setups.
+
+**Panel instance ID (new)**
+
+Each panel generates `opsmini-xxxxxxxxxxxx` on first start and persists it (the database is authoritative, with a copy in the data directory for scripts to read directly), then reports it when registering with OpsAnt. It is what distinguishes hosts when hostnames collide, or when NAT makes several machines share one egress IP. Shown under the dashboard title; click to copy.
+
+**Test connection for OpsAnt (new)**
+
+Previously you filled in the address and token, saved, and had to watch the logs to know whether it worked. "Test connection" now runs a real registration (TCP dial → gRPC stream → register → wait for ack) and reports the failure as one of three kinds: bad address format, unreachable network, or rejected token. The probe uses a one-off identity, so it neither kicks the live connection nor saves anything.
+
+**Terminal environment (fix)**
+
+The panel runs as a systemd system service, and systemd does not set `HOME` for those. Inside the terminal `cd` failed with `HOME not set`, `~` would not expand, and vim / git silently skipped `~/.vimrc` and `~/.gitconfig`. `HOME`, `USER`, `LOGNAME`, `SHELL` and `PWD` are now resolved from `/etc/passwd` for the current user.
+
+**Other**
+
+- `install.sh -n` (print only, no install) no longer shows an initial password that stops working once the install finishes
+
 ## v1.4.0 (2026-11-02)
 
 **From "can remediate" to "remediation with evidence"**

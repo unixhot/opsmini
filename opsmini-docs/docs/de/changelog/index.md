@@ -2,6 +2,26 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.4.1 (2026-11-06)
+
+Patch-Release. Behebt drei Dinge, die im Alltag auftreten, und ergänzt eine Möglichkeit, Hosts in Multi-Maschinen-Setups auseinanderzuhalten.
+
+**Instanz-ID des Panels (neu)**
+
+Jedes Panel erzeugt beim ersten Start eine `opsmini-xxxxxxxxxxxx` und speichert sie dauerhaft (maßgeblich ist die Datenbank, im Datenverzeichnis liegt eine Kopie für Skripte), und meldet sie bei der Registrierung an OpsAnt. Damit lässt sich unterscheiden, welche Maschine gemeint ist, wenn Hostnamen kollidieren oder NAT mehrere Maschinen über dieselbe Ausgangs-IP schickt. Wird unter dem Dashboard-Titel angezeigt, Klick kopiert sie.
+
+**Verbindungstest für OpsAnt (neu)**
+
+Bisher ließen sich Adresse und Token nur speichern; ob sie funktionieren, zeigte erst das Log. "Verbindung testen" führt nun eine echte Registrierung aus (TCP-Verbindung → gRPC-Stream → Registrierung → auf Antwort warten) und ordnet den Fehler einer von drei Ursachen zu: Adressformat, Netz nicht erreichbar, Token abgelehnt. Der Test nutzt eine Einweg-Identität, trennt also die laufende Verbindung nicht und speichert nichts.
+
+**Umgebungsvariablen des Terminals (Fehler behoben)**
+
+Das Panel läuft als systemd-Systemdienst, und systemd setzt für solche Dienste kein `HOME`. Im Terminal schlug daher `cd` mit `HOME not set` fehl, `~` wurde nicht expandiert, und vim / git übersprangen still `~/.vimrc` und `~/.gitconfig`. `HOME`, `USER`, `LOGNAME`, `SHELL` und `PWD` werden jetzt für den aktuellen Benutzer aus `/etc/passwd` ermittelt.
+
+**Sonstiges**
+
+- `install.sh -n` (nur Ausgabe, keine Installation) zeigt kein Anfangspasswort mehr, das nach der Installation ungültig ist
+
 ## v1.4.0 (2026-11-02)
 
 **Von „handlungsfähig“ zu „Handeln mit Belegen“**
