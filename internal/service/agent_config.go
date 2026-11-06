@@ -1,6 +1,9 @@
 package service
 
 import (
+	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/agent"
@@ -18,10 +21,14 @@ const (
 // config is: panel settings (database) override config.yaml; when the setting is
 // absent, config.yaml's agent section is used as the fallback.
 type AgentConfigService struct {
-	settings  *SettingService
-	mgr       *agent.Manager
-	cfg       config.Agent // fallback from config.yaml
+	settings *SettingService
+	mgr      *agent.Manager
+	cfg      config.Agent // fallback from config.yaml
 	panelPort int32
+	// probeMu serializes connectivity tests: they are operator-triggered and
+	// short, and running two at once only produces confusing interleaved
+	// registrations on the Server side.
+	probeMu sync.Mutex
 }
 
 // NewAgentConfigService creates an AgentConfigService.
@@ -77,4 +84,33 @@ func (s *AgentConfigService) apply(addr, token string) {
 		PanelPort:  s.panelPort,
 		Heartbeat:  heartbeat,
 	})
+}
+
+// Probe tests whether the given address + token can actually register with the
+// OpsAnt Server, without persisting anything. It answers the question the
+// settings page could not: "is what I typed usable?", with the failure reason
+// split into address / network / token.
+//
+// The probe registers under a fresh throwaway identity (<hostname>-probe-xxxx)
+// rather than reusing the panel's hostname. The Server keys agents by identity
+// and kicks the previous stream when the same one registers again, so reusing
+// it would drop the production link on every test. A unique name also keeps the
+// probe away from the double-close panic that unpatched Servers hit when a host
+// re-registers (fixed in opsant afd7464, but not every deployment is updated).
+//
+// The live agent is not touched, and the probe entry disappears on its own when
+// the stream closes.
+func (s *AgentConfigService) Probe(ctx context.Context, addr, token string) agent.ProbeResult {
+	s.probeMu.Lock()
+	defer s.probeMu.Unlock()
+
+	hostname, version, instanceID := s.mgr.Identity()
+	// 4 hex chars are enough to keep back-to-back tests distinct; the value only
+	// needs to be unique within the few seconds a probe lives.
+	suffix := fmt.Sprintf("%04x", uint16(time.Now().UnixNano()))
+	return agent.ProbeOnce(ctx, agent.Config{
+		ServerAddr: addr,
+		Token:      token,
+		PanelPort:  s.panelPort,
+	}, hostname+"-probe-"+suffix, version, instanceID+"-probe-"+suffix)
 }

@@ -23,6 +23,10 @@ import (
 
 // SystemService provides real-time collection of host system information.
 type SystemService struct {
+	// InstanceID 是面板实例 ID（opsmini-xxx），由装配层从 settings 读取后注入，
+	// 只在 /dashboard/overview 里回显，便于从 OpsAnt 侧定位到这台主机。
+	InstanceID string
+
 	netMu       sync.Mutex
 	netDayKey   string // today's baseline date "2006-01-02"
 	netBaseRec  uint64 // baseline cumulative received bytes at 0:00 today
@@ -85,6 +89,7 @@ type MonitorSummary struct {
 // Overview is the dashboard overview.
 type Overview struct {
 	Hostname     string   `json:"hostname"`
+	InstanceID   string   `json:"instance_id"` // 面板实例 ID（opsmini-xxx），用于从 OpsAnt 反查主机
 	OS           string   `json:"os"`
 	Platform     string   `json:"platform"`         // system type (e.g. ubuntu/centos)
 	PlatformVer  string   `json:"platform_version"` // distro version (e.g. 22.04)
@@ -474,6 +479,7 @@ func (s *SystemService) Overview() (*Overview, error) {
 		o.DiskTotal = du.Total
 		o.DiskUsed = du.Used
 	}
+	o.InstanceID = s.InstanceID
 	return o, nil
 }
 

@@ -63,6 +63,14 @@ func (m *Manager) Stop() {
 	m.Start(Config{})
 }
 
+// Identity returns the agent's base identity (hostname, version, instance ID).
+// A connectivity probe derives a throwaway identity from these so the values
+// stay recognisable in the OpsAnt host list without colliding with the live
+// agent's registration.
+func (m *Manager) Identity() (hostname, version, instanceID string) {
+	return m.hostname, m.version, m.instanceID
+}
+
 // Config returns the current effective config.
 func (m *Manager) Config() Config {
 	m.mu.Lock()

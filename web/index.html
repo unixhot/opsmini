@@ -125,6 +125,9 @@
   .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
   .page-title{font-size:18px;font-weight:700}
   .page-desc{color:var(--t2);font-size:13px;margin-top:4px}
+  .inst-id{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--t3);cursor:pointer;user-select:none}
+  .inst-id code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--card);color:var(--t2);transition:color .15s,border-color .15s,background .15s}
+  .inst-id:hover code{color:var(--primary);border-color:var(--primary);background:var(--primary-soft)}
   .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--t1);transition:.15s}
   .btn:hover{border-color:var(--t3)}
   .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -526,6 +529,21 @@
   .form-item label{display:block;font-size:12.5px;color:var(--t2);margin-bottom:6px;font-weight:500}
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .form-hint{font-size:12px;color:var(--t3);margin-top:5px}
+  /* 接入 OpsAnt 的「测试连接」结果条：失败原因分三段（地址/网络/令牌），
+     所以除了成功/失败配色，还要给出可复制的原文细节。 */
+  .conn-test{display:flex;gap:10px;padding:10px 12px;border-radius:var(--radius);border:1px solid;font-size:13px;line-height:1.55}
+  .conn-test.ok{background:var(--success-soft);border-color:rgba(22,163,74,.28);color:var(--success)}
+  .conn-test.err{background:var(--danger-soft);border-color:rgba(220,38,38,.28);color:var(--danger)}
+  .conn-test-icon{flex:none;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;margin-top:1px}
+  .conn-test.ok .conn-test-icon{background:var(--success)}
+  .conn-test.err .conn-test-icon{background:var(--danger)}
+  .conn-test-body{flex:1;min-width:0}
+  .conn-test-title{font-weight:600;color:var(--t1)}
+  .conn-test-meta{font-weight:400;color:var(--t3);font-size:12px;margin-left:6px}
+  .conn-test-msg{margin-top:2px;color:var(--t2)}
+  .conn-test-detail{margin-top:4px;font-family:var(--mono,ui-monospace,monospace);font-size:11px;color:var(--t3);word-break:break-all}
+  .btn-spin{display:inline-block;width:11px;height:11px;margin-right:6px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-1px;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
   .form-item .row{justify-content:space-between}
   @media(max-width:768px){.form-grid{grid-template-columns:1fr}}
 
@@ -858,6 +876,10 @@
           <div>
             <div class="page-title">{{ t('page.dashboard') }}</div>
             <div class="page-desc">{{ sys.hostname }} · {{ sys.ip }}</div>
+            <div class="inst-id" v-if="instanceId" @click="copyInstanceId" :title="t('dash.copyId')">
+              <span>{{ t('dash.instanceId') }}</span>
+              <code>{{ instanceId }}</code>
+            </div>
           </div>
           <div class="row">
             <button class="btn primary" @click="refreshDashboard">
@@ -3476,9 +3498,24 @@
                         @click="disconnectAgent" style="color:var(--danger);border-color:rgba(220,38,38,.35)">
                   {{ t('set.opsantDisconnect') }}
                 </button>
+                <button class="btn ghost" @click="testAgentConfig" :disabled="agentCfg.testing">
+                  <span v-if="agentCfg.testing" class="btn-spin"></span>{{ agentCfg.testing ? t('set.opsantTesting') : t('set.opsantTest') }}
+                </button>
                 <button class="btn primary" @click="saveAgentConfig">{{ t('btn.save') }}</button>
               </div>
+              <div v-if="agentCfg.testResult" class="conn-test" :class="agentCfg.testResult.ok ? 'ok' : 'err'">
+                <div class="conn-test-icon">{{ agentCfg.testResult.ok ? '✓' : '!' }}</div>
+                <div class="conn-test-body">
+                  <div class="conn-test-title">
+                    {{ agentCfg.testResult.ok ? t('set.connOk') : t('set.connFail') }}
+                    <span class="conn-test-meta" v-if="agentCfg.testResult.latency_ms">{{ agentCfg.testResult.latency_ms }} ms</span>
+                  </div>
+                  <div class="conn-test-msg" v-if="!agentCfg.testResult.ok">{{ agentCfg.testResult.message }}</div>
+                  <div class="conn-test-detail" v-if="agentCfg.testResult.detail">{{ agentCfg.testResult.detail }}</div>
+                </div>
+              </div>
               <div class="form-hint" style="margin-top:-4px">{{ t('set.opsantDisconnectHint') }}</div>
+              <div class="form-hint" style="margin-top:-6px">{{ t('set.opsantTestHint') }}</div>
             </div>
             </div>
           </div>
@@ -5039,6 +5076,36 @@ const I18N = {
 // 上面那一堆巨型字典，也方便以后再加服务商。
 // 攻击链 / 处置事务 / 影子评分：v1.4 自主决策闭环的收尾三块。
 // 单独一个字典，继续避免去动那 7 行巨型字典。
+const I18N14 = {
+  'zh-CN': { 'dash.instanceId':'实例 ID', 'dash.copyId':'点击复制实例 ID',
+    'set.opsantTest':'测试连接', 'set.opsantTesting':'测试中', 'set.connOk':'连接成功', 'set.connFail':'连接失败', 'set.connAgentId':'Server 识别为',
+    'set.opsantAddrRequired':'请先填写 OpsAnt 服务器地址',
+    'set.opsantTestHint':'测试会用独立的探测身份连接，不影响当前接入，也不会保存配置。' },
+  'zh-TW': { 'dash.instanceId':'實例 ID', 'dash.copyId':'點擊複製實例 ID',
+    'set.opsantTest':'測試連線', 'set.opsantTesting':'測試中', 'set.connOk':'連線成功', 'set.connFail':'連線失敗', 'set.connAgentId':'Server 識別為',
+    'set.opsantAddrRequired':'請先填寫 OpsAnt 伺服器位址',
+    'set.opsantTestHint':'測試會用獨立的探測身分連線，不影響目前接入，也不會儲存設定。' },
+  'en': { 'dash.instanceId':'Instance ID', 'dash.copyId':'Click to copy instance ID',
+    'set.opsantTest':'Test connection', 'set.opsantTesting':'Testing', 'set.connOk':'Connected', 'set.connFail':'Connection failed', 'set.connAgentId':'Server sees it as',
+    'set.opsantAddrRequired':'Enter the OpsAnt server address first',
+    'set.opsantTestHint':'The test connects under a separate probe identity. The current link is not interrupted and nothing is saved.' },
+  'ja': { 'dash.instanceId':'インスタンス ID', 'dash.copyId':'クリックでインスタンス ID をコピー',
+    'set.opsantTest':'接続テスト', 'set.opsantTesting':'テスト中', 'set.connOk':'接続成功', 'set.connFail':'接続失敗', 'set.connAgentId':'Server の認識 ID',
+    'set.opsantAddrRequired':'先に OpsAnt サーバーアドレスを入力してください',
+    'set.opsantTestHint':'テストは独立した識別子で接続します。現在の接続には影響せず、設定も保存されません。' },
+  'ko': { 'dash.instanceId':'인스턴스 ID', 'dash.copyId':'클릭하여 인스턴스 ID 복사',
+    'set.opsantTest':'연결 테스트', 'set.opsantTesting':'테스트 중', 'set.connOk':'연결 성공', 'set.connFail':'연결 실패', 'set.connAgentId':'Server 인식 ID',
+    'set.opsantAddrRequired':'OpsAnt 서버 주소를 먼저 입력하세요',
+    'set.opsantTestHint':'테스트는 별도의 프로브 ID로 연결합니다. 현재 연결에 영향을 주지 않으며 설정도 저장되지 않습니다.' },
+  'th': { 'dash.instanceId':'รหัสอินสแตนซ์', 'dash.copyId':'คลิกเพื่อคัดลอกรหัสอินสแตนซ์',
+    'set.opsantTest':'ทดสอบการเชื่อมต่อ', 'set.opsantTesting':'กำลังทดสอบ', 'set.connOk':'เชื่อมต่อสำเร็จ', 'set.connFail':'เชื่อมต่อไม่สำเร็จ', 'set.connAgentId':'Server ระบุเป็น',
+    'set.opsantAddrRequired':'กรุณากรอกที่อยู่เซิร์ฟเวอร์ OpsAnt ก่อน',
+    'set.opsantTestHint':'การทดสอบเชื่อมต่อด้วยรหัสตรวจสอบแยกต่างหาก ไม่กระทบการเชื่อมต่อปัจจุบัน และไม่บันทึกการตั้งค่า' },
+  'de': { 'dash.instanceId':'Instanz-ID', 'dash.copyId':'Klicken, um die Instanz-ID zu kopieren',
+    'set.opsantTest':'Verbindung testen', 'set.opsantTesting':'Teste', 'set.connOk':'Verbindung erfolgreich', 'set.connFail':'Verbindung fehlgeschlagen', 'set.connAgentId':'Server erkennt sie als',
+    'set.opsantAddrRequired':'Bitte zuerst die OpsAnt-Serveradresse eingeben',
+    'set.opsantTestHint':'Der Test verbindet sich unter einer separaten Probe-Identitaet. Die aktuelle Verbindung bleibt unberuehrt, es wird nichts gespeichert.' },
+};
 const I18N13 = {
   'zh-CN': {
     'sent.chain.tab':'攻击链',
@@ -6481,6 +6548,7 @@ createApp({
         { id:'blue', name:'深海蓝', bg:'#0d1b2a', fg:'#e0e1dd' },
       ],
       sys: { hostname:'opsmini-server', ip:'192.168.1.100', os:'Ubuntu 22.04 LTS', user:'root', kernel:'6.5.0-27' },
+      instanceId: '',
       monitor: { hostname:'-', ips:[], os:'-', platform:'-', platform_version:'-', kernel_version:'-', kernel_arch:'-', cpu_model:'-', cpu_cores:0, dns:[], uptime:0, cpu_percent:0, mem_percent:0, mem_total:0, mem_used:0, load1:0, load5:0, load15:0, disk_percent:0, disk_total:0, disk_used:0, process_count:0, user_count:0, login_user_count:0, port_count:0 },
       monitorLoading: false,
       monitorTab: 'chart',
@@ -6502,7 +6570,7 @@ createApp({
       aiModelLoading: false,
       aiFetchState: { kind:'', msg:'' },   // kind: '' | 'ok' | 'err'
       set: { autoup:true, allowOpsantSso:true },
-      agentCfg: { server_addr:'', server_token:'', running:false, showToken:false },
+      agentCfg: { server_addr:'', server_token:'', running:false, showToken:false, testing:false, testResult:null },
       services: [
         { name:'Nginx', short:'N', desc:'svc.web', color:'#16b879', running:true, pid:1024 },
         { name:'MySQL', short:'M', desc:'svc.db', color:'#3b9cf0', running:true, pid:1180 },
@@ -7379,7 +7447,7 @@ createApp({
       else if(p==='changes'){ this.loadChanges(1); this.loadChgStats(); }
     },
     // ===== 多语言 =====
-    t(key){ const dicts=[I18N13,I18N12,I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
+    t(key){ const dicts=[I18N14,I18N13,I18N12,I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
     setDocTitle(){
       document.title = this.loggedIn
         ? 'OpsMini · ' + (location.hostname || location.host || 'localhost')
@@ -7424,6 +7492,14 @@ createApp({
     copyMetricsPass(){
       const v = this.metricsAuth.pass || '';
       if(!v){ this.toast(this.t('set.metricsPassPh')); return; }
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(
+        ()=>this.toast(this.t('btn.copied')),
+        ()=>{ const ta=document.createElement('textarea'); ta.value=v; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); this.toast(this.t('btn.copied')); }
+      );
+    },
+    copyInstanceId(){
+      const v = this.instanceId || '';
+      if(!v){ return; }
       (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(
         ()=>this.toast(this.t('btn.copied')),
         ()=>{ const ta=document.createElement('textarea'); ta.value=v; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); this.toast(this.t('btn.copied')); }
@@ -7520,6 +7596,28 @@ createApp({
         this.agentCfg.server_token = d.server_token || '';
         this.agentCfg.running = !!d.running;
       }catch(e){ /* 忽略 */ }
+    },
+    // 测试连接：不保存配置，用「TCP 拨号 + gRPC 注册」真实跑一遍，
+    // 这样能区分「地址不通」和「token 不对」——只做 TCP 探测是分不出来的。
+    async testAgentConfig(){
+      const addr = (this.agentCfg.server_addr || '').trim();
+      if(!addr){ this.toast(this.t('set.opsantAddrRequired')); return; }
+      if(!/^[^\s:/]+:\d{1,5}$/.test(addr)){ this.toast(this.t('set.opsantAddrInvalid')); return; }
+      this.agentCfg.testing = true;
+      this.agentCfg.testResult = null;
+      try{
+        this.agentCfg.testResult = await this.api('/agent-config/test', {
+          method:'POST',
+          body: JSON.stringify({ server_addr: addr, server_token: (this.agentCfg.server_token || '').trim() })
+        });
+      }catch(e){
+        // 接口层失败（超时、5xx）也要给出可见结论，不能静默
+        this.agentCfg.testResult = { ok:false, stage:'error', message:e.message, latency_ms:0 };
+      }finally{
+        this.agentCfg.testing = false;
+        // 测试期间会临时停掉再恢复连接，运行状态以服务端为准重新读一次
+        this.loadAgentConfig();
+      }
     },
     async saveAgentConfig(){
       const addr = (this.agentCfg.server_addr || '').trim();
@@ -8063,6 +8161,7 @@ createApp({
           user: 'root',
           bootTime: o.boot_time ? this.fmtTime(o.boot_time) : '-',
         };
+        this.instanceId = o.instance_id || '';
         this.cpu = { used: Math.round(o.cpu_percent||0), cores:(o.cpu_cores||0), load: `${(o.load1||0).toFixed(2)} / ${(o.load5||0).toFixed(2)} / ${(o.load15||0).toFixed(2)}` };
         this.mem = { used:+(o.mem_used/1024/1024/1024).toFixed(1), total:+(o.mem_total/1024/1024/1024).toFixed(1), pct:Math.round(o.mem_percent||0) };
         this.disk = { used:+(o.disk_used/1024/1024/1024).toFixed(1), total:+(o.disk_total/1024/1024/1024).toFixed(1), pct:Math.round(o.disk_percent||0), mount:'/' };

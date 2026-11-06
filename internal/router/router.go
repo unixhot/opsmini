@@ -90,6 +90,10 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	accessLogHandler := v1.NewAccessLogHandler(accessLogRepo)
 
 	sysSvc := service.NewSystemService()
+	// 实例 ID 注入到概览接口，仪表盘直接展示，方便从 OpsAnt 反查这台主机。
+	if v, err := settingSvc.Get(agent.InstanceIDKey); err == nil {
+		sysSvc.InstanceID = v
+	}
 	dashboardHandler := v1.NewDashboardHandler(sysSvc, metrics)
 	systemHandler := v1.NewSystemHandler(sysSvc)
 	alertSvc := service.NewAlertService(repository.NewAlertRuleRepo(db))
@@ -545,6 +549,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			// OpsAnt link configuration (panel visualization)
 			authed.GET("/agent-config", permMw("settings.view"), agentConfigHandler.Get)
 			authed.PUT("/agent-config", permMw("settings.edit"), agentConfigHandler.Update)
+			authed.POST("/agent-config/test", permMw("settings.edit"), agentConfigHandler.Test)
 
 			// Dashboard / monitoring
 			authed.GET("/dashboard/overview", dashboardHandler.Overview)
