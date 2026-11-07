@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -28,10 +29,14 @@ var (
 	ErrInvalidMFACode = errors.New("invalid mfa code")
 	// ErrInvalidMFAToken indicates an invalid MFA pre-auth token.
 	ErrInvalidMFAToken = errors.New("invalid mfa token")
-	// ErrSSODisabled indicates the OpsAnt SSO login is disabled.
-	ErrSSODisabled = errors.New("sso login disabled")
+	// ErrSSODisabled indicates the OpsAnt SSO login is disabled by the panel switch.
+	ErrSSODisabled = errors.New("sso login disabled: turn on \"Allow OpsAnt SSO login\" in panel settings")
 	// ErrInvalidSSOToken indicates an invalid or expired SSO token.
 	ErrInvalidSSOToken = errors.New("invalid sso token")
+	// ErrSSONotConfigured indicates the panel accepts SSO but has no shared token to
+	// verify signatures with. It is a configuration gap, not a policy decision, and
+	// reporting it as "disabled" sent operators to the wrong switch.
+	ErrSSONotConfigured = errors.New("sso not configured: OpsAnt token is empty, fill it in Settings > Connect to OpsAnt (or agent.server_token in config.yaml)")
 )
 
 // TokenPair is the token pair returned on login.
@@ -55,12 +60,20 @@ type AuthService struct {
 	jwt        *jwt.Manager
 	mfaEnabled func() bool // global MFA toggle (read from settings)
 	ssoEnabled func() bool // OpsAnt SSO login toggle (read from settings)
-	ssoSecret  string      // shared secret for verifying OpsAnt SSO tokens (agent.server_token)
+	// ssoSecret resolves the shared secret for verifying OpsAnt SSO tokens on every
+	// request. It must be a function: the token is normally configured in the panel
+	// (settings table) and can be changed without restarting the process, so a value
+	// captured at startup would go stale or stay empty.
+	ssoSecret func() string
+	// ssoIdentity returns host identities other than os.Hostname() that may appear in
+	// an OpsAnt token. OpsAnt signs with the host identity it stores for the host,
+	// which for OpsMini-managed hosts is the panel instance ID.
+	ssoIdentity func() []string
 }
 
 // NewAuthService creates an AuthService.
-func NewAuthService(repo *repository.UserRepo, jwtMgr *jwt.Manager, mfaEnabled func() bool, ssoEnabled func() bool, ssoSecret string) *AuthService {
-	return &AuthService{repo: repo, jwt: jwtMgr, mfaEnabled: mfaEnabled, ssoEnabled: ssoEnabled, ssoSecret: ssoSecret}
+func NewAuthService(repo *repository.UserRepo, jwtMgr *jwt.Manager, mfaEnabled func() bool, ssoEnabled func() bool, ssoSecret func() string, ssoIdentity func() []string) *AuthService {
+	return &AuthService{repo: repo, jwt: jwtMgr, mfaEnabled: mfaEnabled, ssoEnabled: ssoEnabled, ssoSecret: ssoSecret, ssoIdentity: ssoIdentity}
 }
 
 // Login verifies credentials; if MFA is globally enabled and the user has it bound,
@@ -101,7 +114,20 @@ func (s *AuthService) SSOLogin(ssoToken, localHostname string) (*TokenPair, erro
 	if s.ssoEnabled == nil || !s.ssoEnabled() {
 		return nil, ErrSSODisabled
 	}
-	if _, err := verifySSOToken(ssoToken, s.ssoSecret, localHostname); err != nil {
+	secret := ""
+	if s.ssoSecret != nil {
+		secret = strings.TrimSpace(s.ssoSecret())
+	}
+	if secret == "" {
+		return nil, ErrSSONotConfigured
+	}
+	// os.Hostname() is only one of the identities OpsAnt may have signed with; the
+	// instance ID is the one it uses for hosts discovered through the OpsMini link.
+	identities := []string{localHostname}
+	if s.ssoIdentity != nil {
+		identities = append(identities, s.ssoIdentity()...)
+	}
+	if _, err := verifySSOToken(ssoToken, secret, identities); err != nil {
 		return nil, err
 	}
 	// 以管理员身份登录（OpsAnt 已完成认证，信任该来源）
@@ -126,34 +152,56 @@ func (s *AuthService) SSOLogin(ssoToken, localHostname string) (*TokenPair, erro
 	return &TokenPair{AccessToken: access, RefreshToken: refresh}, nil
 }
 
-// verifySSOToken verifies the OpsAnt-issued SSO token (format: base64url(hostname|expiry|signature)).
-func verifySSOToken(ssoToken, secret, localHostname string) (string, error) {
+// verifySSOToken verifies an OpsAnt-issued token (format: base64url(identity|expiry|signature)).
+//
+// identity is whatever OpsAnt stores as the host name for the host it is opening. For
+// hosts discovered through the OpsMini link that value is the panel instance ID
+// (opsmini-xxxxxxxxxxxx), not the machine's hostname, so the caller passes every
+// identity this panel answers to. The signature is checked before identity and expiry
+// are reported on, so an unauthenticated caller cannot probe for them.
+func verifySSOToken(ssoToken, secret string, identities []string) (string, error) {
 	if secret == "" {
-		return "", ErrSSODisabled
+		return "", ErrSSONotConfigured
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(ssoToken)
 	if err != nil {
-		return "", ErrInvalidSSOToken
+		return "", fmt.Errorf("%w: malformed encoding", ErrInvalidSSOToken)
 	}
 	parts := strings.Split(string(raw), "|")
 	if len(parts) != 3 {
-		return "", ErrInvalidSSOToken
+		return "", fmt.Errorf("%w: malformed payload", ErrInvalidSSOToken)
 	}
-	hostname, expiryStr, sig := parts[0], parts[1], parts[2]
+	identity, expiryStr, sig := parts[0], parts[1], parts[2]
 	expiry, err := strconv.ParseInt(expiryStr, 10, 64)
-	if err != nil || expiry < time.Now().Unix() {
-		return "", ErrInvalidSSOToken
-	}
-	if hostname != localHostname {
-		return "", ErrInvalidSSOToken
+	if err != nil {
+		return "", fmt.Errorf("%w: malformed expiry", ErrInvalidSSOToken)
 	}
 	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(hostname + "|" + expiryStr))
-	expected := hex.EncodeToString(mac.Sum(nil))
-	if !hmac.Equal([]byte(sig), []byte(expected)) {
-		return "", ErrInvalidSSOToken
+	mac.Write([]byte(identity + "|" + expiryStr))
+	if !hmac.Equal([]byte(sig), []byte(hex.EncodeToString(mac.Sum(nil)))) {
+		// The most common real-world cause is a token that differs between OpsAnt and
+		// this panel, so say so instead of leaving "invalid" to be interpreted.
+		return "", fmt.Errorf("%w: signature mismatch (OpsAnt token differs from the one configured here)", ErrInvalidSSOToken)
 	}
-	return hostname, nil
+	if expiry < time.Now().Unix() {
+		return "", fmt.Errorf("%w: expired", ErrInvalidSSOToken)
+	}
+	if !matchIdentity(identity, identities) {
+		return "", fmt.Errorf("%w: token was issued for %q, this panel answers to %v", ErrInvalidSSOToken, identity, identities)
+	}
+	return identity, nil
+}
+
+// matchIdentity reports whether id equals one of the accepted identities. Comparison is
+// case-insensitive because hostnames are, and OpsAnt may record a different case than
+// os.Hostname() returns locally.
+func matchIdentity(id string, identities []string) bool {
+	for _, want := range identities {
+		if want = strings.TrimSpace(want); want != "" && strings.EqualFold(id, want) {
+			return true
+		}
+	}
+	return false
 }
 
 // VerifyMFALogin verifies the MFA code and issues the formal tokens on success.

@@ -71,6 +71,23 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		time.Duration(cfg.JWT.RefreshTTL)*time.Second,
 	)
 
+	// OpsAnt link configuration: panel settings override config.yaml, applied at runtime
+	// (Agent reconnect). Constructed here because SSO token verification needs the
+	// effective token: config.yaml's agent.server_token is empty on every installation
+	// that was connected through the panel instead.
+	agentConfigSvc := service.NewAgentConfigService(settingSvc, agentMgr, cfg.Agent, int32(cfg.Server.Port))
+
+	// Host identities accepted in an OpsAnt SSO token. OpsAnt signs with the identity it
+	// stores for the host, which is the panel instance ID for OpsMini-managed hosts —
+	// os.Hostname() alone therefore never matches. Load-or-create so a data directory
+	// that predates the instance ID still yields one.
+	instanceID, _ := settingSvc.Get(agent.InstanceIDKey)
+	if strings.TrimSpace(instanceID) == "" {
+		if id, _ := agent.LoadOrCreateInstanceID(settingSvc, cfg.DataDir()); id != "" {
+			instanceID = id
+		}
+	}
+
 	authSvc := service.NewAuthService(userRepo, jwtMgr, func() bool {
 		v, err := settingSvc.Get("mfa_enabled")
 		return err == nil && v == "true"
@@ -78,7 +95,13 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		v, err := settingSvc.Get("allow_opsant_sso")
 		// 默认打开：只有显式 "false" 才禁用（未设置/空/"true" 均为开启）
 		return err != nil || v == "" || v == "true"
-	}, cfg.Agent.ServerToken)
+	}, func() string {
+		// Resolved per request so a token saved in the panel takes effect immediately.
+		_, token, _ := agentConfigSvc.Current()
+		return token
+	}, func() []string {
+		return []string{instanceID}
+	})
 	userSvc := service.NewUserService(userRepo)
 	auditSvc := service.NewAuditService(repository.NewAuditLogRepo(db))
 	authHandler := v1.NewAuthHandler(authSvc, auditSvc)
@@ -156,7 +179,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	settingHandler := v1.NewSettingHandler(settingSvc)
 
 	// OpsAnt link configuration: panel settings override config.yaml, applied at runtime (Agent reconnect).
-	agentConfigSvc := service.NewAgentConfigService(settingSvc, agentMgr, cfg.Agent, int32(cfg.Server.Port))
 	agentConfigSvc.Init()
 	agentConfigHandler := v1.NewAgentConfigHandler(agentConfigSvc)
 

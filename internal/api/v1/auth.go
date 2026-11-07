@@ -72,7 +72,9 @@ func (h *AuthHandler) SSOLogin(c *gin.Context) {
 		if h.audit != nil {
 			h.audit.Record(0, "", "login_fail", "auth", "sso: "+err.Error(), c.ClientIP())
 		}
-		if errors.Is(err, service.ErrSSODisabled) {
+		if errors.Is(err, service.ErrSSODisabled) || errors.Is(err, service.ErrSSONotConfigured) {
+			// Both are states of this panel's configuration, not credential problems:
+			// answer 403 and keep the message, which names the switch or field to fix.
 			response.Error(c, 403, response.CodeForbidden, err.Error())
 		} else {
 			response.Error(c, 401, response.CodeUnauthorized, err.Error())
