@@ -708,14 +708,15 @@ func (h *SentinelHandler) UpdateNoiseSettings(c *gin.Context) {
 	}
 	// Validate the clock strings here rather than letting the engine silently
 	// ignore a typo: "2:00-4:00" looking configured but never firing is the kind
-	// of bug that takes a week to notice.
+	// of bug that takes a week to notice. Strict two-digit HH:MM so that "2:00"
+	// and "02:00" cannot both exist in the config.
 	for _, v := range []string{req.MaintenanceStart, req.MaintenanceEnd} {
 		if v == "" {
 			continue
 		}
 		parts := strings.SplitN(v, ":", 2)
-		if len(parts) != 2 {
-			response.Error(c, 400, response.CodeInvalidParam, "时间格式应为 HH:MM")
+		if len(parts) != 2 || len(parts[0]) != 2 || len(parts[1]) != 2 {
+			response.Error(c, 400, response.CodeInvalidParam, "时间格式应为两位的 HH:MM，例如 02:00")
 			return
 		}
 		hh, e1 := strconv.Atoi(parts[0])
