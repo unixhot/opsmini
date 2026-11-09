@@ -53,3 +53,30 @@ func TestDefaultSecurityPolicyAllowsOnlyQuarantine(t *testing.T) {
 		t.Fatal("no default policy covers the security family: findings would never reach the agent")
 	}
 }
+
+// The built-in security-response policy uses family "security". If that key is
+// missing from knownFamilies, the panel renders the family dropdown with no
+// matching option and every save is rejected — a policy nobody can edit is worse
+// than a missing feature, because the rejection looks like a UI bug.
+func TestSecurityFamilyIsEditable(t *testing.T) {
+	found := false
+	for _, f := range KnownFamilies() {
+		if f == model.FamilySecurity {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("%q missing from KnownFamilies: %v", model.FamilySecurity, KnownFamilies())
+	}
+
+	p := model.TriggerPolicy{
+		Name: "security-response", Family: model.FamilySecurity,
+		MinSeverity: model.SeverityHigh, Mode: model.ModeAssist,
+		MaxWrites: 2, MaxSteps: 10, MaxSeconds: 300, MaxTokens: 120000,
+		AllowTools: `["read_file","quarantine_file"]`, AutoTools: `["quarantine_file"]`,
+		DenyTools: `["exec_command"]`, Notify: "面板", CooldownSec: 1800,
+	}
+	if err := ValidatePolicy(&p); err != nil {
+		t.Fatalf("built-in security policy rejected: %v", err)
+	}
+}

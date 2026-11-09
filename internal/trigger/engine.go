@@ -283,6 +283,11 @@ func (e *Engine) Delete(id uint) error {
 // other family would never match, so the UI only offers these.
 var knownFamilies = []string{
 	"webshell", "auth.anomaly", "proc.anomaly", "net.anomaly", "log_growth", "metric",
+	// security 是 v1.5 新增的主机安全场景（FIM 变更 / 威胁发现）。漏在这里的
+	// 代价不是「少一个选项」：内置的 security-response 策略 family 就是 security，
+	// 校验不过意味着这条策略在面板上永远保存不了，下拉框还会把它显示成空值，
+	// 用户一保存就静默改成别的场景。
+	model.FamilySecurity,
 }
 
 // KnownFamilies returns the scenario keys a policy can target.
