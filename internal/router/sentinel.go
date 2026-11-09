@@ -96,23 +96,36 @@ func buildSentinel(
 	}
 
 	// ---- v1.4 变更感知：采集 → 落库 → 扇出为 family=change 的 info 信号 ----
-	ccfg := change.DefaultConfig()
-	ccfg.Snapshot.Dir = filepath.Join(dataDir(), "changes")
-	// Watch dirs are overridable from the panel (and by env var for tests /
-	// containers where /etc is not the interesting tree).
-	if v, _ := settingSvc.Get("change_watch_dirs"); strings.TrimSpace(v) != "" {
-		ccfg.File.WatchDirs = splitCSV(v)
+	// 每次重建都从设置重新读一遍：采集源开关和监听目录都允许在界面上改，
+	// 改完需要重建 watcher（各源在 Start 时按开关起 goroutine，运行中关不掉）。
+	buildChangeConfig := func() *change.Config {
+		c := change.DefaultConfig()
+		c.Snapshot.Dir = filepath.Join(dataDir(), "changes")
+		applyChangeSources(c, settingSvc)
+		// Watch dirs are overridable from the panel (and by env var for tests /
+		// containers where /etc is not the interesting tree).
+		if v, _ := settingSvc.Get("change_watch_dirs"); strings.TrimSpace(v) != "" {
+			c.File.WatchDirs = splitCSV(v)
+		}
+		if v := os.Getenv("OPSMINI_CHANGE_WATCH_DIRS"); strings.TrimSpace(v) != "" {
+			c.File.WatchDirs = splitCSV(v)
+		}
+		if v, _ := settingSvc.Get("change_realtime"); v == "false" || v == "0" {
+			c.File.Realtime = false
+		}
+		// 额外排除项只追加：硬编码的排除表（mtab、ld.so.cache 之类）不能被界面上
+		// 一次误操作删掉，否则那些文件每轮都会产生一条无意义的变更。
+		if v, _ := settingSvc.Get("change_exclude_globs"); strings.TrimSpace(v) != "" {
+			c.File.IgnoreGlobs = append(c.File.IgnoreGlobs, splitCSV(v)...)
+		}
+		return c
 	}
-	if v := os.Getenv("OPSMINI_CHANGE_WATCH_DIRS"); strings.TrimSpace(v) != "" {
-		ccfg.File.WatchDirs = splitCSV(v)
-	}
-	if v, _ := settingSvc.Get("change_realtime"); v == "false" || v == "0" {
-		ccfg.File.Realtime = false
-	}
+	ccfg := buildChangeConfig()
 	changeStore, csErr := change.NewStore(db, ccfg.Quota.DiffTotalSize)
 	snapshots := change.NewSnapshots(ccfg.Snapshot.Dir, ccfg.Snapshot.MaxPerDay, ccfg.Snapshot.MaxTotalSize)
 	var correlator *change.Correlator
 	var changeWatcher *change.Watcher
+	var changeOnEvent func(ev change.Event)
 	if csErr != nil {
 		log.Printf("sentinel: change store init failed: %v", csErr)
 	} else {
@@ -125,14 +138,17 @@ func buildSentinel(
 		// 顺序很关键——必须在 Publish 之前改严重级，否则事件会以 info 建好，
 		// 策略匹配不上，Agent 永远不会被唤醒。
 		changeReviewer := change.NewReviewer(changeStore)
-		changeWatcher, csErr = change.NewWatcher(ccfg, changeStore, snapshots, func(ev change.Event) {
+		// 扇出回调独立成变量：重建 watcher 时必须复用同一份逻辑，否则重载一次
+		// 之后变更就不再进信号总线，界面上看起来「采集正常但再也发现不了问题」。
+		changeOnEvent = func(ev change.Event) {
 			sig := changeSignal(ev)
 			if rev, err := changeReviewer.Review(ev); err == nil && rev.Verdict == model.ChangeVerdictSuspicious {
 				sig.Severity = model.SeverityHigh
 				log.Printf("change: 可疑变更 %s（%.2f）→ 唤醒 Agent 分析", ev.Object.Key, rev.Score)
 			}
 			mgr.Bus.Publish(sig)
-		})
+		}
+		changeWatcher, csErr = change.NewWatcher(ccfg, changeStore, snapshots, changeOnEvent)
 		if csErr != nil {
 			log.Printf("sentinel: change watcher init failed: %v", csErr)
 			changeWatcher = nil
@@ -243,7 +259,55 @@ func buildSentinel(
 		shadow:    shadow,
 	}
 	bundle.metricCh = metricCh
+
+	// 采集设置保存后重建 watcher：各源在 Start 时按开关起 goroutine，运行中
+	// 无法单独关掉，只能整体换一份。旧实例先 Stop（它会把在途事件写完），
+	// 再按最新设置起新的。
+	if changeAPI != nil && changeStore != nil {
+		changeAPI.Reload = func() error {
+			if changeWatcher != nil {
+				changeWatcher.Stop()
+			}
+			w, err := change.NewWatcher(buildChangeConfig(), changeStore, snapshots, changeOnEvent)
+			if err != nil {
+				return err
+			}
+			w.Start(context.Background())
+			changeWatcher = w
+			bundle.changes = w
+			changeAPI.Watcher = w
+			return nil
+		}
+	}
 	return bundle
+}
+
+// applyChangeSources applies the per-source switches stored by the change
+// settings tab.
+//
+// Missing keys keep the default (enabled): a database written by an older build
+// has no such setting, and "absent" must not silently mean "collect nothing".
+func applyChangeSources(c *change.Config, settingSvc *service.SettingService) {
+	raw, err := settingSvc.Get("change_sources")
+	if err != nil || strings.TrimSpace(raw) == "" {
+		return
+	}
+	var on map[string]bool
+	if err := json.Unmarshal([]byte(raw), &on); err != nil {
+		log.Printf("change: invalid change_sources setting: %v", err)
+		return
+	}
+	setIf := func(key string, dst *bool) {
+		if v, ok := on[key]; ok {
+			*dst = v
+		}
+	}
+	setIf("file", &c.File.Enabled)
+	setIf("package", &c.Package.Enabled)
+	setIf("service", &c.Service.Enabled)
+	setIf("account", &c.Account.Enabled)
+	setIf("firewall", &c.Firewall.Enabled)
+	setIf("cron", &c.Cron.Enabled)
 }
 
 // IncidentRunner adapts the AI Agent to the trigger engine.

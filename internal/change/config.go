@@ -22,7 +22,12 @@ type Config struct {
 }
 
 // FileConfig configures configuration-file watching.
+//
+// Enabled is an explicit switch because the other fields all have non-zero
+// defaults: without it, "turn off file watching" can only be expressed as
+// MaxFileSize=0, which normalize() would then helpfully restore.
 type FileConfig struct {
+	Enabled      bool
 	WatchDirs    []string
 	Realtime     bool
 	ScanInterval time.Duration
@@ -89,6 +94,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Enabled: true,
 		File: FileConfig{
+			Enabled:      true,
 			WatchDirs:    []string{"/etc", "/usr/local/etc"},
 			Realtime:     true,
 			ScanInterval: 5 * time.Minute,

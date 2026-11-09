@@ -79,7 +79,7 @@ func (w *Watcher) Start(parent context.Context) {
 	}()
 
 	var srcs []source
-	if w.cfg.File.MaxFileSize > 0 {
+	if w.cfg.File.Enabled && w.cfg.File.MaxFileSize > 0 {
 		// The file source persists synchronously: it needs the final row id to
 		// file its pre-change snapshot, and deduplication can change that id.
 		srcs = append(srcs, newFileSource(w.cfg, w.store, w.snap, w.persistSync))

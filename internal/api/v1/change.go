@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,10 @@ type ChangeHandler struct {
 	Correlate *change.Correlator
 	// Audit records a human-initiated rollback. Optional.
 	Audit func(c *gin.Context, action, resource, detail string)
+	// Reload rebuilds the watcher after the collection settings changed. The
+	// handler cannot do it itself: sources start their goroutines in Start() and
+	// cannot be switched off individually, so the whole watcher is replaced.
+	Reload func() error
 }
 
 // NewChangeHandler builds the handler.
@@ -337,4 +342,172 @@ func (h *ChangeHandler) Timeline(c *gin.Context) {
 	to := time.Now()
 	from := to.Add(-time.Duration(hours) * time.Hour)
 	response.OK(c, h.Store.Timeline(from, to, bucket, 5000))
+}
+
+// changeSourceKeys is the canonical order of the collection switches. Keeping it
+// in one place means the frontend and the backend cannot drift apart on names.
+var changeSourceKeys = []string{"file", "package", "service", "account", "firewall", "cron"}
+
+// changeSettingsReq is the body of PUT /changes/settings.
+type changeSettingsReq struct {
+	Sources      map[string]bool `json:"sources"`
+	WatchDirs    []string        `json:"watch_dirs"`
+	ExcludeGlobs []string        `json:"exclude_globs"`
+	// Realtime is a pointer so "not sent" differs from "explicitly false".
+	Realtime *bool `json:"realtime"`
+}
+
+// ChangeSettings GET /changes/settings
+//
+// Returns both the stored wishes and the live state: after a save the operator
+// needs to see whether the new configuration actually took effect, and "saved"
+// is not the same as "running".
+func (h *ChangeHandler) ChangeSettings(c *gin.Context) {
+	sources := map[string]bool{}
+	if raw := h.settingValue("change_sources"); raw != "" {
+		_ = json.Unmarshal([]byte(raw), &sources)
+	}
+	for _, k := range changeSourceKeys {
+		if _, ok := sources[k]; !ok {
+			sources[k] = true // absent = default on, never "collect nothing"
+		}
+	}
+	realtime := h.settingValue("change_realtime") != "false" && h.settingValue("change_realtime") != "0"
+
+	status := []change.SourceStatus{}
+	// Show the directories actually in effect, not the stored override: an empty
+	// setting means "the defaults", and an empty text box would look like
+	// "watching nothing".
+	watchDirs := csvField(h.settingValue("change_watch_dirs"))
+	if len(watchDirs) == 0 && h.Watcher != nil {
+		if c := h.Watcher.Config(); c != nil {
+			watchDirs = c.File.WatchDirs
+		}
+	}
+	if h.Watcher != nil {
+		status = h.Watcher.Status()
+	}
+	response.OK(c, gin.H{
+		"sources":       sources,
+		"watch_dirs":    watchDirs,
+		"exclude_globs": csvField(h.settingValue("change_exclude_globs")),
+		"realtime":      realtime,
+		"status":        status,
+		"running":       h.Watcher != nil,
+	})
+}
+
+// UpdateChangeSettings PUT /changes/settings
+func (h *ChangeHandler) UpdateChangeSettings(c *gin.Context) {
+	var req changeSettingsReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
+		return
+	}
+	for k := range req.Sources {
+		known := false
+		for _, want := range changeSourceKeys {
+			if k == want {
+				known = true
+				break
+			}
+		}
+		if !known {
+			response.Error(c, 400, response.CodeInvalidParam, "未知的采集源："+k)
+			return
+		}
+	}
+	// Refuse an all-off configuration only when it was sent explicitly: it is a
+	// legal choice, but almost always a mis-click, and the symptom (silence) looks
+	// exactly like "nothing is happening on this host".
+	if len(req.Sources) == len(changeSourceKeys) {
+		anyOn := false
+		for _, v := range req.Sources {
+			if v {
+				anyOn = true
+				break
+			}
+		}
+		if !anyOn {
+			response.Error(c, 400, response.CodeInvalidParam, "至少需要开启一个采集源")
+			return
+		}
+	}
+
+	kv := map[string]string{}
+	if len(req.Sources) > 0 {
+		b, err := json.Marshal(req.Sources)
+		if err != nil {
+			response.Error(c, 400, response.CodeInvalidParam, err.Error())
+			return
+		}
+		kv["change_sources"] = string(b)
+	}
+	if req.WatchDirs != nil {
+		kv["change_watch_dirs"] = strings.Join(trimAll(req.WatchDirs), ",")
+	}
+	if req.ExcludeGlobs != nil {
+		kv["change_exclude_globs"] = strings.Join(trimAll(req.ExcludeGlobs), ",")
+	}
+	if req.Realtime != nil {
+		kv["change_realtime"] = "true"
+		if !*req.Realtime {
+			kv["change_realtime"] = "false"
+		}
+	}
+	if len(kv) == 0 {
+		response.Error(c, 400, response.CodeInvalidParam, "没有需要保存的设置")
+		return
+	}
+	for k, v := range kv {
+		if err := h.DB.Save(&model.Setting{Key: k, Value: v, UpdatedAt: time.Now()}).Error; err != nil {
+			response.Error(c, 500, response.CodeInternal, err.Error())
+			return
+		}
+	}
+
+	// Saved is not applied: sources hold their goroutines, so the watcher has to
+	// be rebuilt. Report failure honestly instead of showing "saved" and leaving
+	// the old collectors running.
+	if h.Reload != nil {
+		if err := h.Reload(); err != nil {
+			response.Error(c, 500, response.CodeInternal, "设置已保存，但重建采集器失败："+err.Error()+"（重启面板后生效）")
+			return
+		}
+	}
+	response.OK(c, gin.H{"reloaded": h.Reload != nil})
+}
+
+// settingValue reads one panel setting, returning "" when absent.
+func (h *ChangeHandler) settingValue(key string) string {
+	if h.DB == nil {
+		return ""
+	}
+	var s model.Setting
+	if err := h.DB.Where("key = ?", key).First(&s).Error; err != nil {
+		return ""
+	}
+	return s.Value
+}
+
+// csvField splits a comma separated setting, dropping blanks.
+func csvField(v string) []string {
+	out := []string{}
+	for _, part := range strings.Split(v, ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// trimAll drops blanks from a user-supplied list.
+func trimAll(in []string) []string {
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if p := strings.TrimSpace(v); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

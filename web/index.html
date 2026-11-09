@@ -3527,6 +3527,7 @@
             <span :class="{active: settingsTab==='backup'}" @click="settingsTab='backup'; loadBackups()">{{ t('set.backup') }}</span>
             <span :class="{active: settingsTab==='retention'}" @click="setSettingsTab('retention')">{{ t('set.retention') }}</span>
             <span :class="{active: settingsTab==='notify'}" @click="setSettingsTab('notify')">{{ t('set.notify') }}</span>
+            <span :class="{active: settingsTab==='changes'}" @click="setSettingsTab('changes')">{{ t('set.changes') }}</span>
             <!-- v1.0 暂隐藏应用模版 Tab（下个版本发布），恢复时取消注释
             <span :class="{active: settingsTab==='appTemplate'}" @click="setSettingsTab('appTemplate')">{{ t('set.appTemplate') }}</span>
             -->
@@ -4035,6 +4036,59 @@
         </div>
 
         <!-- 通知设置 -->
+        <!-- 变更采集：各源开关 + 监听目录 + 排除路径 -->
+        <div v-if="settingsTab==='changes'">
+          <div class="grid grid-2">
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title">{{ t('chgcfg.sources') }}</div>
+                <span class="tag" :class="chgCfg.running ? 'ok' : 'mute'">
+                  <span class="tdot"></span>{{ chgCfg.running ? t('chgcfg.running') : t('chgcfg.stopped') }}
+                </span>
+              </div>
+              <div class="card-body">
+                <div class="form-hint" style="margin-top:0">{{ t('chgcfg.sourcesHint') }}</div>
+                <div class="kv" v-for="src in chgSourceList" :key="src.key" style="margin-top:8px">
+                  <span class="k">{{ t('chgcfg.src.'+src.key) }}
+                    <span class="tag" :class="chgSrcLive(src.key) ? 'ok' : 'mute'" style="margin-left:6px">
+                      {{ chgSrcLive(src.key) ? t('chgcfg.live') : t('chgcfg.off') }}
+                    </span>
+                  </span>
+                  <span class="switch" :class="{on: chgCfg.sources[src.key]}" @click="chgCfg.sources[src.key] = !chgCfg.sources[src.key]"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><div class="card-title">{{ t('chgcfg.scope') }}</div></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+                <div class="form-item">
+                  <label>{{ t('chgcfg.watchDirs') }}</label>
+                  <input class="input" v-model="chgCfg.watch_dirs" placeholder="/etc, /usr/local/etc" style="font-family:var(--mono);font-size:12px">
+                  <div class="form-hint">{{ t('chgcfg.watchDirsHint') }}</div>
+                </div>
+                <div class="form-item">
+                  <label>{{ t('chgcfg.exclude') }}</label>
+                  <input class="input" v-model="chgCfg.exclude_globs" placeholder="/etc/myapp/cache/*, *.swp" style="font-family:var(--mono);font-size:12px">
+                  <div class="form-hint">{{ t('chgcfg.excludeHint') }}</div>
+                </div>
+                <div class="kv">
+                  <span class="k">{{ t('chgcfg.realtime') }}</span>
+                  <span class="switch" :class="{on: chgCfg.realtime}" @click="chgCfg.realtime = !chgCfg.realtime"></span>
+                </div>
+                <div class="form-hint" style="margin-top:0">{{ t('chgcfg.realtimeHint') }}</div>
+                <div class="row" style="justify-content:flex-end;gap:8px">
+                  <button class="btn ghost" @click="loadChangeSettings">{{ t('btn.refresh') }}</button>
+                  <button class="btn primary" :disabled="chgCfgBusy" @click="saveChangeSettings">
+                    {{ chgCfgBusy ? t('chgcfg.saving') : t('btn.save') }}
+                  </button>
+                </div>
+                <div class="form-hint" style="margin-top:0;color:var(--t3)">{{ t('chgcfg.saveHint') }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div v-if="settingsTab==='notify'">
           <div class="grid grid-2">
             <div class="card">
@@ -5996,7 +6050,7 @@ const I18N10 = {
 /* I18N11: 数据保留设置与事件清空（面板设置 → 数据保留） */
 const I18N11 = {
   'zh-CN': {
-    'menu.changes':'变更','chg.desc':'主机上发生过的修改：配置改动、软件包安装升级、服务状态变化、账号与权限变更、防火墙规则、定时任务。它是排查故障的上下文，不是告警。','chg.health':'采集状态','chg.chainOk':'变更链完整','chg.chainBad':'变更链异常','chg.verify':'校验','chg.srcOn':'运行中','chg.srcOff':'未运行','chg.source.file':'配置文件','chg.source.package':'软件包','chg.source.service':'服务','chg.source.account':'账号权限','chg.source.firewall':'防火墙','chg.source.cron':'定时任务','chg.usage':'已记录','chg.safetyHint':'变更记录只用于提供线索，永远不会触发自动处置——这是防止攻击者通过修改配置诱导 Agent 的安全设计。敏感文件（shadow、私钥、命令历史）不采集内容；配置文件里的密码在入库前已脱敏。','chg.timeline':'Änderungs-Zeitleiste','chg.timelineEmpty':'Keine Änderungen in diesem Zeitraum','chg.timelineTrunc':'Zu viele Datensätze; nur die neuesten 5000','chg.timelineNormal':'Normal','chg.timelineSusp':'Verdächtig','chg.timeline':'ไทม์ไลน์การเปลี่ยนแปลง','chg.timelineEmpty':'ไม่มีการเปลี่ยนแปลงในช่วงนี้','chg.timelineTrunc':'ข้อมูลมาก แสดงเพียง 5000 รายการล่าสุด','chg.timelineNormal':'ปกติ','chg.timelineSusp':'น่าสงสัย','chg.timeline':'변경 타임라인','chg.timelineEmpty':'이 구간에 변경이 없습니다','chg.timelineTrunc':'데이터가 많아 최근 5000건만 표시','chg.timelineNormal':'일반 변경','chg.timelineSusp':'의심 변경','chg.timeline':'変更タイムライン','chg.timelineEmpty':'この期間に変更はありません','chg.timelineTrunc':'データが多すぎるため直近 5000 件のみ表示','chg.timelineNormal':'通常の変更','chg.timelineSusp':'不審な変更','chg.timeline':'Change timeline','chg.timelineEmpty':'No changes in this window','chg.timelineTrunc':'Too many records; showing the newest 5000','chg.timelineNormal':'Normal','chg.timelineSusp':'Suspicious','chg.timeline':'變更時間軸','chg.timelineEmpty':'這段時間沒有變更','chg.timelineTrunc':'資料過多，僅顯示最近 5000 筆','chg.timelineNormal':'正常變更','chg.timelineSusp':'可疑變更','chg.timeline':'变更时间轴','chg.timelineEmpty':'这段时间没有变更','chg.timelineTrunc':'数据过多，仅展示最近 5000 条','chg.timelineNormal':'正常变更','chg.timelineSusp':'可疑变更','chg.kind.all':'全部','chg.kind.config':'配置','chg.kind.package':'软件包','chg.kind.service':'服务','chg.kind.account':'账号','chg.kind.firewall':'防火墙','chg.kind.cron':'定时任务','chg.col.object':'对象','chg.col.delta':'变化','chg.col.actor':'操作者','chg.col.action':'操作','chg.col.fields':'涉及字段','chg.score':'相关性','chg.inferred':'推测','chg.unknown':'未知','chg.detail':'详情','chg.records':'条记录','chg.noDiff':'（没有保存正文：可能是含敏感内容的文件，或正文已过保留期）','chg.truncated':'正文过长已截断','chg.restore':'回滚到变更前','chg.confirmRestore':'确认回滚？','chg.restored':'已回滚','chg.restoreFail':'回滚失败','chg.related':'相关变更（最近 30 分钟）','chg.relatedHint':'这些只是时间上接近的变更，不等于原因。',
+    'menu.changes':'变更','chg.desc':'主机上发生过的修改：配置改动、软件包安装升级、服务状态变化、账号与权限变更、防火墙规则、定时任务。它是排查故障的上下文，不是告警。','chg.health':'采集状态','chg.chainOk':'变更链完整','chg.chainBad':'变更链异常','chg.verify':'校验','chg.srcOn':'运行中','chg.srcOff':'未运行','chg.source.file':'配置文件','chg.source.package':'软件包','chg.source.service':'服务','chg.source.account':'账号权限','chg.source.firewall':'防火墙','chg.source.cron':'定时任务','chg.usage':'已记录','chg.safetyHint':'变更记录只用于提供线索，永远不会触发自动处置——这是防止攻击者通过修改配置诱导 Agent 的安全设计。敏感文件（shadow、私钥、命令历史）不采集内容；配置文件里的密码在入库前已脱敏。','chg.timeline':'Änderungs-Zeitleiste','chg.timelineEmpty':'Keine Änderungen in diesem Zeitraum','chg.timelineTrunc':'Zu viele Datensätze; nur die neuesten 5000','chg.timelineNormal':'Normal','chg.timelineSusp':'Verdächtig','set.changes':'Änderungserfassung','chgcfg.sources':'Quellen','chgcfg.sourcesHint':'Eine deaktivierte Quelle bedeutet, dass neue Änderungen dieser Art nicht mehr erkannt werden. Bereits erfasste Historie bleibt unberührt.','chgcfg.running':'Erfassung läuft','chgcfg.stopped':'Nicht aktiv','chgcfg.live':'Aktiv','chgcfg.off':'Aus','chgcfg.src.file':'Konfigurationsdateien','chgcfg.src.package':'Pakete','chgcfg.src.service':'Dienste','chgcfg.src.account':'Konten','chgcfg.src.firewall':'Firewall','chgcfg.src.cron':'Cronjobs','chgcfg.scope':'Umfang','chgcfg.watchDirs':'Überwachte Verzeichnisse','chgcfg.watchDirsHint':'Kommagetrennt. Standard /etc und /usr/local/etc; wirkt nur auf die Konfigurationsdatei-Erfassung.','chgcfg.exclude':'Zusätzliche Ausschlüsse','chgcfg.excludeHint':'Kommagetrennt, Wildcards erlaubt. Wird an die eingebaute Ausschlussliste angehängt, ersetzt sie nicht.','chgcfg.realtime':'Echtzeitüberwachung (inotify)','chgcfg.realtimeHint':'Deaktiviert wird nur periodisch gescannt: Erkennung verzögert sich, Last sinkt.','chgcfg.saving':'Speichern…','chgcfg.saved':'Gespeichert; Erfassung neu aufgebaut','chgcfg.saveHint':'Beim Speichern wird die Erfassung neu aufgebaut (etwa eine Sekunde); in dieser Zeit werden keine Änderungen aufgezeichnet.','chg.timeline':'ไทม์ไลน์การเปลี่ยนแปลง','chg.timelineEmpty':'ไม่มีการเปลี่ยนแปลงในช่วงนี้','chg.timelineTrunc':'ข้อมูลมาก แสดงเพียง 5000 รายการล่าสุด','chg.timelineNormal':'ปกติ','chg.timelineSusp':'น่าสงสัย','set.changes':'การเก็บการเปลี่ยนแปลง','chgcfg.sources':'แหล่งเก็บ','chgcfg.sourcesHint':'ปิดแหล่งใดแล้ว การเปลี่ยนแปลงประเภทนั้นจะไม่ถูกตรวจพบอีก ประวัติที่บันทึกไว้ไม่ได้รับผลกระทบ','chgcfg.running':'กำลังเก็บ','chgcfg.stopped':'ไม่ทำงาน','chgcfg.live':'ทำงานอยู่','chgcfg.off':'ปิด','chgcfg.src.file':'ไฟล์คอนฟิก','chgcfg.src.package':'แพ็กเกจ','chgcfg.src.service':'บริการ','chgcfg.src.account':'บัญชี','chgcfg.src.firewall':'ไฟร์วอลล์','chgcfg.src.cron':'งานตามเวลา','chgcfg.scope':'ขอบเขตการเก็บ','chgcfg.watchDirs':'ไดเรกทอรีที่เฝ้าดู','chgcfg.watchDirsHint':'คั่นด้วยจุลภาค ค่าเริ่มต้นคือ /etc และ /usr/local/etc การแก้ที่นี่มีผลเฉพาะการเก็บไฟล์คอนฟิก','chgcfg.exclude':'พาธยกเว้นเพิ่มเติม','chgcfg.excludeHint':'คั่นด้วยจุลภาค รองรับไวลด์การ์ด เพิ่มเข้าในรายการยกเว้นภายในเท่านั้น ไม่ได้แทนที่','chgcfg.realtime':'เฝ้าดูแบบเรียลไทม์ (inotify)','chgcfg.realtimeHint':'เมื่อปิดจะสแกนตามรอบเท่านั้น การตรวจจับจะช้าลงแต่ใช้ทรัพยากรน้อยลง','chgcfg.saving':'กำลังบันทึก…','chgcfg.saved':'บันทึกแล้ว (สร้างตัวเก็บใหม่แล้ว)','chgcfg.saveHint':'การบันทึกจะสร้างตัวเก็บใหม่ (ประมาณ 1 วินาที) ช่วงนั้นจะไม่มีการบันทึกการเปลี่ยนแปลงใหม่','chg.timeline':'변경 타임라인','chg.timelineEmpty':'이 구간에 변경이 없습니다','chg.timelineTrunc':'데이터가 많아 최근 5000건만 표시','chg.timelineNormal':'일반 변경','chg.timelineSusp':'의심 변경','set.changes':'변경 수집','chgcfg.sources':'수집 소스','chgcfg.sourcesHint':'소스를 끄면 해당 유형의 변경은 더 이상 감지되지 않습니다. 이미 기록된 이력은 영향받지 않습니다.','chgcfg.running':'수집 중','chgcfg.stopped':'중지됨','chgcfg.live':'실행 중','chgcfg.off':'사용 안 함','chgcfg.src.file':'설정 파일','chgcfg.src.package':'패키지','chgcfg.src.service':'서비스','chgcfg.src.account':'계정','chgcfg.src.firewall':'방화벽','chgcfg.src.cron':'예약 작업','chgcfg.scope':'수집 범위','chgcfg.watchDirs':'감시 디렉터리','chgcfg.watchDirsHint':'쉼표로 구분. 기본값은 /etc 와 /usr/local/etc 이며, 여기를 바꾸면 설정 파일 수집에만 영향합니다.','chgcfg.exclude':'추가 제외 경로','chgcfg.excludeHint':'쉼표로 구분, 와일드카드 지원. 내장 제외 목록에 추가될 뿐 대체하지 않습니다.','chgcfg.realtime':'실시간 감시(inotify)','chgcfg.realtimeHint':'끄면 주기 스캔만 하므로 감지가 늦어지는 대신 자원 사용이 줄어듭니다.','chgcfg.saving':'저장 중…','chgcfg.saved':'저장했습니다 (수집기 재구성 완료)','chgcfg.saveHint':'저장하면 수집기를 재구성하며(약 1초) 그동안 새 변경은 기록되지 않습니다.','chg.timeline':'変更タイムライン','chg.timelineEmpty':'この期間に変更はありません','chg.timelineTrunc':'データが多すぎるため直近 5000 件のみ表示','chg.timelineNormal':'通常の変更','chg.timelineSusp':'不審な変更','set.changes':'変更の収集','chgcfg.sources':'収集ソース','chgcfg.sourcesHint':'ソースを切ると、その種類の変更は検出されなくなります。記録済みの履歴には影響しません。','chgcfg.running':'収集中','chgcfg.stopped':'停止中','chgcfg.live':'稼働中','chgcfg.off':'無効','chgcfg.src.file':'設定ファイル','chgcfg.src.package':'パッケージ','chgcfg.src.service':'サービス','chgcfg.src.account':'アカウント','chgcfg.src.firewall':'ファイアウォール','chgcfg.src.cron':'スケジュール','chgcfg.scope':'収集範囲','chgcfg.watchDirs':'監視ディレクトリ','chgcfg.watchDirsHint':'カンマ区切り。既定は /etc と /usr/local/etc。ここを変えると設定ファイル収集にのみ影響します。','chgcfg.exclude':'追加の除外パス','chgcfg.excludeHint':'カンマ区切り、ワイルドカード可。組み込みの除外リストに追加されるだけで、置き換えません。','chgcfg.realtime':'リアルタイム監視（inotify）','chgcfg.realtimeHint':'オフにすると定期スキャンのみになり、検出が遅れる代わりに負荷が下がります。','chgcfg.saving':'保存中…','chgcfg.saved':'保存しました（収集器を再構築済み）','chgcfg.saveHint':'保存すると収集器を再構築します（約 1 秒）。その間は新しい変更は記録されません。','chg.timeline':'Change timeline','chg.timelineEmpty':'No changes in this window','chg.timelineTrunc':'Too many records; showing the newest 5000','chg.timelineNormal':'Normal','chg.timelineSusp':'Suspicious','set.changes':'Change collection','chgcfg.sources':'Sources','chgcfg.sourcesHint':'Turning a source off stops new changes of that kind from being detected. History already recorded is unaffected.','chgcfg.running':'Collecting','chgcfg.stopped':'Not running','chgcfg.live':'Live','chgcfg.off':'Off','chgcfg.src.file':'Config files','chgcfg.src.package':'Packages','chgcfg.src.service':'Services','chgcfg.src.account':'Accounts','chgcfg.src.firewall':'Firewall','chgcfg.src.cron':'Cron jobs','chgcfg.scope':'Scope','chgcfg.watchDirs':'Watch directories','chgcfg.watchDirsHint':'Comma separated. Defaults to /etc and /usr/local/etc; this only affects config-file collection.','chgcfg.exclude':'Extra exclusions','chgcfg.excludeHint':'Comma separated, wildcards allowed. Appended to the built-in exclusion list, never replacing it.','chgcfg.realtime':'Realtime watching (inotify)','chgcfg.realtimeHint':'When off, changes are found by periodic scan only: detection lags but uses less CPU.','chgcfg.saving':'Saving…','chgcfg.saved':'Saved; collectors rebuilt','chgcfg.saveHint':'Saving rebuilds the collectors (about a second) and no new changes are recorded during that gap.','chg.timeline':'變更時間軸','chg.timelineEmpty':'這段時間沒有變更','chg.timelineTrunc':'資料過多，僅顯示最近 5000 筆','chg.timelineNormal':'正常變更','chg.timelineSusp':'可疑變更','set.changes':'變更採集','chgcfg.sources':'採集來源','chgcfg.sourcesHint':'關閉某類採集後，該類型的變更不再被發現；已記錄的歷史不受影響。','chgcfg.running':'採集中','chgcfg.stopped':'未執行','chgcfg.live':'執行中','chgcfg.off':'未啟用','chgcfg.src.file':'設定檔','chgcfg.src.package':'套件','chgcfg.src.service':'服務','chgcfg.src.account':'帳號','chgcfg.src.firewall':'防火牆','chgcfg.src.cron':'排程任務','chgcfg.scope':'採集範圍','chgcfg.watchDirs':'監聽目錄','chgcfg.watchDirsHint':'逗號分隔。預設 /etc 與 /usr/local/etc；改這裡只影響設定檔採集。','chgcfg.exclude':'額外排除路徑','chgcfg.excludeHint':'逗號分隔，支援萬用字元。只追加到內建排除表，不會覆蓋它們。','chgcfg.realtime':'即時監聽（inotify）','chgcfg.realtimeHint':'關閉後只按週期掃描，變更發現會延遲，但資源佔用更低。','chgcfg.saving':'儲存中…','chgcfg.saved':'已儲存，採集器已重建','chgcfg.saveHint':'儲存後會重建採集器（約 1 秒），期間不會有新的變更記錄。','chg.timeline':'变更时间轴','chg.timelineEmpty':'这段时间没有变更','chg.timelineTrunc':'数据过多，仅展示最近 5000 条','chg.timelineNormal':'正常变更','chg.timelineSusp':'可疑变更','set.changes':'变更采集','chgcfg.sources':'采集源','chgcfg.sourcesHint':'关闭某类采集后，该类型的变更不再被发现；已记录的历史不受影响。','chgcfg.running':'采集中','chgcfg.stopped':'未运行','chgcfg.live':'运行中','chgcfg.off':'未启用','chgcfg.src.file':'配置文件','chgcfg.src.package':'软件包','chgcfg.src.service':'服务','chgcfg.src.account':'账号','chgcfg.src.firewall':'防火墙','chgcfg.src.cron':'定时任务','chgcfg.scope':'采集范围','chgcfg.watchDirs':'监听目录','chgcfg.watchDirsHint':'逗号分隔。默认 /etc 与 /usr/local/etc；改这里只影响配置文件采集。','chgcfg.exclude':'额外排除路径','chgcfg.excludeHint':'逗号分隔，支持通配符。只追加到内置排除表，不会覆盖它们。','chgcfg.realtime':'实时监听（inotify）','chgcfg.realtimeHint':'关闭后只按周期扫描，变更发现会延迟，但资源占用更低。','chgcfg.saving':'保存中…','chgcfg.saved':'已保存，采集器已重建','chgcfg.saveHint':'保存后会重建采集器（约 1 秒），期间不会有新的变更记录。','chg.kind.all':'全部','chg.kind.config':'配置','chg.kind.package':'软件包','chg.kind.service':'服务','chg.kind.account':'账号','chg.kind.firewall':'防火墙','chg.kind.cron':'定时任务','chg.col.object':'对象','chg.col.delta':'变化','chg.col.actor':'操作者','chg.col.action':'操作','chg.col.fields':'涉及字段','chg.score':'相关性','chg.inferred':'推测','chg.unknown':'未知','chg.detail':'详情','chg.records':'条记录','chg.noDiff':'（没有保存正文：可能是含敏感内容的文件，或正文已过保留期）','chg.truncated':'正文过长已截断','chg.restore':'回滚到变更前','chg.confirmRestore':'确认回滚？','chg.restored':'已回滚','chg.restoreFail':'回滚失败','chg.related':'相关变更（最近 30 分钟）','chg.relatedHint':'这些只是时间上接近的变更，不等于原因。',
     'term.reconnecting':'[正在重新连接…]','term.reconnected':'[已重新连接]','term.disconnected':'[连接已断开]',
     'sentinel.st.open':'待唤醒','sent.unresolved.hint':'待处置 = 所有还没有结束的事件，它是「待唤醒 + 执行中 + 失败」三项之和，不是独立状态。所以这里的数字大于等于「待唤醒」和「失败」两个页签，那些事件也会同时出现在这里。','sent.open.hint':'待唤醒 = 信号已经聚合成事件，但 Agent 还没被叫醒。策略要同时满足三个条件才会唤醒它：分类匹配、等级达到阈值、不在冷却期内；只要有一条不满足，事件就只记录、不消耗模型额度——扫描探测这类噪音会一直堆在这里。打开事件详情能看到关联信号，确实不用管的可以点「忽略」。',
     'set.plugins':'插件','plugin.title':'插件','plugin.install':'上传安装','plugin.hint':'插件以独立进程运行，只能通过 unix socket 上报指标与事件；包必须带 sha256，配了公钥时还会校验签名。','plugin.name':'名称','plugin.version':'版本','plugin.kind':'类型','plugin.state.running':'运行中','plugin.state.stopped':'已停止','plugin.state.failed':'失败','plugin.state.installed':'已安装','plugin.state':'状态','plugin.restarts':'重启次数','plugin.error':'错误','plugin.restart':'重启','plugin.empty':'还没有安装插件','plugin.events':'最近事件','plugin.installed':'已安装','plugin.deleteTitle':'删除插件','plugin.deleteConfirm':'删除后该插件的程序文件会被移除（数据目录保留）。','backup.run':'备份恢复','backup.objects':'备份','set.backup':'备份','backup.remote':'远端目标（可选）','backup.remoteSnapshots':'远端快照','backup.pickRemote':'选择远端目标','backup.remoteEmpty':'远端没有快照','backup.restoreRemoteConfirm':'把 {name} 从 {store} 恢复到原路径？会先下载再走预检、快照、校验流程。','backup.hint':'目录每行一个；mysql:库名 表示数据库；redis:路径 表示 Redis 快照文件。备份只读不写，恢复会覆盖目标目录，因此恢复前会自动打一份快照，失败自动回滚。','backup.objectsPh':'目录或 mysql:库名','backup.retention':'保留份数','backup.root':'备份根目录','backup.runNow':'立即备份','backup.running':'正在备份…','backup.done':'备份完成','backup.snapshots':'快照','backup.name':'名称','backup.time':'时间','backup.size':'大小','backup.preflight':'预检','backup.restore':'恢复','backup.empty':'还没有快照','backup.preflightOk':'预检通过','backup.restoreTitle':'恢复备份','backup.restoreConfirm':'确认把 {name} 恢复到原路径？恢复前会自动备份当前状态，失败会自动回滚。','backup.restored':'已恢复','backup.rolledBack':'恢复失败，已自动回滚','set.retention':'数据保留',
@@ -6511,6 +6565,8 @@ createApp({
       passShow: { old:false, new:false, confirm:false },
       notifyCfg: { smtp_host:'', smtp_port:'465', smtp_from:'', smtp_to:'', smtp_user:'', smtp_pass:'', wecom_webhook:'', dingtalk_webhook:'', feishu_webhook:'', alert_notify_window_minutes:'30' },
       memories: [], memoryTotal: 0,
+      chgCfg: { sources:{}, watch_dirs:'', exclude_globs:'', realtime:true, status:[], running:false }, chgCfgBusy:false,
+      chgSourceList: [{key:'file'},{key:'package'},{key:'service'},{key:'account'},{key:'firewall'},{key:'cron'}],
       killModal: null,             // 结束进程弹窗：{ pid, name }
       killSignal: 'SIGTERM',
       killSignals: [
@@ -7894,6 +7950,41 @@ createApp({
         this.chgIncidentState = (d && d.incident_state) || {};
         this.chgCampaigns = (d && d.campaigns) || {};
       }catch(e){ this.changes = []; }
+    },
+    // 变更采集设置：开关、监听目录、排除路径。保存后后端会重建采集器，
+    // 所以保存成功要重新拉一次状态，确认「改了」和「生效了」是同一件事。
+    async loadChangeSettings(){
+      try{
+        const d = await this.api('/changes/settings');
+        this.chgCfg = {
+          sources: Object.assign({file:true,package:true,service:true,account:true,firewall:true,cron:true}, (d && d.sources) || {}),
+          watch_dirs: ((d && d.watch_dirs) || []).join(', '),
+          exclude_globs: ((d && d.exclude_globs) || []).join(', '),
+          realtime: !(d && d.realtime === false),
+          status: (d && d.status) || [],
+          running: !!(d && d.running),
+        };
+      }catch(e){ /* 忽略：保持上一次的值 */ }
+    },
+    chgSrcLive(key){
+      const s = (this.chgCfg.status || []).find(x => x.name === key);
+      return !!(s && s.running);
+    },
+    async saveChangeSettings(){
+      if(this.chgCfgBusy) return;
+      this.chgCfgBusy = true;
+      try{
+        const split = v => String(v||'').split(',').map(x=>x.trim()).filter(Boolean);
+        await this.api('/changes/settings', { method:'PUT', body: JSON.stringify({
+          sources: this.chgCfg.sources,
+          watch_dirs: split(this.chgCfg.watch_dirs),
+          exclude_globs: split(this.chgCfg.exclude_globs),
+          realtime: !!this.chgCfg.realtime,
+        })});
+        this.toast(this.t('chgcfg.saved'));
+        await this.loadChangeSettings();
+      }catch(e){ this.toast(e.message || String(e)); }
+      finally{ this.chgCfgBusy = false; }
     },
     async loadChgTimeline(){
       try{
@@ -9580,7 +9671,7 @@ createApp({
       try{ this.appCategories = await this.api('/app-categories') || []; }catch(e){ this.appCategories = []; }
     },
     catName(key){ const c = (this.appCategories||[]).find(x => x.key === key); return c ? c.name : key; },
-    setSettingsTab(tab){ this.settingsTab = tab; if(tab === 'appTemplate'){ this.loadAppCategories(); this.loadStoreApps(); } else if(tab === 'notify'){ this.loadNotifyCfg(); } else if(tab === 'retention'){ this.loadRetention(); } else if(tab === 'ai'){ this.loadMemories(); } },
+    setSettingsTab(tab){ this.settingsTab = tab; if(tab === 'appTemplate'){ this.loadAppCategories(); this.loadStoreApps(); } else if(tab === 'notify'){ this.loadNotifyCfg(); } else if(tab === 'retention'){ this.loadRetention(); } else if(tab === 'ai'){ this.loadMemories(); } else if(tab === 'changes'){ this.loadChangeSettings(); } },
     // 跨会话记忆：Agent 自己记下的事实，可在界面上查看与删除。
     async loadMemories(){
       try{
