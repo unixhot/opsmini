@@ -64,6 +64,11 @@ type RunOptions struct {
 	// (event-triggered runs) — an interactive run suspends by default because a
 	// human is already there to answer.
 	SuspendOnConfirm bool
+	// OnUsage is called after each model turn with the run's cumulative token
+	// usage. Returning an error stops the run as budget-exhausted. Kept as a
+	// callback so the agent does not need to know about the safety layer or the
+	// daily counter — the caller decides what the limit is.
+	OnUsage func(total int) error
 	// Title overrides the auto-derived session title (used by scheduled tasks so
 	// the report shows up as "每日巡检 · 2026-10-16").
 	Title string
@@ -189,6 +194,11 @@ type SendResult struct {
 	// ApprovalID identifies the pending approval that stopped the run. Set only
 	// when Suspended is true; the caller resumes with Agent.Resume(approvalID).
 	ApprovalID string
+	// Tokens is the total token usage of this run, summed over every model turn.
+	Tokens int
+	// BudgetExceeded is true when OnUsage refused the next turn. The run stopped
+	// on purpose; callers should not report it as a model failure.
+	BudgetExceeded bool
 	Content    string
 	// Skipped lists the tools refused because they need human approval while the
 	// run is unattended.
@@ -347,6 +357,23 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 		}
 		if usage != nil {
 			emit.Emit(Event{Type: EventThinking, SessionID: sess.ID, Step: step, Usage: usage})
+			// Budget check happens as soon as the turn is billed, before any tool of
+			// this turn runs: paying for the turn and then acting on it would let a
+			// single runaway turn exceed the cap by a whole step.
+			if opt.OnUsage != nil {
+				res.Tokens += usage.TotalTokens
+				if berr := opt.OnUsage(res.Tokens); berr != nil {
+					res.BudgetExceeded = true
+					note := fmt.Sprintf("本次运行的 token 预算已用尽（约 %d），为避免继续消耗已停止。以上是到目前为止掌握的情况；如需继续，请调高预算或改用人工排查。", res.Tokens)
+					if c := strings.TrimSpace(msg.Content); c != "" {
+						note = c + "\n\n" + note
+					}
+					res.Content = note
+					emit.Emit(Event{Type: EventFinal, SessionID: sess.ID, Step: step, Content: note})
+					a.store.Touch(sess, res.Steps, res.Tools)
+					return res, nil
+				}
+			}
 		}
 		if msg == nil {
 			msg = &Message{Role: model.AIRoleAssistant, Content: streamed.String()}

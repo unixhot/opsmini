@@ -65,6 +65,11 @@ type RunResult struct {
 	Suspended bool
 	// ApprovalID links the incident to the pending approval row.
 	ApprovalID string
+	// Tokens is the run's total token usage; 0 when the provider reports none.
+	Tokens int
+	// BudgetExceeded is true when the run stopped because a token cap was hit.
+	// Reported as its own verify state so it is not mistaken for a model failure.
+	BudgetExceeded bool
 }
 
 // Runner is implemented by the AI agent layer (injected by the router to keep
@@ -590,6 +595,20 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		if runErr == nil && len(strings.TrimSpace(res.Summary)) < 20 {
 			status = model.IncidentFailed
 			verifyState = "empty-report"
+		}
+
+		// Budget exhaustion is its own outcome, not a model failure: nothing was
+		// wrong with the analysis, we just stopped paying for it. A run that never
+		// started (daily quota already spent) is "skipped" — the host was never
+		// touched — while one cut off mid-way is "failed", because it may have left
+		// changes behind that nobody verified.
+		if res.BudgetExceeded {
+			verifyState = "budget_exceeded"
+			if res.Steps == 0 && res.Tools == 0 {
+				status = model.IncidentSkipped
+			} else {
+				status = model.IncidentFailed
+			}
 		}
 
 		// Post-action verification: an action is not "done" until the assertions pass.

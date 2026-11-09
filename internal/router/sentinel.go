@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -250,6 +251,16 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 	if r.agent == nil {
 		return out, fmt.Errorf("AI 模型未配置，事件只记录不分析")
 	}
+	// 每日额度用尽时连启动都不做：让模型跑起来再掐掉，等于先花钱再告诉用户不能花。
+	if limit := r.dailyTokenLimit(); limit > 0 {
+		if _, used := r.dailyTokenUsage(); used >= limit {
+			return trigger.RunResult{
+				Summary: fmt.Sprintf("当日 token 额度（%d）已用尽，本次未启动 Agent。可在「设置 → 自主 Agent」调整额度，或等次日自动重置。",
+					limit),
+				BudgetExceeded: true,
+			}, nil
+		}
+	}
 	title := fmt.Sprintf("%s · %s", req.Incident.Title, time.Now().Format("01-02 15:04"))
 	start := time.Now()
 
@@ -299,6 +310,29 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 		},
 	}
 
+	// token 预算：单事件上限来自策略，每日上限来自设置（0 = 不限）。
+	// 超限第一时间停下——继续跑等于在用户不知情的情况下烧钱。
+	maxTokens := req.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = 200000
+	}
+	dailyLimit := r.dailyTokenLimit()
+	_, dailyUsed := r.dailyTokenUsage()
+	var spentLast int
+	opt.OnUsage = func(total int) error {
+		if delta := total - spentLast; delta > 0 {
+			r.safety.AddTokens(req.Incident.ID, delta)
+			spentLast = total
+		}
+		if maxTokens > 0 && total > maxTokens {
+			return fmt.Errorf("单事件 token 上限 %d 已超出（本次约 %d）", maxTokens, total)
+		}
+		if dailyLimit > 0 && dailyUsed+total > dailyLimit {
+			return fmt.Errorf("当日 token 额度 %d 已用尽（已用 %d）", dailyLimit, dailyUsed+total)
+		}
+		return nil
+	}
+
 	res, err := r.agent.Send(ctx, opt, req.Prompt)
 	if res != nil {
 		out.SessionID = res.SessionID
@@ -306,10 +340,13 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 		out.Tools = res.Tools
 		out.Skipped = res.Skipped
 		out.Summary = res.Content
+		out.Tokens = res.Tokens
+		out.BudgetExceeded = res.BudgetExceeded
 		// 挂起：本次运行停在需确认的动作上，等事件页上的人批准。
 		// 报告不在这里归档——Resume 续跑完才是完整的处置记录。
 		out.Suspended = res.Suspended
 		out.ApprovalID = res.ApprovalID
+		r.addDailyTokens(res.Tokens)
 	}
 	out.Writes = r.safety.WritesUsed(req.Incident.ID)
 
@@ -342,6 +379,43 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 		}
 	}
 	return out, err
+}
+
+// dailyTokenUsage reads today's consumed token count. Stored per day in the panel
+// settings table so a restart does not hand out a fresh quota: the point of the
+// cap is to bound spend, and an in-memory counter would reset exactly when a crash
+// loop is burning tokens.
+func (r *incidentRunner) dailyTokenUsage() (string, int) {
+	date := time.Now().Format("2006-01-02")
+	if r.settingSvc == nil {
+		return date, 0
+	}
+	raw, _ := r.settingSvc.Get("agent_tokens_daily:" + date)
+	n, _ := strconv.Atoi(strings.TrimSpace(raw))
+	return date, n
+}
+
+// addDailyTokens adds to today's counter. Called once per run, not per turn: the
+// per-turn cap is enforced in memory, and writing settings on every model turn
+// would put a row update behind each step.
+func (r *incidentRunner) addDailyTokens(n int) {
+	if r.settingSvc == nil || n <= 0 {
+		return
+	}
+	date, used := r.dailyTokenUsage()
+	_ = r.settingSvc.Set(map[string]string{
+		"agent_tokens_daily:" + date: strconv.Itoa(used + n),
+	})
+}
+
+// dailyTokenLimit reads the daily cap (0 = unlimited).
+func (r *incidentRunner) dailyTokenLimit() int {
+	if r.settingSvc == nil {
+		return 0
+	}
+	raw, _ := r.settingSvc.Get("agent_tokens_daily_limit")
+	n, _ := strconv.Atoi(strings.TrimSpace(raw))
+	return n
 }
 
 // resumeOptions rebuilds the run options for a suspended incident.

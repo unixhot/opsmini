@@ -619,6 +619,68 @@ func (h *SentinelHandler) Approve(c *gin.Context) {
 	response.OK(c, gin.H{"approved": req.Approved, "summary": summary, "status": after.Status})
 }
 
+// TokenBudget GET /sentinel/token-budget
+//
+// Reports today's autonomous-Agent token spend against the daily cap. The cap is a
+// spend limit, not a quota to fill: without it a crash loop or a noisy collector
+// can run the model all night without anyone noticing.
+func (h *SentinelHandler) TokenBudget(c *gin.Context) {
+	date := time.Now().Format("2006-01-02")
+	used := h.readSetting("agent_tokens_daily:" + date)
+	limit := h.readSetting("agent_tokens_daily_limit")
+	u, _ := strconv.Atoi(used)
+	l, _ := strconv.Atoi(limit)
+	response.OK(c, gin.H{
+		"date":  date,
+		"used":  u,
+		"limit": l,
+		"remaining": func() int {
+			if l <= 0 {
+				return -1
+			}
+			if l-u < 0 {
+				return 0
+			}
+			return l - u
+		}(),
+		"unlimited": l <= 0,
+	})
+}
+
+// UpdateTokenBudget PUT /sentinel/token-budget  {"limit": 500000}
+func (h *SentinelHandler) UpdateTokenBudget(c *gin.Context) {
+	var req struct {
+		Limit int `json:"limit"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, "参数格式错误")
+		return
+	}
+	if req.Limit < 0 {
+		response.Error(c, 400, response.CodeInvalidParam, "额度不能为负数（0 表示不限）")
+		return
+	}
+	if h.Setting == nil {
+		response.Error(c, 500, response.CodeInternal, "设置服务未启用")
+		return
+	}
+	if err := h.Setting("agent_tokens_daily_limit", strconv.Itoa(req.Limit)); err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"limit": req.Limit})
+}
+
+// readSetting returns a settings value or "" when absent. Small helper so the
+// handlers above do not each grow a GORM query.
+func (h *SentinelHandler) readSetting(key string) string {
+	var s model.Setting
+	if err := h.DB.First(&s, "key = ?", key).Error; err != nil {
+		return ""
+	}
+	return strings.TrimSpace(s.Value)
+}
+
 // Policies GET /sentinel/policies
 func (h *SentinelHandler) Policies(c *gin.Context) {
 	list, err := h.Engine.List()
