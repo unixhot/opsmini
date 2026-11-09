@@ -135,7 +135,7 @@ func seedAlertRules(db *gorm.DB) error {
 	// 告警；已部署的库里这条规则仍叫旧名字，这里就地改名，不新插一条。
 	db.Model(&model.AlertRule{}).Where("metric = ?", "上下文切换次数").Update("metric", "上下文切换频率")
 
-	// v1.4.3 移除了内置日志采集：内置规则不再插入，但老库里那条和它挂着的
+	// v1.4.2 移除了内置日志采集：内置规则不再插入，但老库里那条和它挂着的
 	// active 事件必须就地清掉，否则规则永远停在「未知」、事件永远不 resolve。
 	// 幂等：没有匹配行时是空操作。
 	db.Where("name = ?", "日志管道积压").Delete(&model.AlertRule{})

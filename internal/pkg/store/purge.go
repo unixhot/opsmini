@@ -8,7 +8,7 @@ import (
 )
 
 // PurgeRemovedLogPipe removes data left behind by the built-in log collector,
-// which was removed in v1.4.3.
+// which was removed in v1.4.2.
 //
 // It is idempotent: a missing table or directory is a no-op, so it can run on
 // every start. It deliberately touches nothing else under the data directory,

@@ -2,7 +2,7 @@
 
 Change records for each version.
 
-## v1.4.3 (2026-11-09)
+## v1.4.2 (2026-11-09)
 
 **The built-in log collector is gone**, and the binary drops from 50 MB to 38 MB.
 
@@ -13,6 +13,12 @@ Change records for each version.
 - `/metrics` no longer exposes the four `opsmini_log_*` series; Grafana dashboards referencing them need updating
 - First start also clears the collector's leftovers under `<data>/logs/` (offset table, task files, disk queue)
 - Log viewing (panel logs / system logs / live tail) is unaffected
+
+**Fixes "sso login disabled" when arriving from OpsAnt**
+
+- The shared secret is now read per request: panel settings first, `config.yaml` as fallback, instead of a snapshot taken at startup (which is empty under the default config)
+- Identity checks accept both the panel instance ID and the hostname, matching what OpsAnt signs into the payload
+- Errors are now split: switch off / secret missing / signature mismatch / expired / identity mismatch, instead of everything reporting "disabled"
 
 ## v1.4.1 (2026-11-06)
 

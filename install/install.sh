@@ -25,7 +25,7 @@ PORT=8888
 HOST="0.0.0.0"
 BINARY=""
 BINARY_URL=""
-VERSION="v1.4.1"                                                    # 默认下载的版本号（发布新版本时更新）
+VERSION="v1.4.2"                                                    # 默认下载的版本号（发布新版本时更新）
 DEFAULT_URL_BASE="https://opsmini.oss-cn-beijing.aliyuncs.com"     # 阿里云 OSS 下载地址
 NO_SYSTEMD=0
 UNINSTALL=0        # 1 = 执行卸载
@@ -66,7 +66,7 @@ OpsMini 安装脚本
   curl -fsSL https://opsmini.com/install.sh | sudo bash
   curl -fsSL https://opsmini.com/install.sh | sudo bash -s -- --server-addr 47.104.172.52:4507 --server-token mytoken
   $0 -b ./dist/opsmini-dev-linux-amd64
-  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.4.1-linux-amd64
+  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.4.2-linux-amd64
 EOF
 }
 

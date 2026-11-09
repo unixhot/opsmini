@@ -31,7 +31,7 @@ import (
 //     installed" and "plugin running" are different facts, and only the second
 //     one is worth showing an operator.
 //
-// The built-in log pipeline was removed in v1.4.3; its LogTask handler went with
+// The built-in log pipeline was removed in v1.4.2; its LogTask handler went with
 // it, so a Server that still sends one falls through to the unknown-field path.
 
 // PluginControl is the subset of the plugin manager the platform may drive.

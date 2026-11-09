@@ -93,7 +93,7 @@ func startFake(t *testing.T, f *fakeServer) (string, func()) {
 	return lis.Addr().String(), srv.Stop
 }
 
-// TestRemovedLogTaskIsIgnored pins the behaviour agreed for v1.4.3: the built-in
+// TestRemovedLogTaskIsIgnored pins the behaviour agreed for v1.4.2: the built-in
 // log pipeline is gone, but an older OpsAnt may still send a LogTask (field 6,
 // which is now reserved). protobuf stores it as an unknown field and leaves
 // Payload nil, so no handler ever runs. What matters is that the stream survives

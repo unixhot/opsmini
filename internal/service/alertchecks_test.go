@@ -118,7 +118,7 @@ func TestCheckValueOnlyMatchesKnownMetrics(t *testing.T) {
 	if v, ok := m.checkValue("计划任务失败数"); !ok || v != 3 {
 		t.Fatalf("cron failures: got (%v,%v) want (3,true)", v, ok)
 	}
-	// 日志管道积压在 v1.4.3 随模块一起移除，这条指标必须变成"未知"而非 0。
+	// 日志管道积压在 v1.4.2 随模块一起移除，这条指标必须变成"未知"而非 0。
 	if _, ok := m.checkValue("日志管道积压"); ok {
 		t.Fatal("removed log pipeline metric must be unknown")
 	}
