@@ -671,6 +671,87 @@ func (h *SentinelHandler) UpdateTokenBudget(c *gin.Context) {
 	response.OK(c, gin.H{"limit": req.Limit})
 }
 
+// NoiseSettings GET /sentinel/noise-settings
+//
+// The three global throttles that keep autonomy from becoming a nuisance:
+// the nightly maintenance window, the per-policy daily run cap, and the daily
+// token budget. All are process-wide, unlike the per-policy limits.
+func (h *SentinelHandler) NoiseSettings(c *gin.Context) {
+	date := time.Now().Format("2006-01-02")
+	used, _ := strconv.Atoi(h.readSetting("agent_tokens_daily:" + date))
+	limit, _ := strconv.Atoi(h.readSetting("agent_tokens_daily_limit"))
+	dailyRuns, _ := strconv.Atoi(h.readSetting("trigger_daily_limit"))
+	response.OK(c, gin.H{
+		"maintenance_start": h.readSetting("trigger_maintenance_start"),
+		"maintenance_end":   h.readSetting("trigger_maintenance_end"),
+		"daily_runs":        dailyRuns,
+		"tokens_used":       used,
+		"tokens_limit":      limit,
+		"date":              date,
+	})
+}
+
+// UpdateNoiseSettings PUT /sentinel/noise-settings
+//
+// {"maintenance_start":"02:00","maintenance_end":"04:00","daily_runs":50,"tokens_limit":500000}
+// Empty maintenance ends or zero limits mean "off".
+func (h *SentinelHandler) UpdateNoiseSettings(c *gin.Context) {
+	var req struct {
+		MaintenanceStart string `json:"maintenance_start"`
+		MaintenanceEnd   string `json:"maintenance_end"`
+		DailyRuns        int    `json:"daily_runs"`
+		TokensLimit      int    `json:"tokens_limit"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, "参数格式错误")
+		return
+	}
+	// Validate the clock strings here rather than letting the engine silently
+	// ignore a typo: "2:00-4:00" looking configured but never firing is the kind
+	// of bug that takes a week to notice.
+	for _, v := range []string{req.MaintenanceStart, req.MaintenanceEnd} {
+		if v == "" {
+			continue
+		}
+		parts := strings.SplitN(v, ":", 2)
+		if len(parts) != 2 {
+			response.Error(c, 400, response.CodeInvalidParam, "时间格式应为 HH:MM")
+			return
+		}
+		hh, e1 := strconv.Atoi(parts[0])
+		mm, e2 := strconv.Atoi(parts[1])
+		if e1 != nil || e2 != nil || hh < 0 || hh > 23 || mm < 0 || mm > 59 {
+			response.Error(c, 400, response.CodeInvalidParam, "时间格式应为 HH:MM（00:00–23:59）")
+			return
+		}
+	}
+	if (req.MaintenanceStart == "") != (req.MaintenanceEnd == "") {
+		response.Error(c, 400, response.CodeInvalidParam, "维护窗口的起止时间必须同时填写或同时留空")
+		return
+	}
+	if req.DailyRuns < 0 || req.TokensLimit < 0 {
+		response.Error(c, 400, response.CodeInvalidParam, "额度不能为负数（0 表示不限）")
+		return
+	}
+	if h.Setting == nil {
+		response.Error(c, 500, response.CodeInternal, "设置服务未启用")
+		return
+	}
+	set := map[string]string{
+		"trigger_maintenance_start": req.MaintenanceStart,
+		"trigger_maintenance_end":   req.MaintenanceEnd,
+		"trigger_daily_limit":       strconv.Itoa(req.DailyRuns),
+		"agent_tokens_daily_limit":  strconv.Itoa(req.TokensLimit),
+	}
+	for k, v := range set {
+		if err := h.Setting(k, v); err != nil {
+			response.Error(c, 500, response.CodeInternal, err.Error())
+			return
+		}
+	}
+	response.OK(c, gin.H{"saved": true})
+}
+
 // readSetting returns a settings value or "" when absent. Small helper so the
 // handlers above do not each grow a GORM query.
 func (h *SentinelHandler) readSetting(key string) string {

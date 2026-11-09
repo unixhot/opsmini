@@ -78,6 +78,19 @@ func buildSentinel(
 
 	eng := trigger.NewEngine(db, sm)
 	eng.Learning = sc.Learning
+	// 降噪两项：维护窗口与每日触发上限。存在设置里，改完无需重启
+	// （Engine 每次运行都读自己的字段，这里只在启动时载入一次初始值）。
+	if v, _ := settingSvc.Get("trigger_maintenance_start"); v != "" {
+		eng.MaintenanceStart = strings.TrimSpace(v)
+	}
+	if v, _ := settingSvc.Get("trigger_maintenance_end"); v != "" {
+		eng.MaintenanceEnd = strings.TrimSpace(v)
+	}
+	if v, _ := settingSvc.Get("trigger_daily_limit"); v != "" {
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n > 0 {
+			eng.DailyLimit = n
+		}
+	}
 	if err := eng.SeedDefaults(); err != nil {
 		log.Printf("sentinel: seed policies: %v", err)
 	}

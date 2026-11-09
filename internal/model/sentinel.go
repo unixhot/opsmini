@@ -176,13 +176,21 @@ type TriggerPolicy struct {
 	NoAutoRollback bool `gorm:"default:false" json:"no_auto_rollback"`
 	// AutoTools lists the L1 tools allowed to run without confirmation when the
 	// policy mode is "auto". Everything not listed still needs a human.
-	AutoTools   string     `gorm:"type:text" json:"auto_tools"`
-	Notify      string     `gorm:"size:128" json:"notify"`
-	Prompt      string     `gorm:"type:text" json:"prompt"`
-	Description string     `gorm:"size:256" json:"description"`
-	LastRunAt   *time.Time `json:"last_run_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	AutoTools   string `gorm:"type:text" json:"auto_tools"`
+	Notify      string `gorm:"size:128" json:"notify"`
+	Prompt      string `gorm:"type:text" json:"prompt"`
+	Description string `gorm:"size:256" json:"description"`
+	// ConsecutiveFailures counts runs that ended in failure (verification failed,
+	// error, or budget cut mid-way) back to back. Reaching the breaker threshold
+	// disables the policy: twice in a row means the playbook is not working, and a
+	// third attempt only burns tokens and touches the host again.
+	ConsecutiveFailures int `gorm:"default:0" json:"consecutive_failures"`
+	// DisabledReason explains an automatic disable, so a policy that stopped by
+	// itself does not look like one that was never enabled.
+	DisabledReason string     `gorm:"size:256" json:"disabled_reason"`
+	LastRunAt      *time.Time `json:"last_run_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 // AgentRun records one event-triggered agent execution.

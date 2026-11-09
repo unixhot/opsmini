@@ -199,7 +199,7 @@ type SendResult struct {
 	// BudgetExceeded is true when OnUsage refused the next turn. The run stopped
 	// on purpose; callers should not report it as a model failure.
 	BudgetExceeded bool
-	Content    string
+	Content        string
 	// Skipped lists the tools refused because they need human approval while the
 	// run is unattended.
 	Skipped []string

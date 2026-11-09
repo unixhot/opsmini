@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -85,6 +86,16 @@ type Engine struct {
 	Runner   Runner
 	Notify   func(inc model.Incident, text string)
 	Learning bool
+
+	// MaintenanceStart/End delimit a daily window ("02:00"/"04:00") during which
+	// incidents are still recorded but no policy wakes the agent. Empty either end
+	// disables the window. It exists for the most common false-positive source:
+	// planned changes at night.
+	MaintenanceStart string
+	MaintenanceEnd   string
+	// DailyLimit caps how many runs a single policy may start per day (0 =
+	// unlimited). Counted from agent_runs, so it survives restarts.
+	DailyLimit int
 
 	mu    sync.Mutex
 	sem   chan struct{}
@@ -423,8 +434,47 @@ func (e *Engine) worker() {
 //   - a group that a human already ignored twice in a week does not wake the agent
 //     at all (see suppressed). Ignoring an incident is feedback; ignoring the same
 //     thing every night is a configuration mistake we can stop paying for.
+//
+// breakerThreshold is how many failures in a row disable a policy.
+//
+// Two, not three: the first failure is a bad day, the second is a playbook that
+// does not work. A third attempt costs tokens and touches the host again for an
+// outcome we can already predict.
+const breakerThreshold = 2
+
+// updateBreaker maintains the per-policy failure streak and trips the breaker.
+// Success resets the streak, which is why the counter lives on the policy row and
+// not in memory: an operator who fixes the playbook must see the reset.
+func (e *Engine) updateBreaker(p model.TriggerPolicy, status string) {
+	if e.DB == nil || p.ID == 0 {
+		return
+	}
+	if status == model.IncidentResolved {
+		if p.ConsecutiveFailures != 0 || p.DisabledReason != "" {
+			e.DB.Model(&model.TriggerPolicy{}).Where("id = ?", p.ID).
+				Updates(map[string]any{"consecutive_failures": 0, "disabled_reason": ""})
+		}
+		return
+	}
+	if status != model.IncidentFailed {
+		return
+	}
+	n := p.ConsecutiveFailures + 1
+	upd := map[string]any{"consecutive_failures": n}
+	if n >= breakerThreshold {
+		upd["enabled"] = false
+		upd["disabled_reason"] = fmt.Sprintf("连续 %d 次运行失败，已自动停用；确认剧本无误后手动启用", n)
+		log.Printf("trigger: policy %s disabled by breaker after %d failures", p.Name, n)
+	}
+	e.DB.Model(&model.TriggerPolicy{}).Where("id = ?", p.ID).Updates(upd)
+}
+
 func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 	if reason, quiet := e.suppressed(inc); quiet {
+		e.recordSuppressed(inc, p, reason)
+		return
+	}
+	if reason, quiet := e.noiseSuppressed(p, time.Now()); quiet {
 		e.recordSuppressed(inc, p, reason)
 		return
 	}
@@ -664,6 +714,7 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		incUpd["closed_at"] = fin
 	}
 	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(incUpd)
+	e.updateBreaker(p, status)
 
 	if e.Notify != nil {
 		text := fmt.Sprintf("【%s】%s — %s", strings.ToUpper(inc.Severity), inc.Title, req.Mode)
@@ -861,6 +912,65 @@ func (e *Engine) suppressed(inc model.Incident) (string, bool) {
 		return "", false
 	}
 	return fmt.Sprintf("同类事件近 7 天已被人工忽略 %d 次，本次只记录不自动处置", n), true
+}
+
+// noiseSuppressed covers the two throttles that protect the token budget over
+// time rather than per run: the nightly maintenance window and the per-policy
+// daily run cap. Both are checked before queuing, so a throttled incident costs
+// nothing.
+func (e *Engine) noiseSuppressed(p model.TriggerPolicy, now time.Time) (string, bool) {
+	if inWindow(now, e.MaintenanceStart, e.MaintenanceEnd) {
+		return fmt.Sprintf("处于维护窗口（%s–%s），只记录不自动处置", e.MaintenanceStart, e.MaintenanceEnd), true
+	}
+	if e.DailyLimit > 0 && e.DB != nil {
+		start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		var n int64
+		e.DB.Model(&model.AgentRun{}).
+			Where("policy_name = ? AND started_at >= ?", p.Name, start).
+			Count(&n)
+		if int(n) >= e.DailyLimit {
+			return fmt.Sprintf("该策略今日已运行 %d 次，达到上限 %d，只记录不自动处置", n, e.DailyLimit), true
+		}
+	}
+	return "", false
+}
+
+// inWindow reports whether now falls inside the daily [start, end) window. A
+// window that wraps midnight (22:00–02:00) is supported because that is the
+// useful shape for maintenance.
+func inWindow(now time.Time, start, end string) bool {
+	if start == "" || end == "" || start == end {
+		return false
+	}
+	s, err1 := parseClock(start)
+	f, err2 := parseClock(end)
+	if err1 != nil || err2 != nil {
+		return false
+	}
+	cur := now.Hour()*60 + now.Minute()
+	if s <= f {
+		return cur >= s && cur < f
+	}
+	return cur >= s || cur < f
+}
+
+func parseClock(s string) (int, error) {
+	parts := strings.SplitN(strings.TrimSpace(s), ":", 2)
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("bad clock %q", s)
+	}
+	h, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, err
+	}
+	m, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, err
+	}
+	if h < 0 || h > 23 || m < 0 || m > 59 {
+		return 0, fmt.Errorf("clock out of range %q", s)
+	}
+	return h*60 + m, nil
 }
 
 // recordSuppressed logs a skipped run so the decision is auditable: without a row
