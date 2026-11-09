@@ -338,6 +338,13 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 	}
 	msgs = append(msgs, history...)
 	writes := 0
+	// Some providers occasionally write the tool call into the content stream
+	// (DeepSeek's "｜｜DSML｜｜" blocks, Anthropic's <antml:invoke>, the
+	// <function_calls> convention) and leave ToolCalls empty. Taken at face value
+	// that text becomes the final answer, so the operator sees a wall of markup
+	// instead of a conclusion. Ask once for a proper call, then fall back to
+	// stripping the markup rather than looping forever.
+	rawCallRetries := 0
 
 	maxSteps := a.cfg.MaxSteps
 	if opt.MaxSteps > 0 {
@@ -390,7 +397,19 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 
 		// No tool requested: this is the final answer.
 		if len(msg.ToolCalls) == 0 {
-			res.Content = strings.TrimSpace(msg.Content)
+			if looksLikeRawToolCall(msg.Content) && rawCallRetries < 2 {
+				rawCallRetries++
+				correction := Message{Role: model.AIRoleUser, Content: rawToolCallHint}
+				msgs = append(msgs, correction)
+				_ = a.store.Append(sess.ID, correction)
+				emit.Emit(Event{Type: EventThinking, SessionID: sess.ID, Step: step,
+					Delta: "\n\n[工具调用格式未生效，已提示模型重发]\n"})
+				continue
+			}
+			res.Content = strings.TrimSpace(stripRawToolCalls(msg.Content))
+			if res.Content == "" {
+				res.Content = "模型未给出自然语言结论（它把工具调用写成了文本，系统无法执行）。请查看本次运行的会话记录了解它读了什么。"
+			}
 			emit.Emit(Event{Type: EventFinal, SessionID: sess.ID, Step: step, Content: res.Content})
 			a.finish(sess, res)
 			return res, nil
@@ -826,4 +845,45 @@ func containsStr(list []string, v string) bool {
 		}
 	}
 	return false
+}
+
+// rawToolCallHint is injected when the model wrote a tool call as prose. It has
+// to be explicit about both allowed outcomes, otherwise models tend to apologise
+// and repeat the same markup.
+const rawToolCallHint = "你上一条回复把工具调用写成了普通文本（例如 ｜｜DSML｜｜ 或 <antml:invoke> 这类标记），系统没有执行其中任何调用。请二选一：① 用标准工具调用接口重新发起；② 如果信息已经足够，直接给出自然语言结论，不要再输出调用标记。"
+
+// looksLikeRawToolCall reports whether the text carries one of the well-known
+// "tool call as text" markers instead of a normal answer.
+func looksLikeRawToolCall(s string) bool {
+	if strings.TrimSpace(s) == "" {
+		return false
+	}
+	l := strings.ToLower(s)
+	for _, m := range []string{"dsml", "<antml:invoke", "<function_calls", "<tool_call"} {
+		if strings.Contains(l, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// stripRawToolCalls removes the markup lines (and bare tag lines) from an answer
+// that already failed to round-trip as a tool call, keeping any prose the model
+// wrote around them.
+func stripRawToolCalls(s string) string {
+	if !looksLikeRawToolCall(s) {
+		return s
+	}
+	out := make([]string, 0, 8)
+	for _, line := range strings.Split(s, "\n") {
+		if looksLikeRawToolCall(line) {
+			continue
+		}
+		t := strings.TrimSpace(line)
+		if strings.HasPrefix(t, "<") && strings.HasSuffix(t, ">") && !strings.Contains(t, " ") {
+			continue
+		}
+		out = append(out, line)
+	}
+	return strings.TrimSpace(strings.Join(out, "\n"))
 }

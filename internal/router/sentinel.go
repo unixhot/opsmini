@@ -820,7 +820,14 @@ func (b *sentinelBundle) expireSuspendedIncidents() {
 			if err := b.handler.DB.First(&ap, "id = ?", inc.ApprovalID).Error; err != nil {
 				reason = "审批记录不存在"
 			} else if ap.Status != model.ApprovalPending {
-				reason = "审批已结束但事件未收口"
+				// 审批被 Sweep 标记过期时状态已经不是 pending，如果这里不区分，
+				// 等待超时的用户只会看到「审批已结束但事件未收口」，等于没说
+				// 到底是自己没处理，还是系统把记录弄丢了。
+				if ap.Status == model.ApprovalExpired {
+					reason = fmt.Sprintf("审批超时（%s 前未处理）", ap.ExpiresAt.Format("01-02 15:04"))
+				} else {
+					reason = "审批已结束但事件未收口"
+				}
 			} else if time.Now().After(ap.ExpiresAt) {
 				reason = fmt.Sprintf("审批超时（%s 前未处理）", ap.ExpiresAt.Format("01-02 15:04"))
 			}
