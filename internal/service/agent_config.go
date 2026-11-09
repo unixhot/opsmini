@@ -21,9 +21,9 @@ const (
 // config is: panel settings (database) override config.yaml; when the setting is
 // absent, config.yaml's agent section is used as the fallback.
 type AgentConfigService struct {
-	settings *SettingService
-	mgr      *agent.Manager
-	cfg      config.Agent // fallback from config.yaml
+	settings  *SettingService
+	mgr       *agent.Manager
+	cfg       config.Agent // fallback from config.yaml
 	panelPort int32
 	// probeMu serializes connectivity tests: they are operator-triggered and
 	// short, and running two at once only produces confusing interleaved

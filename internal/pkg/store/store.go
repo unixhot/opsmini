@@ -34,7 +34,7 @@ func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}, &model.AISession{}, &model.AIMessage{}, &model.AIPendingApproval{}, &model.Signal{}, &model.Incident{}, &model.TriggerPolicy{}, &model.AgentRun{}, &model.ActionLog{}, &model.QuarantineItem{}, &model.SnapshotRecord{}, &model.Baseline{}, &model.SignalFeedback{}, &model.BlockedIP{}, &model.ChangeEvent{}, &model.ChangeDiff{}, &model.ChangeOffset{}, &model.ChangeIgnore{}, &model.ChangeChainMeta{}, &model.LogPipeRegistry{}, &model.Campaign{}, &model.ActionJournal{}, &model.ShadowReview{}, &model.ChangeReview{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}, &model.AISession{}, &model.AIMessage{}, &model.AIPendingApproval{}, &model.Signal{}, &model.Incident{}, &model.TriggerPolicy{}, &model.AgentRun{}, &model.ActionLog{}, &model.QuarantineItem{}, &model.SnapshotRecord{}, &model.Baseline{}, &model.SignalFeedback{}, &model.BlockedIP{}, &model.ChangeEvent{}, &model.ChangeDiff{}, &model.ChangeOffset{}, &model.ChangeIgnore{}, &model.ChangeChainMeta{}, &model.Campaign{}, &model.ActionJournal{}, &model.ShadowReview{}, &model.ChangeReview{}); err != nil {
 		return nil, err
 	}
 	if err := seedAdmin(db); err != nil {
@@ -130,11 +130,18 @@ func seedAlertRules(db *gorm.DB) error {
 		{Name: "容器异常退出", Metric: "容器异常退出数", Condition: "> 0", Duration: "1 分钟", Notify: "面板", Enabled: true},
 		{Name: "计划任务执行失败", Metric: "计划任务失败数", Condition: "> 0", Duration: "5 分钟", Notify: "面板,邮件", Enabled: true},
 		{Name: "备份任务失败", Metric: "备份失败数", Condition: "> 0", Duration: "5 分钟", Notify: "面板,邮件,企业微信", Enabled: true},
-		{Name: "日志管道积压", Metric: "日志管道积压", Condition: "> 1000", Duration: "10 分钟", Notify: "面板", Enabled: true},
 	}
 	// 指标口径修正：/proc/stat 的 ctxt 是开机以来的累计值，按「次」比阈值会永久
 	// 告警；已部署的库里这条规则仍叫旧名字，这里就地改名，不新插一条。
 	db.Model(&model.AlertRule{}).Where("metric = ?", "上下文切换次数").Update("metric", "上下文切换频率")
+
+	// v1.4.3 移除了内置日志采集：内置规则不再插入，但老库里那条和它挂着的
+	// active 事件必须就地清掉，否则规则永远停在「未知」、事件永远不 resolve。
+	// 幂等：没有匹配行时是空操作。
+	db.Where("name = ?", "日志管道积压").Delete(&model.AlertRule{})
+	db.Model(&model.AlertEvent{}).
+		Where("metric = ? AND status = ?", "日志管道积压", "active").
+		Updates(map[string]any{"status": "resolved", "resolved_at": time.Now()})
 
 	inserted := 0
 	for _, r := range rules {

@@ -20,7 +20,6 @@ import (
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/backup"
 	"github.com/opsmini/opsmini/internal/config"
-	"github.com/opsmini/opsmini/internal/logpipe"
 	"github.com/opsmini/opsmini/internal/middleware"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
@@ -359,35 +358,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	}
 
 	// Prometheus metrics (node_exporter compatible, for monitoring systems to scrape).
-	// 日志管道（filebeat 兼容）：任务只从 tasks.d 加载，单机没有任务时零开销。
-	// 输出与任务路径可以由 <data>/logs/opsmini.yml（filebeat 原生结构）覆盖。
-	logMain, lerr := logpipe.LoadMain(
-		filepath.Join(cfg.DataDir(), "logs", "opsmini.yml"),
-		logpipe.DefaultMainConfig(cfg.DataDir()),
-	)
-	if lerr != nil {
-		log.Printf("logpipe: main config: %v", lerr)
-	}
-	if !cfg.LogPipe.Enabled {
-		logMain.Enabled = false
-	}
-	if cfg.LogPipe.TasksDir != "" {
-		logMain.TasksDir = cfg.LogPipe.TasksDir
-	}
-	if cfg.LogPipe.ConfigFile != "" {
-		if m2, err := logpipe.LoadMain(cfg.LogPipe.ConfigFile, logMain); err == nil {
-			logMain = m2
-		}
-	}
-	if cfg.LogPipe.AgentType != "" {
-		logMain.AgentType = cfg.LogPipe.AgentType
-	}
-	if cfg.LogPipe.Strict {
-		logMain.Strict = true
-	}
-	logMgr := logpipe.NewManager(logMain, db, version)
-	logMgr.Start(context.Background())
-	logPipeHandler := v1.NewLogPipeHandler(logMgr)
 
 	// 插件运行时：包校验（sha256 + ed25519）+ 独立进程 + unix socket 上报。
 	// 公钥从设置读取；未配置且未开启 unsigned 时拒绝安装。
@@ -465,10 +435,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		}
 		return n, first, true
 	}
-	logPipelineHealth := func() (int, int, bool) {
-		p, d := logMgr.Health()
-		return p, d, true
-	}
 	// Platform tasks act on this subsystem; wiring it here (instead of in main)
 	// keeps the Agent unaware of how the panel is assembled.
 	agentMgr.SetControls(&agentPluginAdapter{mgr: pluginMgr})
@@ -476,7 +442,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	sources := service.AlertSources{
 		FailedCronJobs: failedCronJobs,
 		FailedBackups:  backupMgr.Failures,
-		LogPipeline:    logPipelineHealth,
 	}
 	if dockerSvc != nil {
 		sources.DockerDaemon = dockerSvc.Healthy
@@ -494,9 +459,9 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	}
 	if cfg.Metrics.Enabled {
 		root.GET("/metrics", middleware.MetricsAuth(metricsCreds), func(c *gin.Context) {
-			// 日志管道指标与系统指标拼在一起，Prometheus 侧只抓一个端点。
+			// 系统指标与插件指标拼在一起，Prometheus 侧只抓一个端点。
 			c.Data(200, "text/plain; version=0.0.4; charset=utf-8",
-				[]byte(sysSvc.PrometheusMetrics()+logMgr.Metrics()+pluginMgr.MetricsText()))
+				[]byte(sysSvc.PrometheusMetrics()+pluginMgr.MetricsText()))
 		})
 	}
 
@@ -665,11 +630,6 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.POST("/plugins/:id/enable", permMw("settings.edit"), pluginHandler.Enable)
 			authed.POST("/plugins/:id/restart", permMw("settings.edit"), pluginHandler.Restart)
 			authed.DELETE("/plugins/:id", permMw("settings.edit"), pluginHandler.Delete)
-
-			// 日志管道：只读视图 + 手动重扫（任务只从 OpsAnt 下发）
-			authed.GET("/logpipe/status", permMw("ai.agent"), logPipeHandler.Status)
-			authed.GET("/logpipe/preview", permMw("ai.agent"), logPipeHandler.Preview)
-			authed.POST("/logpipe/reload", permMw("settings.edit"), logPipeHandler.Reload)
 
 			authed.GET("/mcp", mcpHandler.List)
 			authed.GET("/mcp/status", permMw("ai.agent"), mcpHandler.StatusList)

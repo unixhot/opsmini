@@ -64,6 +64,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("init store: %v", err)
 	}
+	// v1.4.3 移除了内置日志采集，清掉它留在数据目录里的位点与任务文件。
+	// 只在正常启动路径执行：recoverAccount 也调 store.Init，但重置密码不该删数据。
+	if err := store.PurgeRemovedLogPipe(db, cfg.DataDir()); err != nil {
+		log.Printf("purge removed logpipe data: %v", err)
+	}
 
 	// Metrics collection: samples every 10s, keeps 24 hours in memory (8640 points), and persists to SQLite (retained for 30 days).
 	metrics := service.NewMetricCollector(10*time.Second, 8640, db)

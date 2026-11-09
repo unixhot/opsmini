@@ -71,7 +71,6 @@ func TestEventMetricUnit(t *testing.T) {
 		"OOM 事件数":      " 次",
 		"容器异常退出数":      " 次",
 		"NTP 时间偏移":     " 秒",
-		"日志管道积压":       " 批",
 		"Docker 服务不可用": "",
 	}
 	for metric, want := range cases {
@@ -115,13 +114,13 @@ func TestChecksReportUnknownInsteadOfZero(t *testing.T) {
 func TestCheckValueOnlyMatchesKnownMetrics(t *testing.T) {
 	m := &AlertMonitor{sources: AlertSources{
 		FailedCronJobs: func() (int, string, bool) { return 3, "nightly: exit 1", true },
-		LogPipeline:    func() (int, int, bool) { return 12, 0, true },
 	}}
 	if v, ok := m.checkValue("计划任务失败数"); !ok || v != 3 {
 		t.Fatalf("cron failures: got (%v,%v) want (3,true)", v, ok)
 	}
-	if v, ok := m.checkValue("日志管道积压"); !ok || v != 12 {
-		t.Fatalf("pipeline backlog: got (%v,%v) want (12,true)", v, ok)
+	// 日志管道积压在 v1.4.3 随模块一起移除，这条指标必须变成"未知"而非 0。
+	if _, ok := m.checkValue("日志管道积压"); ok {
+		t.Fatal("removed log pipeline metric must be unknown")
 	}
 	// A nil source must read as unknown, not as zero.
 	if _, ok := m.checkValue("备份失败数"); ok {

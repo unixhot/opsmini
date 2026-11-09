@@ -27,8 +27,8 @@ import (
 // that fires because a file is missing is worse than no rule.
 
 // AlertSources carries the data sources that live outside the service package.
-// They are function values so the alert monitor does not depend on the docker,
-// backup or logpipe packages; the router wires them once.
+// They are function values so the alert monitor does not depend on the docker or
+// backup packages; the router wires them once.
 type AlertSources struct {
 	// DockerDaemon reports whether the docker daemon answers.
 	DockerDaemon func() (up bool, detail string, ok bool)
@@ -38,8 +38,6 @@ type AlertSources struct {
 	FailedCronJobs func() (int, string, bool)
 	// FailedBackups counts failed backup runs inside window.
 	FailedBackups func(window time.Duration) (int, string, bool)
-	// LogPipeline reports backlog and dropped event counts.
-	LogPipeline func() (pending, dropped int, ok bool)
 }
 
 // eventCheck is one event-type metric.
@@ -106,20 +104,6 @@ func (m *AlertMonitor) eventChecks() []eventCheck {
 			return 0, "", false
 		}
 		return src.FailedBackups(w)
-	}})
-	checks = append(checks, eventCheck{metric: "日志管道积压", window: 0, fn: func(time.Duration) (int, string, bool) {
-		if src.LogPipeline == nil {
-			return 0, "", false
-		}
-		pending, dropped, ok := src.LogPipeline()
-		if !ok {
-			return 0, "", false
-		}
-		if dropped > 0 {
-			// Drops are permanent data loss, so they dominate the backlog number.
-			return dropped, "已丢弃 " + strconv.Itoa(dropped) + " 条，积压 " + strconv.Itoa(pending) + " 批", true
-		}
-		return pending, "", true
 	}})
 	return checks
 }
@@ -303,8 +287,6 @@ func eventMetricUnit(metric string) (string, bool) {
 		return " 次", true
 	case metric == "NTP 时间偏移":
 		return " 秒", true
-	case metric == "日志管道积压":
-		return " 批", true
 	case metric == "Docker 服务不可用":
 		return "", true
 	}
