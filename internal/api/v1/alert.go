@@ -21,7 +21,7 @@ func NewAlertHandler(svc *service.AlertService) *AlertHandler {
 }
 
 type alertReq struct {
-	Name      string `json:"name" binding:"required"`
+	Name      string `json:"name" binding:"required,max=128"`
 	Metric    string `json:"metric"`
 	Condition string `json:"condition"`
 	Duration  string `json:"duration"`

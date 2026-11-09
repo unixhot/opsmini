@@ -149,11 +149,13 @@ func (s *CronService) execute(j model.CronJob) {
 // done in validate() rather than by the binding tags, because which field is
 // mandatory depends on Kind.
 type CronReq struct {
-	Name     string `json:"name" binding:"required"`
-	Kind     string `json:"kind"`
-	User     string `json:"user"`
-	Schedule string `json:"schedule" binding:"required"`
-	Command  string `json:"command"`
+	// max 与 model 里的 size 对齐：SQLite 不强制 varchar 长度，没有这层校验
+	// 时 8KB 的任务名能直接入库，前端渲染时撑破布局。
+	Name     string `json:"name" binding:"required,max=128"`
+	Kind     string `json:"kind" binding:"max=16"`
+	User     string `json:"user" binding:"max=32"`
+	Schedule string `json:"schedule" binding:"required,max=64"`
+	Command  string `json:"command" binding:"max=4096"`
 	Enabled  *bool  `json:"enabled"`
 
 	// --- AI Agent tasks (kind=agent) ---

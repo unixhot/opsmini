@@ -21,8 +21,8 @@ func NewUserService(repo *repository.UserRepo) *UserService {
 
 // CreateUserReq is the input for creating a user.
 type CreateUserReq struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
+	Username string `json:"username" binding:"required,max=64"`
+	Password string `json:"password" binding:"required,min=6,max=128"`
 	Role     string `json:"role"`
 }
 
@@ -97,9 +97,9 @@ func (s *UserService) Delete(id uint) error {
 
 // ProfileReq is the input for updating the current user's own profile.
 type ProfileReq struct {
-	Nickname string `json:"nickname"`
-	Icon     string `json:"icon"`
-	Email    string `json:"email"`
+	Nickname string `json:"nickname" binding:"max=64"`
+	Icon     string `json:"icon" binding:"max=64"`
+	Email    string `json:"email" binding:"max=128"`
 }
 
 // UpdateProfile updates the current user's nickname/icon/email.
