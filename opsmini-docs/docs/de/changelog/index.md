@@ -2,6 +2,18 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.4.3 (2026-11-09)
+
+**Der eingebaute Log-Collector entfällt**, das Binary schrumpft von 50 MB auf 38 MB.
+
+- Die Filebeat-kompatible Erfassung (logpipe) wird vollständig entfernt: Aufgabenverzeichnis, Prozessoren, ES-/Kafka-/Logstash-Ausgaben und die Panel-Seite „Logs → Erfassung"
+- Hosts, die über OpsAnt Erfassungsaufgaben erhalten haben, sammeln nicht mehr; ein eigenständiges Panel hat nie standardmäßig gesammelt, dort ändert das Upgrade nichts sichtbares
+- Ein verbliebener `logpipeline:`-Abschnitt in `config.yaml` wird stillschweigend ignoriert, manuelles Aufräumen ist nicht nötig
+- Die eingebaute Alarmregel „Log-Pipeline-Rückstau" wird beim ersten Start entfernt, samt ihrer offenen Ereignisse
+- `/metrics` liefert die vier `opsmini_log_*`-Serien nicht mehr; Grafana-Dashboards müssen angepasst werden
+- Beim ersten Start werden die Überreste des Collectors unter `<Datenverzeichnis>/logs/` gelöscht (Offset-Tabelle, Aufgabendateien, Festplattenwarteschlange)
+- Die Log-Ansicht (Panel-Logs / System-Logs / Live-Tail) ist nicht betroffen
+
 ## v1.4.1 (2026-11-06)
 
 Patch-Release. Behebt drei Dinge, die im Alltag auftreten, und ergänzt eine Möglichkeit, Hosts in Multi-Maschinen-Setups auseinanderzuhalten.

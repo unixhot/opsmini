@@ -2,6 +2,18 @@
 
 Change records for each version.
 
+## v1.4.3 (2026-11-09)
+
+**The built-in log collector is gone**, and the binary drops from 50 MB to 38 MB.
+
+- The Filebeat-compatible collector (logpipe) is removed entirely: task directory, processors, ES / Kafka / Logstash outputs, and the panel's Logs → Collection tab
+- Hosts managed through OpsAnt that received collection tasks will stop collecting; a standalone panel never collected by default, so upgrading it changes nothing visible
+- A leftover `logpipeline:` section in `config.yaml` is silently ignored, no manual cleanup needed
+- The built-in alert rule "log pipeline backlog" is removed on first start, along with its unresolved events
+- `/metrics` no longer exposes the four `opsmini_log_*` series; Grafana dashboards referencing them need updating
+- First start also clears the collector's leftovers under `<data>/logs/` (offset table, task files, disk queue)
+- Log viewing (panel logs / system logs / live tail) is unaffected
+
 ## v1.4.1 (2026-11-06)
 
 Patch release. Three fixes for things you run into day to day, plus a way to tell hosts apart in multi-machine setups.

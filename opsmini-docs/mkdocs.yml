@@ -98,7 +98,6 @@ plugins:
             AI Agent（自主执行）: AI Agent（自主執行）
             自主 Agent（事件中心）: 自主 Agent（事件中心）
             变更感知: 變更感知
-            日志管道: 日誌管道
             插件系统: 外掛系統
             备份与恢复: 備份與還原
             应用管理: 應用管理
@@ -154,7 +153,6 @@ plugins:
             AI Agent（自主执行）: AI Agent (autonomous)
             自主 Agent（事件中心）: Autonomous Agent (Event Center)
             变更感知: Change Awareness
-            日志管道: Log Pipeline
             插件系统: Plugin System
             备份与恢复: Backup & Restore
             应用管理: Apps
@@ -210,7 +208,6 @@ plugins:
             AI Agent（自主执行）: AI Agent（自律実行）
             自主 Agent（事件中心）: 自律エージェント（イベントセンター）
             变更感知: 変更検知
-            日志管道: ログパイプライン
             插件系统: プラグインシステム
             备份与恢复: バックアップと復元
             应用管理: アプリ管理
@@ -266,7 +263,6 @@ plugins:
             AI Agent（自主执行）: AI Agent(자율 실행)
             自主 Agent（事件中心）: 자율 에이전트(이벤트 센터)
             变更感知: 변경 감지
-            日志管道: 로그 파이프라인
             插件系统: 플러그인 시스템
             备份与恢复: 백업 및 복구
             应用管理: 앱 관리
@@ -322,7 +318,6 @@ plugins:
             AI Agent（自主执行）: AI Agent (ทำงานเอง)
             自主 Agent（事件中心）: เอเจนต์อัตโนมัติ (ศูนย์เหตุการณ์)
             变更感知: การตรวจจับการเปลี่ยนแปลง
-            日志管道: ท่อส่งบันทึก
             插件系统: ระบบปลั๊กอิน
             备份与恢复: สำรองและกู้คืน
             应用管理: การจัดการแอป
@@ -378,7 +373,6 @@ plugins:
             AI Agent（自主执行）: KI-Agent (autonom)
             自主 Agent（事件中心）: Autonomer Agent (Ereigniszentrale)
             变更感知: Änderungserkennung
-            日志管道: Log-Pipeline
             插件系统: Plugin-System
             备份与恢复: Backup & Wiederherstellung
             应用管理: App-Verwaltung
@@ -497,7 +491,6 @@ nav:
       - AI Agent（自主执行）: features/ai-assistant.md
       - 自主 Agent（事件中心）: features/autonomous-agent.md
       - 变更感知: features/change-awareness.md
-      - 日志管道: features/log-pipeline.md
       - 插件系统: features/plugin-system.md
       - 备份与恢复: features/backup-restore.md
       - 应用管理: features/apps.md

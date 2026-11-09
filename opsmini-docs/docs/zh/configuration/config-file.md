@@ -101,27 +101,6 @@ metrics:
 
 > 认证凭据优先级：面板「设置 → 监控导出」中的用户名/密码 **优先于** 这里的 `user`/`password`。用户名留空即开放访问。
 
-### logpipeline（日志采集管道）
-
-```yaml
-logpipeline:
-  enabled: false           # 硬开关；true 时即使没有任务文件也启动
-  tasks_dir: ""            # 任务目录，默认 <数据目录>/logs/tasks.d
-  config_file: ""           # 主配置（filebeat 形状），默认 <数据目录>/logs/main.yml
-  strict: false            # 任务里的未知字段：false 警告 / true 报错
-  agent_type: opsmini      # 写入 agent.type；设为 filebeat 可复用已有索引模板
-```
-
-| 参数 | 说明 | 默认 |
-|------|------|------|
-| `enabled` | 是否强制启动采集管道 | `false` |
-| `tasks_dir` | 采集任务目录 | `<数据目录>/logs/tasks.d` |
-| `config_file` | 主配置（出口 + 全局参数） | `<数据目录>/logs/main.yml` |
-| `strict` | 严格解析任务字段 | `false` |
-| `agent_type` | `agent.type` 字段值 | `opsmini` |
-
-> **默认不采集任何日志**。三级启用：`tasks.d` 里出现任务文件 / `enabled: true` / 收到平台下发的 LogTask。详见 [日志管道](../features/log-pipeline.md)。
-
 ### backup（远端备份目标，可选）
 
 ```yaml

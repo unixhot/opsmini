@@ -28,12 +28,6 @@ OpsMini 各功能模块的使用说明。
 
     谁改了什么、从什么样改成什么样；规则复核 + Agent 深度分析。
 
--   :material-pipe: **[日志管道](log-pipeline.md)**
-
-    ---
-
-    与 Filebeat 配置兼容的采集执行端，默认关闭，支持 ES / Kafka / Logstash。
-
 -   :material-puzzle-outline: **[插件系统](plugin-system.md)**
 
     ---

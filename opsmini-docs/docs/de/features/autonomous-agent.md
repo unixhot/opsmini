@@ -171,7 +171,6 @@ Zwei manuelle Aktionen:
 | [KI-Assistent]](ai-assistant.md) | Derselbe Satz von Werkzeugen und Schutzmaßnahmen, mit dem Unterschied, dass er von Ihnen manuell ausgelöst wird |
 | [Host-Sicherheit]](security.md) | Die Ergebnisse von Baseline-Prüfung und Bedrohungserkennung gelangen als Signale in das Ereigniszentrum |
 | [Sicherung und Wiederherstellung]](backup-restore.md) | Fehlgeschlagene Sicherungen erzeugen Ereignisse; fehlgeschlagene Wiederherstellungen erzeugen automatisch critical-Ereignisse |
-| [Protokoll-Pipeline]](log-pipeline.md) | Erfasste Protokolle können als Beweismaterial für Ereignisse dienen |
 
 ## Abgrenzung in einem Satz
 

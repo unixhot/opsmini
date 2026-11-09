@@ -101,27 +101,6 @@ metrics:
 
 > Credential priority: the username/password in panel "Settings → Metrics Export" **override** these values. An empty username means open access.
 
-### logpipeline (log collection pipeline)
-
-```yaml
-logpipeline:
-  enabled: false           # hard switch; when true, starts even without task files
-  tasks_dir: ""            # task directory, default <data directory>/logs/tasks.d
-  config_file: ""           # main config (filebeat shape), default <data directory>/logs/main.yml
-  strict: false            # unknown fields in tasks: false warn / true error
-  agent_type: opsmini      # written to agent.type; set to filebeat to reuse existing index templates
-```
-
-| Parameter | Description | Default |
-|------|------|------|
-| `enabled` | Whether to force-start the collection pipeline | `false` |
-| `tasks_dir` | Collection task directory | `<数据目录>/logs/tasks.d` |
-| `config_file` | Main config (outputs + global parameters) | `<数据目录>/logs/main.yml` |
-| `strict` | Strict parsing of task fields | `false` |
-| `agent_type` | `agent.type` field value | `opsmini` |
-
-> **No logs are collected by default**. Three levels of enablement: a task file appears in `tasks.d` / `enabled: true` / a LogTask delivered by the platform is received. See [Log pipeline]](../features/log-pipeline.md) for details.
-
 ### backup (remote backup target, optional)
 
 ```yaml

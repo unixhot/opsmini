@@ -101,27 +101,6 @@ metrics:
 
 > Priorität der Authentifizierungsdaten: Benutzername/Passwort auf der Seite „Einstellungen → Monitoring-Export" des Panels haben **Vorrang** vor `user`/`password` hier. Ein leerer Benutzername bedeutet offenen Zugriff.
 
-### logpipeline (Protokoll-Erfassungspipeline)
-
-```yaml
-logpipeline:
-  enabled: false           # Hard-Switch; bei true wird auch ohne Aufgabendatei gestartet
-  tasks_dir: ""            # Aufgabenverzeichnis, Standard <Datenverzeichnis>/logs/tasks.d
-  config_file: ""           # Hauptkonfiguration (filebeat-Form), Standard <Datenverzeichnis>/logs/main.yml
-  strict: false            # Unbekannte Felder in Aufgaben: false Warnung / true Fehler
-  agent_type: opsmini      # Schreibt agent.type; auf filebeat setzen, um vorhandene Index-Templates wiederzuverwenden
-```
-
-| Parameter | Beschreibung | Standard |
-|------|------|------|
-| `enabled` | Ob die Erfassungspipeline zwangsweise gestartet wird | `false` |
-| `tasks_dir` | Verzeichnis der Erfassungsaufgaben | `<数据目录>/logs/tasks.d` |
-| `config_file` | Hauptkonfiguration (Ausgabe + globale Parameter) | `<数据目录>/logs/main.yml` |
-| `strict` | Strikte Analyse der Aufgabenfelder | `false` |
-| `agent_type` | `agent.type` Feldwert | `opsmini` |
-
-> **Standardmäßig werden keine Protokolle erfasst**. Dreistufige Aktivierung: Aufgabendatei erscheint in `tasks.d` / `enabled: true` / Empfang einer von der Plattform übermittelten LogTask. Siehe [Protokoll-Pipeline]](../features/log-pipeline.md).
-
 ### backup (Remote-Backup-Ziel, optional)
 
 ```yaml

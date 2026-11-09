@@ -101,27 +101,6 @@ metrics:
 
 > 인증 자격 증명 우선순위: 패널「설정 → 모니터링 내보내기」의 사용자 이름/비밀번호가 여기의 `user`/`password`보다 **우선합니다**. 사용자 이름이 비어 있으면 공개 액세스입니다.
 
-### logpipeline (로그 수집 파이프라인)
-
-```yaml
-logpipeline:
-  enabled: false           # 하드 스위치; true 이면 작업 파일이 없어도 시작
-  tasks_dir: ""            # 작업 디렉터리, 기본값 <데이터 디렉터리>/logs/tasks.d
-  config_file: ""           # 메인 설정 (filebeat 형태), 기본값 <데이터 디렉터리>/logs/main.yml
-  strict: false            # 작업 내 알 수 없는 필드: false 경고 / true 오류
-  agent_type: opsmini      # agent.type 에 기록; filebeat 로 설정하면 기존 인덱스 템플릿 재사용 가능
-```
-
-| 파라미터 | 설명 | 기본값 |
-|------|------|------|
-| `enabled` | 수집 파이프라인 강제 시작 여부 | `false` |
-| `tasks_dir` | 수집 작업 디렉터리 | `<数据目录>/logs/tasks.d` |
-| `config_file` | 메인 설정 (출력 + 전역 파라미터) | `<数据目录>/logs/main.yml` |
-| `strict` | 작업 필드 엄격 파싱 | `false` |
-| `agent_type` | `agent.type` 필드 값 | `opsmini` |
-
-> **기본적으로 어떤 로그도 수집하지 않습니다**. 3단계 활성화: `tasks.d` 에 작업 파일 존재 / `enabled: true` / 플랫폼에서 발급된 LogTask 수신. 자세한 내용은 [로그 파이프라인]](../features/log-pipeline.md) 참조.
-
 ### backup (원격 백업 대상, 선택 사항)
 
 ```yaml

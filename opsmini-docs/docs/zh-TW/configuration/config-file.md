@@ -101,27 +101,6 @@ metrics:
 
 > 認證憑據優先順序：面板「設定 → 監控匯出」中的使用者名稱/密碼 **優先於** 這裡的 `user`/`password`。使用者名稱留空即開放訪問。
 
-### logpipeline（日誌採集管道）
-
-```yaml
-logpipeline:
-  enabled: false           # 硬開關；true 時即使沒有任務檔案也啟動
-  tasks_dir: ""            # 任務目錄，預設 <資料目錄>/logs/tasks.d
-  config_file: ""           # 主配置（filebeat 形狀），預設 <資料目錄>/logs/main.yml
-  strict: false            # 任務裡的未知欄位：false 警告 / true 報錯
-  agent_type: opsmini      # 寫入 agent.type；設為 filebeat 可複用已有索引模板
-```
-
-| 引數 | 說明 | 預設 |
-|------|------|------|
-| `enabled` | 是否強制啟動採集管道 | `false` |
-| `tasks_dir` | 採集任務目錄 | `<資料目錄>/logs/tasks.d` |
-| `config_file` | 主配置（出口 + 全域性引數） | `<資料目錄>/logs/main.yml` |
-| `strict` | 嚴格解析任務欄位 | `false` |
-| `agent_type` | `agent.type` 欄位值 | `opsmini` |
-
-> **預設不採集任何日誌**。三級啟用：`tasks.d` 裡出現任務檔案 / `enabled: true` / 收到平臺下發的 LogTask。詳見 [日誌管道](../features/log-pipeline.md)。
-
 ### backup（遠端備份目標，可選）
 
 ```yaml

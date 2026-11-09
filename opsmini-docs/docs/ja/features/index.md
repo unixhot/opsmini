@@ -28,12 +28,6 @@ OpsMini の各機能モジュールの利用方法。
 
     誰が何をどう変えたか。ルール判定 + Agent による深掘り分析。
 
--   :material-pipe: **[ログパイプライン](log-pipeline.md)**
-
-    ---
-
-    Filebeat 設定互換の収集実行側。既定で無効、ES / Kafka / Logstash に対応。
-
 -   :material-puzzle-outline: **[プラグインシステム](plugin-system.md)**
 
     ---

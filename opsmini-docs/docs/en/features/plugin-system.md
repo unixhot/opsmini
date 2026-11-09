@@ -153,5 +153,4 @@ Planned directions (unreleased): extended security baseline checks, middleware m
 |---|---|
 | [Autonomous agent](autonomous-agent.md) | A plugin's `event` can become a signal entering the event center |
 | [Dashboard & monitoring](dashboard-monitoring.md) | A plugin's `metric` can feed alert rules |
-| [Log pipeline](log-pipeline.md) | Log parsing can be a pipeline processor (lighter) or a plugin (independently upgradeable) |
 | [Host security](security.md) | Official security plugins are the extension path for host security |

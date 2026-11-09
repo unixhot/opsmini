@@ -153,5 +153,4 @@ curl -X POST http://127.0.0.1:8888/api/v1/settings \
 |---|---|
 | [自主 Agent（事件中心）](autonomous-agent.md) | 外掛上報的 `event` 可轉成訊號進入事件中心，參與聚合與處置 |
 | [儀表盤與監控](dashboard-monitoring.md) | 外掛上報的 `metric` 可被告警規則使用 |
-| [日誌管道](log-pipeline.md) | 日誌解析類能力既可以做進管道的 processor，也可以做成外掛；前者更輕，後者可獨立升級 |
 | [主機安全](security.md) | 官方安全外掛是主機安全的擴充套件方向 |

@@ -153,5 +153,4 @@ Geplante offizielle Plugin-Richtungen (nicht veröffentlicht): erweiterte Inspek
 |---|---|
 | [Autonomer Agent (Event-Center)]](autonomous-agent.md) | Die vom Plugin gemeldeten `event` können in Signale umgewandelt und in das Event-Center eingespeist werden, um an Aggregation und Bearbeitung teilzunehmen |
 | [Dashboard und Überwachung]](dashboard-monitoring.md) | Die vom Plugin gemeldeten `metric` können von Alarmregeln verwendet werden |
-| [Protokoll-Pipeline]](log-pipeline.md) | Fähigkeiten zur Protokollanalyse können sowohl als Processor in der Pipeline als auch als Plugin umgesetzt werden; Ersteres ist leichter, Letzteres kann unabhängig aktualisiert werden |
 | [Host-Sicherheit]](security.md) | Offizielle Sicherheits-Plugins sind eine Erweiterungsrichtung der Host-Sicherheit |

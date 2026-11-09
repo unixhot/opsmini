@@ -137,7 +137,6 @@ backup:
 | [自主 Agent（事件中心）](autonomous-agent.md) | 恢复失败产生 critical 事件；备份失败可被告警规则捕获 |
 | [变更感知](change-awareness.md) | 备份配置文件的改动本身也是一次变更 |
 | [主机安全](security.md) | 「是否有可用备份」「备份是否异地」可作为安全评分的考量项 |
-| [日志管道](log-pipeline.md) | 备份不影响日志采集，两者互不依赖 |
 
 ## 已知限制
 

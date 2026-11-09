@@ -137,7 +137,6 @@ Nach der Konfiguration erscheint auf der Backup-Seite die Auswahl „Remote-Ziel
 | [Autonomer Agent (Event-Center)]](autonomous-agent.md) | Wiederherstellungsfehler erzeugen critical-Events; Sicherungsfehler können durch Alarmregeln erfasst werden |
 | [Änderungserkennung]](change-awareness.md) | Änderungen an der Sicherungskonfigurationsdatei sind selbst ebenfalls eine Änderung |
 | [Host-Sicherheit]](security.md) | „Ist eine nutzbare Sicherung vorhanden“ und „Befindet sich die Sicherung an einem externen Standort“ können als Bewertungskriterien für den Sicherheits-Score dienen |
-| [Protokoll-Pipeline]](log-pipeline.md) | Sicherungen beeinträchtigen die Protokollerfassung nicht, beide sind voneinander unabhängig |
 
 ## Bekannte Einschränkungen
 

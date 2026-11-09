@@ -28,12 +28,6 @@ Bedienungsanleitung für die einzelnen Funktionsmodule von OpsMini.
 
     Wer was von was zu was geändert hat; Regelprüfung plus tiefe Agent-Analyse.
 
--   :material-pipe: **[Log-Pipeline](log-pipeline.md)**
-
-    ---
-
-    Ein Filebeat-kompatibler Sammel-Executor, standardmäßig aus, ES / Kafka / Logstash.
-
 -   :material-puzzle-outline: **[Plugin-System](plugin-system.md)**
 
     ---

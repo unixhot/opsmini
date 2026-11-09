@@ -28,12 +28,6 @@ Usage instructions for each OpsMini feature module.
 
     Who changed what, from what to what; rule pass plus deep agent analysis.
 
--   :material-pipe: **[Log Pipeline](log-pipeline.md)**
-
-    ---
-
-    A Filebeat-compatible collection executor, off by default, ES / Kafka / Logstash.
-
 -   :material-puzzle-outline: **[Plugin System](plugin-system.md)**
 
     ---

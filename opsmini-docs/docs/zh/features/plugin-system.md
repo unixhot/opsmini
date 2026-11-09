@@ -153,5 +153,4 @@ curl -X POST http://127.0.0.1:8888/api/v1/settings \
 |---|---|
 | [自主 Agent（事件中心）](autonomous-agent.md) | 插件上报的 `event` 可转成信号进入事件中心，参与聚合与处置 |
 | [仪表盘与监控](dashboard-monitoring.md) | 插件上报的 `metric` 可被告警规则使用 |
-| [日志管道](log-pipeline.md) | 日志解析类能力既可以做进管道的 processor，也可以做成插件；前者更轻，后者可独立升级 |
 | [主机安全](security.md) | 官方安全插件是主机安全的扩展方向 |

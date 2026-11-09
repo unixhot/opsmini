@@ -169,7 +169,6 @@ Two manual actions:
 | [AI assistant](ai-assistant.md) | Same tools and guardrails, started by you instead |
 | [Host security](security.md) | Baseline and threat findings enter the event center as signals |
 | [Backup & restore](backup-restore.md) | Backup failures create incidents; restore failures raise critical ones |
-| [Log pipeline](log-pipeline.md) | Collected logs can serve as evidence |
 
 ## The boundary, in one line
 

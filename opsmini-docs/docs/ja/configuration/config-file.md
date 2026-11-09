@@ -101,27 +101,6 @@ metrics:
 
 > 認証情報の優先順位：パネル「設定 → 監視エクスポート」のユーザー名/パスワードがここでの `user`/`password` **より優先**されます。ユーザー名を空にするとアクセスが開放されます。
 
-### logpipeline（ログ収集パイプライン）
-
-```yaml
-logpipeline:
-  enabled: false           # ハードスイッチ；true の場合はタスクファイルがなくても起動する
-  tasks_dir: ""            # タスクディレクトリ、デフォルト <データディレクトリ>/logs/tasks.d
-  config_file: ""           # メイン設定（filebeat 形式）、デフォルト <データディレクトリ>/logs/main.yml
-  strict: false            # タスク内の未知のフィールド：false 警告 / true エラー
-  agent_type: opsmini      # agent.type に書き込む；filebeat に設定すると既存のインデックステンプレートを再利用できる
-```
-
-| パラメータ | 説明 | デフォルト |
-|------|------|------|
-| `enabled` | 収集パイプラインを強制起動するかどうか | `false` |
-| `tasks_dir` | 収集タスクディレクトリ | `<数据目录>/logs/tasks.d` |
-| `config_file` | メイン設定（出力 + グローバルパラメータ） | `<数据目录>/logs/main.yml` |
-| `strict` | タスクフィールドを厳密に解析する | `false` |
-| `agent_type` | `agent.type` フィールド値 | `opsmini` |
-
-> **デフォルトではログを一切収集しません**。三段的な有効化：`tasks.d` にタスクファイルが存在する / `enabled: true` / プラットフォームから LogTask を受信する。詳細は [ログパイプライン]](../features/log-pipeline.md) を参照。
-
 ### backup（リモートバックアップターゲット、オプション）
 
 ```yaml

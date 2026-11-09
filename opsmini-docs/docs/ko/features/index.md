@@ -28,12 +28,6 @@ OpsMini 각 기능 모듈의 사용 설명.
 
     누가 무엇을 어떻게 바꿨는지. 규칙 판정 + Agent 심층 분석.
 
--   :material-pipe: **[로그 파이프라인](log-pipeline.md)**
-
-    ---
-
-    Filebeat 설정과 호환되는 수집 실행단. 기본 비활성, ES / Kafka / Logstash 지원.
-
 -   :material-puzzle-outline: **[플러그인 시스템](plugin-system.md)**
 
     ---

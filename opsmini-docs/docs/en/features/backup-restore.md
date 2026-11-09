@@ -139,7 +139,6 @@ Once configured, the backup page offers a remote target selector and lets you br
 | [Autonomous agent](autonomous-agent.md) | Restore failures raise critical incidents; backup failures can be caught by alert rules |
 | [Change awareness](change-awareness.md) | Editing backup configuration is itself a change |
 | [Host security](security.md) | "Are backups available" and "are they off-host" can count towards the security score |
-| [Log pipeline](log-pipeline.md) | Independent of each other |
 
 ## Known limitations
 
