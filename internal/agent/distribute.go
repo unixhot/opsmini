@@ -17,31 +17,22 @@ import (
 	agentpb "github.com/opsmini/opsmini/internal/agent/pb"
 )
 
-// Task distribution from the platform: log collection tasks and plugin packages.
+// Task distribution from the platform: plugin packages.
 //
 // The Agent is the executing side and owns no policy. It receives a finished
-// artefact (a filebeat YAML, a plugin archive), installs it, confirms that it is
-// actually running, and reports back. Two design choices follow from that:
+// artefact (a plugin archive), installs it, confirms that it is actually
+// running, and reports back. Two design choices follow from that:
 //
 //   - Packages are pulled by the Agent over HTTP instead of pushed through the
 //     gRPC stream. A plugin archive is a few megabytes; streaming it would mix
 //     the plugin lifecycle with the file-distribution channel and give the Server
 //     a reason to buffer whole files.
-//   - Every result reports the *observed* state, not the requested one. "Config
-//     written" and "task collecting" are different facts, and only the second one
-//     is worth showing an operator.
-
-// LogControl is the subset of the log pipeline the platform may drive.
-type LogControl interface {
-	// ApplyTask installs a task file. status is applied / unchanged / failed.
-	ApplyTask(filename string, content []byte, sha string, strict bool) (status string, warnings []string, err error)
-	// RemoveTask deletes a task file (missing file is not an error).
-	RemoveTask(filename string) error
-	// ReloadNow rescans the task directory.
-	ReloadNow()
-	// TaskByFile reports the live state of the task loaded from a file.
-	TaskByFile(filename string) (LogState, bool)
-}
+//   - Every result reports the *observed* state, not the requested one. "Package
+//     installed" and "plugin running" are different facts, and only the second
+//     one is worth showing an operator.
+//
+// The built-in log pipeline was removed in v1.4.3; its LogTask handler went with
+// it, so a Server that still sends one falls through to the unknown-field path.
 
 // PluginControl is the subset of the plugin manager the platform may drive.
 type PluginControl interface {
@@ -54,98 +45,24 @@ type PluginControl interface {
 	State(id string) (state, version, lastErr string, ok bool)
 }
 
-// LogState mirrors the fields of a log task the platform cares about.
-type LogState struct {
-	TaskID        string
-	State         string
-	FilesOpen     int32
-	BytesRead     int64
-	EventsSent    int64
-	EventsDropped int64
-	QueueDepth    int64
-	LastError     string
-	Output        string
-}
-
 // controls bundles the optional subsystems a Server task may address.
 type controls struct {
-	log    LogControl
 	plugin PluginControl
 }
 
 // SetControls wires the subsystems that platform tasks act on. Called once by the
-// router after they exist; nil subsystems simply make their tasks fail with a
+// router after they exist; a nil subsystem simply makes its tasks fail with a
 // clear message instead of panicking.
-func (c *Client) SetControls(logCtl LogControl, pluginCtl PluginControl) {
-	c.ctrl = controls{log: logCtl, plugin: pluginCtl}
+func (c *Client) SetControls(pluginCtl PluginControl) {
+	c.ctrl = controls{plugin: pluginCtl}
 }
 
 // SetControls is the same for the lifecycle manager, so a restart of the
 // connection keeps the wiring.
-func (m *Manager) SetControls(logCtl LogControl, pluginCtl PluginControl) {
+func (m *Manager) SetControls(pluginCtl PluginControl) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.ctrl = controls{log: logCtl, plugin: pluginCtl}
-}
-
-// handleLogTask applies one log task and reports the result.
-func (c *Client) handleLogTask(ctx context.Context, t *agentpb.LogTask, sendCh chan<- *agentpb.AgentMessage) {
-	res := &agentpb.LogTaskResult{JobId: t.JobId, TaskId: t.TaskId}
-	switch strings.ToLower(t.Action) {
-	case "apply":
-		if c.ctrl.log == nil {
-			res.Status, res.Error = "failed", "本机未启用日志管道"
-			break
-		}
-		status, warns, err := c.ctrl.log.ApplyTask(t.Filename, t.Content, t.Sha256, t.Strict)
-		res.Status, res.Warnings = status, warns
-		if err != nil {
-			res.Status, res.Error = "failed", err.Error()
-		}
-	case "remove":
-		if c.ctrl.log == nil {
-			res.Status, res.Error = "failed", "本机未启用日志管道"
-			break
-		}
-		if err := c.ctrl.log.RemoveTask(t.Filename); err != nil {
-			res.Status, res.Error = "failed", err.Error()
-		} else {
-			res.Status = "removed"
-		}
-	case "reload":
-		if c.ctrl.log == nil {
-			res.Status, res.Error = "failed", "本机未启用日志管道"
-			break
-		}
-		c.ctrl.log.ReloadNow()
-		res.Status = "applied"
-	case "status":
-		if c.ctrl.log == nil {
-			res.Status, res.Error = "failed", "本机未启用日志管道"
-			break
-		}
-		st, ok := c.ctrl.log.TaskByFile(t.Filename)
-		if !ok {
-			res.Status = "failed"
-			res.Error = "任务未加载"
-			break
-		}
-		res.Status = "running"
-		res.State = &agentpb.LogTaskState{
-			TaskId:        st.TaskID,
-			State:         st.State,
-			FilesOpen:     st.FilesOpen,
-			BytesRead:     st.BytesRead,
-			EventsSent:    st.EventsSent,
-			EventsDropped: st.EventsDropped,
-			QueueDepth:    st.QueueDepth,
-			LastError:     st.LastError,
-			Output:        st.Output,
-		}
-	default:
-		res.Status, res.Error = "failed", "未知动作："+t.Action
-	}
-	sendCh <- &agentpb.AgentMessage{Payload: &agentpb.AgentMessage_LogResult{LogResult: res}}
+	m.ctrl = controls{plugin: pluginCtl}
 }
 
 // handlePluginTask performs one plugin action and reports the result.

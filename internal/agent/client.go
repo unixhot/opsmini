@@ -68,8 +68,8 @@ type Client struct {
 	panelPort  int32
 	instanceID string // 面板实例 ID（本机持久化），注册时上报，用于主机名/IP 重复时区分主机
 	agentID    string // Server 回执的 Agent ID
-	// ctrl holds the subsystems that platform tasks act on (log pipeline and
-	// plugin manager). Nil means the feature is not wired.
+	// ctrl holds the subsystems that platform tasks act on (plugin manager).
+	// Nil means the feature is not wired.
 	ctrl controls
 }
 
@@ -199,8 +199,6 @@ func (c *Client) connect(ctx context.Context) error {
 			go c.handlePushFile(ctx, p.PushFile, sendCh)
 		case *agentpb.ServerMessage_PullFile:
 			go c.handlePullFile(ctx, p.PullFile, sendCh)
-		case *agentpb.ServerMessage_LogTask:
-			go c.handleLogTask(ctx, p.LogTask, sendCh)
 		case *agentpb.ServerMessage_PluginTask:
 			go c.handlePluginTask(ctx, p.PluginTask, sendCh)
 		case *agentpb.ServerMessage_Ping:

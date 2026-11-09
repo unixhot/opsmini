@@ -52,7 +52,7 @@ func (m *Manager) Start(cfg Config) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cl := New(cfg, m.hostname, m.version, m.instanceID)
-	cl.SetControls(m.ctrl.log, m.ctrl.plugin)
+	cl.SetControls(m.ctrl.plugin)
 	go cl.Run(ctx)
 	m.cancel = cancel
 	m.running = true
