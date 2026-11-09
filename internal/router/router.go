@@ -150,6 +150,12 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	threatSvc := service.NewThreatService(repository.NewThreatFindingRepo(db))
 	threatHandler := v1.NewThreatHandler(threatSvc)
 	fimSvc := service.NewFimService(repository.NewFimBaselineRepo(db), repository.NewFimChangeRepo(db))
+	// 监控路径可由界面上改；未配置时沿用内置的默认文件清单。
+	fimSvc.SetSettings(func(key string) string {
+		v, _ := settingSvc.Get(key)
+		return v
+	})
+	fimSvc.SetSaver(func(kv map[string]string) error { return settingSvc.Set(kv) })
 	fimHandler := v1.NewFimHandler(fimSvc)
 	firewallSvc := service.NewFirewallService(sysSvc, cfg.Server.Port)
 	firewallHandler := v1.NewFirewallHandler(firewallSvc)
@@ -537,6 +543,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.POST("/security/fim/rebuild", permMw("security.fim"), fimHandler.Rebuild)
 			authed.DELETE("/security/fim/baselines/:id", permMw("security.fim"), fimHandler.RemoveBaseline)
 			authed.GET("/security/fim/events", fimHandler.ListChanges)
+			authed.GET("/security/fim/paths", fimHandler.Paths)
+			authed.PUT("/security/fim/paths", permMw("security.fim"), fimHandler.UpdatePaths)
 			authed.GET("/security/threats", threatHandler.List)
 			authed.POST("/security/threats/scan", permMw("security.threat"), threatHandler.Scan)
 			authed.POST("/security/threats/:id/resolve", permMw("security.threat"), threatHandler.Resolve)
