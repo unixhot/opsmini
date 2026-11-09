@@ -2,11 +2,14 @@ package sentinel
 
 import (
 	"context"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/opsmini/opsmini/internal/model"
 )
@@ -37,11 +40,85 @@ type logWatcher struct {
 	cfg    Config
 	mu     sync.Mutex
 	states map[string]*logFileState
+	// db persists the per-hour baselines (model.CollectorBaseline). Optional:
+	// without it the watcher still works, it just relearns on every restart.
+	db *gorm.DB
+	// lastSave throttles the write path. Sampling runs every 10s; writing a row
+	// per sample per file would put a SQLite update behind every tick.
+	lastSave time.Time
 }
 
 func newLogWatcher(cfg Config) *logWatcher {
 	return &logWatcher{cfg: cfg, states: map[string]*logFileState{}}
 }
+
+// setStore enables baseline persistence and loads whatever was saved before.
+// Baselines older than baselineTTL are ignored: they describe a host from another
+// lifetime and would produce confident nonsense.
+func (w *logWatcher) setStore(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	w.db = db
+	var rows []model.CollectorBaseline
+	cutoff := time.Now().Add(-baselineTTL)
+	if err := db.Where("collector = ? AND updated_at > ?", "logwatch", cutoff).Find(&rows).Error; err != nil {
+		return
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for _, r := range rows {
+		st := w.states[r.Subject]
+		if st == nil {
+			st = &logFileState{base: map[int]*ewma{}}
+			w.states[r.Subject] = st
+		}
+		st.base[r.Bucket] = &ewma{Mean: r.Mean, Var: r.Variance, Samples: r.Samples, Alpha: 0.3}
+	}
+	if len(rows) > 0 {
+		log.Printf("sentinel: logwatch resumed %d baselines", len(rows))
+	}
+}
+
+// persist writes the current baselines back. Called at most once a minute.
+func (w *logWatcher) persist() {
+	if w.db == nil {
+		return
+	}
+	w.mu.Lock()
+	type row struct {
+		subject string
+		bucket  int
+		e       ewma
+	}
+	var batch []row
+	for subj, st := range w.states {
+		for bucket, e := range st.base {
+			if e.Samples < 3 {
+				// Below three samples the value is noise; saving it would make the
+				// next start look better informed than it is.
+				continue
+			}
+			batch = append(batch, row{subj, bucket, *e})
+		}
+	}
+	w.mu.Unlock()
+
+	now := time.Now()
+	for _, b := range batch {
+		rec := model.CollectorBaseline{
+			Collector: "logwatch", Subject: b.subject, Bucket: b.bucket,
+			Mean: b.e.Mean, Variance: b.e.Var, Samples: b.e.Samples, UpdatedAt: now,
+		}
+		w.db.Where("collector = ? AND subject = ? AND bucket = ?", "logwatch", b.subject, b.bucket).
+			Assign(rec).FirstOrCreate(&model.CollectorBaseline{})
+	}
+}
+
+// baselineTTL is how long a persisted baseline stays usable. A week is long
+// enough to survive a maintenance window and short enough that a host whose
+// workload changed has its old expectations discarded.
+const baselineTTL = 7 * 24 * time.Hour
 
 func (w *logWatcher) Name() string { return "logwatch" }
 
@@ -55,6 +132,10 @@ func (w *logWatcher) Run(ctx context.Context, out func(Signal)) {
 			return
 		case <-t.C:
 			w.scan(interval, out)
+			if time.Since(w.lastSave) >= time.Minute {
+				w.lastSave = time.Now()
+				w.persist()
+			}
 		}
 	}
 }
@@ -75,11 +156,18 @@ func (w *logWatcher) scan(interval time.Duration, out func(Signal)) {
 		inode := inodeOf(st)
 		prev := w.states[path]
 		if prev == nil || prev.inode != inode || st.Size() < prev.size {
-			// First sighting or rotation: (re)start from the current size.
+			// First sighting or rotation: (re)start from the current size, but keep
+			// the learned baselines — they belong to the file's role (an nginx log
+			// that rotated at noon still behaves like an nginx log), not to the
+			// inode. Dropping them here would silently undo the persistence.
+			base := map[int]*ewma{}
+			if prev != nil && prev.base != nil {
+				base = prev.base
+			}
 			w.states[path] = &logFileState{
 				size:    st.Size(),
 				inode:   inode,
-				base:    map[int]*ewma{},
+				base:    base,
 				lastRun: now,
 			}
 			continue

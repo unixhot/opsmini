@@ -86,8 +86,13 @@ func New(cfg Config, db *gorm.DB) *Manager {
 		agg.Add(s)
 	})
 
+	// logwatch persists its per-hour baselines so a restart does not relearn from
+	// zero — the minutes right after a restart are when a false alarm hurts most.
+	logw := newLogWatcher(cfg)
+	logw.setStore(db)
+
 	m.collectors = []collector{
-		newLogWatcher(cfg),
+		logw,
 		newAuthWatcher(cfg, db),
 		newFileWatcher(cfg),
 		newProcWatcher(cfg),
