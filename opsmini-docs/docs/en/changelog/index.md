@@ -4,21 +4,19 @@ Change records for each version.
 
 ## v1.4.2 (2026-11-09)
 
-**The built-in log collector is gone**, and the binary drops from 50 MB to 38 MB.
+Fixes single sign-on from OpsAnt, and trims the installer.
 
-- The Filebeat-compatible collector (logpipe) is removed entirely: task directory, processors, ES / Kafka / Logstash outputs, and the panel's Logs → Collection tab
-- Hosts managed through OpsAnt that received collection tasks will stop collecting; a standalone panel never collected by default, so upgrading it changes nothing visible
-- A leftover `logpipeline:` section in `config.yaml` is silently ignored, no manual cleanup needed
-- The built-in alert rule "log pipeline backlog" is removed on first start, along with its unresolved events
-- `/metrics` no longer exposes the four `opsmini_log_*` series; Grafana dashboards referencing them need updating
-- First start also clears the collector's leftovers under `<data>/logs/` (offset table, task files, disk queue)
-- Log viewing (panel logs / system logs / live tail) is unaffected
+**Fixes "sso login disabled"**
 
-**Fixes "sso login disabled" when arriving from OpsAnt**
+Signing in from OpsAnt used to fail with "sso login disabled". Two problems overlapped:
 
 - The shared secret is now read per request: panel settings first, `config.yaml` as fallback, instead of a snapshot taken at startup (which is empty under the default config)
 - Identity checks accept both the panel instance ID and the hostname, matching what OpsAnt signs into the payload
 - Errors are now split: switch off / secret missing / signature mismatch / expired / identity mismatch, instead of everything reporting "disabled"
+
+**Smaller installer**
+
+linux/amd64 drops from 50 MB to 38 MB, arm64 from 47 MB to 36 MB. Faster to download, faster to install.
 
 ## v1.4.1 (2026-11-06)
 
@@ -74,17 +72,6 @@ The most common line in operations troubleshooting is "I don't know what happene
 
 Metric alerts and log spikes are now "folded as long as the event is not remediated" — a single CPU rule no longer floods eight pending items in one night. The login anomaly window is widened from 1 hour to half a day. If an event recurs after being remediated, a new one is created as usual; recurrences are not swallowed.
 
-**Log pipeline (new, disabled by default)**
-
-Built-in collection executor **compatible with Filebeat configuration**, positioned like filebeat on a managed host, but without needing a separate process.
-
-- Task directory `tasks.d` (one YAML per task), main configuration `main.yml` determines the output; existing filebeat configurations can be split apart and used directly
-- **31 Filebeat processors**: field add/remove/modify, JSON/CSV/XML/syslog parsing, dissect, script, fingerprint, domain and network direction
-- Three outputs: Elasticsearch, Kafka, Logstash (Lumberjack v2 + TLS)
-- `at-least-once`: offset advances only after successful delivery; failures go to a disk queue and are resent from the confirmed position after a crash
-- **No logs are collected by default**: it starts only when a task file appears, it is explicitly enabled, or a task is delivered from the platform
-- The panel's "Logs → Pipeline" shows running status, per-task read rate, and backlog, and can **preview the last 20 events in real time** — no need to query ES first when tuning processors
-
 **Plugin system (new)**
 
 The kernel only does what every host needs; business capabilities are delegated to plugins.
@@ -114,7 +101,7 @@ The kernel only does what every host needs; business capabilities are delegated 
 
 **Upgrade notes**
 
-Upgrading from v1.3.x only requires replacing the binary and restarting; the database migrates automatically. New default policies such as `change-review` are seeded idempotently by name, and old databases receive them too. The log pipeline and plugins are disabled by default, so upgrading will not start collecting or loading anything.
+Upgrading from v1.3.x only requires replacing the binary and restarting; the database migrates automatically. New default policies such as `change-review` are seeded idempotently by name, and old databases receive them too. Plugins are disabled by default, so upgrading will not start loading anything.
 
 ## v1.3.0 (2026-10-28)
 

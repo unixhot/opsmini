@@ -4,21 +4,19 @@
 
 ## v1.4.2 (2026-11-09)
 
-**Der eingebaute Log-Collector entfällt**, das Binary schrumpft von 50 MB auf 38 MB.
+Behebt die Single-Sign-on-Anmeldung aus OpsAnt und verschlankt das Installationspaket.
 
-- Die Filebeat-kompatible Erfassung (logpipe) wird vollständig entfernt: Aufgabenverzeichnis, Prozessoren, ES-/Kafka-/Logstash-Ausgaben und die Panel-Seite „Logs → Erfassung"
-- Hosts, die über OpsAnt Erfassungsaufgaben erhalten haben, sammeln nicht mehr; ein eigenständiges Panel hat nie standardmäßig gesammelt, dort ändert das Upgrade nichts sichtbares
-- Ein verbliebener `logpipeline:`-Abschnitt in `config.yaml` wird stillschweigend ignoriert, manuelles Aufräumen ist nicht nötig
-- Die eingebaute Alarmregel „Log-Pipeline-Rückstau" wird beim ersten Start entfernt, samt ihrer offenen Ereignisse
-- `/metrics` liefert die vier `opsmini_log_*`-Serien nicht mehr; Grafana-Dashboards müssen angepasst werden
-- Beim ersten Start werden die Überreste des Collectors unter `<Datenverzeichnis>/logs/` gelöscht (Offset-Tabelle, Aufgabendateien, Festplattenwarteschlange)
-- Die Log-Ansicht (Panel-Logs / System-Logs / Live-Tail) ist nicht betroffen
+**Behebt „sso login disabled"**
 
-**Behebt „sso login disabled" beim Sprung aus OpsAnt**
+Der Sprung aus OpsAnt ins Panel scheiterte mit der Meldung, die Anmeldung ohne Passwort sei deaktiviert. Zwei Probleme griffen ineinander:
 
 - Das gemeinsame Secret wird jetzt pro Anfrage gelesen: zuerst Panel-Einstellungen, dann `config.yaml` als Rückfall — statt eines Schnappschusses beim Start (der mit Standardkonfiguration leer ist)
 - Die Identitätsprüfung akzeptiert sowohl die Instanz-ID des Panels als auch den Hostnamen und passt damit zu dem, was OpsAnt in die Payload signiert
 - Fehler werden unterschieden: Schalter aus / Secret fehlt / Signatur falsch / abgelaufen / Identität passt nicht — statt pauschal „deaktiviert"
+
+**Kleineres Installationspaket**
+
+linux/amd64 schrumpft von 50 MB auf 38 MB, arm64 von 47 MB auf 36 MB. Schnellerer Download, schnellere Installation.
 
 ## v1.4.1 (2026-11-06)
 
@@ -74,17 +72,6 @@ Der häufigste Satz bei der Betriebsfehlersuche lautet „Ich weiß nicht, was p
 
 Metrik-Alarme und Log-Explosionen werden nun „solange das Ereignis nicht behandelt ist, dauerhaft zusammengefaltet“ – eine CPU-Regel erzeugt nicht mehr über Nacht acht zu behandelnde Einträge. Das Fenster für Anmelde-Anomalien wurde von 1 Stunde auf einen halben Tag erweitert. Tritt ein Ereignis nach seiner Behandlung erneut auf, wird wie gewohnt ein neues erzeugt; Wiederauftreten wird nicht verschluckt.
 
-**Log-Pipeline (neu, standardmäßig deaktiviert)**
-
-Eingebaut ist ein Erfassungs-Ausführungsendpunkt, der **mit der Filebeat-Konfiguration kompatibel** ist; seine Position entspricht dem filebeat auf einem verwalteten Host, es ist jedoch kein separat installierter Prozess erforderlich.
-
-- Aufgabenverzeichnis `tasks.d` (eine Aufgabe pro YAML), die Hauptkonfiguration `main.yml` bestimmt den Ausgang; eine vorhandene filebeat-Konfiguration kann aufgeteilt und direkt verwendet werden
-- **31 Filebeat-Prozessoren**: Feld hinzufügen/entfernen/ändern, JSON/CSV/XML/syslog-Parsing, dissect, script, Fingerprint, Domain und Netzwerkrichtung
-- Drei Ausgaben: Elasticsearch, Kafka, Logstash (Lumberjack v2 + TLS)
-- `at-least-once`: Der Offset wird erst nach erfolgreicher Zustellung vorgerückt, Fehlschläge landen in einer Festplatten-Warteschlange, nach einem Absturz wird ab der bestätigten Position erneut gesendet
-- **Standardmäßig wird kein Log erfasst**: Der Start erfolgt erst, wenn eine Aufgabendatei vorhanden ist, explizit aktiviert wird oder eine von der Plattform übermittelte Aufgabe eingeht
-- Im Panel unter „Protokoll → Pipeline“ sind der Laufzeitstatus, die Leserate pro Aufgabe und der Rückstau einsehbar, und es können **die letzten 20 Ereignisse in Echtzeit in der Vorschau** angezeigt werden – zum Anpassen von Prozessoren muss nicht erst ES abgefragt werden
-
 **Plugin-System (neu)**
 
 Der Kern erledigt nur, was alle Hosts benötigen; Geschäftsfähigkeiten werden an Plugins ausgelagert.
@@ -114,7 +101,7 @@ Der Kern erledigt nur, was alle Hosts benötigen; Geschäftsfähigkeiten werden 
 
 **Upgrade-Hinweis**
 
-Für das Upgrade von v1.3.x genügt es, das Binary zu ersetzen und neu zu starten; die Datenbank migriert automatisch. Neue Standardrichtlinien wie `change-review` werden idempotent nach Namen ausgesät, auch alte Datenbanken erhalten sie. Log-Pipeline und Plugins sind standardmäßig nicht aktiviert; durch das Upgrade beginnt keine Erfassung und es wird nichts geladen.
+Für das Upgrade von v1.3.x genügt es, das Binary zu ersetzen und neu zu starten; die Datenbank migriert automatisch. Neue Standardrichtlinien wie `change-review` werden idempotent nach Namen ausgesät, auch alte Datenbanken erhalten sie. Plugins sind standardmäßig nicht aktiviert; durch das Upgrade wird nichts geladen.
 
 ## v1.3.0 (2026-10-28)
 
