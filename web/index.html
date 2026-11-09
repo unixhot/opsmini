@@ -2834,81 +2834,12 @@
         <div class="tabs mb16" style="margin-bottom:16px">
           <span class="tab" :class="{active:logType==='panel'}" @click="setLogType('panel')">{{ t('log.panel') }}</span>
           <span class="tab" :class="{active:logType==='sys'}" @click="setLogType('sys')">{{ t('log.system') }}</span>
-          <span class="tab" :class="{active:logType==='pipe'}" @click="setLogType('pipe')">{{ t('log.pipe') }}</span>
           <select v-if="logType==='sys' && systemLogSources.length>1" class="input" v-model="logSourcePath" style="width:auto;margin-left:auto" @change="loadTailLog">
             <option v-for="s in systemLogSources" :key="s.path" :value="s.path">{{ s.name }}</option>
           </select>
-          <button v-if="logType==='pipe'" class="btn sm ghost" style="margin-left:auto" @click="loadLogPipe()">{{ t('btn.refresh') }}</button>
         </div>
 
-        <!-- 采集管道：只读视图，任务由 OpsAnt 下发 -->
-        <div v-if="logType==='pipe'">
-          <div class="card">
-            <div class="card-head">
-              <div class="card-title">{{ t('logpipe.title') }}</div>
-              <div class="row" style="gap:8px">
-                <span class="tag" :class="logPipe.running ? 'ok' : 'mute'">{{ logPipe.running ? t('logpipe.on') : t('logpipe.off') }}</span>
-                <span class="tag info" v-if="logPipe.output">{{ logPipe.output }}</span>
-                <span class="tag err" v-if="logPipe.output_error" :title="logPipe.output_error">{{ t('logpipe.outErr') }}</span>
-                <span class="tag warn" v-if="logPipe.spool && logPipe.spool.pending">{{ t('logpipe.spool') }} {{ logPipe.spool.pending }}</span>
-              </div>
-            </div>
-            <div class="card-body p0">
-              <div v-if="!logPipe.tasks || logPipe.tasks.length===0" class="explain-strip" style="margin:14px 16px">
-                <span class="ei">i</span><span>{{ t('logpipe.empty') }}</span>
-              </div>
-              <div class="table-wrap" v-else>
-                <table class="st-tbl">
-                  <thead><tr>
-                    <th>{{ t('logpipe.task') }}</th><th>{{ t('logpipe.paths') }}</th><th>{{ t('logpipe.state') }}</th>
-                    <th>{{ t('logpipe.read') }}</th><th>{{ t('logpipe.sent') }}</th><th>{{ t('logpipe.dropped') }}</th><th>{{ t('logpipe.error') }}</th><th>{{ t('common.actions') }}</th>
-                  </tr></thead>
-                  <tbody>
-                    <!-- 循环变量不能叫 t：它会把 i18n 方法 t() 遮蔽掉，整页渲染失败 -->
-                    <tr v-for="tk in logPipe.tasks" :key="tk.task_id">
-                      <td class="mono">{{ tk.task_id }}<div class="mute" style="font-size:11px">{{ tk.file }}</div></td>
-                      <td class="mono" style="font-size:11.5px">{{ (tk.paths||[]).join(', ') }}</td>
-                      <td><span class="tag" :class="tk.state==='running' ? 'ok' : 'err'">{{ tk.state==='running' ? t('logpipe.run') : t('logpipe.fail') }}</span></td>
-                      <td class="mono">{{ fmtBytes(tk.bytes_read) }}</td>
-                      <td class="mono">{{ tk.events_sent }}</td>
-                      <td class="mono">{{ tk.events_dropped }}</td>
-                      <td class="mute" style="font-size:11.5px" :title="tk.last_error">{{ tk.last_error || '-' }}</td>
-                      <td><a class="link" @click="openPreview(tk.task_id)">{{ t('logpipe.preview') }}</a></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div style="padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-soft)">
-                <div class="mute" style="font-size:11.5px">{{ t('logpipe.previewHint') }}</div>
-              </div>
-              <div v-if="(logPipe.warnings||[]).length" style="padding:10px 16px;border-top:1px solid var(--border)">
-                <div class="mute" style="font-size:11.5px;margin-bottom:4px">{{ t('logpipe.warnings') }}</div>
-                <div v-for="(w,i) in logPipe.warnings" :key="i" class="mute mono" style="font-size:11px;line-height:1.7">· {{ w }}</div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="previewOpen" class="modal-mask" @click.self="previewOpen=false">
-            <div class="modal-card" style="max-width:900px">
-              <div class="modal-head">
-                <div class="modal-title">{{ t('logpipe.previewTitle') }} · <span class="mono">{{ previewTask }}</span></div>
-                <button class="btn ghost sm" @click="previewOpen=false">✕</button>
-              </div>
-              <div style="padding:0 20px 18px;max-height:70vh;overflow:auto">
-                <div class="explain-strip" style="margin-bottom:10px">
-                  <span class="ei">i</span><span>{{ t('logpipe.previewHint') }}</span>
-                </div>
-                <div v-if="!(previewEvents||[]).length" class="mute" style="padding:18px 0">{{ t('logpipe.previewEmpty') }}</div>
-                <div v-for="(e,i) in previewEvents" :key="i" style="margin-bottom:10px">
-                  <div class="mute mono" style="font-size:11px;margin-bottom:2px">{{ fmtDT(e.at) }}</div>
-                  <pre class="mono" style="font-size:11.5px;line-height:1.5;white-space:pre-wrap;word-break:break-all;background:var(--bg-soft);padding:8px 10px;border-radius:6px;margin:0">{{ prettyJSON(e.event) }}</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" v-if="logType!=='pipe'">
+        <div class="card">
           <div class="card-body p0" style="max-height:calc(100vh - 240px);min-height:420px;overflow-y:auto">
             <div class="log-line" v-for="(l,i) in currentLogs" :key="i">
               <span class="log-time">{{ l.time }}</span><span class="log-level" :class="l.level">{{ l.level.toUpperCase() }}</span><span style="flex:1;word-break:break-all">{{ l.msg }}</span>
@@ -6100,19 +6031,19 @@ const I18N2 = {
 
 const I18N3 = {
   'zh-CN': { 'misc.root':'根目录','misc.items':'项',
-    'log.pipe':'采集管道','logpipe.title':'采集管道','logpipe.spool':'本地队列','logpipe.preview':'预览','logpipe.previewHint':'预览处理后的事件','logpipe.previewEmpty':'暂无事件：任务可能刚启动还没读到新行','logpipe.previewTitle':'处理器之后的事件','logpipe.run':'运行中','logpipe.fail':'失败','logpipe.on':'运行中','logpipe.off':'未启用','logpipe.outErr':'输出异常','logpipe.task':'任务','logpipe.paths':'采集路径','logpipe.state':'状态','logpipe.read':'已读','logpipe.sent':'已发送','logpipe.dropped':'已丢弃','logpipe.error':'错误','logpipe.empty':'当前主机未接入日志平台。日志采集默认关闭，采集任务由 OpsAnt 下发；单机模式不需要也不建议开启。','logpipe.warnings':'解析告警','log.panel':'面板日志','log.system':'系统日志','logs.empty':'暂无日志' },
+    'log.panel':'面板日志','log.system':'系统日志','logs.empty':'暂无日志' },
   'zh-TW': { 'misc.root':'根目錄','misc.items':'項',
-    'log.pipe':'採集管道','logpipe.title':'採集管道','logpipe.spool':'本地隊列','logpipe.preview':'預覽','logpipe.previewHint':'預覽處理後的事件','logpipe.previewEmpty':'暫無事件：任務可能剛啟動還沒讀到新行','logpipe.previewTitle':'處理器之後的事件','logpipe.run':'運行中','logpipe.fail':'失敗','logpipe.on':'運行中','logpipe.off':'未啟用','logpipe.outErr':'輸出異常','logpipe.task':'任務','logpipe.paths':'採集路徑','logpipe.state':'狀態','logpipe.read':'已讀','logpipe.sent':'已發送','logpipe.dropped':'已丟棄','logpipe.error':'錯誤','logpipe.empty':'當前主機未接入日誌平台。日誌採集預設關閉，採集任務由 OpsAnt 下發；單機模式不需要也不建議開啟。','logpipe.warnings':'解析警告','log.panel':'面板日誌','log.system':'系統日誌','logs.empty':'暫無日誌' },
+    'log.panel':'面板日誌','log.system':'系統日誌','logs.empty':'暫無日誌' },
   'en': { 'misc.root':'Root','misc.items':'items',
-    'log.pipe':'Pipeline','logpipe.title':'Log pipeline','logpipe.spool':'Local queue','logpipe.preview':'Preview','logpipe.previewHint':'Preview processed events','logpipe.previewEmpty':'No events yet: the task may have just started','logpipe.previewTitle':'Events after processors','logpipe.run':'Running','logpipe.fail':'Failed','logpipe.on':'Running','logpipe.off':'Disabled','logpipe.outErr':'Output error','logpipe.task':'Task','logpipe.paths':'Paths','logpipe.state':'State','logpipe.read':'Read','logpipe.sent':'Sent','logpipe.dropped':'Dropped','logpipe.error':'Error','logpipe.empty':'This host is not connected to a log platform. Collection is off by default and tasks are distributed by OpsAnt; a standalone install does not need it.','logpipe.warnings':'Warnings','log.panel':'Panel logs','log.system':'System logs','logs.empty':'No logs' },
+    'log.panel':'Panel logs','log.system':'System logs','logs.empty':'No logs' },
   'ja': { 'misc.root':'ルート','misc.items':'件',
-    'log.pipe':'収集パイプライン','logpipe.title':'ログ収集パイプライン','logpipe.spool':'ローカルキュー','logpipe.preview':'プレビュー','logpipe.previewHint':'処理後のイベントをプレビュー','logpipe.previewEmpty':'イベントはまだありません（起動直後の可能性）','logpipe.previewTitle':'プロセッサ適用後のイベント','logpipe.run':'稼働中','logpipe.fail':'失敗','logpipe.on':'稼働中','logpipe.off':'無効','logpipe.outErr':'出力エラー','logpipe.task':'タスク','logpipe.paths':'収集パス','logpipe.state':'状態','logpipe.read':'読込','logpipe.sent':'送信','logpipe.dropped':'破棄','logpipe.error':'エラー','logpipe.empty':'このホストはログ基盤に接続されていません。収集タスクは OpsAnt が配信します。','logpipe.warnings':'警告','log.panel':'パネルログ','log.system':'システムログ','logs.empty':'ログなし' },
+    'log.panel':'パネルログ','log.system':'システムログ','logs.empty':'ログなし' },
   'ko': { 'misc.root':'루트','misc.items':'항목',
-    'log.pipe':'수집 파이프라인','logpipe.title':'로그 수집 파이프라인','logpipe.spool':'로컬 큐','logpipe.preview':'미리보기','logpipe.previewHint':'처리된 이벤트 미리보기','logpipe.previewEmpty':'아직 이벤트가 없습니다(방금 시작했을 수 있음)','logpipe.previewTitle':'프로세서 적용 후 이벤트','logpipe.run':'실행 중','logpipe.fail':'실패','logpipe.on':'실행 중','logpipe.off':'사용 안 함','logpipe.outErr':'출력 오류','logpipe.task':'작업','logpipe.paths':'수집 경로','logpipe.state':'상태','logpipe.read':'읽음','logpipe.sent':'전송','logpipe.dropped':'폐기','logpipe.error':'오류','logpipe.empty':'이 호스트는 로그 플랫폼에 연결되지 않았습니다. 수집 작업은 OpsAnt가 배포합니다.','logpipe.warnings':'경고','log.panel':'패널 로그','log.system':'시스템 로그','logs.empty':'로그 없음' },
+    'log.panel':'패널 로그','log.system':'시스템 로그','logs.empty':'로그 없음' },
   'th': { 'misc.root':'ราก','misc.items':'รายการ',
-    'log.pipe':'ไปป์ไลน์เก็บล็อก','logpipe.title':'ไปป์ไลน์เก็บล็อก','logpipe.spool':'คิวในเครื่อง','logpipe.preview':'ดูตัวอย่าง','logpipe.previewHint':'ดูตัวอย่างเหตุการณ์ที่ประมวลผลแล้ว','logpipe.previewEmpty':'ยังไม่มีเหตุการณ์ (งานอาจเพิ่งเริ่ม)','logpipe.previewTitle':'เหตุการณ์หลังตัวประมวลผล','logpipe.run':'กำลังทำงาน','logpipe.fail':'ล้มเหลว','logpipe.on':'กำลังทำงาน','logpipe.off':'ปิดใช้งาน','logpipe.outErr':'เอาต์พุตผิดพลาด','logpipe.task':'งาน','logpipe.paths':'เส้นทางเก็บ','logpipe.state':'สถานะ','logpipe.read':'อ่านแล้ว','logpipe.sent':'ส่งแล้ว','logpipe.dropped':'ทิ้ง','logpipe.error':'ข้อผิดพลาด','logpipe.empty':'โฮสต์นี้ยังไม่ได้เชื่อมต่อแพลตฟอร์มล็อก งานเก็บถูกรกระจายจาก OpsAnt','logpipe.warnings':'คำเตือน','log.panel':'บันทึกแผง','log.system':'บันทึกระบบ','logs.empty':'ยังไม่มีบันทึก' },
+    'log.panel':'บันทึกแผง','log.system':'บันทึกระบบ','logs.empty':'ยังไม่มีบันทึก' },
   'de': { 'misc.root':'Stammverzeichnis','misc.items':'Elemente',
-    'log.pipe':'Pipeline','logpipe.title':'Log-Pipeline','logpipe.spool':'Lokale Warteschlange','logpipe.preview':'Vorschau','logpipe.previewHint':'Verarbeitete Ereignisse ansehen','logpipe.previewEmpty':'Noch keine Ereignisse (Aufgabe eventuell gerade gestartet)','logpipe.previewTitle':'Ereignisse nach den Prozessoren','logpipe.run':'Läuft','logpipe.fail':'Fehler','logpipe.on':'Läuft','logpipe.off':'Deaktiviert','logpipe.outErr':'Ausgabefehler','logpipe.task':'Aufgabe','logpipe.paths':'Pfade','logpipe.state':'Status','logpipe.read':'Gelesen','logpipe.sent':'Gesendet','logpipe.dropped':'Verworfen','logpipe.error':'Fehler','logpipe.empty':'Dieser Host ist nicht mit einer Log-Plattform verbunden. Sammelaufgaben werden von OpsAnt verteilt.','logpipe.warnings':'Warnungen','log.panel':'Panel-Protokolle','log.system':'System-Protokolle','logs.empty':'Keine Protokolle' },
+    'log.panel':'Panel-Protokolle','log.system':'System-Protokolle','logs.empty':'Keine Protokolle' },
 };
 
 const I18N4 = {
@@ -6492,10 +6423,6 @@ createApp({
       ],
       appFilter: '',
       logType: 'panel',
-      logPipe: { enabled:false, tasks: [], warnings: [] },
-      previewOpen: false,
-      previewTask: '',
-      previewEvents: [],
       plugins: [],
       pluginEvents: [],
       backups: [],
@@ -8996,22 +8923,7 @@ createApp({
         if(p){ try{ const d = await this.api('/logs/tail?path=' + encodeURIComponent(p) + '&lines=500'); this.logLines.sys = this.parseLogText(d.content); }catch(e){ this.logLines.sys = []; } }
       }
     },
-    setLogType(t){ this.logType = t; this.logSourcePath = ''; if(t==='pipe'){ this.loadLogPipe(); } else { this.loadLogs(); } },
-    // 采集管道是只读视图：任务由 OpsAnt 下发，面板只负责看状态
-    // 预览：看处理器之后的真实事件，这是 filebeat 最缺的调试能力
-    async openPreview(taskId){
-      this.previewTask = taskId || '';
-      this.previewEvents = [];
-      this.previewOpen = true;
-      try{
-        const d = await this.api('/logpipe/preview?limit=20&task=' + encodeURIComponent(this.previewTask));
-        if(d){ this.previewTask = d.task_id || this.previewTask; this.previewEvents = d.events || []; }
-      }catch(e){ this.toast(e.message); }
-    },
-    prettyJSON(o){ try{ return JSON.stringify(o, null, 2); }catch(e){ return String(o); } },
-    async loadLogPipe(){
-      try{ const d = await this.api('/logpipe/status'); if(d) this.logPipe = d; }catch(e){ this.toast(e.message); }
-    },
+    setLogType(t){ this.logType = t; this.logSourcePath = ''; this.loadLogs(); },
     // 插件：安装走 multipart，其余是普通 JSON 调用
     async loadPlugins(){
       try{
