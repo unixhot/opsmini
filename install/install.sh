@@ -215,14 +215,6 @@ jwt:
   access_ttl_seconds: 900
   refresh_ttl_seconds: 604800
 
-# 日志采集（filebeat 兼容）：默认关闭，单机不采集、不占资源。
-# 被 OpsAnt 纳管后下发任务会自动启用，无需改这里；改成 true 可强制开启。
-logpipeline:
-  enabled: false
-  # agent.type 默认输出真实值 opsmini；如需直接复用现成的 ES 索引模板，
-  # 改成 filebeat。
-  agent_type: opsmini
-
 # 异地备份目标（可选）。本地快照挡不住整机丢失，能配就配。
 # backup:
 #   targets:

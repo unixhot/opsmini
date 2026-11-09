@@ -111,26 +111,6 @@ type Backup struct {
 	Targets []BackupTarget `yaml:"targets"`
 }
 
-// LogPipeline configures the filebeat-compatible log collector.
-//
-// Disabled by default in spirit: the pipeline stays inert until a task file
-// appears in TasksDir, and a standalone host never gets one because only OpsAnt
-// distributes tasks. Enabled=false is the hard off switch.
-type LogPipeline struct {
-	// Enabled forces the collector on even without any task file. The default is
-	// false: collection is opt-in per host, driven by distributed tasks.
-	Enabled bool `yaml:"enabled"`
-	// TasksDir overrides the default <data>/logs/tasks.d.
-	TasksDir string `yaml:"tasks_dir"`
-	// ConfigFile overrides the main filebeat-shaped config (output + tasks.d path).
-	ConfigFile string `yaml:"config_file"`
-	// Strict makes unknown fields in a task fail the task instead of warning.
-	Strict bool `yaml:"strict"`
-	// AgentType is what lands in the agent.type field: opsmini (default) or
-	// filebeat for reusing an existing index template.
-	AgentType string `yaml:"agent_type"`
-}
-
 // Log holds the application logging configuration.
 type Log struct {
 	Level string `yaml:"level"` // log level: info / warn / error (default error)
@@ -139,16 +119,15 @@ type Log struct {
 
 // Config holds the top-level configuration.
 type Config struct {
-	Server   Server      `yaml:"server"`
-	Database Database    `yaml:"database"`
-	JWT      JWT         `yaml:"jwt"`
-	AI       AI          `yaml:"ai"`
-	Agent    Agent       `yaml:"agent"`
-	Metrics  Metrics     `yaml:"metrics"`
-	Paths    Paths       `yaml:"paths"`
-	Backup   Backup      `yaml:"backup"`
-	LogPipe  LogPipeline `yaml:"logpipeline"`
-	Log      Log         `yaml:"log"`
+	Server   Server   `yaml:"server"`
+	Database Database `yaml:"database"`
+	JWT      JWT      `yaml:"jwt"`
+	AI       AI       `yaml:"ai"`
+	Agent    Agent    `yaml:"agent"`
+	Metrics  Metrics  `yaml:"metrics"`
+	Paths    Paths    `yaml:"paths"`
+	Backup   Backup   `yaml:"backup"`
+	Log      Log      `yaml:"log"`
 }
 
 // DataDir returns the runtime data root, resolving the default from the database
@@ -207,13 +186,6 @@ func defaultConfig() *Config {
 		},
 		Metrics: Metrics{
 			Enabled: true,
-		},
-		LogPipe: LogPipeline{
-			// Off by default: a standalone install has no log platform to ship to,
-			// so the collector must not start unless something explicitly asks for
-			// it (a task file in tasks.d, or a LogTask from OpsAnt).
-			Enabled:   false,
-			AgentType: "opsmini",
 		},
 		Log: Log{
 			Level: "error",
