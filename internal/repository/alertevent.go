@@ -57,6 +57,19 @@ func (r *AlertEventRepo) Create(e *model.AlertEvent) error {
 	return r.db.Create(e).Error
 }
 
+// LastNotified returns the most recent event of a rule that was actually pushed
+// to a notification channel. ErrNoRows means nothing was notified since `since`,
+// i.e. the next alert should speak up.
+func (r *AlertEventRepo) LastNotified(ruleID uint, since time.Time) (*model.AlertEvent, error) {
+	var e model.AlertEvent
+	err := r.db.Where("rule_id = ? AND notified_at IS NOT NULL AND notified_at >= ?", ruleID, since).
+		Order("notified_at DESC").First(&e).Error
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
 // Update updates an event.
 func (r *AlertEventRepo) Update(e *model.AlertEvent) error {
 	return r.db.Save(e).Error

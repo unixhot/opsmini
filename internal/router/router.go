@@ -200,6 +200,16 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			return kv
 		},
 	)
+	// 通知抑制窗口：同一规则在窗口内只响一次，避免反复越线/恢复把人的手机打爆。
+	// 空值取默认 30 分钟；显式设 0 表示不抑制（每次越线都通知）。
+	alertMonitor.SetNotifyWindow(func() time.Duration {
+		if v, err := settingSvc.Get("alert_notify_window_minutes"); err == nil && v != "" {
+			if n, e := strconv.Atoi(v); e == nil && n >= 0 {
+				return time.Duration(n) * time.Minute
+			}
+		}
+		return 30 * time.Minute
+	})
 	// Metric alerts are fed into the perception bus instead of being polled twice.
 	metricSigCh := make(chan model.Signal, 64)
 	alertMonitor.SetOnFire(func(rule model.AlertRule, val, threshold float64, op string) {

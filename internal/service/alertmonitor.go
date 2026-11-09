@@ -33,11 +33,19 @@ type AlertMonitor struct {
 	// guessing, which matters on hosts that do not run docker at all.
 	sources AlertSources
 
+	// notifyWindow returns how long the same rule stays quiet after it has been
+	// notified once. Zero disables suppression (every recurrence notifies).
+	// Read lazily from settings so a change takes effect without a restart.
+	notifyWindow func() time.Duration
+
 	// onFire is called after an alert event is created and notifications sent.
 	// The perception layer uses it to turn metric alerts into signals instead of
 	// polling the same metrics twice.
 	onFire func(rule model.AlertRule, val, threshold float64, op string)
 }
+
+// SetNotifyWindow wires the suppression window supplier.
+func (m *AlertMonitor) SetNotifyWindow(fn func() time.Duration) { m.notifyWindow = fn }
 
 // SetSources wires the external data sources used by event-type rules.
 func (m *AlertMonitor) SetSources(src AlertSources) { m.sources = src }
@@ -133,16 +141,40 @@ func (m *AlertMonitor) evaluate() {
 	}
 }
 
-// fire triggers an alert: if the rule already has an active event, skip; otherwise create a new one.
+// fire triggers an alert. Two different dedup rules apply, and they answer
+// different questions:
+//
+//   - an active event for this rule means "still broken, already reported" — do
+//     nothing at all;
+//   - a notification inside the suppression window means "it already rang, and it
+//     recovered and broke again" — record the event, but stay quiet.
+//
+// The event is always created so the timeline shows every recurrence. Only the
+// notification is silenced, because a flapping disk at 95% can otherwise wake
+// someone up twenty times a night with the same message.
 func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op string) {
 	if _, err := m.eventRepo.FindActiveByRule(rule.ID); err == nil {
 		return // already alerting
 	}
+	window := time.Duration(0)
+	if m.notifyWindow != nil {
+		window = m.notifyWindow()
+	}
+	silenced := false
+	if window > 0 {
+		if last, err := m.eventRepo.LastNotified(rule.ID, time.Now().Add(-window)); err == nil && last != nil {
+			silenced = true
+		}
+	}
+
 	level := "warning"
 	if threshold >= 90 {
 		level = "critical"
 	}
 	msg := rule.Metric + " " + formatMetricValue(rule.Metric, val) + " " + op + " 阈值 " + formatMetricValue(rule.Metric, threshold)
+	if silenced {
+		msg += "（" + humanWindow(window) + "内已通知过，本次静默）"
+	}
 	e := &model.AlertEvent{
 		RuleID:   rule.ID,
 		RuleName: rule.Name,
@@ -156,6 +188,15 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 		log.Printf("alert event create: %v", err)
 		return
 	}
+	if silenced {
+		log.Printf("ALERT recorded but silenced (window %s): %s (rule=%s, id=%d)",
+			humanWindow(window), msg, rule.Name, e.ID)
+		if m.onFire != nil {
+			m.onFire(rule, val, threshold, op)
+		}
+		return
+	}
+
 	// Route notifications by the rule's notify channels (comma-separated labels).
 	// Delivery is delegated to the shared Notifier so alerts and AI tasks behave
 	// identically on every channel.
@@ -168,10 +209,30 @@ func (m *AlertMonitor) fire(rule model.AlertRule, val, threshold float64, op str
 		MailBody:    msg,
 		WebhookText: rule.Name + ": " + msg,
 	})
+	// Stamp the event only after the notifier accepted it: the suppression window
+	// is anchored on "someone was actually told", not on "we tried".
+	now := time.Now()
+	e.NotifiedAt = &now
+	if err := m.eventRepo.Update(e); err != nil {
+		log.Printf("alert event mark notified: %v", err)
+	}
 	log.Printf("ALERT fired: %s (rule=%s, id=%d)", msg, rule.Name, e.ID)
 	if m.onFire != nil {
 		m.onFire(rule, val, threshold, op)
 	}
+}
+
+// humanWindow renders a duration the way the message text needs it: "30 分钟",
+// "2 小时". Durations are configured as whole minutes or hours, so the fractional
+// cases below are only a safety net.
+func humanWindow(d time.Duration) string {
+	if d >= time.Hour && d%time.Hour == 0 {
+		return strconv.Itoa(int(d.Hours())) + " 小时"
+	}
+	if d < time.Minute {
+		return strconv.Itoa(int(d.Seconds())) + " 秒"
+	}
+	return strconv.Itoa(int(d.Minutes())) + " 分钟"
 }
 
 // resolve recovers an alert: marks the rule's active event as resolved and creates a

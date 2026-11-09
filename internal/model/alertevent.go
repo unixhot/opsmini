@@ -30,4 +30,9 @@ type AlertEvent struct {
 	Status     string     `gorm:"size:16;default:active" json:"status"` // active / resolved
 	CreatedAt  time.Time  `json:"created_at"`
 	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
+	// NotifiedAt records when this event was actually pushed to a notification
+	// channel. Nil means the event was recorded but silenced by the suppression
+	// window — the event still exists (so the timeline stays complete), it just
+	// did not ring anyone's phone.
+	NotifiedAt *time.Time `json:"notified_at,omitempty"`
 }
