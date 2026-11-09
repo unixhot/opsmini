@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -167,6 +168,34 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		loginSecSvc,
 	)
 	securityHandler := v1.NewSecurityHandler(securitySvc)
+	// 合规报告：需要的上下文在这里才齐（主机名、版本、FIM/威胁计数）。
+	securityHandler.Baseline = baselineSvc
+	securityHandler.Hostname = func() string {
+		if h, err := os.Hostname(); err == nil && h != "" {
+			return h
+		}
+		return "unknown"
+	}
+	securityHandler.Version = version
+	securityHandler.FimChangeCount = func() int {
+		// 近 30 天而不是全量：报告要回答"这台机器最近被改了多少次"，
+		// 累计值会随着运行时间单调增长，失去参考意义。
+		n, _ := repository.NewFimChangeRepo(db).CountRecent(time.Now().AddDate(0, 0, -30))
+		return int(n)
+	}
+	securityHandler.ThreatCount = func() int {
+		list, err := repository.NewThreatFindingRepo(db).List(1000)
+		if err != nil {
+			return 0
+		}
+		n := 0
+		for _, f := range list {
+			if f.Status == "active" {
+				n++
+			}
+		}
+		return n
+	}
 	securityMonitor := service.NewSecurityMonitor(fimSvc, threatSvc)
 
 	// 安全发现进事件总线：FIM 变更与主机威胁都会变成 family=security 的信号，
@@ -585,6 +614,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 			// Host security
 			authed.GET("/security/overview", securityHandler.Overview)
+			authed.GET("/security/report", permMw("security.view"), securityHandler.Report)
 			authed.GET("/security/baseline/latest", baselineHandler.Latest)
 			authed.POST("/security/baseline/scan", permMw("security.scan"), baselineHandler.Scan)
 			authed.GET("/security/login", loginSecHandler.Analyze)
