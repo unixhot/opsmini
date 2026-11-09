@@ -37,6 +37,23 @@ type RunRequest struct {
 	Verify       []safety.Assertion
 }
 
+// securityAutoTools is the complete set of actions auto mode may take on a
+// security incident. One entry is the point: quarantine_file moves a file into a
+// reversible holding area and nothing else, so a false positive costs a restore
+// click rather than a stopped service or a blocked operator.
+var securityAutoTools = []string{"quarantine_file"}
+
+// capSecurityAuto narrows an auto-mode security run to that set.
+//
+// Kept as its own function so the rule can be tested directly: an inline branch
+// inside run() can only be verified by running a whole incident.
+func capSecurityAuto(autoTools []string, maxWrites int) ([]string, int) {
+	if maxWrites <= 0 || maxWrites > 1 {
+		maxWrites = 1
+	}
+	return append([]string{}, securityAutoTools...), maxWrites
+}
+
 // changeDeniedTools is the full write-tool set, denied unconditionally for
 // change-family incidents. Kept as an explicit list (not a risk lookup) so that
 // adding a new write tool without listing it here shows up in review.
@@ -535,6 +552,24 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		req.DeniedTools = append(req.DeniedTools, changeDeniedTools...)
 		if req.MaxSteps <= 0 || req.MaxSteps > 8 {
 			req.MaxSteps = 8
+		}
+	}
+
+	// 安全家族（v1.5）：允许 auto，但只允许隔离文件。
+	//
+	// 与 change 家族不同，安全发现是可以处置的事实而不是待调查的线索。但它的
+	// 误报率也高于指标类：一个正常的发布脚本会反复改 crontab，一次误判就自动
+	// 封 IP 或停服务，代价由业务承担。quarantine_file 影响范围只在那一个文件上，
+	// 且可在事件页还原，所以它是唯一放行的动作；写预算同时压到 1。
+	if inc.Family == model.FamilySecurity && req.Mode == model.ModeAuto {
+		req.AutoTools, req.MaxWrites = capSecurityAuto(req.AutoTools, req.MaxWrites)
+		// 没有配置允许工具列表时补上隔离与取证所需的最小集合，否则 auto 模式下
+		// 模型连读都读不了，只能空手回一个结论。
+		if len(req.AllowedTools) == 0 {
+			req.AllowedTools = []string{
+				"read_file", "list_processes", "list_services", "search_logs",
+				"quarantine_file", "snapshot_path",
+			}
 		}
 	}
 
@@ -1099,6 +1134,19 @@ func defaultPolicies() []model.TriggerPolicy {
 				"  【判定】正常运维 / 需人工确认 / 高度可疑\n" +
 				"  【依据】不超过 5 条，每条一句话\n" +
 				"  【建议】放行 / 建议回滚某个具体对象（由人执行，你没有写权限）",
+		},
+		{
+			Name: "security-response", Enabled: true, Family: model.FamilySecurity,
+			MinSeverity: model.SeverityHigh, Mode: model.ModeAssist,
+			CooldownSec: 1800, MaxWrites: 2, MaxSteps: 10, MaxSeconds: 300, MaxTokens: 120000,
+			AllowTools:  strings.TrimSuffix(readTools, "]") + `,"quarantine_file","snapshot_path"]`,
+			AutoTools:   `["quarantine_file"]`,
+			DenyTools:   `["exec_command","delete_path","modify_sshd","firewall_rule"]`,
+			Notify:      "面板",
+			Description: "文件完整性变更或主机威胁被发现时，先取证再隔离",
+			Prompt: "主机安全模块发现：{title}。请先核实这条发现是否真实（读文件、看进程、查日志），不要假设它一定是攻击。\n" +
+				"确认为恶意的，用 quarantine_file 隔离相关文件并说明理由；只是正常运维改动的，说明判断依据即可，不要处置。\n" +
+				"最后给出结论：这是攻击、误报，还是无法判断。",
 		},
 	}
 }

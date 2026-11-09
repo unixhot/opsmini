@@ -169,6 +169,59 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	securityHandler := v1.NewSecurityHandler(securitySvc)
 	securityMonitor := service.NewSecurityMonitor(fimSvc, threatSvc)
 
+	// 安全发现进事件总线：FIM 变更与主机威胁都会变成 family=security 的信号，
+	// 由 security-response 策略消费。回调先挂在函数变量上、sentinel 构建后再
+	// 赋值，因为总线在这里还不存在；未赋值时保持沉默而不是丢掉记录——记录本身
+	// 已经落库，只是没人消费。
+	var publishSecuritySignal func(model.Signal)
+	fimSvc.SetOnChange(func(c model.FimChange) {
+		if publishSecuritySignal == nil {
+			return
+		}
+		sev := model.SeverityMedium
+		if c.Level == "critical" {
+			sev = model.SeverityHigh
+		}
+		now := time.Now()
+		publishSecuritySignal(model.Signal{
+			ID:          fmt.Sprintf("f%d%d", now.UnixNano(), c.ID),
+			Kind:        "fim_change",
+			Source:      "fim",
+			Subject:     c.Path,
+			Family:      model.FamilySecurity,
+			Severity:    sev,
+			Fingerprint: "security.fim." + c.Path,
+			// Hour bucket: one file rewritten five times in a deploy window is one
+			// incident, not five.
+			DedupKey:   fmt.Sprintf("security.fim.%s|%s", c.Path, now.Format("2006010215")),
+			Message:    "文件完整性变更：" + c.Path + " " + c.Message,
+			Tags:       "fim",
+			ObservedAt: now,
+			CreatedAt:  now,
+		})
+	})
+	threatSvc.SetOnFinding(func(f model.ThreatFinding) {
+		if publishSecuritySignal == nil {
+			return
+		}
+		now := time.Now()
+		publishSecuritySignal(model.Signal{
+			ID:          fmt.Sprintf("t%d%d", now.UnixNano(), f.ID),
+			Kind:        "threat",
+			Source:      "threat",
+			Subject:     f.Name,
+			Family:      model.FamilySecurity,
+			Severity:    model.SeverityHigh,
+			Fingerprint: "security.threat." + f.Kind + "." + f.Name,
+			DedupKey:    fmt.Sprintf("security.threat.%s.%s|%s", f.Kind, f.Name, now.Format("20060102")),
+			Message:     "发现主机威胁：" + f.Kind + " " + f.Name,
+			Evidence:    f.Detail,
+			Tags:        "threat",
+			ObservedAt:  now,
+			CreatedAt:   now,
+		})
+	})
+
 	// Docker service: if creation fails (e.g. misconfigured DOCKER_HOST), skip container routes and degrade gracefully.
 	var (
 		dockerHandler *v1.DockerHandler
@@ -329,6 +382,9 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return kv
 	})
 	sentinelBundle := buildSentinel(cfg, db, settingSvc, sharedNotifier, agentBundle, panelDataDir, metricSigCh)
+	if sentinelBundle.manager != nil && sentinelBundle.manager.Bus != nil {
+		publishSecuritySignal = sentinelBundle.manager.Bus.Publish
+	}
 	sentinelHandler := sentinelBundle.handler
 	sentinelBundle.manager.Start(context.Background())
 	sentinelBundle.startBackground(context.Background())

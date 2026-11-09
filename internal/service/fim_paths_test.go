@@ -146,8 +146,6 @@ func TestLevelForWildcardCritical(t *testing.T) {
 	}
 }
 
-
-
 // Removing a path must drop its baseline, otherwise the list looks right while
 // the checker keeps watching the old file.
 func TestPatternCoversPruning(t *testing.T) {

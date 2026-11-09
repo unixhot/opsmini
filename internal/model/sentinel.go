@@ -48,6 +48,16 @@ const (
 // become a way to make the agent act, i.e. a remote trigger vector.
 const FamilyChange = "change"
 
+// FamilySecurity is the trigger family of host-security findings: file integrity
+// changes and confirmed threats.
+//
+// Unlike FamilyChange, this family may be acted on. A tampered /etc/shadow or a
+// running miner is not a lead to investigate — it is a fact that needs a
+// response. The engine still caps what auto mode may do (quarantine a file and
+// nothing else), because security findings carry a higher false-positive rate
+// than metrics: a legitimate deploy script rewrites crontab all the time.
+const FamilySecurity = "security"
+
 // Incident lifecycle.
 const (
 	IncidentOpen      = "open"       // signals aggregated, no agent run yet

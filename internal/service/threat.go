@@ -15,6 +15,10 @@ import (
 // ThreatService performs lightweight threat detection (suspicious processes/cron jobs/startup items).
 type ThreatService struct {
 	repo *repository.ThreatFindingRepo
+	// onFinding fans a newly confirmed threat out to the perception layer. It is
+	// only called for findings that were not already active: a scanner re-seeing
+	// the same miner every minute must not wake the agent every minute.
+	onFinding func(model.ThreatFinding)
 }
 
 // NewThreatService creates a ThreatService.
@@ -51,9 +55,15 @@ func (s *ThreatService) Scan() ([]model.ThreatFinding, error) {
 		f.Status = "active"
 		_ = s.repo.Create(&f)
 		saved = append(saved, f)
+		if s.onFinding != nil {
+			s.onFinding(f)
+		}
 	}
 	return saved, nil
 }
+
+// SetOnFinding wires the callback for newly discovered threats.
+func (s *ThreatService) SetOnFinding(fn func(model.ThreatFinding)) { s.onFinding = fn }
 
 // List returns the threat list.
 func (s *ThreatService) List(limit int) ([]model.ThreatFinding, error) {

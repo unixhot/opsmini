@@ -33,6 +33,9 @@ type FimService struct {
 	setting func(key string) string
 	// save persists settings; nil disables editing.
 	save func(map[string]string) error
+	// onChange fans a detected change out to the perception layer. Nil keeps FIM
+	// a standalone checker (tests, and a panel with sentinel disabled).
+	onChange func(model.FimChange)
 }
 
 // NewFimService creates a FimService.
@@ -45,6 +48,10 @@ func (s *FimService) SetSettings(fn func(key string) string) { s.setting = fn }
 
 // SetSaver wires the settings writer used by the paths editor.
 func (s *FimService) SetSaver(fn func(map[string]string) error) { s.save = fn }
+
+// SetOnChange wires the callback invoked for every detected change, so the
+// perception layer can turn file tampering into a security signal.
+func (s *FimService) SetOnChange(fn func(model.FimChange)) { s.onChange = fn }
 
 // fimSetting reads a setting through the injected reader, tolerating nil.
 func (s *FimService) fimSetting(key string) string {
@@ -265,6 +272,9 @@ func (s *FimService) Check() []model.FimChange {
 // record persists a FIM change event and returns it.
 func (s *FimService) record(b model.FimBaseline, c model.FimChange) model.FimChange {
 	_ = s.changeRepo.Create(&c)
+	if s.onChange != nil {
+		s.onChange(c)
+	}
 	return c
 }
 
