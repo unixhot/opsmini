@@ -407,6 +407,13 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 
 			args := call.Args()
 			preview := a.preview(tool, args)
+			// Blast radius: "restarting nginx also takes php-fpm with it" belongs on
+			// the confirmation card, not in a post-mortem. Declared, never inferred
+			// (see Guard.BlastRadius).
+			affected := a.guard.BlastRadius(tool, args)
+			if len(affected) > 0 {
+				preview = preview + "｜影响下游：" + strings.Join(affected, "、")
+			}
 
 			// L3: hard-forbidden patterns — refuse before anything else.
 			if reason, rule := a.guard.Scan(tool, args); reason != "" {
@@ -469,7 +476,15 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 				// trusts, and only for low-risk writes.
 				override = "auto"
 			}
-			switch PolicyFor(tool, override) {
+			decision := PolicyFor(tool, override)
+			// A declared blast radius always downgrades auto to confirm. Auto means
+			// "run whitelisted low-risk actions unattended"; an action that is known
+			// to affect other services is no longer low-risk, whatever the whitelist
+			// said when it was written.
+			if decision == PolicyAuto && len(affected) > 0 {
+				decision = PolicyConfirm
+			}
+			switch decision {
 			case PolicyDeny:
 				reason := fmt.Sprintf("工具 %s 已被管理员禁用", tool.Name)
 				out := toolMessage(call.ID, tool.Name, reason)

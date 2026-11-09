@@ -487,6 +487,15 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		// Kill switch: keep investigating, never write.
 		mode = model.ModeShadow
 	}
+	// Critical incidents never run unattended, whatever the policy says. The
+	// policy's auto list describes actions believed to be low-risk in general;
+	// "critical" is the system saying the situation is not general. Enforced in
+	// code rather than as a default, because a default can be edited away by
+	// someone who has not thought about this case.
+	if inc.Severity == model.SeverityCritical && mode == model.ModeAuto {
+		mode = model.ModeAssist
+		log.Printf("trigger: incident %s is critical, downgrading auto to assist", inc.ID)
+	}
 
 	var asserts []safety.Assertion
 	if strings.TrimSpace(p.Verify) != "" {

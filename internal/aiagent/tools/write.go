@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -226,11 +227,11 @@ func serviceControlTool(d Deps) aiagent.Tool {
 	return aiagent.Tool{
 		Name:        "service_control",
 		Title:       "服务启停",
-		Description: "启停或重启 systemd 服务（start/stop/restart/reload）。用于恢复异常服务或应用配置变更。",
+		Description: "启停、重启或设置 systemd 服务的开机自启（start/stop/restart/reload/enable/disable）。用于恢复异常服务或应用配置变更。",
 		Risk:        aiagent.RiskLowWrite,
 		Schema: schema(map[string]any{
 			"service": pStr("服务名，例如 nginx、docker、opsmini"),
-			"action":  pEnum("操作", "start", "stop", "restart", "reload"),
+			"action":  pEnum("操作", "start", "stop", "restart", "reload", "enable", "disable"),
 		}, "service", "action"),
 		Preview: func(args map[string]any) string {
 			return fmt.Sprintf("%s systemd 服务 %s", actionVerb(str(args, "action")), str(args, "service"))
@@ -242,7 +243,7 @@ func serviceControlTool(d Deps) aiagent.Tool {
 				return failed("必须提供 service 与 action 参数"), nil
 			}
 			switch action {
-			case "start", "stop", "restart", "reload":
+			case "start", "stop", "restart", "reload", "enable", "disable":
 			default:
 				return failed("不支持的 action：%s", action), nil
 			}
@@ -250,17 +251,82 @@ func serviceControlTool(d Deps) aiagent.Tool {
 			if action == "stop" && (name == "opsmini" || name == "opsmini.service") {
 				return failed("禁止通过 AI 停止 OpsMini 面板自身服务"), nil
 			}
+
+			// Snapshot before acting so a failed action can be undone. Without this
+			// the tool's failure report is "it did not work" — true but useless when
+			// the service is now stopped and nobody knows whether it was running before.
+			wasActive := systemdIsState(ctx, "is-active", name, "active")
+			wasEnabled := systemdIsState(ctx, "is-enabled", name, "enabled")
+
 			out, err := runCmd(ctx, 90*time.Second, "systemctl", action, name)
 			summary := fmt.Sprintf("systemctl %s %s 执行%s。\n%s", action, name, okWord(err), truncate(strings.TrimSpace(out), 2000))
 			if err != nil {
+				if note := restoreServiceState(ctx, name, action, wasActive, wasEnabled); note != "" {
+					summary += "\n" + note
+				}
 				return aiagent.Result{OK: false, Summary: summary}, nil
 			}
-			// Verify the resulting state.
+			// Verify the resulting state rather than trusting the exit code alone.
 			state, _ := runCmd(ctx, 10*time.Second, "systemctl", "is-active", name)
 			summary += "\n当前状态：" + strings.TrimSpace(state)
 			return textResult(summary), nil
 		},
 	}
+}
+
+// systemdIsState reports whether a systemctl state query returns want.
+func systemdIsState(ctx aiagent.ExecContext, verb, unit, want string) bool {
+	out, err := runCmd(ctx, 10*time.Second, "systemctl", verb, unit)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) == want
+}
+
+// restoreServiceState puts the unit back the way it was before a failed action.
+//
+// Only the two states the action could have changed are restored: running vs
+// stopped, and enabled vs disabled. It returns a human-readable note when a
+// restore was attempted, including the case where the restore itself failed —
+// "回退也失败" is exactly the sentence a person needs to decide to intervene.
+func restoreServiceState(ctx aiagent.ExecContext, unit, action string, wasActive, wasEnabled bool) string {
+	var steps []string
+	switch action {
+	case "start", "restart":
+		// We tried to bring it up and it did not come up: if it was down before,
+		// leave it down rather than looping; if it was up, try to get it back.
+		if wasActive {
+			steps = append(steps, "start")
+		}
+	case "stop":
+		if wasActive {
+			steps = append(steps, "start")
+		}
+	case "enable":
+		if !wasEnabled {
+			steps = append(steps, "disable")
+		}
+	case "disable":
+		if wasEnabled {
+			steps = append(steps, "enable")
+		}
+	case "reload":
+		// Reload does not change running state; nothing to undo. A failed reload is
+		// still worth reporting loudly because the config may be half-applied.
+		return "注意：reload 失败通常意味着新配置有语法错误，旧配置仍在运行，建议检查配置。"
+	}
+	if len(steps) == 0 {
+		return ""
+	}
+	var notes []string
+	for _, s := range steps {
+		if _, err := runCmd(ctx, 60*time.Second, "systemctl", s, unit); err != nil {
+			notes = append(notes, fmt.Sprintf("⚠ 回退（systemctl %s %s）也失败：%v，需要人工介入", s, unit, err))
+		} else {
+			notes = append(notes, fmt.Sprintf("已按原状态回退：systemctl %s %s", s, unit))
+		}
+	}
+	return strings.Join(notes, "\n")
 }
 
 // dockerControlTool starts, stops or restarts a container.
@@ -672,6 +738,30 @@ func cronWriteTool(d Deps) aiagent.Tool {
 }
 
 // killProcessTool sends a signal to a process.
+// killChildLimit is the subtree size at which terminating the parent is treated
+// as "stop the application" rather than "kill one runaway process".
+const killChildLimit = 20
+
+// childCount returns how many direct children a pid has.
+//
+// pgrep is used rather than walking /proc: it exists on every systemd host and a
+// missing tool must not block a kill that was otherwise fine — on error we return
+// 0 and let the caller proceed, since the guards that actually prevent disasters
+// (pid 1, self, parent) do not depend on this number.
+func childCount(ctx aiagent.ExecContext, pid int) int {
+	out, err := runCmd(ctx, 5*time.Second, "pgrep", "-P", strconv.Itoa(pid))
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, ln := range strings.Split(strings.TrimSpace(out), "\n") {
+		if strings.TrimSpace(ln) != "" {
+			n++
+		}
+	}
+	return n
+}
+
 func killProcessTool(d Deps) aiagent.Tool {
 	return aiagent.Tool{
 		Name:        "kill_process",
@@ -691,8 +781,27 @@ func killProcessTool(d Deps) aiagent.Tool {
 			if pid <= 0 {
 				return failed("必须提供有效的 pid 参数"), nil
 			}
+			// Guards, in order of how bad the mistake would be:
+			//   1 — init: killing it takes the whole host down.
+			//   self — the panel process: the agent would kill its own runtime mid-call.
+			//   parent — systemd (or whoever started us): same effect, one step removed.
 			if pid == 1 {
 				return failed("拒绝向 1 号进程发送信号"), nil
+			}
+			if pid == os.Getpid() {
+				return failed("拒绝向 OpsMini 自身进程（PID %d）发送信号", pid), nil
+			}
+			if pid == os.Getppid() {
+				return failed("拒绝向 OpsMini 的父进程（PID %d）发送信号", pid), nil
+			}
+			// Blast radius: a parent with dozens of children is usually a service
+			// supervisor, and "kill the runaway process" then means "stop the app".
+			// Refuse and say why — the safe move is a targeted kill or a documented
+			// service action, not a silent subtree wipe.
+			if kids := childCount(ctx, pid); kids > killChildLimit {
+				return failed("进程 %d 有 %d 个子进程，终止它会连带影响整棵进程树（阈值 %d）。"+
+					"如确需停止，请改用 service_control 操作对应服务，或人工处理。",
+					pid, kids, killChildLimit), nil
 			}
 			sig := syscallTerm
 			if strings.EqualFold(str(args, "signal"), "kill") {
@@ -701,7 +810,16 @@ func killProcessTool(d Deps) aiagent.Tool {
 			if err := d.Sys.KillProcess(int32(pid), sig); err != nil {
 				return failed("结束进程 %d 失败：%v", pid, err), nil
 			}
-			return textResult(fmt.Sprintf("已向进程 %d 发送信号 %v。", pid, sig)), nil
+			// A SIGTERM that was ignored is worth reporting: the caller must not
+			// assume the process is gone just because the syscall succeeded.
+			note := ""
+			if sig == syscallTerm {
+				time.Sleep(500 * time.Millisecond)
+				if err := syscall.Kill(pid, 0); err == nil {
+					note = "\n进程仍在运行（可能忽略了 SIGTERM），如需强制终止请用 signal=kill。"
+				}
+			}
+			return textResult(fmt.Sprintf("已向进程 %d 发送信号 %v。%s", pid, sig, note)), nil
 		},
 	}
 }
@@ -801,6 +919,10 @@ func actionVerb(action string) string {
 		return "重启"
 	case "reload":
 		return "重载"
+	case "enable":
+		return "设置开机自启"
+	case "disable":
+		return "取消开机自启"
 	}
 	return action
 }

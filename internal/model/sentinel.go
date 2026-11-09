@@ -219,20 +219,27 @@ type AgentRun struct {
 // ActionLog is the decision chain: every tool call the agent attempted, the
 // policy verdict that allowed/denied it, and the result.
 type ActionLog struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	IncidentID string    `gorm:"size:32;index" json:"incident_id"`
-	SessionID  string    `gorm:"size:32;index" json:"session_id"`
-	StepNo     int       `json:"step_no"`
-	Tool       string    `gorm:"size:64;index" json:"tool"`
-	Args       string    `gorm:"type:text" json:"args"`
-	Risk       string    `gorm:"size:16" json:"risk"`
-	Verdict    string    `gorm:"size:16;index" json:"verdict"`
-	Rule       string    `gorm:"size:128" json:"rule"`
-	Result     string    `gorm:"type:text" json:"result"`
-	Reversible bool      `json:"reversible"`
-	RollbackID string    `gorm:"size:64" json:"rollback_id"`
-	DurationMS int64     `json:"duration_ms"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID         uint   `gorm:"primaryKey" json:"id"`
+	IncidentID string `gorm:"size:32;index" json:"incident_id"`
+	SessionID  string `gorm:"size:32;index" json:"session_id"`
+	StepNo     int    `json:"step_no"`
+	Tool       string `gorm:"size:64;index" json:"tool"`
+	Args       string `gorm:"type:text" json:"args"`
+	Risk       string `gorm:"size:16" json:"risk"`
+	Verdict    string `gorm:"size:16;index" json:"verdict"`
+	Rule       string `gorm:"size:128" json:"rule"`
+	Result     string `gorm:"type:text" json:"result"`
+	Reversible bool   `json:"reversible"`
+	RollbackID string `gorm:"size:64" json:"rollback_id"`
+	DurationMS int64  `json:"duration_ms"`
+	// Hypothesis is what the model believed when it acted, taken from the run's
+	// conclusion. Without it the action log answers "what was done" but not "on
+	// what basis", and the second question is the one asked afterwards.
+	Hypothesis string `gorm:"type:text" json:"hypothesis"`
+	// EvidenceRefs lists the signal ids the run was working from (JSON array), so
+	// a reviewer can walk from the action back to what triggered it.
+	EvidenceRefs string    `gorm:"type:text" json:"evidence_refs"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // QuarantineItem is a file moved out of the way instead of being deleted. The

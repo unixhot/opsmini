@@ -368,6 +368,24 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 	r.db.Model(&model.ActionLog{}).Where("incident_id = ? AND session_id = ''", req.Incident.ID).
 		Update("session_id", out.SessionID)
 
+	// Backfill the decision chain: which signals this run was working from, and
+	// what it believed. "What was done" without "on what basis" cannot be reviewed
+	// after the fact, which is the only time anyone reads this table.
+	if !out.Suspended {
+		ids := make([]string, 0, len(req.Signals))
+		for _, s := range req.Signals {
+			ids = append(ids, s.ID)
+		}
+		if refs, jerr := json.Marshal(ids); jerr == nil {
+			r.db.Model(&model.ActionLog{}).
+				Where("incident_id = ? AND evidence_refs = ''", req.Incident.ID).
+				Updates(map[string]any{
+					"evidence_refs": string(refs),
+					"hypothesis":    truncateStr(out.Summary, 300),
+				})
+		}
+	}
+
 	// Archive the report next to the scheduled-task reports. A suspended run has
 	// not decided anything yet — the report is written after Resume finishes,
 	// otherwise the archived file would say "waiting for approval" forever.

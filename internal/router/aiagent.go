@@ -168,6 +168,9 @@ func buildAIAgent(
 	})
 
 	guard := aiagent.NewGuard(dataDir, cfg.Server.Port)
+	// 爆炸半径的声明来自 config.yaml 的 safety.dependencies（如 nginx: [php-fpm]）。
+	// 空表示没声明：守卫退回旧行为——不猜、不警告，而不是假装安全。
+	guard.Dependencies = cfg.Safety.Dependencies
 
 	// MCP client: connect to the MCP servers configured in the panel and expose
 	// their tools to the agent (M8-C). Connections are reconciled periodically so

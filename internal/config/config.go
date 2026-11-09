@@ -111,6 +111,21 @@ type Backup struct {
 	Targets []BackupTarget `yaml:"targets"`
 }
 
+// Safety holds the declarations the action guard needs beyond its built-in
+// allow/deny lists.
+type Safety struct {
+	// Dependencies declares "touching X affects Y". It is deliberately static and
+	// hand-written: a self-derived dependency graph would be wrong in exactly the
+	// cases that matter (a service that is down cannot report its own consumers),
+	// and a wrong graph gives false confidence.
+	//
+	//	safety:
+	//	  dependencies:
+	//	    nginx: [php-fpm, app-api]
+	//	    mysql: [app-api, app-worker]
+	Dependencies map[string][]string `yaml:"dependencies"`
+}
+
 // Log holds the application logging configuration.
 type Log struct {
 	Level string `yaml:"level"` // log level: info / warn / error (default error)
@@ -127,6 +142,7 @@ type Config struct {
 	Metrics  Metrics  `yaml:"metrics"`
 	Paths    Paths    `yaml:"paths"`
 	Backup   Backup   `yaml:"backup"`
+	Safety   Safety   `yaml:"safety"`
 	Log      Log      `yaml:"log"`
 }
 

@@ -68,6 +68,10 @@ type Guard struct {
 	// PanelPort is the port the panel listens on; rules that would cut off access
 	// to the panel are refused.
 	PanelPort int
+	// Dependencies is the operator's declaration of "touching X affects Y",
+	// keyed by service name. Empty means no declarations and therefore no
+	// blast-radius warnings — degrade to the old behaviour, never guess.
+	Dependencies map[string][]string
 }
 
 // NewGuard creates a Guard.
@@ -94,6 +98,31 @@ func (g *Guard) Scan(t *Tool, args map[string]any) (reason, rule string) {
 		}
 	}
 	return "", ""
+}
+
+// BlastRadius reports the declared downstream of acting on this call.
+//
+// It answers "if I restart nginx, what else stops working?" using only what the
+// operator declared. Nothing is inferred: a service that is already down cannot
+// report its own consumers, so an inferred graph is least reliable exactly when
+// the answer matters most.
+//
+// An empty result means either "no declaration for this target" or "no
+// downstream declared" — both are treated as "no warning", not as "safe".
+func (g *Guard) BlastRadius(t *Tool, args map[string]any) []string {
+	if len(g.Dependencies) == 0 {
+		return nil
+	}
+	raw, _ := args["service"].(string)
+	unit := strings.TrimSuffix(strings.TrimSpace(raw), ".service")
+	if unit == "" {
+		return nil
+	}
+	deps := g.Dependencies[unit]
+	if len(deps) == 0 {
+		return nil
+	}
+	return deps
 }
 
 // panelBreach detects attempts to damage the panel itself: deleting or
