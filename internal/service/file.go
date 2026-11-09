@@ -3,6 +3,7 @@ package service
 import (
 	"archive/zip"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,14 +14,37 @@ import (
 // FileService handles file management; all paths are restricted within root to prevent directory traversal.
 type FileService struct {
 	root string
+	// tmpDir is where directory archives are built. It must be able to live
+	// outside the tree being packed — see CompressDir.
+	tmpDir string
+	// maxCompress bounds the total bytes packed into one archive. Without it a
+	// download of a directory that keeps growing fills the disk before anyone
+	// notices.
+	maxCompress int64
 }
+
+// DefaultMaxCompress is the per-archive size ceiling (2 GiB).
+const DefaultMaxCompress int64 = 2 << 30
 
 // NewFileService creates a FileService. root is the allowed root directory.
 func NewFileService(root string) *FileService {
 	if root == "" {
 		root = "/"
 	}
-	return &FileService{root: filepath.Clean(root)}
+	return &FileService{root: filepath.Clean(root), tmpDir: os.TempDir(), maxCompress: DefaultMaxCompress}
+}
+
+// SetTmpDir moves archive scratch files to dir (typically <data>/tmp). The
+// directory is created on demand: a missing scratch dir must not turn every
+// directory download into a 500.
+func (s *FileService) SetTmpDir(dir string) {
+	if dir == "" {
+		return
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return
+	}
+	s.tmpDir = dir
 }
 
 // FileEntry is a file/directory entry.
@@ -252,7 +276,11 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 	if base == "." || base == "/" || base == "" || base == string(filepath.Separator) {
 		base = "archive"
 	}
-	tmp, err := os.CreateTemp("", "opsmini-"+base+"-*.zip")
+	tmp, err := os.CreateTemp(s.tmpDir, "opsmini-"+base+"-*.zip")
+	if err != nil && s.tmpDir != "" {
+		// 配置的临时目录被删或不可写：退回系统临时目录，而不是让下载失败。
+		tmp, err = os.CreateTemp("", "opsmini-"+base+"-*.zip")
+	}
 	if err != nil {
 		return "", "", err
 	}
@@ -260,9 +288,19 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 		tmp.Close()
 		os.Remove(tmp.Name())
 	}
+	tmpStat, err := tmp.Stat()
+	if err != nil {
+		cleanup()
+		return "", "", err
+	}
 
 	zw := zip.NewWriter(tmp)
 	root := filepath.Clean(full)
+	var packed int64
+	maxCompress := s.maxCompress
+	if maxCompress <= 0 {
+		maxCompress = DefaultMaxCompress
+	}
 	walkErr := filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -270,11 +308,42 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 		if p == root {
 			return nil // skip the root directory itself
 		}
+		// 打包 /tmp 时归档文件本身就在被遍历的目录里：不跳过它就会边读边写、
+		// 无限增长（实测 13GB 仍在涨，5 秒 +500MB，直接把磁盘写满）。
+		if os.SameFile(fi, tmpStat) {
+			return nil
+		}
+		// 同一个目录里可能还有上一次中断留下的归档，一起跳过。
+		if !fi.IsDir() && strings.HasPrefix(filepath.Base(p), "opsmini-"+base+"-") &&
+			strings.HasSuffix(p, ".zip") {
+			return nil
+		}
 		rel, err := filepath.Rel(filepath.Dir(root), p)
 		if err != nil {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
+
+		// 目录里混进 unix socket / fifo / 设备文件是常态（/tmp 下的
+		// aliyun_assist_service.sock、各种 .pid fifo）。它们既不能被打包，
+		// 打开还会报 "no such device or address" —— 一个这样的文件不该让
+		// 整个目录的下载变成 500。打不开的普通文件同理：跳过而不是失败。
+		var src *os.File
+		if !fi.IsDir() {
+			if !fi.Mode().IsRegular() {
+				return nil
+			}
+			packed += fi.Size()
+			if packed > maxCompress {
+				return fmt.Errorf("目录超过 %d MB，请选择子目录再下载", maxCompress>>20)
+			}
+			src, err = os.Open(p)
+			if err != nil {
+				return nil
+			}
+			defer src.Close()
+		}
+
 		hdr, err := zip.FileInfoHeader(fi)
 		if err != nil {
 			return err
@@ -287,14 +356,8 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 		if err != nil {
 			return err
 		}
-		if !fi.IsDir() {
-			f, err := os.Open(p)
-			if err != nil {
-				return err
-			}
-			_, err = io.Copy(w, f)
-			f.Close()
-			if err != nil {
+		if src != nil {
+			if _, err := io.Copy(w, src); err != nil {
 				return err
 			}
 		}

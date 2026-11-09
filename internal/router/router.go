@@ -138,6 +138,9 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	crontabSvc := service.NewCrontabService()
 	crontabHandler := v1.NewCrontabHandler(crontabSvc)
 	fileSvc := service.NewFileService("/")
+	// 归档临时文件放在数据目录，别留在 /tmp：用户下载 /tmp 时归档就在被遍历
+	// 的目录里，跳过逻辑兜一层，但能从源头上避开更稳。
+	fileSvc.SetTmpDir(filepath.Join(cfg.DataDir(), "tmp"))
 	fileHandler := v1.NewFileHandler(fileSvc)
 	logSvc := service.NewLogService()
 	logHandler := v1.NewLogHandler(logSvc)
