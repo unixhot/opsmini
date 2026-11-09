@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,6 +120,8 @@ func buildAIAgent(
 			APIKey:          key,
 			Model:           model,
 			AzureAPIVersion: cfg.AI.AzureAPIVersion,
+			Temperature:     parseTemperature(getSetting("ai_temperature")),
+			CACertPEM:       getSetting("ai_ca_pem"),
 		}
 	})
 
@@ -360,6 +363,32 @@ func buildAIAgent(
 		notifier:  notifier,
 		dataDir:   dataDir,
 	}
+}
+
+// parseTemperature turns the panel setting into the wire field.
+//
+// Empty means "not set" and yields nil, so the key is omitted from the request.
+// That is different from 0, which forces deterministic output — an operator
+// typing 0 wants exactly that, and a provider must not receive "temperature":0
+// just because nobody configured anything.
+func parseTemperature(v string) *float64 {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return nil
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return nil
+	}
+	// Clamp to the union of provider ranges: Anthropic is 0..1, OpenAI 0..2.
+	// Above 2 nobody accepts it; below 0 nobody accepts it either.
+	if f < 0 {
+		f = 0
+	}
+	if f > 2 {
+		f = 2
+	}
+	return &f
 }
 
 // agentSnapshot builds a compact live host snapshot for the system prompt, so the

@@ -27,6 +27,11 @@ type LLMConfig struct {
 	MaxTokens int
 	// AzureAPIVersion is only used by the azure provider.
 	AzureAPIVersion string
+	// Temperature is nil when the operator has no preference (server default).
+	Temperature *float64
+	// CACertPEM trusts a private gateway's certificate in addition to the system
+	// trust store. Empty means system default.
+	CACertPEM string
 }
 
 // Ready reports whether the configuration is usable.
@@ -43,6 +48,8 @@ func (c LLMConfig) toLLM() llm.Config {
 		Model:           c.Model,
 		MaxTokens:       c.MaxTokens,
 		AzureAPIVersion: c.AzureAPIVersion,
+		Temperature:     c.Temperature,
+		CACertPEM:       c.CACertPEM,
 	}
 }
 

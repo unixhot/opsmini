@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,11 +56,13 @@ func NewAIService(cfg *config.AI, getSetting func(string) string, sys *SystemSer
 	}
 	svc.llmClient = llm.New(func() llm.Config {
 		return llm.Config{
-			Provider:  svc.provider(),
-			BaseURL:   svc.baseURL(),
-			APIKey:    svc.apiKey(),
-			Model:     svc.model(),
-			MaxTokens: 4096,
+			Provider:    svc.provider(),
+			BaseURL:     svc.baseURL(),
+			APIKey:      svc.apiKey(),
+			Model:       svc.model(),
+			MaxTokens:   4096,
+			Temperature: parseTemperatureSetting(svc.setting("ai_temperature")),
+			CACertPEM:   svc.setting("ai_ca_pem"),
 		}
 	})
 	return svc
@@ -171,6 +174,28 @@ func (s *AIService) baseURL() string {
 		return b
 	}
 	return s.cfg.BaseURL
+}
+
+// parseTemperatureSetting turns the panel setting into the wire field.
+//
+// Empty yields nil so the key is omitted and the provider default applies. 0 is
+// a real value (deterministic output) and must not be confused with "unset".
+func parseTemperatureSetting(v string) *float64 {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return nil
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return nil
+	}
+	if f < 0 {
+		f = 0
+	}
+	if f > 2 {
+		f = 2
+	}
+	return &f
 }
 
 // builtinTools are the built-in MCP tool definitions (SkillHub search/install).

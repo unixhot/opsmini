@@ -20,11 +20,12 @@ import (
 // reuses the same body.
 
 type oaRequest struct {
-	Model     string    `json:"model"`
-	Messages  []Message `json:"messages"`
-	Stream    bool      `json:"stream"`
-	Tools     []oaTool  `json:"tools,omitempty"`
-	MaxTokens int       `json:"max_tokens,omitempty"`
+	Model       string    `json:"model"`
+	Messages    []Message `json:"messages"`
+	Stream      bool      `json:"stream"`
+	Tools       []oaTool  `json:"tools,omitempty"`
+	MaxTokens   int       `json:"max_tokens,omitempty"`
+	Temperature *float64  `json:"temperature,omitempty"`
 	// stream_options asks for a final usage frame. Providers that do not know the
 	// field ignore it; OpenAI-compatible relays that reject unknown fields are why
 	// this is only set when the caller supports it (see streamOpenAI).
@@ -125,7 +126,7 @@ func toOATools(tools []Tool) []oaTool {
 func (c *Client) chatOpenAI(ctx context.Context, cfg Config, msgs []Message, tools []Tool) (*Message, *Usage, error) {
 	body, err := json.Marshal(oaRequest{
 		Model: cfg.Model, Messages: msgs, Stream: false,
-		Tools: toOATools(tools), MaxTokens: cfg.MaxTokens,
+		Tools: toOATools(tools), MaxTokens: cfg.MaxTokens, Temperature: cfg.Temperature,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -137,7 +138,7 @@ func (c *Client) chatOpenAI(ctx context.Context, cfg Config, msgs []Message, too
 	req.Header.Set("Content-Type", "application/json")
 	oaAuthorize(req, cfg)
 
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -166,7 +167,7 @@ func (c *Client) chatOpenAI(ctx context.Context, cfg Config, msgs []Message, too
 func (c *Client) streamOpenAI(ctx context.Context, cfg Config, msgs []Message, tools []Tool, onDelta func(string)) (*Message, *Usage, error) {
 	body, err := json.Marshal(oaRequest{
 		Model: cfg.Model, Messages: msgs, Stream: true,
-		Tools: toOATools(tools), MaxTokens: cfg.MaxTokens,
+		Tools: toOATools(tools), MaxTokens: cfg.MaxTokens, Temperature: cfg.Temperature,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -179,7 +180,7 @@ func (c *Client) streamOpenAI(ctx context.Context, cfg Config, msgs []Message, t
 	req.Header.Set("Accept", "text/event-stream")
 	oaAuthorize(req, cfg)
 
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, nil, err
 	}

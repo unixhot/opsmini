@@ -33,6 +33,8 @@ type antRequest struct {
 	Messages  []antMessage `json:"messages"`
 	Tools     []antTool    `json:"tools,omitempty"`
 	Stream    bool         `json:"stream,omitempty"`
+	// Anthropic's range is 0..1; the caller is responsible for clamping.
+	Temperature *float64 `json:"temperature,omitempty"`
 }
 
 type antMessage struct {
@@ -193,13 +195,13 @@ func fromAnthropic(blocks []antBlock) *Message {
 func (c *Client) chatAnthropic(ctx context.Context, cfg Config, msgs []Message, tools []Tool) (*Message, *Usage, error) {
 	system, converted := buildAnthropic(msgs)
 	req, err := antNewRequest(ctx, cfg, antRequest{
-		Model: cfg.Model, MaxTokens: cfg.MaxTokens, System: system,
+		Model: cfg.Model, MaxTokens: cfg.MaxTokens, Temperature: cfg.Temperature, System: system,
 		Messages: converted, Tools: toAntTools(tools),
 	}, false)
 	if err != nil {
 		return nil, nil, err
 	}
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -233,13 +235,13 @@ func (c *Client) chatAnthropic(ctx context.Context, cfg Config, msgs []Message, 
 func (c *Client) streamAnthropic(ctx context.Context, cfg Config, msgs []Message, tools []Tool, onDelta func(string)) (*Message, *Usage, error) {
 	system, converted := buildAnthropic(msgs)
 	req, err := antNewRequest(ctx, cfg, antRequest{
-		Model: cfg.Model, MaxTokens: cfg.MaxTokens, System: system,
+		Model: cfg.Model, MaxTokens: cfg.MaxTokens, Temperature: cfg.Temperature, System: system,
 		Messages: converted, Tools: toAntTools(tools), Stream: true,
 	}, true)
 	if err != nil {
 		return nil, nil, err
 	}
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, nil, err
 	}

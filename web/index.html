@@ -3709,6 +3709,15 @@
                 <div class="ai-status" :class="aiFetchState.kind" v-if="aiFetchState.msg">{{ aiFetchState.msg }}</div>
                 <div class="form-hint" v-else>{{ t('set.aiFetchOrder') }}</div>
               </div>
+              <div><label class="form-label">{{ t('set.aiTemperature') }}</label>
+                <input class="input" v-model="ai.temperature" placeholder="0 ~ 2，留空用服务端默认" style="max-width:220px">
+                <div class="form-hint">{{ t('set.aiTemperatureHint') }}</div>
+              </div>
+              <div><label class="form-label">{{ t('set.aiCA') }}</label>
+                <textarea class="input" rows="5" v-model="ai.caPem" :placeholder="t('set.aiCAPh')"
+                  style="font-family:var(--mono);font-size:11.5px"></textarea>
+                <div class="form-hint">{{ t('set.aiCAHint') }}</div>
+              </div>
               <div class="row" style="justify-content:flex-end">
                 <button class="btn primary" @click="saveAiSettings">{{ t('btn.save') }}</button>
               </div>
@@ -5896,7 +5905,7 @@ const I18N12 = {
     'set.aiFetchNeedKey':'请先填写 API Key',
     'set.aiTestOk':'连接成功，共 {n} 个模型，请选择一个',
     'set.aiTestOkStale':'连接成功，共 {n} 个模型；原来的模型已不在列表里，请重新选择',
-    'set.aiModelRequired':'请先选择或填写模型',
+    'set.aiModelRequired':'请先选择或填写模型','set.aiTemperature':'Sampling-Temperatur','set.aiTemperatureHint':'0 bis 2. Leer lassen für den Anbieter-Standard; 0 verlangt möglichst deterministische Ausgabe (sinnvoll für Diagnose und Forensik).','set.aiCA':'Eigenes CA-Zertifikat','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'Für ein privates Gateway oder einen eigenen Relay das CA-Zertifikat hier einfügen. Leer nutzt den System-Truststore. Wirkt sofort nach dem Speichern, kein Neustart.','set.aiTemperature':'อุณหภูมิการสุ่ม (temperature)','set.aiTemperatureHint':'0 ถึง 2 เว้นว่างเพื่อใช้ค่าเริ่มต้นของผู้ให้บริการ ใส่ 0 เพื่อผลลัพธ์ที่แน่นอนที่สุด (เหมาะกับการวินิจฉัยและเก็บหลักฐาน)','set.aiCA':'ใบรับรอง CA ที่กำหนดเอง','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'หากใช้เกตเวย์ส่วนตัวหรือตัวกลางที่ติดตั้งเอง ให้นำใบรับรอง CA มาวางที่นี่ เว้นว่างเพื่อใช้ที่เก็บความเชื่อถือของระบบ มีผลทันทีหลังบันทึก ไม่ต้องรีสตาร์ท','set.aiTemperature':'샘플링 온도(temperature)','set.aiTemperatureHint':'0~2. 비우면 서버 기본값, 0은 최대한 결정적인 출력(진단·포렌식에 적합).','set.aiCA':'사용자 지정 CA 인증서','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'사설 게이트웨이나 자체 중계를 쓸 때 해당 CA 인증서를 붙여넣습니다. 비우면 시스템 신뢰 저장소를 사용합니다. 저장 즉시 적용되며 재시작이 필요 없습니다.','set.aiTemperature':'サンプリング温度（temperature）','set.aiTemperatureHint':'0〜2。空欄ならサーバー既定、0 は可能な限り決定的な出力（診断・証跡向け）。','set.aiCA':'カスタム CA 証明書','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'プライベートゲートウェイや自前の中継を使う場合、その CA 証明書を貼り付けます。空欄ならシステムの信頼ストアを使用。保存後すぐ反映され、再起動は不要です。','set.aiTemperature':'Temperature','set.aiTemperatureHint':'0 to 2. Leave empty for the provider default; 0 asks for the most deterministic output (useful for diagnosis and forensics).','set.aiCA':'Custom CA certificate','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'For a private gateway or self-hosted relay, paste its CA certificate here. Empty uses the system trust store. Takes effect on save, no restart.','set.aiTemperature':'取樣溫度（temperature）','set.aiTemperatureHint':'0 到 2。留空表示用伺服器預設；填 0 表示盡可能確定的輸出（適合診斷與取證）。','set.aiCA':'自訂 CA 憑證','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'對接私有閘道或自建中轉時，把對方的 CA 憑證貼在這裡。留空則使用系統信任庫；儲存後立即生效，無需重新啟動。','set.aiTemperature':'采样温度（temperature）','set.aiTemperatureHint':'0 到 2。留空表示用服务端默认；填 0 表示尽可能确定的输出（适合诊断与取证）。','set.aiCA':'自定义 CA 证书','set.aiCAPh':'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----','set.aiCAHint':'对接私有网关或自建中转时，把对方的 CA 证书贴在这里。留空则使用系统信任库；保存后立即生效，无需重启。',
     'set.aiPicked':'已选择 {m}',
     'sent.agg.expand':'展开全部 {n} 个',
     'sent.shadow.title':'影子建议（未执行）',
@@ -6812,7 +6821,7 @@ createApp({
       disk: { used:45, total:100, pct:45, mount:'/' },
       net: { down:'2.4 MB/s', up:'860 KB/s', total:12.6, iface:'eth0' },
       uptime: '23 天 14 小时',
-      ai: { enabled:true, provider:'openai', model:'deepseek-chat', key:'', base:'https://api.deepseek.com/v1', exec:true, logAna:true, diag:true, showKey:false },
+      ai: { enabled:true, provider:'openai', model:'deepseek-chat', key:'', base:'https://api.deepseek.com/v1', exec:true, logAna:true, diag:true, showKey:false, temperature:'', caPem:'', showCa:false },
       aiFetchedModels: [],   // 「测试连接并获取模型」从当前服务读回来的列表
       aiModelLoading: false,
       aiFetchState: { kind:'', msg:'' },   // kind: '' | 'ok' | 'err'
@@ -7874,12 +7883,21 @@ createApp({
         if(kv['ai_model']) this.ai.model = kv['ai_model'];
         if(kv['ai_base_url']) this.ai.base = kv['ai_base_url'];
         if(kv['ai_api_key']) this.ai.key = kv['ai_api_key'];
+        this.ai.temperature = kv['ai_temperature'] || '';
+        this.ai.caPem = kv['ai_ca_pem'] || '';
       }catch(e){ /* 忽略 */ }
     },
     async saveAiSettings(){
       if(!(this.ai.model||'').trim()){ this.toast(this.t('set.aiModelRequired')); return; }
       try{
-        await this.api('/settings', { method:'PUT', body: JSON.stringify({ ai_enabled: this.ai.enabled ? 'true' : 'false', ai_provider:this.ai.provider, ai_model:this.ai.model, ai_base_url:this.ai.base, ai_api_key:(this.ai.key||'').trim() }) });
+        await this.api('/settings', { method:'PUT', body: JSON.stringify({
+          ai_enabled: this.ai.enabled ? 'true' : 'false',
+          ai_provider: this.ai.provider, ai_model:this.ai.model,
+          ai_base_url:this.ai.base, ai_api_key:(this.ai.key||'').trim(),
+          // 空字符串表示"用服务端默认"；0 是有效值（完全确定输出），两者不能混。
+          ai_temperature:(this.ai.temperature==null?'':String(this.ai.temperature)).trim(),
+          ai_ca_pem:(this.ai.caPem||'').trim(),
+        }) });
         this.toast(this.t('set.aiSaved'));
       }catch(e){ this.toast(this.t('set.aiSaveFail') + ': ' + e.message); }
     },

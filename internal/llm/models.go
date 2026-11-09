@@ -164,7 +164,7 @@ func (c *Client) getJSON(ctx context.Context, url string, hdr map[string]string,
 	for k, v := range hdr {
 		req.Header.Set(k, v)
 	}
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return fmt.Errorf("连接 %s 失败：%w", url, err)
 	}

@@ -61,7 +61,8 @@ type gemFuncDecl struct {
 }
 
 type gemGenCfg struct {
-	MaxOutputTokens int `json:"maxOutputTokens,omitempty"`
+	MaxOutputTokens int      `json:"maxOutputTokens,omitempty"`
+	Temperature     *float64 `json:"temperature,omitempty"`
 }
 
 type gemResponse struct {
@@ -196,7 +197,7 @@ func gemBuildRequest(cfg Config, msgs []Message, tools []Tool, stream bool) ([]b
 		req.SystemInstruction = &gemContent{Parts: []gemPart{{Text: system}}}
 	}
 	if cfg.MaxTokens > 0 {
-		req.GenerationConfig = &gemGenCfg{MaxOutputTokens: cfg.MaxTokens}
+		req.GenerationConfig = &gemGenCfg{MaxOutputTokens: cfg.MaxTokens, Temperature: cfg.Temperature}
 	}
 	return json.Marshal(req)
 }
@@ -211,7 +212,7 @@ func (c *Client) chatGemini(ctx context.Context, cfg Config, msgs []Message, too
 		return nil, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -256,7 +257,7 @@ func (c *Client) streamGemini(ctx context.Context, cfg Config, msgs []Message, t
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
-	resp, err := c.http.Do(req)
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, nil, err
 	}

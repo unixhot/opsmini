@@ -2,11 +2,15 @@ package llm
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -16,8 +20,13 @@ type Settings func() Config
 
 // Client dispatches one logical call to the right wire protocol.
 type Client struct {
+	mu sync.Mutex
+	// http is rebuilt when the CA bundle changes, so a newly pasted certificate
+	// takes effect without restarting the panel.
 	http *http.Client
-	cfg  Settings
+	// caPEM is the bundle the current http client was built with.
+	caPEM string
+	cfg   Settings
 }
 
 // New creates a client. cfg is evaluated on every call.
@@ -25,12 +34,55 @@ func New(cfg Settings) *Client {
 	if cfg == nil {
 		cfg = func() Config { return Config{} }
 	}
-	return &Client{
-		// Long timeout: a reasoning model on a slow relay can legitimately take
-		// minutes, and cutting it off produces a confusing half-answer.
-		http: &http.Client{Timeout: 10 * time.Minute},
-		cfg:  cfg,
+	c := &Client{cfg: cfg}
+	c.http = c.buildClient("")
+	return c
+}
+
+// buildClient returns an HTTP client trusting the given PEM bundle (empty means
+// the system trust store).
+//
+// A bad bundle yields a client that trusts nothing extra rather than a client
+// that skips verification: silently disabling TLS checks would make a
+// misconfigured CA look like a working one.
+func (c *Client) buildClient(pemBundle string) *http.Client {
+	// Long timeout: a reasoning model on a slow relay can legitimately take
+	// minutes, and cutting it off produces a confusing half-answer.
+	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   15 * time.Second,
+		ExpectContinueTimeout: time.Second,
 	}
+	if strings.TrimSpace(pemBundle) != "" {
+		pool, err := x509.SystemCertPool()
+		if err != nil || pool == nil {
+			pool = x509.NewCertPool()
+		}
+		if pool.AppendCertsFromPEM([]byte(pemBundle)) {
+			transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+		} else {
+			// Appending nothing means the PEM is not parseable. Log it: the
+			// failure will surface as a TLS error during the call, and "为什么连不上"
+			// is much easier to answer when the log says the bundle was rejected.
+			log.Printf("llm: CA 证书解析失败，已回退到系统信任库（PEM 长度 %d）", len(pemBundle))
+		}
+	}
+	return &http.Client{Timeout: 10 * time.Minute, Transport: transport}
+}
+
+// client returns the HTTP client matching the current configuration, rebuilding
+// it when the CA bundle changed.
+func (c *Client) client() *http.Client {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	want := c.cfg().Normalized().CACertPEM
+	if want != c.caPEM {
+		c.caPEM = want
+		c.http = c.buildClient(want)
+	}
+	return c.http
 }
 
 // Config returns the current normalized configuration.

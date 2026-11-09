@@ -121,6 +121,14 @@ type Config struct {
 	MaxTokens int
 	// AzureAPIVersion is only used by the azure provider.
 	AzureAPIVersion string
+	// Temperature is a pointer on purpose: 0 is a valid value (fully
+	// deterministic), so "unset" must be distinguishable from "zero". Nil means
+	// the field is omitted and the server default applies, which is what most
+	// relays expect when the operator has no opinion.
+	Temperature *float64
+	// CACertPEM is an optional PEM bundle for a private gateway or MITM proxy.
+	// Empty means the system trust store is used.
+	CACertPEM string
 }
 
 // Normalized returns the config with provider-specific defaults applied.
