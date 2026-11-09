@@ -1877,6 +1877,22 @@
           </div>
         </div>
 
+        <!-- 变更时间轴：列表回答「改了什么」，这张图回答「什么时候最密集」 -->
+        <div class="card" style="margin-bottom:14px;padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div class="mute" style="font-size:11.5px;letter-spacing:.4px">{{ t('chg.timeline') }}</div>
+            <span style="flex:1"></span>
+            <span v-if="chgTimeline && chgTimeline.truncated" class="tag warn">{{ t('chg.timelineTrunc') }}</span>
+            <button v-for="h in [24,72,168]" :key="h" class="btn sm"
+              :class="chgTimelineHours===h ? 'primary' : 'ghost'"
+              @click="setChgTimelineHours(h)">{{ h }}h</button>
+          </div>
+          <div v-if="!chgTimeline || !chgTimeline.buckets || !chgTimeline.buckets.length"
+               class="mute" style="font-size:12.5px;padding:18px 0;text-align:center">{{ t('chg.timelineEmpty') }}</div>
+          <div v-show="chgTimeline && chgTimeline.buckets && chgTimeline.buckets.length"
+               id="chart-chg-timeline" style="width:100%;height:190px"></div>
+        </div>
+
         <div class="chip-row" style="margin-bottom:12px">
           <span v-for="k in chgKinds" :key="k.id" class="chip" :class="{active: chgFilter.kind===k.id}" @click="setChgKind(k.id)">
             <span class="dot" v-if="k.id" :style="{background: kindColor(k.id)}"></span>{{ t(k.label) }}
@@ -5980,7 +5996,7 @@ const I18N10 = {
 /* I18N11: 数据保留设置与事件清空（面板设置 → 数据保留） */
 const I18N11 = {
   'zh-CN': {
-    'menu.changes':'变更','chg.desc':'主机上发生过的修改：配置改动、软件包安装升级、服务状态变化、账号与权限变更、防火墙规则、定时任务。它是排查故障的上下文，不是告警。','chg.health':'采集状态','chg.chainOk':'变更链完整','chg.chainBad':'变更链异常','chg.verify':'校验','chg.srcOn':'运行中','chg.srcOff':'未运行','chg.source.file':'配置文件','chg.source.package':'软件包','chg.source.service':'服务','chg.source.account':'账号权限','chg.source.firewall':'防火墙','chg.source.cron':'定时任务','chg.usage':'已记录','chg.safetyHint':'变更记录只用于提供线索，永远不会触发自动处置——这是防止攻击者通过修改配置诱导 Agent 的安全设计。敏感文件（shadow、私钥、命令历史）不采集内容；配置文件里的密码在入库前已脱敏。','chg.kind.all':'全部','chg.kind.config':'配置','chg.kind.package':'软件包','chg.kind.service':'服务','chg.kind.account':'账号','chg.kind.firewall':'防火墙','chg.kind.cron':'定时任务','chg.col.object':'对象','chg.col.delta':'变化','chg.col.actor':'操作者','chg.col.action':'操作','chg.col.fields':'涉及字段','chg.score':'相关性','chg.inferred':'推测','chg.unknown':'未知','chg.detail':'详情','chg.records':'条记录','chg.noDiff':'（没有保存正文：可能是含敏感内容的文件，或正文已过保留期）','chg.truncated':'正文过长已截断','chg.restore':'回滚到变更前','chg.confirmRestore':'确认回滚？','chg.restored':'已回滚','chg.restoreFail':'回滚失败','chg.related':'相关变更（最近 30 分钟）','chg.relatedHint':'这些只是时间上接近的变更，不等于原因。',
+    'menu.changes':'变更','chg.desc':'主机上发生过的修改：配置改动、软件包安装升级、服务状态变化、账号与权限变更、防火墙规则、定时任务。它是排查故障的上下文，不是告警。','chg.health':'采集状态','chg.chainOk':'变更链完整','chg.chainBad':'变更链异常','chg.verify':'校验','chg.srcOn':'运行中','chg.srcOff':'未运行','chg.source.file':'配置文件','chg.source.package':'软件包','chg.source.service':'服务','chg.source.account':'账号权限','chg.source.firewall':'防火墙','chg.source.cron':'定时任务','chg.usage':'已记录','chg.safetyHint':'变更记录只用于提供线索，永远不会触发自动处置——这是防止攻击者通过修改配置诱导 Agent 的安全设计。敏感文件（shadow、私钥、命令历史）不采集内容；配置文件里的密码在入库前已脱敏。','chg.timeline':'Änderungs-Zeitleiste','chg.timelineEmpty':'Keine Änderungen in diesem Zeitraum','chg.timelineTrunc':'Zu viele Datensätze; nur die neuesten 5000','chg.timelineNormal':'Normal','chg.timelineSusp':'Verdächtig','chg.timeline':'ไทม์ไลน์การเปลี่ยนแปลง','chg.timelineEmpty':'ไม่มีการเปลี่ยนแปลงในช่วงนี้','chg.timelineTrunc':'ข้อมูลมาก แสดงเพียง 5000 รายการล่าสุด','chg.timelineNormal':'ปกติ','chg.timelineSusp':'น่าสงสัย','chg.timeline':'변경 타임라인','chg.timelineEmpty':'이 구간에 변경이 없습니다','chg.timelineTrunc':'데이터가 많아 최근 5000건만 표시','chg.timelineNormal':'일반 변경','chg.timelineSusp':'의심 변경','chg.timeline':'変更タイムライン','chg.timelineEmpty':'この期間に変更はありません','chg.timelineTrunc':'データが多すぎるため直近 5000 件のみ表示','chg.timelineNormal':'通常の変更','chg.timelineSusp':'不審な変更','chg.timeline':'Change timeline','chg.timelineEmpty':'No changes in this window','chg.timelineTrunc':'Too many records; showing the newest 5000','chg.timelineNormal':'Normal','chg.timelineSusp':'Suspicious','chg.timeline':'變更時間軸','chg.timelineEmpty':'這段時間沒有變更','chg.timelineTrunc':'資料過多，僅顯示最近 5000 筆','chg.timelineNormal':'正常變更','chg.timelineSusp':'可疑變更','chg.timeline':'变更时间轴','chg.timelineEmpty':'这段时间没有变更','chg.timelineTrunc':'数据过多，仅展示最近 5000 条','chg.timelineNormal':'正常变更','chg.timelineSusp':'可疑变更','chg.kind.all':'全部','chg.kind.config':'配置','chg.kind.package':'软件包','chg.kind.service':'服务','chg.kind.account':'账号','chg.kind.firewall':'防火墙','chg.kind.cron':'定时任务','chg.col.object':'对象','chg.col.delta':'变化','chg.col.actor':'操作者','chg.col.action':'操作','chg.col.fields':'涉及字段','chg.score':'相关性','chg.inferred':'推测','chg.unknown':'未知','chg.detail':'详情','chg.records':'条记录','chg.noDiff':'（没有保存正文：可能是含敏感内容的文件，或正文已过保留期）','chg.truncated':'正文过长已截断','chg.restore':'回滚到变更前','chg.confirmRestore':'确认回滚？','chg.restored':'已回滚','chg.restoreFail':'回滚失败','chg.related':'相关变更（最近 30 分钟）','chg.relatedHint':'这些只是时间上接近的变更，不等于原因。',
     'term.reconnecting':'[正在重新连接…]','term.reconnected':'[已重新连接]','term.disconnected':'[连接已断开]',
     'sentinel.st.open':'待唤醒','sent.unresolved.hint':'待处置 = 所有还没有结束的事件，它是「待唤醒 + 执行中 + 失败」三项之和，不是独立状态。所以这里的数字大于等于「待唤醒」和「失败」两个页签，那些事件也会同时出现在这里。','sent.open.hint':'待唤醒 = 信号已经聚合成事件，但 Agent 还没被叫醒。策略要同时满足三个条件才会唤醒它：分类匹配、等级达到阈值、不在冷却期内；只要有一条不满足，事件就只记录、不消耗模型额度——扫描探测这类噪音会一直堆在这里。打开事件详情能看到关联信号，确实不用管的可以点「忽略」。',
     'set.plugins':'插件','plugin.title':'插件','plugin.install':'上传安装','plugin.hint':'插件以独立进程运行，只能通过 unix socket 上报指标与事件；包必须带 sha256，配了公钥时还会校验签名。','plugin.name':'名称','plugin.version':'版本','plugin.kind':'类型','plugin.state.running':'运行中','plugin.state.stopped':'已停止','plugin.state.failed':'失败','plugin.state.installed':'已安装','plugin.state':'状态','plugin.restarts':'重启次数','plugin.error':'错误','plugin.restart':'重启','plugin.empty':'还没有安装插件','plugin.events':'最近事件','plugin.installed':'已安装','plugin.deleteTitle':'删除插件','plugin.deleteConfirm':'删除后该插件的程序文件会被移除（数据目录保留）。','backup.run':'备份恢复','backup.objects':'备份','set.backup':'备份','backup.remote':'远端目标（可选）','backup.remoteSnapshots':'远端快照','backup.pickRemote':'选择远端目标','backup.remoteEmpty':'远端没有快照','backup.restoreRemoteConfirm':'把 {name} 从 {store} 恢复到原路径？会先下载再走预检、快照、校验流程。','backup.hint':'目录每行一个；mysql:库名 表示数据库；redis:路径 表示 Redis 快照文件。备份只读不写，恢复会覆盖目标目录，因此恢复前会自动打一份快照，失败自动回滚。','backup.objectsPh':'目录或 mysql:库名','backup.retention':'保留份数','backup.root':'备份根目录','backup.runNow':'立即备份','backup.running':'正在备份…','backup.done':'备份完成','backup.snapshots':'快照','backup.name':'名称','backup.time':'时间','backup.size':'大小','backup.preflight':'预检','backup.restore':'恢复','backup.empty':'还没有快照','backup.preflightOk':'预检通过','backup.restoreTitle':'恢复备份','backup.restoreConfirm':'确认把 {name} 恢复到原路径？恢复前会自动备份当前状态，失败会自动回滚。','backup.restored':'已恢复','backup.rolledBack':'恢复失败，已自动回滚','set.retention':'数据保留',
@@ -6659,7 +6675,7 @@ createApp({
         { id:'firewall', label:'chg.kind.firewall' },
         { id:'cron', label:'chg.kind.cron' },
       ],
-      chgStats: {}, chgDetail: null, chgRestoreArmed: false,
+      chgStats: {}, chgDetail: null, chgRestoreArmed: false, chgTimeline: null, chgTimelineHours: 24,
       termTabs: [],          // 终端多会话 [{id,title,kind,containerId,containerName,connected,connecting}]
       activeTermId: null,    // 当前激活的终端会话 id
       termSeq: 0,            // 终端会话自增 id
@@ -7655,7 +7671,7 @@ createApp({
       else if(p==='security'){ this.loadSecurityData && this.loadSecurityData(); }
       else if(p==='ai') this.loadAiSettings && this.loadAiSettings();
       else if(p==='terminal') this.connectTerminal();
-      else if(p==='changes'){ this.loadChanges(1); this.loadChgStats(); }
+      else if(p==='changes'){ this.loadChanges(1); this.loadChgStats(); this.loadChgTimeline(); }
     },
     // ===== 多语言 =====
     t(key){ const dicts=[I18N14,I18N13,I18N12,I18N11,I18N10,I18N,I18N2,I18N3,I18N4,I18N5,I18N6,I18N7,I18N8,I18N9]; for(const d of dicts){ if(d && d[this.lang] && d[this.lang][key]!==undefined) return d[this.lang][key]; } for(const d of dicts){ if(d && d['zh-CN'] && d['zh-CN'][key]!==undefined) return d['zh-CN'][key]; } return key; },
@@ -7879,6 +7895,13 @@ createApp({
         this.chgCampaigns = (d && d.campaigns) || {};
       }catch(e){ this.changes = []; }
     },
+    async loadChgTimeline(){
+      try{
+        this.chgTimeline = await this.api('/changes/timeline?hours='+this.chgTimelineHours+'&bucket=1h');
+      }catch(e){ this.chgTimeline = null; }
+      this.$nextTick(() => this.renderCharts && this.renderCharts());
+    },
+    setChgTimelineHours(h){ this.chgTimelineHours = h; this.loadChgTimeline(); },
     async loadChgStats(){
       try{ this.chgStats = await this.api('/changes/stats') || {}; }catch(e){ this.chgStats = {}; }
     },
@@ -10747,6 +10770,37 @@ createApp({
             series:[
               {name:'CPU %',type:'line',smooth:true,symbol:'none',data:cpuData,lineStyle:{width:2,color:'#2563eb'},areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(37,99,235,.25)'},{offset:1,color:'rgba(37,99,235,0)'}]}}},
               {name:'内存 %',type:'line',smooth:true,symbol:'none',data:memData,lineStyle:{width:2,color:'#3b9cf0'}},
+            ]
+          }, true);
+          chart.resize();
+        }
+      } else if(this.page==='changes'){
+        const el=document.getElementById('chart-chg-timeline');
+        const tl=this.chgTimeline;
+        if(el && tl && tl.buckets && tl.buckets.length){
+          const chart=getChart(el);
+          const withDate = this.chgTimelineHours > 24;
+          const labels = tl.buckets.map(b => {
+            const d = new Date(b.start);
+            const hh = String(d.getHours()).padStart(2,'0');
+            const mm = String(d.getMinutes()).padStart(2,'0');
+            return withDate ? `${d.getMonth()+1}/${d.getDate()} ${hh}:${mm}` : `${hh}:${mm}`;
+          });
+          // 可疑部分单独着色并堆叠在总量之上：一眼能看出「这段时间是改得多，
+          // 还是可疑的多」，这两种情况要采取的动作完全不同。
+          const susp = tl.buckets.map(b => b.suspicious || 0);
+          const normal = tl.buckets.map(b => Math.max(0, b.count - (b.suspicious || 0)));
+          chart.setOption({
+            grid:{left:40,right:16,top:26,bottom:28},
+            tooltip:{trigger:'axis', axisPointer:{type:'shadow'}},
+            legend:{data:[this.t('chg.timelineNormal'), this.t('chg.timelineSusp')], right:8, top:0, textStyle:{color:legendColor,fontSize:12}},
+            xAxis:{type:'category',data:labels,...axis},
+            yAxis:{type:'value',minInterval:1,...axis},
+            series:[
+              {name:this.t('chg.timelineNormal'),type:'bar',stack:'c',data:normal,barMaxWidth:26,
+               itemStyle:{color:'#2563eb',borderRadius:[0,0,0,0]}},
+              {name:this.t('chg.timelineSusp'),type:'bar',stack:'c',data:susp,barMaxWidth:26,
+               itemStyle:{color:'#dc2626',borderRadius:[3,3,0,0]}},
             ]
           }, true);
           chart.resize();

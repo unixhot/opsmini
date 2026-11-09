@@ -631,6 +631,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 				ch := sentinelBundle.changeAPI
 				authed.GET("/changes", permMw("ai.agent"), ch.List)
 				authed.GET("/changes/stats", permMw("ai.agent"), ch.Stats)
+				authed.GET("/changes/timeline", permMw("ai.agent"), ch.Timeline)
 				authed.GET("/changes/related", permMw("ai.agent"), ch.Related)
 				authed.GET("/changes/ignore", permMw("ai.agent"), ch.ListIgnore)
 				authed.POST("/changes/verify", permMw("settings.edit"), ch.Verify)

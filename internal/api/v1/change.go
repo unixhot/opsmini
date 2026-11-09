@@ -297,3 +297,44 @@ func blockedHighlights() []string {
 		"/data/opsmini/**（自身数据，防自激）",
 	}
 }
+
+// Timeline GET /changes/timeline?hours=24&bucket=1h
+//
+// Aggregates the change stream into time slots for the timeline view. It exists
+// because the list endpoint answers "what changed" but not "when did it get
+// busy", and a shape is what makes an unusual night visible.
+func (h *ChangeHandler) Timeline(c *gin.Context) {
+	if h.Store == nil {
+		response.OK(c, change.Timeline{})
+		return
+	}
+	hours := 24
+	if v := c.Query("hours"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 24*30 {
+			hours = n
+		}
+	}
+	bucket := time.Hour
+	switch strings.ToLower(c.DefaultQuery("bucket", "1h")) {
+	case "5m":
+		bucket = 5 * time.Minute
+	case "15m":
+		bucket = 15 * time.Minute
+	case "1h":
+		bucket = time.Hour
+	case "1d":
+		bucket = 24 * time.Hour
+	default:
+		response.Error(c, 400, response.CodeInvalidParam, "bucket 只能是 5m / 15m / 1h / 1d")
+		return
+	}
+	// A window finer than the bucket would produce a single bar; that is a
+	// caller mistake worth naming rather than silently rounding.
+	if bucket > time.Duration(hours)*time.Hour {
+		response.Error(c, 400, response.CodeInvalidParam, "bucket 大于查询窗口，请改用更小的 bucket 或更长的时间范围")
+		return
+	}
+	to := time.Now()
+	from := to.Add(-time.Duration(hours) * time.Hour)
+	response.OK(c, h.Store.Timeline(from, to, bucket, 5000))
+}
