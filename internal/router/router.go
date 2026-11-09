@@ -590,6 +590,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.PUT("/sentinel/token-budget", permMw("ai.agent"), sentinelHandler.UpdateTokenBudget)
 			authed.GET("/sentinel/noise-settings", permMw("ai.agent"), sentinelHandler.NoiseSettings)
 			authed.PUT("/sentinel/noise-settings", permMw("settings.edit"), sentinelHandler.UpdateNoiseSettings)
+			authed.GET("/sentinel/agent-home", permMw("ai.agent"), sentinelHandler.AgentHome)
+			authed.GET("/sentinel/shadow-report", permMw("ai.agent"), sentinelHandler.ShadowReport)
 			authed.POST("/sentinel/incidents/:id/takeover", permMw("ai.agent"), sentinelHandler.Takeover)
 			authed.POST("/sentinel/incidents/:id/feedback", permMw("ai.agent"), sentinelHandler.Feedback)
 			authed.GET("/sentinel/facets", permMw("ai.agent"), sentinelHandler.Facets)

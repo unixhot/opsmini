@@ -753,6 +753,152 @@ func (h *SentinelHandler) UpdateNoiseSettings(c *gin.Context) {
 	response.OK(c, gin.H{"saved": true})
 }
 
+// AgentHome GET /sentinel/agent-home
+//
+// One call that answers the four questions a person actually has when they open
+// the panel: what happened today, what is waiting for me, how much autonomy is
+// currently granted, and how much budget is left. The resource dashboard answers
+// none of them.
+func (h *SentinelHandler) AgentHome(c *gin.Context) {
+	now := time.Now()
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	weekAgo := now.Add(-7 * 24 * time.Hour)
+
+	var todayIncidents, todayAuto, todaySignals int64
+	h.DB.Model(&model.Incident{}).Where("created_at >= ?", dayStart).Count(&todayIncidents)
+	h.DB.Model(&model.Incident{}).
+		Where("created_at >= ? AND mode = ? AND status = ?", dayStart, model.ModeAuto, model.IncidentResolved).
+		Count(&todayAuto)
+	h.DB.Model(&model.Signal{}).Where("observed_at >= ?", dayStart).Count(&todaySignals)
+
+	// Pending decisions: what the page must put in front of a human.
+	type awaitItem struct {
+		ID        string    `json:"id"`
+		Title     string    `json:"title"`
+		Severity  string    `json:"severity"`
+		Mode      string    `json:"mode"`
+		Tool      string    `json:"tool"`
+		Preview   string    `json:"preview"`
+		Risk      int       `json:"risk"`
+		ExpiresAt time.Time `json:"expires_at"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+	awaiting := []awaitItem{}
+	var pendInc []model.Incident
+	h.DB.Where("status = ?", model.IncidentAwaitingApproval).
+		Order("created_at desc").Limit(20).Find(&pendInc)
+	for _, inc := range pendInc {
+		item := awaitItem{ID: inc.ID, Title: inc.Title, Severity: inc.Severity,
+			Mode: inc.Mode, CreatedAt: inc.CreatedAt}
+		if inc.ApprovalID != "" {
+			var ap model.AIPendingApproval
+			if err := h.DB.First(&ap, "id = ?", inc.ApprovalID).Error; err == nil {
+				item.Tool, item.Preview, item.Risk, item.ExpiresAt = ap.ToolName, ap.Preview, ap.Risk, ap.ExpiresAt
+			}
+		}
+		awaiting = append(awaiting, item)
+	}
+
+	// Autonomy distribution + anything the breaker switched off.
+	modes := map[string]int{}
+	var policies []model.TriggerPolicy
+	h.DB.Find(&policies)
+	disabled := []map[string]string{}
+	for _, p := range policies {
+		if !p.Enabled {
+			if p.DisabledReason != "" {
+				disabled = append(disabled, map[string]string{"name": p.Name, "reason": p.DisabledReason})
+			}
+			continue
+		}
+		modes[p.Mode]++
+	}
+
+	// Budget: token spend for today, and runs started today against the cap.
+	used, _ := strconv.Atoi(h.readSetting("agent_tokens_daily:" + now.Format("2006-01-02")))
+	tokenLimit, _ := strconv.Atoi(h.readSetting("agent_tokens_daily_limit"))
+	runLimit, _ := strconv.Atoi(h.readSetting("trigger_daily_limit"))
+	var todayRuns int64
+	h.DB.Model(&model.AgentRun{}).Where("started_at >= ?", dayStart).Count(&todayRuns)
+
+	// Shadow helpfulness over the last week: of the runs that were reviewed,
+	// how many were judged to have proposed something useful.
+	var helpful, unnecessary int64
+	h.DB.Model(&model.ShadowReview{}).Where("reviewed_at >= ? AND verdict = ?", weekAgo, model.ShadowWouldHelp).Count(&helpful)
+	h.DB.Model(&model.ShadowReview{}).Where("reviewed_at >= ? AND verdict = ?", weekAgo, model.ShadowUnnecessary).Count(&unnecessary)
+	rate := -1.0
+	if total := helpful + unnecessary; total > 0 {
+		rate = float64(helpful) / float64(total)
+	}
+
+	response.OK(c, gin.H{
+		"today": gin.H{
+			"incidents": todayIncidents, "auto_handled": todayAuto,
+			"awaiting": len(awaiting), "signals": todaySignals,
+		},
+		"awaiting": awaiting,
+		"modes":    modes,
+		"disabled": disabled,
+		"budget": gin.H{
+			"tokens_used": used, "tokens_limit": tokenLimit,
+			"runs_today": todayRuns, "runs_limit": runLimit,
+		},
+		"shadow": gin.H{"helpful_rate": rate, "helpful": helpful, "unnecessary": unnecessary},
+	})
+}
+
+// ShadowReport GET /sentinel/shadow-report?days=7
+//
+// Aggregated view of what the shadow runs proposed and how it was judged. The
+// single-incident review endpoint answers "was this run useful"; this answers
+// "is this policy ready to be promoted from shadow to assist", which is the
+// question that decides whether autonomy moves forward.
+func (h *SentinelHandler) ShadowReport(c *gin.Context) {
+	days := atoiDefault(c.Query("days"), 7)
+	if days <= 0 || days > 90 {
+		days = 7
+	}
+	since := time.Now().AddDate(0, 0, -days)
+
+	type row struct {
+		IncidentID string
+		Verdict    string
+		Score      float64
+		Reasons    string
+		ReviewedAt time.Time
+	}
+	var rows []row
+	h.DB.Model(&model.ShadowReview{}).
+		Select("incident_id, verdict, score, reasons, reviewed_at").
+		Where("reviewed_at >= ?", since).Order("reviewed_at desc").Limit(500).Scan(&rows)
+
+	counts := map[string]int{}
+	var samples []gin.H
+	for _, r := range rows {
+		counts[r.Verdict]++
+		if r.Verdict == model.ShadowUnnecessary && len(samples) < 20 {
+			var inc model.Incident
+			h.DB.Select("id, title, severity, created_at").First(&inc, "id = ?", r.IncidentID)
+			samples = append(samples, gin.H{
+				"incident_id": r.IncidentID, "title": inc.Title, "severity": inc.Severity,
+				"score": r.Score, "reasons": r.Reasons, "reviewed_at": r.ReviewedAt,
+			})
+		}
+	}
+	// Rate over *decided* reviews only. Counting "unknown" as unhelpful would make
+	// a fresh shadow policy look bad precisely because it has not been looked at
+	// yet — and -1 is the honest answer for "no verdicts at all".
+	decided := counts[model.ShadowWouldHelp] + counts[model.ShadowUnnecessary]
+	rate := -1.0
+	if decided > 0 {
+		rate = float64(counts[model.ShadowWouldHelp]) / float64(decided)
+	}
+	response.OK(c, gin.H{
+		"days": days, "total": len(rows), "decided": decided, "counts": counts,
+		"helpful_rate": rate, "samples": samples,
+	})
+}
+
 // readSetting returns a settings value or "" when absent. Small helper so the
 // handlers above do not each grow a GORM query.
 func (h *SentinelHandler) readSetting(key string) string {
