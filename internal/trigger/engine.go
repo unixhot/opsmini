@@ -59,6 +59,12 @@ type RunResult struct {
 	VerifyOK     bool
 	VerifyDetail []string
 	Error        string
+	// Suspended is true when the run stopped at a confirm-level tool and is
+	// waiting for a human. The engine then keeps the incident in
+	// awaiting_approval instead of marking it finished.
+	Suspended bool
+	// ApprovalID links the incident to the pending approval row.
+	ApprovalID string
 }
 
 // Runner is implemented by the AI agent layer (injected by the router to keep
@@ -525,6 +531,34 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		// must not inherit the first attempt's remaining budget.
 		cancel()
 		fin = time.Now()
+
+		// Suspended: the model stopped at a confirm-level action and is waiting for
+		// a human. This is neither success nor failure, so it must not fall through
+		// to verification, rollback or closing — those would report a verdict on a
+		// run that has not decided anything yet. The incident stays
+		// awaiting_approval until Resume finishes it.
+		if res.Suspended {
+			e.DB.Model(&model.AgentRun{}).Where("id = ?", runRow.ID).Updates(map[string]any{
+				"status":     "suspended",
+				"session_id": res.SessionID,
+				"steps":      res.Steps,
+				"tools":      res.Tools,
+				"writes":     res.Writes,
+				"summary":    res.Summary,
+			})
+			e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(map[string]any{
+				"status":      model.IncidentAwaitingApproval,
+				"session_id":  res.SessionID,
+				"approval_id": res.ApprovalID,
+				"summary":     res.Summary,
+				"updated_at":  time.Now(),
+			})
+			if e.Notify != nil {
+				e.Notify(inc, fmt.Sprintf("【%s】%s — 等待人工确认\n%s",
+					strings.ToUpper(inc.Severity), inc.Title, truncate(res.Summary, 400)))
+			}
+			return
+		}
 
 		upd := map[string]any{
 			"status":      "success",

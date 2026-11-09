@@ -125,7 +125,7 @@ func buildSentinel(
 		}
 	}
 
-	eng.Runner = &incidentRunner{
+	runner := &incidentRunner{
 		agent:      ai.agent,
 		store:      ai.store,
 		db:         db,
@@ -134,6 +134,7 @@ func buildSentinel(
 		settingSvc: settingSvc,
 		correlate:  correlator,
 	}
+	eng.Runner = runner
 	eng.Notify = func(inc model.Incident, text string) {
 		level := "warning"
 		if inc.Severity == model.SeverityCritical {
@@ -195,6 +196,9 @@ func buildSentinel(
 	handler := v1.NewSentinelHandler(db, mgr, eng, sm)
 	handler.Campaigner = camp
 	handler.Shadow = shadow
+	// 事件挂起后的人工审批：续跑一个停在 confirm 级动作上的运行。
+	// 用函数字段注入，api 包不需要知道 agent 引擎的存在。
+	handler.Resume = runner.ResumeIncident
 	var changeAPI *v1.ChangeHandler
 	if changeStore != nil {
 		changeAPI = v1.NewChangeHandler(db, changeStore, snapshots, changeWatcher, correlator)
@@ -269,19 +273,23 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 	}
 
 	opt := aiagent.RunOptions{
-		UserID:       aiagent.SystemUserID,
-		Username:     "sentinel",
-		RoleName:     model.RoleAdmin,
-		Unattended:   true, // no human is watching: confirm-level tools are refused
-		Title:        title,
-		MaxSteps:     req.MaxSteps,
-		Mode:         req.Mode,
-		IncidentID:   req.Incident.ID,
-		AllowedTools: req.AllowedTools,
-		DeniedTools:  req.DeniedTools,
-		MaxWrites:    req.MaxWrites,
-		AutoTools:    autoToolsFor(req.Mode, req.Policy.AutoTools),
-		Evidence:     evidence,
+		UserID:     aiagent.SystemUserID,
+		Username:   "sentinel",
+		RoleName:   model.RoleAdmin,
+		Unattended: true, // no human is watching at trigger time
+		// assist 模式：碰到需人工确认的动作就挂起，等事件页上的人批准后续跑，
+		// 而不是像定时任务那样直接拒绝。auto 模式保持拒绝（白名单之外的动作
+		// 本来就不该由它自己决定）；shadow 只读，走不到这条路径。
+		SuspendOnConfirm: req.Mode == model.ModeAssist,
+		Title:            title,
+		MaxSteps:         req.MaxSteps,
+		Mode:             req.Mode,
+		IncidentID:       req.Incident.ID,
+		AllowedTools:     req.AllowedTools,
+		DeniedTools:      req.DeniedTools,
+		MaxWrites:        req.MaxWrites,
+		AutoTools:        autoToolsFor(req.Mode, req.Policy.AutoTools),
+		Evidence:         evidence,
 		OnAction: func(ev aiagent.ActionEvent) {
 			r.logAction(req.Incident.ID, "", ev)
 			if ev.Verdict == aiagent.ActionAllow && ev.Risk >= aiagent.RiskLowWrite {
@@ -298,6 +306,10 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 		out.Tools = res.Tools
 		out.Skipped = res.Skipped
 		out.Summary = res.Content
+		// 挂起：本次运行停在需确认的动作上，等事件页上的人批准。
+		// 报告不在这里归档——Resume 续跑完才是完整的处置记录。
+		out.Suspended = res.Suspended
+		out.ApprovalID = res.ApprovalID
 	}
 	out.Writes = r.safety.WritesUsed(req.Incident.ID)
 
@@ -306,8 +318,10 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 	r.db.Model(&model.ActionLog{}).Where("incident_id = ? AND session_id = ''", req.Incident.ID).
 		Update("session_id", out.SessionID)
 
-	// Archive the report next to the scheduled-task reports.
-	if out.SessionID != "" {
+	// Archive the report next to the scheduled-task reports. A suspended run has
+	// not decided anything yet — the report is written after Resume finishes,
+	// otherwise the archived file would say "waiting for approval" forever.
+	if out.SessionID != "" && !out.Suspended {
 		meta := aiagent.ReportMeta{
 			TaskName:   req.Incident.Title,
 			Prompt:     req.Prompt,
@@ -328,6 +342,118 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 		}
 	}
 	return out, err
+}
+
+// resumeOptions rebuilds the run options for a suspended incident.
+//
+// Only the fields that constrain what the agent may do are restored — the tool
+// allowlist, the write budget, the step budget and the approval policy. The
+// prompt and evidence are deliberately left out: they are already in the session
+// transcript, and re-injecting them would make the model re-read its own homework.
+// Getting AllowedTools wrong here would be a security regression, so it comes from
+// the same policy row the original run used, not from the incident.
+func (r *incidentRunner) resumeOptions(inc model.Incident, p model.TriggerPolicy) aiagent.RunOptions {
+	return aiagent.RunOptions{
+		UserID:     aiagent.SystemUserID,
+		Username:   "sentinel",
+		RoleName:   model.RoleAdmin,
+		Unattended: true,
+		// 续跑时仍然可以在下一个需确认的动作上再停一次：一个策略里可能有
+		// 多个待批动作，不能因为批准了一次就无限自我授权。
+		SuspendOnConfirm: inc.Mode == model.ModeAssist,
+		Title:            inc.Title,
+		Mode:             inc.Mode,
+		IncidentID:       inc.ID,
+		AllowedTools:     splitCSV(p.AllowTools),
+		DeniedTools:      splitCSV(p.DenyTools),
+		MaxWrites:        p.MaxWrites,
+		MaxSteps:         p.MaxSteps,
+		AutoTools:        autoToolsFor(inc.Mode, p.AutoTools),
+		OnAction: func(ev aiagent.ActionEvent) {
+			// Session id is filled in by the caller after Resume returns (see
+			// RunIncident); ActionEvent does not carry it.
+			r.logAction(inc.ID, "", ev)
+			if ev.Verdict == aiagent.ActionAllow && ev.Risk >= aiagent.RiskLowWrite {
+				r.journalWrite(inc.ID, ev)
+			}
+		},
+	}
+}
+
+// ResumeIncident continues a run that stopped for approval and closes the incident.
+// Returns the final summary so the API can hand it straight back to the page.
+func (r *incidentRunner) ResumeIncident(ctx context.Context, inc model.Incident, p model.TriggerPolicy,
+	approvalID string, approved bool) (string, error) {
+	if r.agent == nil {
+		return "", fmt.Errorf("AI 模型未配置，无法继续执行")
+	}
+	start := time.Now()
+	res, err := r.agent.Resume(ctx, r.resumeOptions(inc, p), approvalID, approved)
+	if err != nil {
+		// Leaving it in awaiting_approval after a failed resume would be worse than
+		// failing: the page would keep showing a decision button that no longer works.
+		r.db.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(map[string]any{
+			"status":      model.IncidentFailed,
+			"approval_id": "",
+			"summary":     "续跑失败：" + err.Error(),
+			"updated_at":  time.Now(),
+		})
+		return "", err
+	}
+
+	summary := strings.TrimSpace(res.Content)
+	// A second confirm-level action in the same run: stay suspended instead of
+	// closing the incident.
+	if approved && res.Suspended {
+		r.db.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(map[string]any{
+			"status":      model.IncidentAwaitingApproval,
+			"approval_id": res.ApprovalID,
+			"summary":     summary,
+			"updated_at":  time.Now(),
+		})
+		return summary, nil
+	}
+
+	reportRel := ""
+	if res.SessionID != "" {
+		meta := aiagent.ReportMeta{
+			TaskName:   inc.Title,
+			Prompt:     "（人工确认后续跑）",
+			Steps:      res.Steps,
+			Tools:      res.Tools,
+			Skipped:    res.Skipped,
+			Duration:   time.Since(start),
+			Unattended: true,
+			Status:     "success",
+		}
+		if md, berr := r.store.BuildReport(res.SessionID, meta); berr == nil {
+			if art, serr := aiagent.ArchiveReport(r.dataDir(), "自主处置/"+sanitize(inc.Title), res.SessionID, md, meta); serr == nil {
+				reportRel = art.RelHTML
+			}
+		}
+	}
+
+	status := model.IncidentResolved
+	if !approved {
+		status = model.IncidentSkipped
+		if summary == "" {
+			summary = "人工拒绝了待确认的操作"
+		}
+	}
+	now := time.Now()
+	upd := map[string]any{
+		"status":      status,
+		"approval_id": "",
+		"summary":     summary,
+		"session_id":  res.SessionID,
+		"updated_at":  now,
+		"closed_at":   now,
+	}
+	if reportRel != "" {
+		upd["report_rel"] = reportRel
+	}
+	r.db.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(upd)
+	return summary, nil
 }
 
 // logAction writes one entry of the decision chain.
@@ -489,5 +615,58 @@ func (b *sentinelBundle) startBackground(ctx context.Context) {
 	}
 	if b.shadow != nil {
 		b.shadow.Start(ctx, 30*time.Minute)
+	}
+
+	// 挂起等审批的事件必须收口。审批记录过期后 Approver 会拒绝续跑，但事件本身
+	// 若还停在 awaiting_approval，页面就会一直显示"等待确认"而按钮点不动——
+	// 这是最容易让人误以为"系统卡了"的状态。
+	go func() {
+		t := time.NewTicker(2 * time.Minute)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				b.expireSuspendedIncidents()
+			}
+		}
+	}()
+}
+
+// expireSuspendedIncidents closes incidents whose pending approval is gone or past
+// its deadline, so the status never lies about whether anyone can act on it.
+func (b *sentinelBundle) expireSuspendedIncidents() {
+	if b.handler == nil || b.handler.DB == nil {
+		return
+	}
+	var list []model.Incident
+	b.handler.DB.Where("status = ?", model.IncidentAwaitingApproval).Limit(200).Find(&list)
+	for _, inc := range list {
+		reason := ""
+		if inc.ApprovalID == "" {
+			reason = "审批记录缺失"
+		} else {
+			var ap model.AIPendingApproval
+			if err := b.handler.DB.First(&ap, "id = ?", inc.ApprovalID).Error; err != nil {
+				reason = "审批记录不存在"
+			} else if ap.Status != model.ApprovalPending {
+				reason = "审批已结束但事件未收口"
+			} else if time.Now().After(ap.ExpiresAt) {
+				reason = fmt.Sprintf("审批超时（%s 前未处理）", ap.ExpiresAt.Format("01-02 15:04"))
+			}
+		}
+		if reason == "" {
+			continue
+		}
+		now := time.Now()
+		b.handler.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(map[string]any{
+			"status":      model.IncidentSkipped,
+			"approval_id": "",
+			"summary":     strings.TrimSpace(inc.Summary + "\n\n未执行：" + reason),
+			"closed_at":   now,
+			"updated_at":  now,
+		})
+		log.Printf("sentinel: incident %s closed as skipped (%s)", inc.ID, reason)
 	}
 }

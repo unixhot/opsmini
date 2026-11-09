@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -31,6 +32,10 @@ type SentinelHandler struct {
 	// Setting persists small pieces of configuration (retention windows) in the
 	// panel settings table so a restart does not reset them.
 	Setting func(key string, value string) error
+	// Resume continues an incident run that stopped at a confirm-level action.
+	// Injected by the router so this package stays free of the agent engine.
+	// Returns the final summary for the page to show.
+	Resume func(ctx context.Context, inc model.Incident, p model.TriggerPolicy, approvalID string, approved bool) (string, error)
 }
 
 // NewSentinelHandler constructor.
@@ -408,6 +413,16 @@ func (h *SentinelHandler) Incident(c *gin.Context) {
 	var shadow *model.ShadowReview
 	h.DB.Where("incident_id = ?", id).Order("id DESC").Limit(1).Find(&shadow)
 
+	// Pending decision rides along: the page must be able to say *what* it is asking
+	// about ("quarantine_file on /var/www/x.php"), not just "something needs you".
+	var pending *model.AIPendingApproval
+	if inc.ApprovalID != "" {
+		var ap model.AIPendingApproval
+		if err := h.DB.First(&ap, "id = ?", inc.ApprovalID).Error; err == nil && ap.Status == model.ApprovalPending {
+			pending = &ap
+		}
+	}
+
 	response.OK(c, gin.H{
 		"incident": inc,
 		"signals":  signals,
@@ -416,6 +431,7 @@ func (h *SentinelHandler) Incident(c *gin.Context) {
 		"journal":  journal,
 		"campaign": campaign,
 		"shadow":   shadow,
+		"pending":  pending,
 	})
 }
 
@@ -554,6 +570,53 @@ func (h *SentinelHandler) Takeover(c *gin.Context) {
 		return
 	}
 	response.OK(c, gin.H{"status": model.IncidentTakenOver, "by": by})
+}
+
+// Approve POST /sentinel/incidents/:id/approve
+//
+// Answers the pending decision of a suspended autonomous run: approved=true lets
+// the agent execute the action it asked about, approved=false cancels it. The run
+// then continues (Resume) and the incident reaches a final state.
+func (h *SentinelHandler) Approve(c *gin.Context) {
+	if h.Resume == nil {
+		response.Error(c, 500, response.CodeInternal, "自主处置未启用")
+		return
+	}
+	var inc model.Incident
+	if err := h.DB.First(&inc, "id = ?", c.Param("id")).Error; err != nil {
+		response.Error(c, 404, response.CodeNotFound, "事件不存在")
+		return
+	}
+	if inc.Status != model.IncidentAwaitingApproval || inc.ApprovalID == "" {
+		// Idempotence guard: a double click must not replay the decision, and a
+		// stale tab must not resume a run that already finished.
+		response.Error(c, 400, response.CodeInvalidParam,
+			fmt.Sprintf("该事件当前没有待确认的操作（status=%s）", inc.Status))
+		return
+	}
+	var req struct {
+		Approved bool `json:"approved"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	var p model.TriggerPolicy
+	if inc.PolicyID != 0 {
+		h.DB.First(&p, "id = ?", inc.PolicyID)
+	}
+
+	// Resuming replays the whole reasoning loop, so this can take minutes; keep it
+	// well above the per-step timeout while still bounded.
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Minute)
+	defer cancel()
+
+	summary, err := h.Resume(ctx, inc, p, inc.ApprovalID, req.Approved)
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	var after model.Incident
+	h.DB.First(&after, "id = ?", inc.ID)
+	response.OK(c, gin.H{"approved": req.Approved, "summary": summary, "status": after.Status})
 }
 
 // Policies GET /sentinel/policies

@@ -58,6 +58,12 @@ type RunOptions struct {
 	// would need a human approval are then REFUSED instead of suspending the run,
 	// because there is no one to click the confirmation dialog.
 	Unattended bool
+	// SuspendOnConfirm turns a would-be refusal into a suspension: the run stops
+	// at the first confirm-level tool, records a pending approval, and can be
+	// continued later by Agent.Resume. Only meaningful together with Unattended
+	// (event-triggered runs) — an interactive run suspends by default because a
+	// human is already there to answer.
+	SuspendOnConfirm bool
 	// Title overrides the auto-derived session title (used by scheduled tasks so
 	// the report shows up as "每日巡检 · 2026-10-16").
 	Title string
@@ -180,7 +186,10 @@ type SendResult struct {
 	Steps     int
 	Tools     int
 	Suspended bool
-	Content   string
+	// ApprovalID identifies the pending approval that stopped the run. Set only
+	// when Suspended is true; the caller resumes with Agent.Resume(approvalID).
+	ApprovalID string
+	Content    string
 	// Skipped lists the tools refused because they need human approval while the
 	// run is unattended.
 	Skipped []string
@@ -219,6 +228,19 @@ func (a *Agent) Send(ctx context.Context, opt RunOptions, userMessage string) (*
 		return nil, err
 	}
 	return a.loop(ctx, opt, sess, history, 0)
+}
+
+// suspendOnConfirm reports whether a confirm-level tool call should stop the run
+// and wait for a human, instead of being refused.
+//
+// Three callers, three answers:
+//   - interactive chat (Unattended=false): suspend — someone is right there.
+//   - scheduled task (Unattended=true, SuspendOnConfirm=false): refuse — nobody
+//     to ask, and silently skipping is better than hanging until the deadline.
+//   - event-triggered assist (Unattended=true, SuspendOnConfirm=true): suspend —
+//     the incident page is exactly where a human will answer.
+func suspendOnConfirm(opt RunOptions) bool {
+	return !opt.Unattended || opt.SuspendOnConfirm
 }
 
 // Resume continues a suspended run after the human made a decision.
@@ -429,9 +451,12 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 				emit.Emit(Event{Type: EventToolResult, SessionID: sess.ID, ID: call.ID, Name: tool.Name, OK: boolPtr(false), Summary: reason})
 				continue
 			case PolicyConfirm:
-				// Unattended run (scheduled task): nobody can approve, so refuse
-				// the call, tell the model why, and keep going with the rest.
-				if opt.Unattended {
+				// Unattended and not allowed to suspend (a scheduled task with
+				// nobody to answer): refuse the call, tell the model why, and
+				// keep going with the rest. Event-triggered assist runs set
+				// SuspendOnConfirm so they fall through to the approval path
+				// below and wait for a human instead.
+				if !suspendOnConfirm(opt) {
 					reason := fmt.Sprintf("无人值守的定时任务：工具 %s 属于「需人工确认」的操作，已被安全策略拒绝执行。请改用只读工具获取信息，并在结论中说明该操作需要人工介入。", tool.Name)
 					emit.Emit(Event{Type: EventToolCall, SessionID: sess.ID, ID: call.ID, Name: tool.Name,
 						Title: tool.Title, Args: args, Risk: tool.Risk.String(), RiskCode: int(tool.Risk), Preview: preview})
@@ -455,6 +480,7 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 				// The remaining calls of this turn stay unanswered until the user
 				// decides; Resume appends their "skipped" results in order.
 				res.Suspended = true
+				res.ApprovalID = rec.ID
 				a.store.Touch(sess, res.Steps, res.Tools)
 				emit.Emit(Event{
 					Type: EventConfirm, SessionID: sess.ID, ID: call.ID, Name: tool.Name,

@@ -585,6 +585,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/sentinel/campaigns", permMw("ai.agent"), sentinelHandler.Campaigns)
 			authed.GET("/sentinel/campaigns/:id", permMw("ai.agent"), sentinelHandler.Campaign)
 			authed.POST("/sentinel/incidents/:id/ignore", permMw("ai.agent"), sentinelHandler.Ignore)
+			authed.POST("/sentinel/incidents/:id/approve", permMw("ai.agent"), sentinelHandler.Approve)
 			authed.POST("/sentinel/incidents/:id/takeover", permMw("ai.agent"), sentinelHandler.Takeover)
 			authed.POST("/sentinel/incidents/:id/feedback", permMw("ai.agent"), sentinelHandler.Feedback)
 			authed.GET("/sentinel/facets", permMw("ai.agent"), sentinelHandler.Facets)

@@ -57,6 +57,13 @@ const (
 	IncidentIgnored   = "ignored"    // suppressed by a human
 	IncidentTakenOver = "taken_over" // a human took over; the agent must not act
 	IncidentFailed    = "failed"     // run failed / verification failed
+	// IncidentAwaitingApproval means the run stopped at a confirm-level action and
+	// is waiting for a human decision. Distinct from Running so the UI can tell
+	// "still thinking" from "needs you".
+	IncidentAwaitingApproval = "awaiting_approval"
+	// IncidentSkipped means a human declined the pending action. Different from
+	// resolved on purpose: nothing was fixed, someone decided not to fix it.
+	IncidentSkipped = "skipped"
 )
 
 // Trigger modes.
@@ -133,12 +140,16 @@ type Incident struct {
 	CampaignID string `gorm:"size:32;index" json:"campaign_id"`
 	// ShadowVerdict is the automated retrospective on a shadow run:
 	// would_help / unnecessary / unknown. Empty until reviewed.
-	ShadowVerdict string     `gorm:"size:24" json:"shadow_verdict"`
-	IgnoredBy     string     `gorm:"size:64" json:"ignored_by"`
-	IgnoreNote    string     `gorm:"size:256" json:"ignore_note"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
-	ClosedAt      *time.Time `json:"closed_at,omitempty"`
+	ShadowVerdict string `gorm:"size:24" json:"shadow_verdict"`
+	// ApprovalID links to ai_pending_approvals when the run is suspended waiting
+	// for a human. Empty in every other state, so "has a pending decision" is
+	// simply ApprovalID != "".
+	ApprovalID string     `gorm:"size:32;index" json:"approval_id"`
+	IgnoredBy  string     `gorm:"size:64" json:"ignored_by"`
+	IgnoreNote string     `gorm:"size:256" json:"ignore_note"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	ClosedAt   *time.Time `json:"closed_at,omitempty"`
 }
 
 // TriggerPolicy decides whether an incident wakes the agent, in which mode, with
