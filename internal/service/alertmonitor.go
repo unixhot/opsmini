@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -8,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/model"
@@ -42,6 +44,12 @@ type AlertMonitor struct {
 	// The perception layer uses it to turn metric alerts into signals instead of
 	// polling the same metrics twice.
 	onFire func(rule model.AlertRule, val, threshold float64, op string)
+
+	// since remembers when a rule first went over the line, so "持续 5 分钟"
+	// can actually mean five minutes. In memory on purpose: after a restart the
+	// clock starts over, which errs on the side of not waking anyone up.
+	mu    sync.Mutex
+	since map[uint]time.Time
 }
 
 // SetNotifyWindow wires the suppression window supplier.
@@ -66,6 +74,7 @@ func NewAlertMonitor(ruleRepo *repository.AlertRuleRepo, eventRepo *repository.A
 		retention: retention,
 		settings:  settings,
 		stopCh:    make(chan struct{}),
+		since:     map[uint]time.Time{},
 	}
 }
 
@@ -134,11 +143,93 @@ func (m *AlertMonitor) evaluate() {
 			continue
 		}
 		if compareValue(val, op, threshold) {
-			m.fire(rule, val, threshold, op)
+			m.maybeFire(rule, val, threshold, op)
 		} else {
+			m.clearPending(rule.ID)
 			m.resolve(rule, val, threshold)
 		}
 	}
+}
+
+// maybeFire honours the rule's duration window: a rule that says "持续 5 分钟"
+// must stay over the line for five minutes before anyone is woken up. Until
+// v1.5 this field was purely decorative — every single over-threshold sample
+// fired immediately, so a one-second compile spike paged the operator.
+func (m *AlertMonitor) maybeFire(rule model.AlertRule, val, threshold float64, op string) {
+	need := parseWindow(rule.Duration)
+	if need <= 0 {
+		m.fire(rule, val, threshold, op)
+		return
+	}
+	now := time.Now()
+	m.mu.Lock()
+	first, seen := m.since[rule.ID]
+	if !seen {
+		m.since[rule.ID] = now
+	}
+	m.mu.Unlock()
+	if !seen {
+		log.Printf("ALERT pending: %s 越线，需持续 %s 才通知（rule=%s）", rule.Metric, need, rule.Name)
+		return
+	}
+	if sustainedSince(first, need, now) {
+		m.fire(rule, val, threshold, op)
+	}
+}
+
+// clearPending drops the "first breached at" stamp once the value is back to
+// normal, so the next breach starts a fresh window.
+func (m *AlertMonitor) clearPending(ruleID uint) {
+	m.mu.Lock()
+	delete(m.since, ruleID)
+	m.mu.Unlock()
+}
+
+// sustainedSince reports whether a condition that first held at `first` has now
+// held long enough. need <= 0 means "no sustained requirement".
+func sustainedSince(first time.Time, need time.Duration, now time.Time) bool {
+	if need <= 0 {
+		return true
+	}
+	return now.Sub(first) >= need
+}
+
+// parseWindow reads the free-text duration the panel lets people type:
+// "5 分钟", "5分钟", "30 秒", "1 小时", "5m", "90s", "2h". Anything unparsable
+// yields 0, which means "fire immediately" — the same behaviour as before the
+// field was honoured, and the safer failure for an unfamiliar string.
+func parseWindow(s string) time.Duration {
+	t := strings.ToLower(strings.TrimSpace(s))
+	if t == "" {
+		return 0
+	}
+	var num float64
+	var unit string
+	for i, r := range t {
+		if (r >= '0' && r <= '9') || r == '.' {
+			continue
+		}
+		if _, err := fmt.Sscanf(t[:i], "%f", &num); err != nil {
+			return 0
+		}
+		unit = strings.TrimSpace(t[i:])
+		break
+	}
+	if unit == "" {
+		return 0
+	}
+	var mult time.Duration
+	switch {
+	case strings.HasPrefix(unit, "秒"), strings.HasPrefix(unit, "sec"), strings.HasPrefix(unit, "s"):
+		mult = time.Second
+	case strings.HasPrefix(unit, "分"), strings.HasPrefix(unit, "min"), strings.HasPrefix(unit, "m"):
+		mult = time.Minute
+	case strings.HasPrefix(unit, "小时"), strings.HasPrefix(unit, "时"), strings.HasPrefix(unit, "hour"), strings.HasPrefix(unit, "h"):
+		mult = time.Hour
+	default:
+		return 0
+	}
+	return time.Duration(num * float64(mult))
 }
 
 // fire triggers an alert. Two different dedup rules apply, and they answer

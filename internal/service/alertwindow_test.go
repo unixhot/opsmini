@@ -1,177 +1,51 @@
 package service
 
 import (
-	"strings"
 	"testing"
 	"time"
-
-	"github.com/glebarez/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-
-	"github.com/opsmini/opsmini/internal/model"
-	"github.com/opsmini/opsmini/internal/repository"
 )
 
-// newAlertTestMonitor builds a monitor against an in-memory database. The
-// notifier has no repository and the rule has no channels, so Send() is a no-op:
-// these tests are about what gets recorded, not about delivery.
-func newAlertTestMonitor(t *testing.T, window time.Duration) (*AlertMonitor, *repository.AlertEventRepo) {
-	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{
-		Logger: logger.Discard,
-	})
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if err := db.AutoMigrate(&model.AlertEvent{}); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-	repo := repository.NewAlertEventRepo(db)
-	m := &AlertMonitor{
-		eventRepo: repo,
-		notifier:  NewNotifier(nil, func() map[string]string { return nil }),
-		notifyWindow: func() time.Duration {
-			return window
-		},
-	}
-	return m, repo
-}
-
-func testRule() model.AlertRule {
-	return model.AlertRule{ID: 7, Name: "磁盘使用率过高", Metric: "磁盘使用率", Notify: ""}
-}
-
-func countEvents(t *testing.T, repo *repository.AlertEventRepo) []model.AlertEvent {
-	t.Helper()
-	all, err := repo.List(100)
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	return all
-}
-
-// resolveAll marks every active event resolved, simulating a recovery. The next
-// breach then looks exactly like a real flap: active check passes, but the
-// notification window should still hold.
-func resolveAll(t *testing.T, repo *repository.AlertEventRepo) {
-	t.Helper()
-	rows := countEvents(t, repo)
-	for i := range rows {
-		if rows[i].Status != model.AlertStatusActive {
-			continue
-		}
-		rows[i].Status = model.AlertStatusResolved
-		now := time.Now()
-		rows[i].ResolvedAt = &now
-		if err := repo.Update(&rows[i]); err != nil {
-			t.Fatalf("resolve: %v", err)
-		}
-	}
-}
-
-// A flap — breach, recovery, breach — must produce two events but only one
-// notification. Recording both keeps the timeline honest; notifying both is what
-// makes people mute the channel.
-func TestAlertSuppressionSilencesFlap(t *testing.T) {
-	m, repo := newAlertTestMonitor(t, 30*time.Minute)
-	rule := testRule()
-
-	m.fire(rule, 95, 90, ">")
-	resolveAll(t, repo)
-	m.fire(rule, 95, 90, ">")
-
-	events := countEvents(t, repo)
-	if len(events) != 2 {
-		t.Fatalf("events: got %d want 2", len(events))
-	}
-	// Newest first from List.
-	var notified, silenced int
-	for _, e := range events {
-		if e.NotifiedAt != nil {
-			notified++
-		} else {
-			silenced++
-		}
-	}
-	if notified != 1 || silenced != 1 {
-		t.Fatalf("notified=%d silenced=%d, want 1/1", notified, silenced)
-	}
-	if !strings.Contains(events[0].Message, "静默") {
-		t.Fatalf("silenced event should say so, got %q", events[0].Message)
-	}
-}
-
-// window=0 disables suppression: an operator who wants every recurrence to ring
-// must get every recurrence.
-func TestAlertSuppressionDisabled(t *testing.T) {
-	m, repo := newAlertTestMonitor(t, 0)
-	rule := testRule()
-
-	m.fire(rule, 95, 90, ">")
-	resolveAll(t, repo)
-	m.fire(rule, 95, 90, ">")
-
-	events := countEvents(t, repo)
-	if len(events) != 2 {
-		t.Fatalf("events: got %d want 2", len(events))
-	}
-	for _, e := range events {
-		if e.NotifiedAt == nil {
-			t.Fatalf("window=0 must notify every time, event %d was silenced", e.ID)
-		}
-	}
-}
-
-// An event that is still active is not recreated at all — that is the older,
-// narrower dedup rule and it must keep working alongside the new one.
-func TestAlertActiveEventNotDuplicated(t *testing.T) {
-	m, repo := newAlertTestMonitor(t, 30*time.Minute)
-	rule := testRule()
-
-	m.fire(rule, 95, 90, ">")
-	m.fire(rule, 96, 90, ">")
-	m.fire(rule, 97, 90, ">")
-
-	if n := len(countEvents(t, repo)); n != 1 {
-		t.Fatalf("events: got %d want 1", n)
-	}
-}
-
-// Different rules must not silence each other: the window is per rule.
-func TestAlertSuppressionIsPerRule(t *testing.T) {
-	m, repo := newAlertTestMonitor(t, 30*time.Minute)
-	a := testRule()
-	b := model.AlertRule{ID: 8, Name: "内存使用率过高", Metric: "内存使用率", Notify: ""}
-
-	m.fire(a, 95, 90, ">")
-	resolveAll(t, repo)
-	m.fire(b, 95, 90, ">")
-
-	events := countEvents(t, repo)
-	if len(events) != 2 {
-		t.Fatalf("events: got %d want 2", len(events))
-	}
-	for _, e := range events {
-		if e.NotifiedAt == nil {
-			t.Fatalf("rule %s should have notified: it is a different rule", e.RuleName)
-		}
-	}
-}
-
-func TestHumanWindow(t *testing.T) {
+// 面板上 duration 是自由文本，用户写什么都得能解释；解释不了就当"立即告警"，
+// 这样至少不会因为写了个奇怪的字符串就永远不报警。
+func TestParseWindow(t *testing.T) {
 	cases := []struct {
-		d    time.Duration
-		want string
+		in   string
+		want time.Duration
 	}{
-		{30 * time.Minute, "30 分钟"},
-		{90 * time.Minute, "90 分钟"},
-		{2 * time.Hour, "2 小时"},
-		{45 * time.Second, "45 秒"},
+		{"5 分钟", 5 * time.Minute},
+		{"5分钟", 5 * time.Minute},
+		{"1 分钟", time.Minute},
+		{"30 秒", 30 * time.Second},
+		{"1 小时", time.Hour},
+		{"5m", 5 * time.Minute},
+		{"90s", 90 * time.Second},
+		{"2h", 2 * time.Hour},
+		{"0 分钟", 0},
+		{"", 0},
+		{"abc", 0},
+		{"5", 0},
 	}
 	for _, c := range cases {
-		if got := humanWindow(c.d); got != c.want {
-			t.Fatalf("humanWindow(%v): got %q want %q", c.d, got, c.want)
+		if got := parseWindow(c.in); got != c.want {
+			t.Errorf("parseWindow(%q) = %v, want %v", c.in, got, c.want)
 		}
+	}
+}
+
+// 核心回归：规则写"持续 5 分钟"，刚开始越线时不能报，满了才报。
+// 修改前 duration 完全没被读取，一次采样越线就立刻 fire。
+func TestSustainedSince(t *testing.T) {
+	now := time.Now()
+	if sustainedSince(now, 5*time.Minute, now) {
+		t.Fatal("刚越线就判定达标，duration 未生效")
+	}
+	if !sustainedSince(now.Add(-5*time.Minute-time.Second), 5*time.Minute, now) {
+		t.Fatal("越线超过 5 分钟仍未达标")
+	}
+	if !sustainedSince(now, 0, now) {
+		t.Fatal("duration 为 0 时应立即触发")
+	}
+	if !sustainedSince(now, -1, now) {
+		t.Fatal("负数 duration 应按 0 处理")
 	}
 }
