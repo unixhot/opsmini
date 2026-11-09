@@ -41,6 +41,9 @@ type toolDeps struct {
 	agentMgr    *agent.Manager
 	agentConfig *service.AgentConfigService
 	safety      *safety.Manager
+	// memories 是跨会话长期记忆。放在这里而不是 service 层，是因为它只服务
+	// Agent：工具写、提示词读，没有别的调用方。
+	memories *repository.MemoryRepo
 }
 
 // settingKeyToolPolicy is the panel setting that stores the per-tool policy
@@ -165,6 +168,7 @@ func buildAIAgent(
 		PanelPort: cfg.Server.Port,
 		Setting:   getSetting,
 		Safety:    d.safety,
+		Memories:  d.memories,
 	})
 
 	guard := aiagent.NewGuard(dataDir, cfg.Server.Port)
@@ -217,6 +221,20 @@ func buildAIAgent(
 		StepTimeout: 120 * time.Second,
 		Snapshot: func() string {
 			return agentSnapshot(d.sys)
+		},
+		Memories: func(query string) []string {
+			if d.memories == nil {
+				return nil
+			}
+			rows, err := d.memories.Relevant(query, 5)
+			if err != nil || len(rows) == 0 {
+				return nil
+			}
+			out := make([]string, 0, len(rows))
+			for _, m := range rows {
+				out = append(out, m.Subject+"："+m.Fact)
+			}
+			return out
 		},
 	})
 	a.SetAuditor(auditSvc.Record)
@@ -307,6 +325,7 @@ func buildAIAgent(
 		Agent:    a,
 		Store:    store,
 		Approver: approver,
+		Memories: d.memories,
 		UsernameOf: func(uid uint) string {
 			if u, err := userSvc.Get(uid); err == nil {
 				return u.Username

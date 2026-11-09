@@ -301,12 +301,14 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	}
 	safetyMgr := safety.New(db, panelDataDir, cfg.Server.Port)
 
+	// 跨会话记忆：Agent 自己写、自己读，供下次会话复用已确认的事实。
+	memoryRepo := repository.NewMemoryRepo(db)
 	agentBundle := buildAIAgent(cfg, db, settingSvc, auditSvc, roleSvc, userSvc, agentMgr, version, toolDeps{
 		sys: sysSvc, firewall: firewallSvc, file: fileSvc, log: logSvc,
 		cron: cronSvc, crontab: crontabSvc, website: websiteSvc, database: databaseSvc,
 		appStore: appStoreSvc, docker: dockerSvc, security: securitySvc,
 		skill: skillSvc, mcp: mcpSvc, metrics: metrics, agentConfig: agentConfigSvc,
-		safety: safetyMgr,
+		safety: safetyMgr, memories: memoryRepo,
 	})
 
 	// MCP: the configuration page must show whether each server really connected,
@@ -579,6 +581,9 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/ai/agent/sessions/:id/messages", permMw("ai.agent"), agentBundle.handler.SessionMessages)
 			authed.DELETE("/ai/agent/sessions/:id", permMw("ai.agent"), agentBundle.handler.DeleteSession)
 			authed.GET("/ai/agent/config", permMw("ai.agent"), agentBundle.handler.ConfigInfo)
+			authed.GET("/ai/memories", permMw("ai.agent"), agentBundle.handler.Memories)
+			authed.DELETE("/ai/memories/:id", permMw("ai.agent"), agentBundle.handler.DeleteMemory)
+			authed.DELETE("/ai/memories", permMw("ai.agent"), agentBundle.handler.ClearMemories)
 			authed.GET("/ai/agent/sessions/:id/report", permMw("ai.agent"), agentBundle.handler.SessionReport)
 			authed.GET("/ai/agent/reports", permMw("ai.agent"), agentBundle.handler.Reports)
 			authed.GET("/ai/agent/mcp-server", permMw("ai.agent"), agentBundle.handler.MCPServerInfo)

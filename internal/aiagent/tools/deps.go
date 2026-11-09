@@ -8,6 +8,7 @@ package tools
 import (
 	"github.com/opsmini/opsmini/internal/aiagent"
 	"github.com/opsmini/opsmini/internal/change"
+	"github.com/opsmini/opsmini/internal/repository"
 	"github.com/opsmini/opsmini/internal/safety"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -36,6 +37,9 @@ type Deps struct {
 	// Changes exposes the v1.4 change history (read-only). Nil disables the
 	// change tools.
 	Changes *change.Store
+	// Memories is the cross-session memory table. Nil disables the remember tool
+	// and the prompt injection that goes with it.
+	Memories *repository.MemoryRepo
 
 	// DataDir returns the panel data directory (skills, uploaded files).
 	DataDir func() string
@@ -66,4 +70,5 @@ func Build(reg *aiagent.Registry, d Deps) {
 	reg.RegisterAll(lowRiskTools(d))
 	reg.RegisterAll(highRiskTools(d))
 	reg.RegisterAll(responseTools(d))
+	reg.RegisterAll(memoryTools(d))
 }

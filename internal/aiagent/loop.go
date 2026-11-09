@@ -28,6 +28,10 @@ type Config struct {
 	// Snapshot returns a compact live system snapshot injected into the system
 	// prompt so the model can orient itself before calling any tool.
 	Snapshot func() string
+	// Memories returns facts learned in earlier sessions that are relevant to the
+	// current question. Nil means the feature is off (no table wired, or the
+	// operator cleared everything). The returned strings are injected verbatim.
+	Memories func(query string) []string
 }
 
 // withDefaults fills zero values.
@@ -328,7 +332,7 @@ func (a *Agent) loop(ctx context.Context, opt RunOptions, sess *model.AISession,
 	res := &SendResult{SessionID: sess.ID, Tools: toolsDone}
 	tools := filterTools(a.availableTools(opt.RoleName), opt.AllowedTools, opt.DeniedTools)
 	msgs := make([]Message, 0, len(history)+2)
-	msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: a.systemPrompt(opt)})
+	msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: a.systemPrompt(opt, lastUserText(history))})
 	if len(opt.Evidence) > 0 {
 		msgs = append(msgs, Message{Role: model.AIRoleSystem, Content: evidenceBlock(opt)})
 	}
@@ -657,7 +661,7 @@ func (a *Agent) availableTools(roleName string) []Tool {
 }
 
 // systemPrompt builds the agent's system prompt.
-func (a *Agent) systemPrompt(opt RunOptions) string {
+func (a *Agent) systemPrompt(opt RunOptions, query string) string {
 	var b strings.Builder
 	b.WriteString(agentSystemPrompt)
 	if opt.DeepThink {
@@ -671,7 +675,30 @@ func (a *Agent) systemPrompt(opt RunOptions) string {
 			b.WriteString("\n\n" + snap)
 		}
 	}
+	if a.cfg.Memories != nil && query != "" {
+		if facts := a.cfg.Memories(query); len(facts) > 0 {
+			b.WriteString("\n\n【关于这台机器已确认的事实】")
+			for _, f := range facts {
+				b.WriteString("\n- " + f)
+			}
+			// Facts can rot (a path moves, a port changes). Say so explicitly,
+			// otherwise a stale memory is asserted with the same confidence as a
+			// fresh tool result.
+			b.WriteString("\n以上来自之前的会话，可直接参考；若与本次工具获取的实时结果冲突，以实时结果为准，并调用 remember 工具更正。")
+		}
+	}
 	return b.String()
+}
+
+// lastUserText returns the most recent user message, which is what a memory lookup
+// matches against.
+func lastUserText(history []Message) string {
+	for i := len(history) - 1; i >= 0; i-- {
+		if history[i].Role == model.AIRoleUser {
+			return history[i].Content
+		}
+	}
+	return ""
 }
 
 // agentSystemPrompt is the base system prompt of the OpsMini Agent.

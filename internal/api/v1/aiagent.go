@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 
 	"github.com/opsmini/opsmini/internal/aiagent"
 	"github.com/opsmini/opsmini/internal/pkg/response"
+	"github.com/opsmini/opsmini/internal/repository"
 )
 
 // Settings gives the agent endpoints access to the panel settings and secrets.
@@ -42,6 +44,8 @@ type AgentDeps struct {
 	Settings       Settings
 	// DataDir returns the panel data directory (holds the archived reports).
 	DataDir func() string
+	// Memories manages the cross-session memory table. Nil hides the endpoints.
+	Memories *repository.MemoryRepo
 }
 
 // AgentHandler serves the AI Agent endpoints: streaming ReAct chat, the
@@ -630,4 +634,51 @@ func sanitizeReportName(s string) string {
 		s = string([]rune(s)[:60])
 	}
 	return s
+}
+
+// Memories GET /ai/memories - lists what the agent has learned about this host.
+func (h *AgentHandler) Memories(c *gin.Context) {
+	if h.deps.Memories == nil {
+		response.OK(c, gin.H{"list": []any{}, "total": 0, "limit": 0})
+		return
+	}
+	list, err := h.deps.Memories.List(500)
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	total, _ := h.deps.Memories.Count()
+	response.OK(c, gin.H{"list": list, "total": total, "limit": 500})
+}
+
+// DeleteMemory DELETE /ai/memories/:id - forgets one fact.
+func (h *AgentHandler) DeleteMemory(c *gin.Context) {
+	if h.deps.Memories == nil {
+		response.Error(c, 404, response.CodeNotFound, "跨会话记忆未启用")
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, 400, response.CodeInvalidParam, "无效的记忆 ID")
+		return
+	}
+	if err := h.deps.Memories.Delete(uint(id)); err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, nil)
+}
+
+// ClearMemories DELETE /ai/memories - forgets everything.
+func (h *AgentHandler) ClearMemories(c *gin.Context) {
+	if h.deps.Memories == nil {
+		response.Error(c, 404, response.CodeNotFound, "跨会话记忆未启用")
+		return
+	}
+	n, err := h.deps.Memories.Clear()
+	if err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	response.OK(c, gin.H{"deleted": n})
 }
