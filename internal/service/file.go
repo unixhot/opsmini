@@ -351,6 +351,17 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 				return nil
 			}
 			defer src.Close()
+			// 能打开不代表能读。挂载点文件（/run/snapd/ns/*.mnt）和 procfs 里的
+			// 一些条目 open 成功、第一次 read 就返回 EINVAL；等 io.Copy 里才发现
+			// 就已经写进 zip 了，撤不回来，只能整包失败。先探一个字节。
+			var probe [1]byte
+			if n, perr := src.Read(probe[:]); perr != nil && perr != io.EOF {
+				return nil
+			} else if _, serr := src.Seek(0, io.SeekStart); serr != nil {
+				return nil
+			} else if n == 0 && fi.Size() > 0 {
+				return nil
+			}
 		}
 
 		hdr, err := zip.FileInfoHeader(fi)
