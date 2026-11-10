@@ -462,6 +462,7 @@ func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest
 			Skipped:    out.Skipped,
 			Duration:   time.Since(start),
 			Unattended: true,
+			Mode:       req.Incident.Mode,
 			Status:     "success",
 		}
 		if err != nil {
@@ -593,6 +594,7 @@ func (r *incidentRunner) ResumeIncident(ctx context.Context, inc model.Incident,
 			Skipped:    res.Skipped,
 			Duration:   time.Since(start),
 			Unattended: true,
+			Mode:       inc.Mode,
 			Status:     "success",
 		}
 		if md, berr := r.store.BuildReport(res.SessionID, meta); berr == nil {

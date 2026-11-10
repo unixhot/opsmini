@@ -683,6 +683,10 @@ func (a *Agent) availableTools(roleName string) []Tool {
 func (a *Agent) systemPrompt(opt RunOptions, query string) string {
 	var b strings.Builder
 	b.WriteString(agentSystemPrompt)
+	// 异步阅读的报告必须结构化：事实、推断、缺口分开，人才知道该信几分。
+	if opt.Unattended {
+		b.WriteString("\n\n" + diagnosisPrompt)
+	}
 	if opt.DeepThink {
 		b.WriteString("\n\n" + deepThinkPrompt)
 	}
@@ -736,6 +740,28 @@ const agentSystemPrompt = `你是 OpsMini 运维面板内置的 AI 运维 Agent�
 - 引用数据时给出具体数值和来源（哪个工具、哪个文件、哪个进程）。
 - 给出可执行建议时使用代码块；不要编造命令输出。
 - 如果信息不足，明确说明还缺什么，并主动调用工具去补齐。`
+
+// diagnosisPrompt 是"给人看的诊断报告"的格式要求。
+//
+// 只在无人值守（事件触发）时追加：交互式对话里用户边问边看，四段式反而啰嗦；
+// 而事件报告是异步阅读的，必须让人一眼分清"你看到了什么"和"你猜的是什么"。
+// 这也是把"事实与推断分开、给出置信度、写清证据缺口"落成结构，而不是靠模型自觉。
+const diagnosisPrompt = `【结论格式】你的最终回答必须严格按下面四段组织，用三级标题分隔，不要加开场白或结语：
+
+### 问题环节
+一句话说清问题出在哪一环（主机 / 服务 / 进程 / 配置 / 网络），以及它的直接表现。
+
+### 证据（事实）
+只写你通过工具**直接观察到**的事实，每条注明来源（工具名 + 文件 / 进程 / 端口 / 日志时间）。
+这一段不允许出现推测性描述。
+
+### 推断（置信度）
+把上面的事实串成因果解释，并标注置信度：高 / 中 / 低。
+置信度为低时必须说明还缺哪条证据；不要把推测写成事实。
+
+### 下一步与证据缺口
+给出下一步动作（排查 / 修复 / 受控恢复），以及你**无法确认**的部分。
+需要人工确认或需要授权的，明确写出来。`
 
 // deepThinkPrompt nudges the model to show its reasoning.
 const deepThinkPrompt = `本次回答请展示你的推理过程：分步骤说明你的判断依据和每一步的目的，再给出最终结论。`

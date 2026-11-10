@@ -154,6 +154,8 @@
 .st-tbl td.prewrap{white-space:pre-wrap;word-break:break-word;line-height:1.6;font-size:12.5px}
 .st-help-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6}
 .st-detail-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
+.sum-h{font-weight:600;font-size:12.5px;color:var(--t2);margin:10px 0 3px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.sum-h:first-child{margin-top:0}
 .st-detail-sec{font-size:12.5px;font-weight:600;color:var(--t2);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
 .st-detail-row{display:flex;gap:8px;padding:6px 0;font-size:12.5px;line-height:1.6;border-bottom:1px dashed var(--border);word-break:break-word}
 .st-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
@@ -2819,7 +2821,7 @@
               </div>
               <div v-if="incApproveMsg" class="mute" style="font-size:12px;margin-top:8px">{{ incApproveMsg }}</div>
             </div>
-            <div v-if="incDetail.incident.summary" class="st-detail-box">{{ incDetail.incident.summary }}</div>
+            <div v-if="incDetail.incident.summary" class="st-detail-box" v-html="fmtSummary(incDetail.incident.summary)"></div>
             <div class="st-detail-sec" v-if="(incDetail.related||[]).length">{{ t('chg.related') }} ({{ incDetail.related.length }})</div>
             <div v-for="rc in (incDetail.related||[])" :key="rc.event.id" class="st-detail-row" style="align-items:flex-start">
               <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(rc.event.at) }}</span>
@@ -8168,6 +8170,13 @@ const app = createApp({
         const d = await this.api('/sentinel/incidents/' + encodeURIComponent(iid));
         if(d && d.incident){ this.chgDetail = null; this.openIncident(d.incident); }
       }catch(e){ this.toast(e.message || ''); }
+    },
+    // 诊断结论按四段式渲染：先整体转义，再只把自己生成的标题标签插回去。
+    // 直接用 v-html 渲染模型输出是不安全的，这里保证除了 .sum-h 之外没有别的标签。
+    fmtSummary(s){
+      if(!s) return '';
+      const esc = String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return esc.replace(/^###\s*(.+)$/gm, '<div class="sum-h">$1</div>');
     },
     // 指标数值：大数用 K/M 收窄，避免把 1.2e+07 直接写在格子里。
     // 必须放 methods：computed 不能带参数，放错位置会让整个页面渲染崩掉。

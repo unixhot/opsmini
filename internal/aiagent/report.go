@@ -28,6 +28,9 @@ type ReportMeta struct {
 	Duration time.Duration
 	// Unattended marks a scheduled run (documented in the header).
 	Unattended bool
+	// Mode 是运行模式（shadow / assist / auto）。报告头要用它说清"需要确认的
+	// 操作会发生什么"：assist 是挂起等审批，定时任务是直接拒绝，两者不一样。
+	Mode string
 	// GeneratedAt is the human-readable generation time shown in the HTML header
 	// (the Markdown body carries its own timestamp line).
 	GeneratedAt string
@@ -58,7 +61,14 @@ func (s *Store) BuildReport(sessionID string, meta ReportMeta) (string, error) {
 	fmt.Fprintf(&b, "# %s\n\n", title)
 	fmt.Fprintf(&b, "> 生成时间：%s ｜ 会话：`%s`\n", generatedAt, sess.ID)
 	if meta.Unattended {
-		b.WriteString("> 执行方式：**无人值守的定时任务**（需人工确认的操作会被自动拒绝）\n")
+		switch meta.Mode {
+		case "assist":
+			b.WriteString("> 执行方式：**事件触发的自主处置**（需人工确认的操作会挂起，等待审批后继续）\n")
+		case "auto":
+			b.WriteString("> 执行方式：**事件触发的自动处置**（仅白名单内的低危动作会自动执行）\n")
+		default:
+			b.WriteString("> 执行方式：**无人值守的定时任务**（需人工确认的操作会被自动拒绝）\n")
+		}
 	}
 	b.WriteString("\n")
 
