@@ -188,9 +188,9 @@ func (m *Manager) verifyOne(ctx context.Context, l model.ActionLog) ActionCheck 
 
 const oneMinute = 60 * 1e9
 
-func pass(c ActionCheck, d string) ActionCheck  { c.OK, c.Detail = true, d; return c }
-func fail(c ActionCheck, d string) ActionCheck  { c.OK, c.Detail = false, d; return c }
-func skip(c ActionCheck, d string) ActionCheck  { c.OK, c.Skipped, c.Detail = true, true, d; return c }
+func pass(c ActionCheck, d string) ActionCheck { c.OK, c.Detail = true, d; return c }
+func fail(c ActionCheck, d string) ActionCheck { c.OK, c.Detail = false, d; return c }
+func skip(c ActionCheck, d string) ActionCheck { c.OK, c.Skipped, c.Detail = true, true, d; return c }
 
 // ruleExists looks for a drop/reject rule covering ip in the legacy iptables
 // ruleset. nft-only hosts return false here; the caller falls back to the

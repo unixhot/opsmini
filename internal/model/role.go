@@ -70,7 +70,7 @@ func PermGroups() []PermissionGroup {
 		{Key: "security", Label: "主机安全", Perms: []Permission{
 			perm("security.view", "查看安全概览"), perm("security.scan", "基线体检"),
 			perm("security.firewall", "防火墙规则"), perm("security.fim", "文件完整性"),
-			perm("security.threat", "威胁处理"),
+			perm("security.threat", "威胁处理"), perm("security.drill", "容灾演练（可注入故障）"),
 		}},
 		{Key: "alert", Label: "告警", Perms: []Permission{
 			perm("alert.view", "查看告警"), perm("alert.manage", "管理告警规则"),

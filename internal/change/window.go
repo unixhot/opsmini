@@ -9,13 +9,13 @@ import (
 
 // WindowMetric is one metric compared across the two windows around a change.
 type WindowMetric struct {
-	Key      string `json:"key"`
-	Label    string `json:"label"`
-	Unit     string `json:"unit"`
-	Before   Stat   `json:"before"`
-	After    Stat   `json:"after"`
+	Key      string  `json:"key"`
+	Label    string  `json:"label"`
+	Unit     string  `json:"unit"`
+	Before   Stat    `json:"before"`
+	After    Stat    `json:"after"`
 	DeltaPct float64 `json:"delta_pct"`
-	Worsened bool   `json:"worsened"`
+	Worsened bool    `json:"worsened"`
 	// Note explains a judgement that the numbers alone do not make obvious.
 	Note string `json:"note,omitempty"`
 }

@@ -21,6 +21,7 @@ import (
 	v1 "github.com/opsmini/opsmini/internal/api/v1"
 	"github.com/opsmini/opsmini/internal/backup"
 	"github.com/opsmini/opsmini/internal/config"
+	"github.com/opsmini/opsmini/internal/drill"
 	"github.com/opsmini/opsmini/internal/middleware"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/jwt"
@@ -161,6 +162,67 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	})
 	fimSvc.SetSaver(func(kv map[string]string) error { return settingSvc.Set(kv) })
 	fimHandler := v1.NewFimHandler(fimSvc)
+	// 容灾演练：往本机注入可恢复的故障，用来回答「auto 模式敢不敢开」。
+	// 构造在这里是因为它要拿到 FIM 的监控名单和计划任务服务。
+	// FIM 名单的临时增删：木马演练要保证「有人看着」，否则演练结论会从
+	// 「Agent 没发现」变成「根本没人看」，那是两个完全不同的结论。
+	fimSetPaths := func(patterns, critical []string) error {
+		if err := settingSvc.Set(map[string]string{
+			"fim_paths":          strings.Join(patterns, ","),
+			"fim_critical_paths": strings.Join(critical, ","),
+		}); err != nil {
+			return err
+		}
+		return fimSvc.Rebuild()
+	}
+	drillMgr := drill.New(filepath.Join(cfg.DataDir(), "drill"), drill.Ops(drill.Deps{
+		FimWatches: fimSvc.Watches,
+		FimWatch: func(path string) error {
+			patterns, critical := fimSvc.MonitoredPaths()
+			for _, p := range patterns {
+				if p == path {
+					return nil
+				}
+			}
+			return fimSetPaths(append(patterns, path), append(critical, path))
+		},
+		FimUnwatch: func(path string) error {
+			patterns, critical := fimSvc.MonitoredPaths()
+			keepP := make([]string, 0, len(patterns))
+			for _, p := range patterns {
+				if p != path {
+					keepP = append(keepP, p)
+				}
+			}
+			keepC := make([]string, 0, len(critical))
+			for _, p := range critical {
+				if p != path {
+					keepC = append(keepC, p)
+				}
+			}
+			if len(keepP) == len(patterns) && len(keepC) == len(critical) {
+				return nil
+			}
+			return fimSetPaths(keepP, keepC)
+		},
+		CronCreate: func(name, schedule, command string) (uint, error) {
+			j, err := cronSvc.Create(service.CronReq{Name: name, Schedule: schedule, Command: command})
+			if err != nil {
+				return 0, err
+			}
+			return j.ID, nil
+		},
+		CronDelete: cronSvc.Delete,
+		CronRunNow: func(id uint) error {
+			_, err := cronSvc.RunNow(id)
+			return err
+		},
+	})...)
+	drillMgr.SetLogger(log.Printf)
+	// 上次进程没能恢复的故障，在服务起来时先清掉——留着就是真故障。
+	go drillMgr.Reconcile(context.Background())
+	drillHandler := v1.NewDrillHandler(drillMgr, db)
+
 	firewallSvc := service.NewFirewallService(sysSvc, cfg.Server.Port)
 	firewallHandler := v1.NewFirewallHandler(firewallSvc)
 	securitySvc := service.NewSecurityService(
@@ -637,6 +699,11 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 			authed.GET("/security/threats", threatHandler.List)
 			authed.POST("/security/threats/scan", permMw("security.threat"), threatHandler.Scan)
 			authed.POST("/security/threats/:id/resolve", permMw("security.threat"), threatHandler.Resolve)
+
+			// 容灾演练：注入 → 观察 → 恢复。注入故障所以要单独一个权限点。
+			authed.GET("/drills", permMw("security.view"), drillHandler.List)
+			authed.POST("/drills/:kind/start", permMw("security.drill"), drillHandler.Start)
+			authed.POST("/drills/:kind/stop", permMw("security.drill"), drillHandler.Stop)
 
 			// Panel settings (runtime configuration persisted)
 			authed.GET("/settings", permMw("settings.view"), settingHandler.List)

@@ -129,6 +129,8 @@
   .inst-id code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--card);color:var(--t2);transition:color .15s,border-color .15s,background .15s}
   .inst-id:hover code{color:var(--primary);border-color:var(--primary);background:var(--primary-soft)}
   .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--t1);transition:.15s}
+/* 禁用态必须看得出来。之前没有这个规则，按钮点了没反应，用户只会以为坏了。 */
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.25)}
   .btn:hover{border-color:var(--t3)}
   .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
   .btn.primary:hover{background:var(--primary-2)}
@@ -154,6 +156,22 @@
 .st-tbl td.prewrap{white-space:pre-wrap;word-break:break-word;line-height:1.6;font-size:12.5px}
 .st-help-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6}
 .st-detail-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
+.drill-intro{background:var(--warning-soft);border:1px solid var(--warning);border-radius:10px;padding:10px 14px;font-size:12.5px;line-height:1.75;margin-bottom:14px;color:var(--t2)}
+.drill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.drill-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.drill-card.live{border-color:var(--warning);box-shadow:0 0 0 2px var(--warning-soft)}
+.drill-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.drill-t{font-size:13.5px;font-weight:600}
+.drill-d{font-size:12px;color:var(--t2);line-height:1.7}
+.drill-meta{font-size:11px;display:flex;gap:6px;align-items:center}
+.drill-note{font-size:11.5px;line-height:1.7;color:var(--t2);background:var(--bg);border-radius:6px;padding:6px 8px}
+.drill-err{font-size:11.5px;line-height:1.7;color:var(--danger);background:var(--danger-soft);border-radius:6px;padding:6px 8px}
+.drill-found{font-size:12px;border-top:1px dashed var(--border);padding-top:8px;margin-top:2px}
+.drill-inc{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.drill-inc-t{font-size:11.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drill-confirm{display:flex;align-items:flex-start;gap:6px;font-size:11px;line-height:1.6;color:var(--t3);cursor:pointer}
+.drill-confirm input{margin-top:2px}
+.drill-actions{display:flex;justify-content:flex-end;margin-top:auto;padding-top:4px}
 .sum-h{font-weight:600;font-size:12.5px;color:var(--t2);margin:10px 0 3px;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .sum-h:first-child{margin-top:0}
 .st-detail-sec{font-size:12.5px;font-weight:600;color:var(--t2);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
@@ -3273,6 +3291,7 @@
             <span :class="{active: securityTab==='baseline'}" @click="setSecurityTab('baseline')">{{ t('sec.tab.baseline') }}</span>
             <span :class="{active: securityTab==='fim'}" @click="setSecurityTab('fim')">{{ t('sec.tab.fim') }}</span>
             <span :class="{active: securityTab==='threat'}" @click="setSecurityTab('threat')">{{ t('sec.tab.threat') }}</span>
+            <span :class="{active: securityTab==='drill'}" @click="setSecurityTab('drill')">{{ t('menu.drill') }}</span>
           </div>
         </div>
 
@@ -3562,6 +3581,52 @@
       </div>
 
       <!-- ============ 用户管理 ============ -->
+      <!-- ============ 容灾演练（主机安全的一个 tab）：注入 → 观察 → 恢复 ============ -->
+      <div v-if="page==='security' && securityTab==='drill'">
+        <div class="drill-intro">{{ t('drill.intro') }}</div>
+        <div class="drill-grid">
+          <div class="drill-card" v-for="d in drillDrills" :key="d.kind" :class="{live: d.active}">
+            <div class="drill-head">
+              <span class="drill-t">{{ t('drill.' + d.kind + '.t') }}</span>
+              <span class="tag" :class="d.risk==='safe' ? 'ok' : 'warn'">{{ t('drill.risk.' + d.risk) }}</span>
+              <span class="tag" :class="d.active ? 'warn' : 'mute'" style="margin-left:auto">{{ d.active ? t('drill.running') : t('drill.idle') }}</span>
+            </div>
+            <div class="drill-d">{{ t('drill.' + d.kind + '.d') }}</div>
+            <div class="drill-meta">
+              <span class="mute">{{ d.detector }}</span>
+              <span class="mute" v-if="d.active">· {{ t('drill.remaining') }} {{ drillRemain(d) }}</span>
+            </div>
+            <div class="drill-note" v-if="d.note">{{ d.note }}</div>
+            <div class="drill-err" v-if="d.error">{{ d.error }}</div>
+            <div class="drill-found">
+              <div class="mute" style="font-size:11.5px;margin-bottom:4px">
+                {{ t('drill.found') }}
+                <span v-if="(d.alert_count||0) + (d.incident_count||0)">
+                  · {{ t('drill.alert') }} {{ d.alert_count||0 }} / {{ t('drill.incident') }} {{ d.incident_count||0 }}
+                </span>
+              </div>
+              <div class="drill-inc" v-for="i in (d.incidents||[]).slice(0,3)" :key="i.id">
+                <span class="tag" :class="stTag(i.status)" style="font-size:10px">{{ t('sentinel.st.' + i.status) }}</span>
+                <span class="drill-inc-t">{{ i.title }}</span>
+              </div>
+              <div class="drill-inc" v-for="a in (d.alerts||[]).slice(0,3)" :key="'a' + a.id">
+                <span class="tag" :class="a.status==='active' ? 'warn' : 'mute'" style="font-size:10px">{{ a.level }}</span>
+                <span class="drill-inc-t">{{ a.message }}</span>
+              </div>
+              <div class="mute" style="font-size:11.5px" v-if="!((d.incidents||[]).length || (d.alerts||[]).length)">{{ t('drill.none') }}</div>
+            </div>
+            <label class="drill-confirm" v-if="!d.active && d.risk==='guard'">
+              <input type="checkbox" v-model="drillConfirm[d.kind]">
+              <span>{{ t('drill.confirmTip') }}</span>
+            </label>
+            <div class="drill-actions">
+              <button class="btn sm" v-if="!d.active" @click="startDrill(d)"
+                      :disabled="drillBusy===d.kind || (d.risk==='guard' && !drillConfirm[d.kind])">{{ t('drill.start') }}</button>
+              <button class="btn sm ghost" v-else @click="stopDrill(d)" :disabled="drillBusy===d.kind">{{ t('drill.stop') }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div v-if="page==='users'">
         <div class="page-head">
           <div><div class="page-title">{{ t('page.users') }}</div><div class="page-desc">{{ t('users.desc') }}</div></div>
@@ -5086,7 +5151,7 @@ const I18N = {
     'topbar.logout':'退出','topbar.lang':'Language / 语言',
     'group.overview':'总览','group.tools':'工具','group.system':'系统',
     'menu.dashboard':'仪表盘','menu.monitoring':'监控','menu.ai':'AI 助手','menu.apps':'应用管理','menu.files':'文件','menu.terminal':'终端',
-    'menu.cron':'计划任务','menu.logs':'日志','menu.system':'系统管理','menu.profile':'个人设置','menu.users':'用户管理','menu.settings':'面板设置',
+    'menu.cron':'计划任务','menu.logs':'日志','menu.drill':'容灾演练','drill.intro':'演练会在本机真的制造故障，用来回答「系统发现了吗、处置用对了吗」。一次只能跑一个，到时间自动恢复，也可以随时手动恢复。','drill.risk.safe':'安全','drill.risk.guard':'需确认','drill.start':'开始演练','drill.stop':'恢复现场','drill.running':'进行中','drill.idle':'未开始','drill.remaining':'剩余','drill.found':'演练开始后发现的事件','drill.none':'还没有发现事件','drill.alert':'告警','drill.incident':'事件','drill.confirmTip':'该演练会影响本机其它服务，勾选确认后才会执行','drill.cpu_hog.t':'CPU 打满','drill.cpu_hog.d':'每个核起一个空转进程把 CPU 打满，验证指标链路能否触发告警','drill.log_flood.t':'日志暴涨','drill.log_flood.d':'向 /var/log 持续写约 1.6 MB/s，验证日志采集与截断处置','drill.webshell.t':'木马样本落地','drill.webshell.d':'在 /tmp 放一个不可执行的样本文件，验证文件完整性检测','drill.cron_fail.t':'计划任务失败','drill.cron_fail.d':'建一个必然失败的任务并立刻执行一次，验证失败检查','drill.disk_fill.t':'磁盘将满','drill.disk_fill.d':'实际占用空间把使用率推到 92%，验证磁盘告警与清理建议','drill.docker_down.t':'Docker 不可用','drill.docker_down.d':'停掉 docker 服务，验证容器异常检测（会影响本机容器）','menu.system':'系统管理','menu.profile':'个人设置','menu.users':'用户管理','menu.settings':'面板设置',
     'page.dashboard':'仪表盘','page.monitoring':'监控','page.ai':'AI 助手','page.apps':'应用管理','page.system':'系统管理',
     'page.files':'文件','page.terminal':'终端','page.cron':'计划任务','page.logs':'日志','page.users':'用户管理','page.settings':'面板设置',
     'apps.desc':'网站、数据库、容器与软件商店统一管理',
@@ -5131,7 +5196,7 @@ const I18N = {
     'topbar.logout':'登出','topbar.lang':'Language / 語言',
     'group.overview':'總覽','group.tools':'工具','group.system':'系統',
     'menu.dashboard':'儀表板','menu.monitoring':'監控','menu.ai':'AI 助理','menu.apps':'應用管理','menu.files':'檔案','menu.terminal':'終端',
-    'menu.cron':'排程任務','menu.logs':'日誌','menu.system':'系統管理','menu.profile':'個人設定','menu.users':'使用者管理','menu.settings':'面板設定',
+    'menu.cron':'排程任務','menu.logs':'日誌','menu.drill':'容災演練','drill.intro':'演練會在本機真的製造故障，用來回答「系統發現了嗎、處置用對了嗎」。一次只能跑一個，到時間自動恢復，也可以隨時手動恢復。','drill.risk.safe':'安全','drill.risk.guard':'需確認','drill.start':'開始演練','drill.stop':'恢復現場','drill.running':'進行中','drill.idle':'未開始','drill.remaining':'剩餘','drill.found':'演練開始後發現的事件','drill.none':'還沒有發現事件','drill.alert':'告警','drill.incident':'事件','drill.confirmTip':'該演練會影響本機其它服務，勾選確認後才會執行','drill.cpu_hog.t':'CPU 滿載','drill.cpu_hog.d':'每個核起一個空轉行程把 CPU 打滿，驗證指標鏈路能否觸發告警','drill.log_flood.t':'日誌暴增','drill.log_flood.d':'向 /var/log 持續寫約 1.6 MB/s，驗證日誌採集與截斷處置','drill.webshell.t':'木馬樣本落地','drill.webshell.d':'在 /tmp 放一個不可執行的樣本檔，驗證檔案完整性偵測','drill.cron_fail.t':'排程任務失敗','drill.cron_fail.d':'建一個必然失敗的任務並立刻執行一次，驗證失敗檢查','drill.disk_fill.t':'磁碟將滿','drill.disk_fill.d':'實際佔用空間把使用率推到 92%，驗證磁碟告警與清理建議','drill.docker_down.t':'Docker 不可用','drill.docker_down.d':'停掉 docker 服務，驗證容器異常偵測（會影響本機容器）','menu.system':'系統管理','menu.profile':'個人設定','menu.users':'使用者管理','menu.settings':'面板設定',
     'page.dashboard':'儀表板','page.monitoring':'監控','page.ai':'AI 助理','page.apps':'應用管理','page.system':'系統管理',
     'page.files':'檔案','page.terminal':'終端','page.cron':'排程任務','page.logs':'日誌','page.users':'使用者管理','page.settings':'面板設定',
     'apps.desc':'網站、資料庫、容器與軟體商店統一管理',
@@ -5176,7 +5241,7 @@ const I18N = {
     'topbar.logout':'Log out','topbar.lang':'Language / 语言',
     'group.overview':'Overview','group.tools':'Tools','group.system':'System',
     'menu.dashboard':'Dashboard','menu.monitoring':'Monitoring','menu.ai':'AI Assistant','menu.apps':'Applications','menu.files':'Files','menu.terminal':'Terminal',
-    'menu.cron':'Cron Jobs','menu.logs':'Logs','menu.system':'System','menu.profile':'Profile','menu.users':'Users','menu.settings':'Panel Settings',
+    'menu.cron':'Cron Jobs','menu.logs':'Logs','menu.drill':'Drills','drill.intro':'A drill really breaks something on this host, so you can see whether the panel notices and whether the remedy works. One at a time; auto-restored when the timer ends, and you can restore early at any time.','drill.risk.safe':'Safe','drill.risk.guard':'Needs confirm','drill.start':'Start drill','drill.stop':'Restore','drill.running':'Running','drill.idle':'Idle','drill.remaining':'left','drill.found':'Incidents since the drill started','drill.none':'No incident yet','drill.alert':'alerts','drill.incident':'incidents','drill.confirmTip':'This drill affects other services on the host. Tick the box to proceed.','drill.cpu_hog.t':'CPU saturation','drill.cpu_hog.d':'Spins one busy loop per core to saturate the CPU and test the metric-to-alert path','drill.log_flood.t':'Log flood','drill.log_flood.d':'Writes ~1.6 MB/s into /var/log to test log collection and truncation','drill.webshell.t':'Malware sample','drill.webshell.d':'Drops an inert sample file under /tmp to test file-integrity detection','drill.cron_fail.t':'Failing cron job','drill.cron_fail.d':'Creates a job that always fails and runs it once to test the failure check','drill.disk_fill.t':'Disk almost full','drill.disk_fill.d':'Really allocates space until usage reaches 92% to test disk alerts','drill.docker_down.t':'Docker unavailable','drill.docker_down.d':'Stops the docker daemon to test container detection (affects local containers)','menu.system':'System','menu.profile':'Profile','menu.users':'Users','menu.settings':'Panel Settings',
     'page.dashboard':'Dashboard','page.monitoring':'Monitoring','page.ai':'AI Assistant','page.apps':'Applications','page.system':'System',
     'page.files':'Files','page.terminal':'Terminal','page.cron':'Cron Jobs','page.logs':'Logs','page.users':'Users','page.settings':'Panel Settings',
     'apps.desc':'Websites, databases, containers & app store in one place',
@@ -5221,7 +5286,7 @@ const I18N = {
     'topbar.logout':'ログアウト','topbar.lang':'Language / 言語',
     'group.overview':'概要','group.tools':'ツール','group.system':'システム',
     'menu.dashboard':'ダッシュボード','menu.monitoring':'監視','menu.ai':'AI アシスタント','menu.apps':'アプリ管理','menu.files':'ファイル','menu.terminal':'ターミナル',
-    'menu.cron':'スケジュール','menu.logs':'ログ','menu.system':'システム管理','menu.profile':'プロフィール','menu.users':'ユーザー管理','menu.settings':'パネル設定',
+    'menu.cron':'スケジュール','menu.logs':'ログ','menu.drill':'障害演習','drill.intro':'演習はこのホストで実際に障害を起こし、「システムが気づくか、対処が正しいか」を確かめます。同時に一つだけ、時間が来れば自動復旧し、手動でも復旧できます。','drill.risk.safe':'安全','drill.risk.guard':'要確認','drill.start':'演習を開始','drill.stop':'復旧する','drill.running':'実行中','drill.idle':'未実行','drill.remaining':'残り','drill.found':'演習開始後に検知したインシデント','drill.none':'まだ検知していません','drill.alert':'アラート','drill.incident':'インシデント','drill.confirmTip':'この演習はホスト上の他のサービスに影響します。チェックしてから実行してください。','drill.cpu_hog.t':'CPU 飽和','drill.cpu_hog.d':'コアごとに空回りプロセスを起動して CPU を飽和させ、アラート経路を検証','drill.log_flood.t':'ログ急増','drill.log_flood.d':'/var/log に約 1.6 MB/s 書き込み、ログ収集と切り詰めを検証','drill.webshell.t':'マルウェア样本','drill.webshell.d':'/tmp に実行不能な样本ファイルを置き、完全性検知を検証','drill.cron_fail.t':'スケジュール失敗','drill.cron_fail.d':'必ず失敗するタスクを作成して一度実行し、失敗検査を検証','drill.disk_fill.t':'ディスク逼迫','drill.disk_fill.d':'実際に容量を消費して使用率 92% まで上げ、ディスク警告を検証','drill.docker_down.t':'Docker 停止','drill.docker_down.d':'docker サービスを停止してコンテナ検知を検証（ローカルコンテナに影響）','menu.system':'システム管理','menu.profile':'プロフィール','menu.users':'ユーザー管理','menu.settings':'パネル設定',
     'page.dashboard':'ダッシュボード','page.monitoring':'監視','page.ai':'AI アシスタント','page.apps':'アプリ管理','page.system':'システム管理',
     'page.files':'ファイル','page.terminal':'ターミナル','page.cron':'スケジュール','page.logs':'ログ','page.users':'ユーザー管理','page.settings':'パネル設定',
     'apps.desc':'ウェブサイト・データベース・コンテナ・アプリストアを一元管理',
@@ -5266,7 +5331,7 @@ const I18N = {
     'topbar.logout':'로그아웃','topbar.lang':'Language / 언어',
     'group.overview':'개요','group.tools':'도구','group.system':'시스템',
     'menu.dashboard':'대시보드','menu.monitoring':'모니터링','menu.ai':'AI 어시스턴트','menu.apps':'앱 관리','menu.files':'파일','menu.terminal':'터미널',
-    'menu.cron':'예약 작업','menu.logs':'로그','menu.system':'시스템 관리','menu.profile':'프로필','menu.users':'사용자 관리','menu.settings':'패널 설정',
+    'menu.cron':'예약 작업','menu.logs':'로그','menu.drill':'장애 훈련','drill.intro':'훈련은 이 호스트에서 실제로 장애를 일으켜 「시스템이 감지하는가, 대응이 맞는가」를 확인합니다. 한 번에 하나만, 시간이 되면 자동 복구되며 언제든 수동 복구할 수 있습니다.','drill.risk.safe':'안전','drill.risk.guard':'확인 필요','drill.start':'훈련 시작','drill.stop':'복구','drill.running':'진행 중','drill.idle':'대기','drill.remaining':'남음','drill.found':'훈련 시작 후 감지된 이벤트','drill.none':'아직 감지된 이벤트 없음','drill.alert':'경보','drill.incident':'이벤트','drill.confirmTip':'이 훈련은 호스트의 다른 서비스에 영향을 줍니다. 확인 후 실행하세요.','drill.cpu_hog.t':'CPU 포화','drill.cpu_hog.d':'코어마다 바쁜 루프를 띄워 CPU 를 포화시켜 지표 기반 경보를 검증','drill.log_flood.t':'로그 폭증','drill.log_flood.d':'/var/log 에 약 1.6 MB/s 를 기록해 로그 수집과 절단을 검증','drill.webshell.t':'악성코드 샘플','drill.webshell.d':'/tmp 에 실행되지 않는 샘플 파일을 두어 무결성 탐지를 검증','drill.cron_fail.t':'예약 작업 실패','drill.cron_fail.d':'반드시 실패하는 작업을 만들어 한 번 실행해 실패 검사를 검증','drill.disk_fill.t':'디스크 부족','drill.disk_fill.d':'실제로 공간을 차지해 사용률을 92% 까지 올려 디스크 경보를 검증','drill.docker_down.t':'Docker 중단','drill.docker_down.d':'docker 서비스를 중지해 컨테이너 탐지를 검증 (로컬 컨테이너 영향)','menu.system':'시스템 관리','menu.profile':'프로필','menu.users':'사용자 관리','menu.settings':'패널 설정',
     'page.dashboard':'대시보드','page.monitoring':'모니터링','page.ai':'AI 어시스턴트','page.apps':'앱 관리','page.system':'시스템 관리',
     'page.files':'파일','page.terminal':'터미널','page.cron':'예약 작업','page.logs':'로그','page.users':'사용자 관리','page.settings':'패널 설정',
     'apps.desc':'웹사이트·데이터베이스·컨테이너·앱 스토어 통합 관리',
@@ -5311,7 +5376,7 @@ const I18N = {
     'topbar.logout':'ออกจากระบบ','topbar.lang':'Language / ภาษา',
     'group.overview':'ภาพรวม','group.tools':'เครื่องมือ','group.system':'ระบบ',
     'menu.dashboard':'แดชบอร์ด','menu.monitoring':'การตรวจสอบ','menu.ai':'ผู้ช่วย AI','menu.apps':'จัดการแอป','menu.files':'ไฟล์','menu.terminal':'เทอร์มินัล',
-    'menu.cron':'งานตามกำหนด','menu.logs':'บันทึก','menu.system':'จัดการระบบ','menu.profile':'โปรไฟล์','menu.users':'จัดการผู้ใช้','menu.settings':'ตั้งค่าแผง',
+    'menu.cron':'งานตามกำหนด','menu.logs':'บันทึก','menu.drill':'ซ้อมรับมือ','drill.intro':'การซ้อมจะสร้างความขัดข้องจริงบนเครื่องนี้ เพื่อดูว่า「ระบบตรวจพบหรือไม่ การแก้ไขถูกต้องหรือไม่」 ทำได้ครั้งละหนึ่งรายการ หมดเวลาจะคืนสภาพอัตโนมัติ และคืนสภาพเองได้ทุกเมื่อ','drill.risk.safe':'ปลอดภัย','drill.risk.guard':'ต้องยืนยัน','drill.start':'เริ่มซ้อม','drill.stop':'คืนสภาพ','drill.running':'กำลังทำงาน','drill.idle':'ยังไม่เริ่ม','drill.remaining':'เหลือ','drill.found':'เหตุการณ์ที่พบหลังเริ่มซ้อม','drill.none':'ยังไม่พบเหตุการณ์','drill.alert':'การแจ้งเตือน','drill.incident':'เหตุการณ์','drill.confirmTip':'การซ้อมนี้กระทบบริการอื่นบนเครื่อง ต้องยืนยันก่อนดำเนินการ','drill.cpu_hog.t':'CPU เต็ม','drill.cpu_hog.d':'สร้างโปรเซสหมุนวนหนึ่งตัวต่อหนึ่งคอร์เพื่อให้ CPU เต็ม และทดสอบการแจ้งเตือน','drill.log_flood.t':'ล็อกท่วม','drill.log_flood.d':'เขียนประมาณ 1.6 MB/s ลง /var/log เพื่อทดสอบการเก็บและตัดล็อก','drill.webshell.t':'ไฟล์ตัวอย่างมัลแวร์','drill.webshell.d':'วางไฟล์ตัวอย่างที่รันไม่ได้ใน /tmp เพื่อทดสอบการตรวจความสมบูรณ์','drill.cron_fail.t':'งานตามกำหนดล้มเหลว','drill.cron_fail.d':'สร้างงานที่ล้มเหลวแน่นอนและรันทันทีหนึ่งครั้ง','drill.disk_fill.t':'ดิสก์ใกล้เต็ม','drill.disk_fill.d':'จองพื้นที่จริงจนใช้ถึง 92% เพื่อทดสอบการแจ้งเตือนดิสก์','drill.docker_down.t':'Docker ใช้งานไม่ได้','drill.docker_down.d':'หยุดบริการ docker เพื่อทดสอบการตรวจคอนเทนเนอร์ (กระทบคอนเทนเนอร์บนเครื่อง)','menu.system':'จัดการระบบ','menu.profile':'โปรไฟล์','menu.users':'จัดการผู้ใช้','menu.settings':'ตั้งค่าแผง',
     'page.dashboard':'แดชบอร์ด','page.monitoring':'การตรวจสอบ','page.ai':'ผู้ช่วย AI','page.apps':'จัดการแอป','page.system':'จัดการระบบ',
     'page.files':'ไฟล์','page.terminal':'เทอร์มินัล','page.cron':'งานตามกำหนด','page.logs':'บันทึก','page.users':'จัดการผู้ใช้','page.settings':'ตั้งค่าแผง',
     'apps.desc':'จัดการเว็บไซต์ ฐานข้อมูล คอนเทนเนอร์ และร้านแอปในที่เดียว',
@@ -5356,7 +5421,7 @@ const I18N = {
     'topbar.logout':'Abmelden','topbar.lang':'Language / Sprache',
     'group.overview':'Übersicht','group.tools':'Werkzeuge','group.system':'System',
     'menu.dashboard':'Dashboard','menu.monitoring':'Überwachung','menu.ai':'KI-Assistent','menu.apps':'Anwendungen','menu.files':'Dateien','menu.terminal':'Terminal',
-    'menu.cron':'Geplante Aufgaben','menu.logs':'Protokolle','menu.system':'System','menu.profile':'Profil','menu.users':'Benutzer','menu.settings':'Panel-Einstellungen',
+    'menu.cron':'Geplante Aufgaben','menu.logs':'Protokolle','menu.drill':'Notfallübungen','drill.intro':'Eine Übung verursacht auf diesem Host wirklich eine Störung, damit sichtbar wird, ob das Panel sie bemerkt und ob die Gegenmaßnahme greift. Immer nur eine; nach Ablauf automatisch zurückgesetzt, jederzeit auch manuell.','drill.risk.safe':'Unkritisch','drill.risk.guard':'Bestätigung nötig','drill.start':'Übung starten','drill.stop':'Zurücksetzen','drill.running':'Läuft','drill.idle':'Bereit','drill.remaining':'übrig','drill.found':'Vorfälle seit Übungsbeginn','drill.none':'Noch kein Vorfall','drill.alert':'Alarme','drill.incident':'Vorfälle','drill.confirmTip':'Diese Übung betrifft andere Dienste auf dem Host. Zum Fortfahren bestätigen.','drill.cpu_hog.t':'CPU-Last','drill.cpu_hog.d':'Startet pro Kern eine Beschäftigungsschleife, sättigt die CPU und prüft den Alarmpfad','drill.log_flood.t':'Log-Flut','drill.log_flood.d':'Schreibt ca. 1,6 MB/s nach /var/log und prüft Sammlung und Kürzung','drill.webshell.t':'Schadprobe','drill.webshell.d':'Legt eine nicht ausführbare Probendatei unter /tmp ab und prüft die Integritätserkennung','drill.cron_fail.t':'Fehlgeschlagene Aufgabe','drill.cron_fail.d':'Legt eine immer fehlschlagende Aufgabe an und führt sie einmal aus','drill.disk_fill.t':'Datenträger fast voll','drill.disk_fill.d':'Belegt echten Speicher bis 92 % Auslastung und prüft die Datenträgerwarnung','drill.docker_down.t':'Docker nicht verfügbar','drill.docker_down.d':'Stoppt den Docker-Dienst und prüft die Containererkennung (betrifft lokale Container)','menu.system':'System','menu.profile':'Profil','menu.users':'Benutzer','menu.settings':'Panel-Einstellungen',
     'page.dashboard':'Dashboard','page.monitoring':'Überwachung','page.ai':'KI-Assistent','page.apps':'Anwendungen','page.system':'System',
     'page.files':'Dateien','page.terminal':'Terminal','page.cron':'Geplante Aufgaben','page.logs':'Protokolle','page.users':'Benutzer','page.settings':'Panel-Einstellungen',
     'apps.desc':'Websites, Datenbanken, Container & App-Store zentral verwalten',
@@ -6844,7 +6909,7 @@ const app = createApp({
         { id:'firewall', label:'chg.kind.firewall' },
         { id:'cron', label:'chg.kind.cron' },
       ],
-      chgStats: {}, chgDetail: null, chgWindow: null, chgWindowLoading: false, chgRestoreArmed: false, chgTimeline: null, chgTimelineHours: 24,
+      drillDrills: [], drillBusy: '', drillConfirm: {}, chgStats: {}, chgDetail: null, chgWindow: null, chgWindowLoading: false, chgRestoreArmed: false, chgTimeline: null, chgTimelineHours: 24,
       termTabs: [],          // 终端多会话 [{id,title,kind,containerId,containerName,connected,connecting}]
       activeTermId: null,    // 当前激活的终端会话 id
       termSeq: 0,            // 终端会话自增 id
@@ -8220,7 +8285,50 @@ const app = createApp({
       }catch(e){ this.toast(e.message || ''); }
     },
     // ===== 主机安全 =====
-    setSecurityTab(tab){ this.securityTab = tab; if(tab==='login') this.secBrutePage = 1; this.loadSecurityData(); },
+    // ===== 容灾演练 =====
+    // 演练状态靠轮询：注入之后真正要看的是「事件出现了没有」，而事件是别的
+    // 模块异步产生的，没有推送就得自己问。
+    async loadDrills(silent){
+      try{
+        const d = await this.api('/drills');
+        this.drillDrills = d.drills || [];
+      }catch(e){ if(!silent) this.toast(e.message || '加载失败'); }
+      if(this.securityTab === 'drill' && !this._drillTimer){
+        this._drillTimer = setInterval(()=>this.loadDrills(true), 3000);
+      }
+    },
+    // 剩余时间：后端给的是绝对截止时间，客户端自己算，避免两边时钟漂移
+    drillRemain(d){
+      if(!d.stop_at) return '';
+      const left = Math.max(0, Math.floor((new Date(d.stop_at) - Date.now())/1000));
+      const m = Math.floor(left/60), sec = left % 60;
+      return m + ':' + String(sec).padStart(2,'0');
+    },
+    async startDrill(d){
+      this.drillBusy = d.kind;
+      try{
+        await this.api('/drills/' + d.kind + '/start', { method:'POST',
+          body: JSON.stringify({ confirm: !!this.drillConfirm[d.kind] }) });
+        this.toast(this.t('drill.running'));
+        await this.loadDrills();
+      }catch(e){ this.toast(e.message || '启动失败'); }
+      finally{ this.drillBusy = ''; }
+    },
+    async stopDrill(d){
+      this.drillBusy = d.kind;
+      try{
+        await this.api('/drills/' + d.kind + '/stop', { method:'POST', body:'{}' });
+        this.toast(this.t('btn.refreshed'));
+        await this.loadDrills();
+      }catch(e){ this.toast(e.message || '恢复失败'); }
+      finally{ this.drillBusy = ''; }
+    },
+    setSecurityTab(tab){
+      this.securityTab = tab;
+      if(tab==='login') this.secBrutePage = 1;
+      if(tab !== 'drill' && this._drillTimer){ clearInterval(this._drillTimer); this._drillTimer = null; }
+      this.loadSecurityData();
+    },
     async loadSecurityData(){
       const t = this.securityTab;
       try{
@@ -8234,6 +8342,7 @@ const app = createApp({
         else if(t === 'fim'){ this.secFimBaselines = await this.api('/security/fim/baselines'); this.secFimEvents = await this.api('/security/fim/events'); }
         else if(t === 'threat') this.secThreats = await this.api('/security/threats');
         else if(t === 'firewall') this.secFirewall = await this.api('/security/firewall');
+        else if(t === 'drill') this.loadDrills(true);
       }catch(e){}
     },
     async runBaselineScan(){
@@ -11147,6 +11256,7 @@ const app = createApp({
   },
   beforeUnmount(){
     if(this._clockTimer){ clearInterval(this._clockTimer); this._clockTimer = null; }
+    if(this._drillTimer){ clearInterval(this._drillTimer); this._drillTimer = null; }
     if(this._fsHandler){ document.removeEventListener('fullscreenchange', this._fsHandler); this._fsHandler = null; }
     if(this._idleTimer){ clearInterval(this._idleTimer); this._idleTimer = null; }
     this.disconnectTerminal();

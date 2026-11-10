@@ -108,7 +108,10 @@ func (s *serviceSource) poll(baseline bool) {
 // it would add one "change" per SSH session — real, but pure noise on a page
 // whose job is to surface the change that actually matters.
 func lowNoiseUnit(unit string) bool {
-	for _, p := range []string{"systemd-", "dbus.", "getty@", "user@", "user-runtime-dir@", "session-", "polkit", "cron.service", "rsyslog.service"} {
+	// opsmini-drill-* 是容灾演练自己起的临时单元。不排掉的话，每次演练都会
+	// 产生一条「可疑变更」并唤醒 Agent——演练的结论就从「系统没发现故障」
+	// 变成「系统发现了我自己造的东西」，完全没有意义。
+	for _, p := range []string{"systemd-", "dbus.", "getty@", "user@", "user-runtime-dir@", "session-", "polkit", "cron.service", "rsyslog.service", "opsmini-drill-"} {
 		if strings.HasPrefix(unit, p) {
 			return true
 		}
