@@ -232,3 +232,44 @@ func TestBackupTaskIsRegisteredInScheduler(t *testing.T) {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+// 面板任务失败必须留下状态。
+//
+// 旧实现只写 LastRun：列表里状态永远是空的，「计划任务失败数」告警也永远是 0，
+// 一个必然失败的任务可以安静地失败一整年。这个用例守的就是这条。
+func TestPanelTaskRecordsFailure(t *testing.T) {
+	repo := cronTestRepo(t)
+	svc := NewCronService(repo)
+	defer svc.Stop()
+
+	j, err := svc.Create(CronReq{Name: "always-fails", Schedule: "0 3 1 1 *", Command: "exit 3"})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	svc.execute(*j)
+
+	got, err := repo.FindByID(j.ID)
+	if err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if got.LastStatus != model.CronStatusFailed {
+		t.Fatalf("失败任务的状态是 %q，应为 %q", got.LastStatus, model.CronStatusFailed)
+	}
+	if got.LastError == "" {
+		t.Fatal("失败原因没留下来")
+	}
+
+	// 成功也要回写，否则「上一次是成功还是失败」永远说不清。
+	ok, err := svc.Create(CronReq{Name: "always-ok", Schedule: "0 3 1 1 *", Command: "true"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.execute(*ok)
+	got2, _ := repo.FindByID(ok.ID)
+	if got2.LastStatus != model.CronStatusSuccess {
+		t.Fatalf("成功任务的状态是 %q", got2.LastStatus)
+	}
+	if got2.LastError != "" {
+		t.Fatalf("成功任务不该留错误信息: %q", got2.LastError)
+	}
+}

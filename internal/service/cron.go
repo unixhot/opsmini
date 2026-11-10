@@ -129,7 +129,6 @@ func (s *CronService) execute(j model.CronJob) {
 
 	start := time.Now()
 	out, err := exec.CommandContext(ctx, "sh", "-c", j.Command).CombinedOutput()
-	_ = out
 	if err != nil {
 		log.Printf("cron %q (id=%d) failed after %s: %v", j.Name, j.ID, time.Since(start), err)
 	} else {
@@ -139,6 +138,20 @@ func (s *CronService) execute(j model.CronJob) {
 	now := time.Now()
 	if cur, e := s.repo.FindByID(j.ID); e == nil {
 		cur.LastRun = &now
+		// 面板任务以前只记「跑过」，不记「跑成没跑成」：列表里状态永远是空的，
+		// 「计划任务失败数」这条告警也永远是 0——一个必然失败的任务能安静地
+		// 失败一整年。失败时把输出一并留下，否则人只知道失败了、不知道为什么。
+		if err != nil {
+			cur.LastStatus = model.CronStatusFailed
+			msg := strings.TrimSpace(string(out))
+			if msg == "" {
+				msg = err.Error()
+			}
+			cur.LastError = truncate(msg, 500)
+		} else {
+			cur.LastStatus = model.CronStatusSuccess
+			cur.LastError = ""
+		}
 		_ = s.repo.Update(cur)
 	}
 }
