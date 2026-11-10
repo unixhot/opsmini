@@ -1,10 +1,13 @@
 package v1
 
 import (
+	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/pkg/response"
@@ -166,6 +169,11 @@ func (h *AppStoreHandler) Delete(c *gin.Context) {
 func (h *AppStoreHandler) Export(c *gin.Context) {
 	data, err := h.svc.ExportZip(c.Param("slug"))
 	if err != nil {
+		// 应用不存在是 404，不是 500：导出按钮点错名字时要能看出是名字的问题。
+		if strings.Contains(err.Error(), "record not found") || errors.Is(err, gorm.ErrRecordNotFound) {
+			response.Error(c, 404, response.CodeNotFound, "应用不存在: "+c.Param("slug"))
+			return
+		}
 		response.Error(c, 500, response.CodeInternal, err.Error())
 		return
 	}
