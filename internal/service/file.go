@@ -308,6 +308,15 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 		if p == root {
 			return nil // skip the root directory itself
 		}
+		// /proc、/sys、/dev 不是真实文件：读它们要么返回 EINVAL（/proc/1/attr/*），
+		// 要么是无穷无尽的流（/proc/kcore 显示为 128TB）。下载根目录时只要碰到一个
+		// 就读失败，整包 500——而这些内容本来也没有备份或下载的意义。
+		if fi.IsDir() && packSkipPseudo(p) {
+			return filepath.SkipDir
+		}
+		if packSkipPseudo(p) {
+			return nil
+		}
 		// 打包 /tmp 时归档文件本身就在被遍历的目录里：不跳过它就会边读边写、
 		// 无限增长（实测 13GB 仍在涨，5 秒 +500MB，直接把磁盘写满）。
 		if os.SameFile(fi, tmpStat) {
@@ -377,4 +386,23 @@ func (s *FileService) CompressDir(path string) (tempPath, downloadName string, e
 		return "", "", err
 	}
 	return tmp.Name(), base + ".zip", nil
+}
+
+// pseudoFSRoots are kernel pseudo filesystems that must never be walked when
+// packing a directory. Matching is on the path boundary so /procfs-notes is not
+// mistaken for /proc.
+var pseudoFSRoots = []string{"/proc", "/sys", "/dev", "/run/udev"}
+
+// packSkipPseudo reports whether p belongs to a kernel pseudo filesystem that
+// must not be walked when packing a directory. Named differently from the
+// isPseudoFS in disk_*.go: that one answers "is this mount point a pseudo fs"
+// for disk accounting, this one is about what to leave out of an archive.
+func packSkipPseudo(p string) bool {
+	clean := filepath.Clean(p)
+	for _, root := range pseudoFSRoots {
+		if clean == root || strings.HasPrefix(clean, root+"/") {
+			return true
+		}
+	}
+	return false
 }

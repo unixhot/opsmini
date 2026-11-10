@@ -119,3 +119,46 @@ func TestCompressDirRespectsSizeCap(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// 下载根目录不能因为 /proc 里的文件读不了就整体 500。
+//
+// /proc/1/attr/apparmor/exec 能 stat、能 open，读的时候返回 EINVAL；
+// /proc/kcore 显示成 128TB。打包时只要有一个这样的文件，整包就失败——
+// 而这些内容本来也不该进归档。
+func TestCompressDirSkipsPseudoFilesystems(t *testing.T) {
+	// 路径判定与平台无关，先验证。
+	if packSkipPseudo("/proc/1/attr/apparmor/exec") != true {
+		t.Fatal("/proc 子路径应被视为伪文件系统")
+	}
+	if packSkipPseudo("/procfs-notes") != false {
+		t.Fatal("路径边界判断错误：/procfs-notes 不是 /proc")
+	}
+	if packSkipPseudo("/etc/passwd") != false {
+		t.Fatal("/etc/passwd 被误判")
+	}
+	if _, err := os.Stat("/proc"); err != nil {
+		t.Skip("本机没有 /proc，跳过真实打包")
+	}
+	svc := NewFileService("/")
+	done := make(chan struct{})
+	var tmp, name string
+	var err error
+	go func() { tmp, name, err = svc.CompressDir("/"); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(120 * time.Second):
+		t.Fatal("打包根目录超时")
+	}
+	if err != nil {
+		t.Fatalf("打包根目录失败: %v", err)
+	}
+	defer os.Remove(tmp)
+	if name == "" {
+		t.Fatal("下载名为空")
+	}
+	// 2GiB 上限下打包 / 必然超限，报错也算正常；但如果报的是「读 /proc 失败」
+	// 那就还是老问题。
+	if strings.Contains(err.Error(), "/proc") {
+		t.Fatalf("仍在读取 /proc: %v", err)
+	}
+}
