@@ -511,3 +511,79 @@ func trimAll(in []string) []string {
 	}
 	return out
 }
+
+// Window GET /changes/:id/window?before=600&after=600
+//
+// 变更前后两窗口的指标对比。变更采集只回答"什么改了"，这里回答"改了之后有没有变坏"：
+// 以变更时间为分割点，取前后各一段指标样本，比较均值并标出劣化项。
+// 数据来自 metric_points（10 秒一条，保留 30 天），不额外采样。
+func (h *ChangeHandler) Window(c *gin.Context) {
+	if h.DB == nil {
+		response.Error(c, 500, response.CodeInternal, "数据库未就绪")
+		return
+	}
+	ev, _, err := h.Store.Get(c.Param("id"))
+	if err != nil {
+		response.Error(c, 404, response.CodeNotFound, err.Error())
+		return
+	}
+	before := querySeconds(c.Query("before"), 600, 60, 7200)
+	after := querySeconds(c.Query("after"), 600, 60, 7200)
+	t0 := ev.CreatedAt.Unix()
+	now := time.Now()
+
+	var points []model.MetricPoint
+	if err := h.DB.Where("time >= ? AND time <= ?", t0-int64(before.Seconds()), t0+int64(after.Seconds())).
+		Order("time asc").Find(&points).Error; err != nil {
+		response.Error(c, 500, response.CodeInternal, err.Error())
+		return
+	}
+	res := change.CompareWindows(points, t0, before, after, now)
+	res.ChangeID = ev.ID
+	res.Path = ev.ObjectKey
+
+	// 同期信号：这是"变坏了没有"最直接的旁证，指标之外的第二条腿。
+	var beforeN, afterN int64
+	h.DB.Model(&model.Signal{}).
+		Where("observed_at >= ? AND observed_at < ?", time.Unix(t0-int64(before.Seconds()), 0), ev.CreatedAt).
+		Count(&beforeN)
+	var afterSignals []model.Signal
+	h.DB.Where("observed_at >= ? AND observed_at <= ?", ev.CreatedAt, ev.CreatedAt.Add(after)).
+		Order("observed_at asc").Limit(50).Find(&afterSignals)
+	afterN = int64(len(afterSignals))
+	res.Signals = change.SignalDelta{Before: int(beforeN), After: int(afterN)}
+	for i, s := range afterSignals {
+		if i >= 5 {
+			break
+		}
+		res.Signals.Items = append(res.Signals.Items, s.Severity+" · "+clipRunes(s.Message, 60))
+	}
+	if afterN > beforeN && res.Verdict == "stable" {
+		res.Reasons = append(res.Reasons, "指标未见劣化，但变更后新增了信号，建议核对是否同一因果")
+	}
+	response.OK(c, res)
+}
+
+// querySeconds parses a window length from the query string with sane bounds.
+func querySeconds(raw string, def, min, max int) time.Duration {
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		n = def
+	}
+	if n < min {
+		n = min
+	}
+	if n > max {
+		n = max
+	}
+	return time.Duration(n) * time.Second
+}
+
+// clipRunes truncates by rune count so a Chinese message is not cut mid-character.
+func clipRunes(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n]) + "…"
+}

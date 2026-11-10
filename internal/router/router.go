@@ -737,6 +737,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 				authed.POST("/changes/ignore", permMw("settings.edit"), ch.AddIgnore)
 				authed.DELETE("/changes/ignore/:id", permMw("settings.edit"), ch.DeleteIgnore)
 				authed.GET("/changes/:id", permMw("ai.agent"), ch.Detail)
+				// 变更前后指标对比：详情页的「影响」区块用它，Agent 复核也会引用
+				authed.GET("/changes/:id/window", permMw("ai.agent"), ch.Window)
 				authed.POST("/changes/:id/restore", permMw("settings.edit"), ch.Restore)
 			}
 

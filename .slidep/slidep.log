@@ -1,0 +1,2 @@
+=== boot pid=99225 ts=2026-11-10 20:49:56.753 cwd=/Users/vicky/Desktop/code/opsmini argv=/Users/vicky/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js inspect /Users/vicky/Desktop/GOPS2026-沈广玲-脱敏版.pptx --out /tmp/slidep-inspect.gvVktw ===
+[2026-11-10 20:49:56.747] [INFO ] [pid=99225] [server-url] baseUrl=http://127.0.0.1:39099 source=env
