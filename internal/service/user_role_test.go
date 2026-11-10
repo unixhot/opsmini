@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/glebarez/sqlite"
@@ -48,5 +49,14 @@ func TestCreateUserRejectsUnknownRole(t *testing.T) {
 	}
 	if _, err := svc.Update(u.ID, UpdateUserReq{Role: "nope"}); err == nil {
 		t.Fatal("编辑到不存在的角色被接受了")
+	}
+	// 重名要给能看懂的话，而不是把 SQLite 的约束错误原样抛给用户。
+	if _, err := svc.Create(CreateUserReq{Username: "u2", Password: "123456"}); err == nil {
+		t.Fatal("重名被接受了")
+	} else {
+		var taken *ErrUsernameTaken
+		if !errors.As(err, &taken) {
+			t.Fatalf("重名错误类型不对: %v", err)
+		}
 	}
 }

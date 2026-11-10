@@ -28,13 +28,26 @@ func NewUserService(repo *repository.UserRepo) *UserService {
 // SetRoleRepo enables role validation on create/update.
 func (s *UserService) SetRoleRepo(r *repository.RoleRepo) { s.roles = r }
 
+// ErrInvalidRole marks a role name that does not exist. It is a typed error so
+// the API can answer 400 (bad input) instead of 500 (server broken) — the
+// difference matters to anyone scripting against the panel.
+type ErrInvalidRole struct{ Name string }
+
+func (e *ErrInvalidRole) Error() string { return fmt.Sprintf("角色 %q 不存在", e.Name) }
+
+// ErrUsernameTaken 表示用户名已被占用。以前这种情况直接把 SQLite 的
+// "UNIQUE constraint failed" 原样返回给用户，既看不懂也不该看到。
+type ErrUsernameTaken struct{ Name string }
+
+func (e *ErrUsernameTaken) Error() string { return fmt.Sprintf("用户名 %q 已存在", e.Name) }
+
 // checkRole rejects an unknown role name.
 func (s *UserService) checkRole(name string) error {
 	if name == "" || s.roles == nil {
 		return nil
 	}
 	if _, err := s.roles.FindByName(name); err != nil {
-		return fmt.Errorf("角色 %q 不存在", name)
+		return &ErrInvalidRole{Name: name}
 	}
 	return nil
 }
@@ -51,6 +64,9 @@ func (s *UserService) Create(req CreateUserReq) (*model.User, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
+	}
+	if _, err := s.repo.FindByUsername(req.Username); err == nil {
+		return nil, &ErrUsernameTaken{Name: req.Username}
 	}
 	role := req.Role
 	if role == "" {

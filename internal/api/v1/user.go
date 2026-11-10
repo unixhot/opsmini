@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 	}
 	u, err := h.svc.Create(req)
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		userErr(c, err)
 		return
 	}
 	response.OK(c, u)
@@ -58,7 +59,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 	u, err := h.svc.Update(uint(id), req)
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		userErr(c, err)
 		return
 	}
 	response.OK(c, u)
@@ -128,4 +129,16 @@ func currentUID(c *gin.Context) uint {
 		}
 	}
 	return 0
+}
+
+// userErr maps service errors to status codes. A role name that does not exist
+// is bad input, not a broken server.
+func userErr(c *gin.Context, err error) {
+	var roleErr *service.ErrInvalidRole
+	var nameErr *service.ErrUsernameTaken
+	if errors.As(err, &roleErr) || errors.As(err, &nameErr) {
+		response.Error(c, 400, response.CodeInvalidParam, err.Error())
+		return
+	}
+	response.Error(c, 500, response.CodeInternal, err.Error())
 }
