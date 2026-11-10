@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"io"
 	"os"
 	"strings"
@@ -82,7 +83,7 @@ func (h *FileHandler) Download(c *gin.Context) {
 	p := c.Query("path")
 	full, name, err := h.svc.Open(p)
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		fileErr(c, err)
 		return
 	}
 	c.FileAttachment(full, name)
@@ -151,9 +152,30 @@ func (h *FileHandler) DownloadDir(c *gin.Context) {
 	p := c.Query("path")
 	tmp, name, err := h.svc.CompressDir(p)
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		fileErr(c, err)
 		return
 	}
 	defer os.Remove(tmp)
 	c.FileAttachment(tmp, name)
+}
+
+// fileErr maps filesystem failures to the status the caller can act on:
+// 404 for "it is not there", 400 for "you asked for the wrong kind of thing"
+// (downloading a directory), 500 for everything else.
+//
+// 之前这三种情况一律 500，前端只能显示「出错了」，用户分不清是路径写错了
+// 还是面板坏了。
+func fileErr(c *gin.Context, err error) {
+	msg := err.Error()
+	low := strings.ToLower(msg)
+	switch {
+	case errors.Is(err, os.ErrNotExist) || strings.Contains(low, "no such file"):
+		response.Error(c, 404, response.CodeNotFound, msg)
+	case strings.Contains(msg, "cannot download a directory"), strings.Contains(msg, "not a directory"):
+		response.Error(c, 400, response.CodeInvalidParam, msg)
+	case strings.Contains(msg, "目录超过"):
+		response.Error(c, 400, response.CodeInvalidParam, msg)
+	default:
+		response.Error(c, 500, response.CodeInternal, msg)
+	}
 }

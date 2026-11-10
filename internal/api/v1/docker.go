@@ -99,7 +99,7 @@ func (h *DockerHandler) Logs(c *gin.Context) {
 	}
 	logs, err := h.svc.ContainerLogs(c.Param("id"), tail)
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		dockerErr(c, err)
 		return
 	}
 	response.OK(c, gin.H{"logs": logs})
@@ -109,7 +109,7 @@ func (h *DockerHandler) Logs(c *gin.Context) {
 func (h *DockerHandler) Inspect(c *gin.Context) {
 	detail, err := h.svc.Inspect(c.Param("id"))
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		dockerErr(c, err)
 		return
 	}
 	response.OK(c, detail)
@@ -222,4 +222,17 @@ func (h *DockerHandler) CreateNetwork(c *gin.Context) {
 		return
 	}
 	response.OK(c, nil)
+}
+
+// dockerErr maps a "no such container/image" answer to 404. Everything else stays
+// 500: a daemon that is down or a permission problem is not a missing resource,
+// and telling the two apart is what lets the UI say "已删除" instead of "出错了".
+func dockerErr(c *gin.Context, err error) {
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "no such container") || strings.Contains(msg, "no such image") ||
+		strings.Contains(msg, "no such object") {
+		response.Error(c, 404, response.CodeNotFound, err.Error())
+		return
+	}
+	response.Error(c, 500, response.CodeInternal, err.Error())
 }
