@@ -104,6 +104,9 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return []string{instanceID}
 	})
 	userSvc := service.NewUserService(userRepo)
+	// 传角色仓库：创建/编辑用户时校验角色是否存在，避免「角色名写错 → 用户零权限」
+	// 这种悄无声息的失败。
+	userSvc.SetRoleRepo(repository.NewRoleRepo(db))
 	auditSvc := service.NewAuditService(repository.NewAuditLogRepo(db))
 	authHandler := v1.NewAuthHandler(authSvc, auditSvc)
 	userHandler := v1.NewUserHandler(userSvc)

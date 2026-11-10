@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -12,11 +13,30 @@ import (
 // UserService handles user management.
 type UserService struct {
 	repo *repository.UserRepo
+	// roles is used to reject a role name that does not exist. Without the check
+	// the user is created happily and then has zero permissions: no error, no
+	// hint, every gated action 403 — and the admin thinks "readonly" was spelled
+	// "viewer" correctly.
+	roles *repository.RoleRepo
 }
 
 // NewUserService creates a UserService.
 func NewUserService(repo *repository.UserRepo) *UserService {
 	return &UserService{repo: repo}
+}
+
+// SetRoleRepo enables role validation on create/update.
+func (s *UserService) SetRoleRepo(r *repository.RoleRepo) { s.roles = r }
+
+// checkRole rejects an unknown role name.
+func (s *UserService) checkRole(name string) error {
+	if name == "" || s.roles == nil {
+		return nil
+	}
+	if _, err := s.roles.FindByName(name); err != nil {
+		return fmt.Errorf("角色 %q 不存在", name)
+	}
+	return nil
 }
 
 // CreateUserReq is the input for creating a user.
@@ -35,6 +55,9 @@ func (s *UserService) Create(req CreateUserReq) (*model.User, error) {
 	role := req.Role
 	if role == "" {
 		role = model.RoleOperator
+	}
+	if err := s.checkRole(role); err != nil {
+		return nil, err
 	}
 	u := &model.User{
 		Username:     req.Username,
@@ -62,6 +85,9 @@ func (s *UserService) Update(id uint, req UpdateUserReq) (*model.User, error) {
 		return nil, err
 	}
 	if req.Role != "" {
+		if err := s.checkRole(req.Role); err != nil {
+			return nil, err
+		}
 		u.Role = req.Role
 	}
 	if req.Status != nil {
