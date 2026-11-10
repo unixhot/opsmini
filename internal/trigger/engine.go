@@ -88,6 +88,9 @@ type RunResult struct {
 	// BudgetExceeded is true when the run stopped because a token cap was hit.
 	// Reported as its own verify state so it is not mistaken for a model failure.
 	BudgetExceeded bool
+	// ActionChecks is the independent re-check of every write action the run
+	// executed. The agent's own "done" is not evidence the host changed.
+	ActionChecks []safety.ActionCheck
 }
 
 // Runner is implemented by the AI agent layer (injected by the router to keep
@@ -724,6 +727,21 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 				Update("summary", res.Summary+"\n\n验证："+strings.Join(detail, "；"))
 		}
 
+		// 默认动作校验：策略没配 verify 也要确认动作真的改变了主机状态。
+		// 工具回 "已隔离" 只是它自己的说法——文件可能还在，规则可能没插进去。
+		// 这里做一次独立观察，不通过就不算 resolved，交给人判断。
+		if runErr == nil && verifyState == "" && res.Writes > 0 {
+			ok, checks := e.Safety.VerifyActions(ctx, inc.ID)
+			res.ActionChecks = checks
+			if !ok {
+				verifyState = "action-unverified"
+				status = model.IncidentUnverified
+				if note := safety.SummarizeChecks(checks); note != "" {
+					res.Summary = strings.TrimSpace(res.Summary) + "\n\n动作执行后复核未通过：\n" + note
+				}
+			}
+		}
+
 		// Retry only a verification failure: a hard error (model down, timeout) would
 		// fail the same way again, and a passing run needs nothing more.
 		if verifyState != "failed" || attempt == maxAttempts {
@@ -759,7 +777,10 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		status = model.IncidentOpen
 		incUpd["status"] = status
 	}
-	if status == model.IncidentResolved || status == model.IncidentFailed {
+	// 未验证也是终态：agent 跑完了、动作也执行了，只是复核没通过。
+	// 不设 closed_at 会让它在列表里一直显示"进行中"。
+	if status == model.IncidentResolved || status == model.IncidentFailed ||
+		status == model.IncidentUnverified {
 		incUpd["closed_at"] = fin
 	}
 	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(incUpd)

@@ -609,14 +609,27 @@ func (r *incidentRunner) ResumeIncident(ctx context.Context, inc model.Incident,
 			summary = "人工拒绝了待确认的操作"
 		}
 	}
+	// 人工批准后执行的动作同样要复核：批准只代表"允许做"，不代表"做成了"。
+	// 续跑路径以前直接置 resolved，等于把工具的自述当成了结果。
+	verifyState := ""
+	if approved && r.safety != nil {
+		if ok, checks := r.safety.VerifyActions(ctx, inc.ID); !ok {
+			status = model.IncidentUnverified
+			verifyState = "action-unverified"
+			if note := safety.SummarizeChecks(checks); note != "" {
+				summary = strings.TrimSpace(summary) + "\n\n动作执行后复核未通过：\n" + note
+			}
+		}
+	}
 	now := time.Now()
 	upd := map[string]any{
-		"status":      status,
-		"approval_id": "",
-		"summary":     summary,
-		"session_id":  res.SessionID,
-		"updated_at":  now,
-		"closed_at":   now,
+		"status":       status,
+		"approval_id":  "",
+		"summary":      summary,
+		"session_id":   res.SessionID,
+		"verify_state": verifyState,
+		"updated_at":   now,
+		"closed_at":    now,
 	}
 	if reportRel != "" {
 		upd["report_rel"] = reportRel

@@ -67,6 +67,11 @@ const (
 	IncidentIgnored   = "ignored"    // suppressed by a human
 	IncidentTakenOver = "taken_over" // a human took over; the agent must not act
 	IncidentFailed    = "failed"     // run failed / verification failed
+	// IncidentUnverified means the run finished and the actions reported success,
+	// but re-checking the host says the change did not take effect. It is not
+	// "resolved" (we have no evidence the problem is gone) and not "failed" (the
+	// agent did not error out) — a human needs to look.
+	IncidentUnverified = "resolved_unverified"
 	// IncidentAwaitingApproval means the run stopped at a confirm-level action and
 	// is waiting for a human decision. Distinct from Running so the UI can tell
 	// "still thinking" from "needs you".
