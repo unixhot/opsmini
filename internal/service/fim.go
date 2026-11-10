@@ -36,6 +36,11 @@ type FimService struct {
 	// onChange fans a detected change out to the perception layer. Nil keeps FIM
 	// a standalone checker (tests, and a panel with sentinel disabled).
 	onChange func(model.FimChange)
+	// bootstrapped marks that the first-run baseline has been built. Without it,
+	// an empty baseline table makes every Check() rebuild, and a file that
+	// appeared between two rounds would be absorbed into the fresh baseline
+	// instead of being reported as new.
+	bootstrapped bool
 }
 
 // NewFimService creates a FimService.
@@ -123,6 +128,29 @@ func (s *FimService) Rebuild() error {
 // patternCoversAny reports whether any configured pattern still covers path.
 func patternCoversAny(patterns []string, path string) bool {
 	for _, p := range patterns {
+		if patternCovers(p, path) {
+			return true
+		}
+	}
+	return false
+}
+
+// Watches reports whether path falls under any currently monitored pattern.
+//
+// 容灾演练要靠它回答一个关键问题：「我把样本文件放在这里，会有人看见吗」。
+// 如果不检查就落地，演练的结论会从「Agent 没发现」变成「根本没人看」——
+// 前者是产品缺陷，后者是配置问题，两者混在一起会误导判断。
+func (s *FimService) Watches(path string) bool {
+	patterns, _ := s.MonitoredPaths()
+	for _, p := range patterns {
+		// A directory pattern such as /etc means "everything under it", but
+		// patternCovers treats a literal as an exact path.
+		if !strings.ContainsAny(p, "*?[") {
+			if path == p || strings.HasPrefix(path, strings.TrimSuffix(p, "/")+"/") {
+				return true
+			}
+			continue
+		}
 		if patternCovers(p, path) {
 			return true
 		}
@@ -232,9 +260,15 @@ func (s *FimService) RemoveBaseline(id uint) error {
 // Check compares against the baseline, records change events, and returns this round's changes.
 func (s *FimService) Check() []model.FimChange {
 	n, _ := s.baselineRepo.Count()
-	if n == 0 {
-		_ = s.Rebuild() // silently build baseline on first run
-		return nil
+	if n == 0 && !s.bootstrapped {
+		// 首轮静默建基线。不能直接 return：如果被监控的文件一个都还不存在，
+		// rebuild 之后依然是 0 条基线，直接返回会让下面的新增文件检测永远
+		// 跑不起来——而那正是「文件后来才出现」这一最需要报的场景。
+		//
+		// 但只建一次：每轮都重建的话，两轮之间新出现的文件会被并进新基线，
+		// 于是「新增」永远变成「一直就有」。
+		_ = s.Rebuild()
+		s.bootstrapped = true
 	}
 	baselines, err := s.baselineRepo.List()
 	if err != nil {
@@ -266,8 +300,51 @@ func (s *FimService) Check() []model.FimChange {
 			_ = s.baselineRepo.Upsert(&b)
 		}
 	}
+
+	// 新增文件也必须报。
+	//
+	// 基线只覆盖「建基线时已经存在的文件」，所以旧实现里一个刚被上传上来的
+	// webshell 是完全隐形的——恰恰是文件完整性监控最该抓的东西。变更和删除
+	// 都能看见，唯独新增看不见，等于漏掉了一半。
+	known := make(map[string]bool, len(baselines))
+	for _, b := range baselines {
+		known[b.Path] = true
+	}
+	patterns, _ := s.MonitoredPaths()
+	added := 0
+	for _, pattern := range patterns {
+		if added >= fimMaxNewPerRound {
+			break
+		}
+		for _, path := range expandFimPattern(pattern) {
+			if known[path] || added >= fimMaxNewPerRound {
+				continue
+			}
+			sha, size, mod, err := sha256File(path)
+			if err != nil {
+				continue // 还没出现、或者没权限：不是「新增」
+			}
+			c := s.record(model.FimBaseline{Path: path}, model.FimChange{
+				Path: path, NewSHA256: sha, Size: size, ModTime: mod,
+				Level: s.levelFor(path), Message: "新增文件",
+			})
+			changes = append(changes, c)
+			// 立刻落基线，否则下一轮会把同一个文件再报一次，60 秒一条会很吵。
+			_ = s.baselineRepo.Upsert(&model.FimBaseline{
+				Path: path, SHA256: sha, Size: size, ModTime: mod, Enabled: true,
+			})
+			known[path] = true
+			added++
+		}
+	}
 	return changes
 }
+
+// fimMaxNewPerRound bounds how many "new file" events one round may produce.
+// A directory pattern can match hundreds of files at once (a package upgrade,
+// a log rotation burst); reporting all of them turns the event list into noise
+// and buries the one that matters.
+const fimMaxNewPerRound = 20
 
 // record persists a FIM change event and returns it.
 func (s *FimService) record(b model.FimBaseline, c model.FimChange) model.FimChange {
