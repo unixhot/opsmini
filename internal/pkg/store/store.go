@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/repository"
 )
 
 // Init opens SQLite (pure Go driver), auto-migrates, and writes seed data.
@@ -84,20 +85,14 @@ func seedCategories(db *gorm.DB) error {
 	return nil
 }
 
-// seedRoles writes the three built-in roles (creates them if absent).
+// seedRoles writes the built-in roles.
+//
+// 这里曾经有一份自己的循环实现（只在角色不存在时创建），和
+// repository.RoleRepo.Seed() 是两份逻辑。启动时跑的是这一份，于是给
+// RoleRepo.Seed 加的「补齐新增权限点」对真实启动完全不生效——升级上来的
+// 库永远拿不到新权限。同一件事只留一处实现，别再分叉。
 func seedRoles(db *gorm.DB) error {
-	for _, builtin := range model.BuiltinRoles() {
-		var count int64
-		if err := db.Model(&model.Role{}).Where("name = ?", builtin.Name).Count(&count).Error; err != nil {
-			return err
-		}
-		if count == 0 {
-			if err := db.Create(&builtin).Error; err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return repository.NewRoleRepo(db).Seed()
 }
 
 // seedAlertRules writes default alert rules (idempotent: inserts a built-in rule only if its name does not exist).
