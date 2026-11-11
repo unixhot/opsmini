@@ -1017,8 +1017,8 @@
             <span class="tag warn" v-if="a.tool">{{ a.tool }}</span>
             <span class="mono mute aw-preview" style="font-size:11.5px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.preview }}</span>
             <span class="aw-actions">
-              <button class="btn sm" :disabled="incApproveBusy" @click="approveIncident(true, a.id)">{{ t('sent.approve.allow') }}</button>
-              <button class="btn sm ghost" :disabled="incApproveBusy" @click="approveIncident(false, a.id)">{{ t('sent.approve.deny') }}</button>
+              <button class="btn sm" v-if="hasPerm('sentinel.act')" :disabled="incApproveBusy" @click="approveIncident(true, a.id)">{{ t('sent.approve.allow') }}</button>
+              <button class="btn sm ghost" v-if="hasPerm('sentinel.act')" :disabled="incApproveBusy" @click="approveIncident(false, a.id)">{{ t('sent.approve.deny') }}</button>
             </span>
           </div>
         </div>
@@ -2345,7 +2345,7 @@
                   <td style="white-space:nowrap">
                     <a class="link" @click="openIncident(i)">{{ t('sentinel.detail') }}</a>
                     <a class="link" v-if="i.report_rel" @click="openSentinelReport(i)" style="margin-left:8px">{{ t('sentinel.report') }}</a>
-                    <a class="link" v-if="incActive(i)" @click="ignoreIncident(i)" style="margin-left:8px">{{ t('sentinel.ignore') }}</a>
+                    <a class="link" v-if="incActive(i) && hasPerm('sentinel.act')" @click="ignoreIncident(i)" style="margin-left:8px">{{ t('sentinel.ignore') }}</a>
                   </td>
                 </tr>
               </tbody>
@@ -2636,7 +2636,7 @@
                     <td class="mono prewrap">{{ q.original_path }}</td>
                     <td class="prewrap">{{ q.reason }}</td>
                     <td>
-                      <a class="link" v-if="!q.restored_at" @click="restoreQuarantine(q)">{{ t('sentinel.restore') }}</a>
+                      <a class="link" v-if="!q.restored_at && hasPerm('sentinel.act')" @click="restoreQuarantine(q)">{{ t('sentinel.restore') }}</a>
                       <span v-else style="color:var(--t3)">{{ t('sentinel.restored') }}</span>
                     </td>
                   </tr>
@@ -2665,7 +2665,7 @@
                     <td class="mono">{{ b.ip }}</td>
                     <td class="prewrap">{{ b.reason }}</td>
                     <td class="mono">{{ fmtDT(b.expires_at) }}</td>
-                    <td><a class="link" v-if="!b.released_at" @click="unblockIp(b)">{{ t('sentinel.unblock') }}</a>
+                    <td><a class="link" v-if="!b.released_at && hasPerm('sentinel.act')" @click="unblockIp(b)">{{ t('sentinel.unblock') }}</a>
                         <span v-else style="color:var(--t3)">{{ t('sentinel.released') }}</span></td>
                   </tr>
                 </tbody>
@@ -2774,7 +2774,7 @@
               <button class="btn sm ghost" :disabled="incFeedbackBusy" @click="sendIncidentFeedback('false_positive')">{{ t('sent.feedback.falsePositive') }}</button>
               <span class="tag ok" v-if="incFeedbackSent">{{ t('sent.feedback.saved') }}</span>
               <button class="btn sm" :class="takeoverArmed ? 'danger' : 'ghost'"
-                      v-if="incCanTakeover" :disabled="takeoverBusy" @click="armTakeover">
+                      v-if="incCanTakeover && hasPerm('sentinel.act')" :disabled="takeoverBusy" @click="armTakeover">
                 {{ takeoverArmed ? t('sent.takeover.confirm') : t('sent.takeover') }}
               </button>
               <button class="btn ghost sm" @click="incDetail=null">✕</button>
@@ -2830,10 +2830,10 @@
               </div>
               <div class="mute" style="font-size:12px;margin-bottom:10px">{{ t('sent.approve.hint') }}</div>
               <div class="row" style="gap:8px">
-                <button class="btn sm" :disabled="incApproveBusy" @click="approveIncident(true)">
+                <button class="btn sm" v-if="hasPerm('sentinel.act')" :disabled="incApproveBusy" @click="approveIncident(true)">
                   {{ incApproveBusy ? '…' : t('sent.approve.allow') }}
                 </button>
-                <button class="btn sm ghost" :disabled="incApproveBusy" @click="approveIncident(false)">
+                <button class="btn sm ghost" v-if="hasPerm('sentinel.act')" :disabled="incApproveBusy" @click="approveIncident(false)">
                   {{ t('sent.approve.deny') }}
                 </button>
               </div>
@@ -2881,7 +2881,7 @@
             <div v-if="shadowActions.length" class="mute" style="font-size:11.5px;padding:2px 0 8px">{{ t('sent.shadow.hint') }}</div>
             <div class="st-detail-sec" v-if="(incDetail.journal||[]).length" style="display:flex;align-items:center;gap:8px">
               <span>{{ t('sent.tx.title') }} ({{ incDetail.journal.length }})</span>
-              <button class="btn sm ghost" style="margin-left:auto" :disabled="rollbackBusy || !hasPendingRollback" @click="rollbackIncident">{{ t('sent.tx.rollback') }}</button>
+              <button class="btn sm ghost" style="margin-left:auto" v-if="hasPerm('sentinel.act')" :disabled="rollbackBusy || !hasPendingRollback" @click="rollbackIncident">{{ t('sent.tx.rollback') }}</button>
             </div>
             <div v-for="j in (incDetail.journal||[])" :key="'j'+j.id" class="st-detail-row">
               <span class="mono" style="min-width:132px;color:var(--t3)">{{ fmtDT(j.created_at) }}</span>

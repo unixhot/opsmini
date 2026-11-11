@@ -75,6 +75,13 @@ func PermGroups() []PermissionGroup {
 		{Key: "alert", Label: "告警", Perms: []Permission{
 			perm("alert.view", "查看告警"), perm("alert.manage", "管理告警规则"),
 		}},
+		// 事件中心单独成组：它原来借用 ai.agent，导致「看一眼发生了什么」和
+		// 「批准 Agent 处置」是同一个权限点。只读角色只收 .view 结尾的权限，
+		// 于是什么都看不见；而任何能看列表的人也能点批准。看和处置必须分开。
+		{Key: "sentinel", Label: "事件中心", Perms: []Permission{
+			perm("sentinel.view", "查看事件中心"),
+			perm("sentinel.act", "处置事件（批准 / 忽略 / 接管 / 回滚）"),
+		}},
 		{Key: "ai", Label: "AI 助手", Perms: []Permission{
 			perm("ai.use", "使用 AI 助手"),
 			perm("ai.agent", "使用 AI 智能体（工具调用）"),
