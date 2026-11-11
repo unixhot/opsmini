@@ -34,6 +34,16 @@ type Config struct {
 	Memories func(query string) []string
 }
 
+// Ready reports whether the agent can actually run: a model has to be
+// configured (base URL + model name). Callers use this to distinguish "the
+// operator has not set up a model yet" from "the model failed".
+func (a *Agent) Ready() bool {
+	if a == nil {
+		return false
+	}
+	return a.llm.Ready()
+}
+
 // withDefaults fills zero values.
 func (c Config) withDefaults() Config {
 	if c.MaxSteps <= 0 {

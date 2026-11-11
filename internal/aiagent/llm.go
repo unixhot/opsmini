@@ -63,6 +63,16 @@ type LLMClient struct {
 	cfg   LLMSettings
 }
 
+// Ready reports whether a usable model is configured right now. The panel shows
+// "model_ready" from the same question, and the trigger engine uses it to tell
+// "nobody configured a model yet" apart from "the model failed".
+func (c *LLMClient) Ready() bool {
+	if c == nil || c.cfg == nil {
+		return false
+	}
+	return c.cfg().Ready()
+}
+
 // NewLLMClient creates a client. cfg is evaluated on every call.
 func NewLLMClient(cfg LLMSettings) *LLMClient {
 	if cfg == nil {

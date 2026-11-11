@@ -354,3 +354,72 @@ func TestRunWithoutModelStaysOpen(t *testing.T) {
 		t.Fatal("待处置的事件不该有结束时间")
 	}
 }
+
+// 没配模型不能把策略熔断掉，还要把已经误停用的放回来。
+ //
+// 首装时连跑两次演练，log-growth 就被 "连续 2 次运行失败" 停用；用户后来
+// 配好模型，却发现该类事件再也不触发——提示还写着"确认剧本无误后手动启用"，
+// 而剧本本来就没问题。
+func TestNoModelDoesNotTripBreaker(t *testing.T) {
+	db := newTriggerDB(t)
+	p := model.TriggerPolicy{
+		Name: "breakersafe", Enabled: true, Family: "log_growth", MinSeverity: "high",
+		Mode: model.ModeShadow, MaxSteps: 6, MaxSeconds: 30,
+	}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	e := NewEngine(db, safety.New(db, func() string { return t.TempDir() }, 8888))
+
+	for i := 0; i < 3; i++ {
+		e.updateBreaker(p, model.IncidentFailed, true)
+	}
+	var got model.TriggerPolicy
+	db.First(&got, "id = ?", p.ID)
+	if !got.Enabled {
+		t.Fatal("未配模型不该让策略被停用")
+	}
+	if got.ConsecutiveFailures != 0 {
+		t.Fatalf("失败计数应为 0，得到 %d", got.ConsecutiveFailures)
+	}
+
+	// 已被熔断停用的策略，在一次 noModel 之后要恢复。
+	got.Enabled = false
+	got.ConsecutiveFailures = 2
+	got.DisabledReason = "连续 2 次运行失败，已自动停用；确认剧本无误后手动启用"
+	db.Save(&got)
+
+	e.updateBreaker(got, model.IncidentFailed, true)
+	db.First(&got, "id = ?", p.ID)
+	if !got.Enabled {
+		t.Fatal("因缺模型而熔断的策略，应被自动恢复")
+	}
+	if got.DisabledReason != "" {
+		t.Fatalf("停用原因应清空，得到 %q", got.DisabledReason)
+	}
+}
+
+// 真正跑失败的策略仍然要被熔断：这条防线不能因为上面的修复而失效。
+func TestBreakerStillTripsOnRealFailure(t *testing.T) {
+	db := newTriggerDB(t)
+	p := model.TriggerPolicy{Name: "real", Enabled: true, Family: "log_growth",
+		MinSeverity: "high", Mode: model.ModeShadow, MaxSteps: 6, MaxSeconds: 30}
+	if err := db.Create(&p).Error; err != nil {
+		t.Fatal(err)
+	}
+	e := NewEngine(db, safety.New(db, func() string { return t.TempDir() }, 8888))
+	// 每次都要重读策略：生产里引擎按 DB 的最新值跑，传入的 p 是快照。
+	for i := 0; i < 2; i++ {
+		var cur model.TriggerPolicy
+		db.First(&cur, "id = ?", p.ID)
+		e.updateBreaker(cur, model.IncidentFailed, false)
+	}
+	var got model.TriggerPolicy
+	db.First(&got, "id = ?", p.ID)
+	if got.Enabled {
+		t.Fatal("真实失败两次后应被熔断停用")
+	}
+	if got.DisabledReason == "" {
+		t.Fatal("停用原因应写明")
+	}
+}

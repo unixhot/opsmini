@@ -475,8 +475,24 @@ const breakerThreshold = 2
 // updateBreaker maintains the per-policy failure streak and trips the breaker.
 // Success resets the streak, which is why the counter lives on the policy row and
 // not in memory: an operator who fixes the playbook must see the reset.
-func (e *Engine) updateBreaker(p model.TriggerPolicy, status string) {
+func (e *Engine) updateBreaker(p model.TriggerPolicy, status string, noModel bool) {
 	if e.DB == nil || p.ID == 0 {
+		return
+	}
+	// 没配模型不是「剧本写错了」：既不该累计失败，也不该让策略被熔断停用。
+	// 更麻烦的是反向问题——首装时连跑两次就会把 log-growth 这类策略熔断停掉，
+	// 用户配好模型后反而什么都不触发，还得自己想明白去手动启用。
+	// 所以这里不仅清零，还把「因熔断停用」的策略放回去（disabled_reason 非空
+	// 说明是熔断写的，用户手动停用的不会被误开）。
+	if noModel {
+		e.DB.Model(&model.TriggerPolicy{}).Where("id = ?", p.ID).
+			Update("consecutive_failures", 0)
+		res := e.DB.Model(&model.TriggerPolicy{}).
+			Where("id = ? AND enabled = ? AND disabled_reason <> ?", p.ID, false, "").
+			Updates(map[string]any{"enabled": true, "disabled_reason": ""})
+		if res.RowsAffected > 0 {
+			log.Printf("trigger: policy %s re-enabled — 之前的失败是因为没有配置 AI 模型", p.Name)
+		}
 		return
 	}
 	if status == model.IncidentResolved {
@@ -803,7 +819,7 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 		incUpd["closed_at"] = fin
 	}
 	e.DB.Model(&model.Incident{}).Where("id = ?", inc.ID).Updates(incUpd)
-	e.updateBreaker(p, status)
+	e.updateBreaker(p, status, res.NoModel)
 
 	if e.Notify != nil {
 		text := fmt.Sprintf("【%s】%s — %s", strings.ToUpper(inc.Severity), inc.Title, req.Mode)

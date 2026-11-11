@@ -325,9 +325,10 @@ type incidentRunner struct {
 // RunIncident executes one event-triggered run.
 func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest) (trigger.RunResult, error) {
 	out := trigger.RunResult{}
-	if r.agent == nil {
-		// 告诉引擎这是「没跑」，而不是「跑失败」：状态要停在待处置，
-		// 不该因为用户还没配模型就把感知到的事件记成失败。
+	// agent 指针存在不代表能用：模型可能压根没配（首装默认状态）。
+	// 只看 r.agent == nil 会漏掉这种情况——那时 Agent.Run 会在更深处报错，
+	// 引擎照常规判成 failed，用户看到的就是一条红色失败。
+	if r.agent == nil || !r.agent.Ready() {
 		out.NoModel = true
 		return out, fmt.Errorf("AI 模型未配置，事件只记录不分析")
 	}
