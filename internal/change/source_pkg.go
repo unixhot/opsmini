@@ -79,12 +79,8 @@ func (s *pkgSource) pollLogs() {
 		if had && prev.Inode == ino && prev.Offset <= st.Size() {
 			offset = prev.Offset // continuation
 		}
-		// rotation or first run: start from the end minus a small tail so we do
-		// not replay years of history on a fresh install
 		if !had || prev.Inode != ino {
-			if st.Size() > 64*1024 {
-				offset = st.Size() - 64*1024
-			}
+			offset = logStartOffset(st.Size(), had, prev.Inode != ino)
 		}
 		f, err := os.Open(cand.path)
 		if err != nil {
@@ -253,4 +249,23 @@ func parseDnfTime(s string) time.Time {
 		}
 	}
 	return time.Now()
+}
+
+// logStartOffset decides where to begin reading a log on first sight or after
+// rotation.
+//
+// 首次与轮转是两件事，不能共用一条规则：
+//   - 首次（!had）：从末尾开始，一条历史都不回放。旧实现是「大于 64 KiB 才跳到
+//     末尾前 64 KiB，否则从 0 读」，而刚装好的机器 dpkg.log 往往只有几十 KB，
+//     于是整份安装历史被当成「刚刚发生的变更」重放——实测空库首启一次性冒出
+//     65 条包变更，用户看到的第一屏就是一片红。
+//   - 轮转（inode 变了）：新文件是空的，从 0 开始读到的才是真正新发生的。
+func logStartOffset(size int64, had bool, inodeChanged bool) int64 {
+	if !had {
+		return size
+	}
+	if inodeChanged {
+		return 0
+	}
+	return -1 // caller keeps its continuation offset
 }

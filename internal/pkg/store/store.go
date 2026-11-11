@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -37,7 +38,7 @@ func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
 	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}, &model.AISession{}, &model.AIMessage{}, &model.AIPendingApproval{}, &model.AgentMemory{}, &model.Signal{}, &model.Incident{}, &model.TriggerPolicy{}, &model.AgentRun{}, &model.ActionLog{}, &model.QuarantineItem{}, &model.SnapshotRecord{}, &model.Baseline{}, &model.SignalFeedback{}, &model.BlockedIP{}, &model.ChangeEvent{}, &model.ChangeDiff{}, &model.ChangeOffset{}, &model.ChangeIgnore{}, &model.ChangeChainMeta{}, &model.Campaign{}, &model.ActionJournal{}, &model.ShadowReview{}, &model.ChangeReview{}, &model.CollectorBaseline{}); err != nil {
 		return nil, err
 	}
-	if err := seedAdmin(db); err != nil {
+	if err := seedAdmin(db, filepath.Dir(path)); err != nil {
 		return nil, err
 	}
 	if err := seedRoles(db); err != nil {
@@ -183,7 +184,7 @@ func seedApps(db *gorm.DB) error {
 
 // seedAdmin ensures the default admin opsmini exists. On first install it generates a random strong password,
 // and outputs it via the log (only once); afterwards the password must be changed in the panel.
-func seedAdmin(db *gorm.DB) error {
+func seedAdmin(db *gorm.DB, dir string) error {
 	var count int64
 	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
 		return err
@@ -217,14 +218,28 @@ func seedAdmin(db *gorm.DB) error {
 		return err
 	}
 	if generated {
-		// Write the random password to .init_passwd (0600) to avoid plaintext ending up in stdout/systemd logs.
-		if werr := os.WriteFile(".init_passwd", []byte(pwd+"\n"), 0o600); werr != nil {
-			log.Printf("initial admin account created: username=opsmini，密码写入失败，请用 -reset-pass 重置")
+		// Write the random password next to the database (0600) so it never lands in
+		// stdout/systemd logs.
+		//
+		// 必须是绝对路径。原来写的是相对路径 ".init_passwd"，文件落在进程的工作
+		// 目录——systemd 的 WorkingDirectory 恰好是 /data/opsmini 才碰巧可见；
+		// 换成手动 `cd /tmp && opsmini -config /data/opsmini/config.yaml` 启动，
+		// 密码就写进了 /tmp，用户永远找不到，也就永远登不进去。
+		pwFile := filepath.Join(dir, ".init_passwd")
+		if werr := os.WriteFile(pwFile, []byte(pwd+"\n"), 0o600); werr != nil {
+			log.Printf("initial admin account created: username=opsmini，密码写入 %s 失败（%v），请用 -reset-pass 重置", pwFile, werr)
 		} else {
-			log.Printf("initial admin account created: username=opsmini，初始密码已写入 .init_passwd")
+			log.Printf("initial admin account created: username=opsmini，初始密码已写入 %s", pwFile)
 		}
 	} else {
-		log.Printf("initial admin account created: username=opsmini（密码来自 OPSMINI_INIT_PASSWORD）")
+		// 密码来自环境变量时也要落一份文件：装机脚本注入的密码只有它自己知道，
+		// 用户事后翻 systemd unit 才能看到——写下来更实在。
+		pwFile := filepath.Join(dir, ".init_passwd")
+		if werr := os.WriteFile(pwFile, []byte(pwd+"\n"), 0o600); werr != nil {
+			log.Printf("initial admin account created: username=opsmini（密码来自 OPSMINI_INIT_PASSWORD，写入文件失败: %v）", werr)
+		} else {
+			log.Printf("initial admin account created: username=opsmini（密码来自 OPSMINI_INIT_PASSWORD，已写入 %s）", pwFile)
+		}
 	}
 	return nil
 }
