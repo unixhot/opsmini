@@ -308,7 +308,7 @@ func (o *cronFailOp) Restore(ctx context.Context, r *Run) error {
 // ---------------------------------------------------------------- disk fill
 
 const (
-	diskDrillPath   = "/var/tmp/opsmini-drill-fill.bin"
+	diskDrillPath = "/var/tmp/opsmini-drill-fill.bin"
 	// 92 而不是 88：内置规则是「> 90% 持续 1 分钟」，推到 88% 根本跨不过门槛，
 	// 演练会得出「磁盘告警不好用」的错误结论。
 	diskTargetPct   = 92
@@ -371,16 +371,44 @@ func (o *dockerDownOp) Inject(ctx context.Context, r *Run) error {
 	if err := exec.CommandContext(ctx, "systemctl", "is-active", "docker").Run(); err != nil {
 		return fmt.Errorf("docker 服务不存在或未运行，无法演练")
 	}
+
+	// socket 必须先停。
+	//
+	// docker.socket 处于 active 时，任何客户端连一下 /var/run/docker.sock，
+	// systemd 就会把 docker.service 拉起来。而这个面板自己就在轮询容器列表——
+	// 实测 stop 之后 8 秒 docker 就回来了：演练等于没做，界面还显示「docker 已停止」
+	// 骗人，用户会得出「告警不灵」的结论。停掉 socket 才停得住。
+	socketWasActive := exec.CommandContext(ctx, "systemctl", "is-active", "docker.socket").Run() == nil
+	if socketWasActive {
+		if out, err := exec.CommandContext(ctx, "systemctl", "stop", "docker.socket").CombinedOutput(); err != nil {
+			return fmt.Errorf("停止 docker.socket 失败: %v (%s)", err, strings.TrimSpace(string(out)))
+		}
+		r.Meta = ensureMeta(r.Meta)
+		r.Meta["socket_active"] = "1"
+	}
+
 	if out, err := exec.CommandContext(ctx, "systemctl", "stop", "docker").CombinedOutput(); err != nil {
+		// 已经停掉的 socket 要还回去，否则这次注入失败会留下一个停用的 socket。
+		if socketWasActive {
+			_ = exec.CommandContext(ctx, "systemctl", "start", "docker.socket").Run()
+		}
 		return fmt.Errorf("停止 docker 失败: %v (%s)", err, strings.TrimSpace(string(out)))
 	}
-	r.Note = "docker 已停止。该机器上运行的容器会一并停止，恢复时会重新启动 docker，但不会自动拉起原先的容器。"
+	r.Note = "docker 已停止（连同 docker.socket，否则面板轮询容器会把它激活回来）。" +
+		"该机器上的容器会一并停止；恢复时只重启 docker，不会自动拉起原先的容器。"
 	return nil
 }
 
 func (o *dockerDownOp) Restore(ctx context.Context, r *Run) error {
+	// 先起 service 再起 socket：socket 一活，任何一次连接都会尝试激活 service，
+	// 反过来做会看到一堆「connection refused」再成功，日志更难读。
 	if err := exec.CommandContext(ctx, "systemctl", "start", "docker").Run(); err != nil {
 		return fmt.Errorf("启动 docker 失败: %w", err)
+	}
+	if r.Meta != nil && r.Meta["socket_active"] == "1" {
+		if err := exec.CommandContext(ctx, "systemctl", "start", "docker.socket").Run(); err != nil {
+			return fmt.Errorf("启动 docker.socket 失败: %w", err)
+		}
 	}
 	return nil
 }
