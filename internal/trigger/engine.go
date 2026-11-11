@@ -88,6 +88,11 @@ type RunResult struct {
 	// BudgetExceeded is true when the run stopped because a token cap was hit.
 	// Reported as its own verify state so it is not mistaken for a model failure.
 	BudgetExceeded bool
+	// NoModel is true when the runner could not start because no AI model is
+	// configured. Like BudgetExceeded, this is "we never ran", not "we failed" —
+	// a freshly installed panel that has not been given a model yet would
+	// otherwise turn every detected anomaly into a red failed incident.
+	NoModel bool
 	// ActionChecks is the independent re-check of every write action the run
 	// executed. The agent's own "done" is not evidence the host changed.
 	ActionChecks []safety.ActionCheck
@@ -710,6 +715,20 @@ func (e *Engine) run(inc model.Incident, p model.TriggerPolicy) {
 				status = model.IncidentSkipped
 			} else {
 				status = model.IncidentFailed
+			}
+		}
+
+		// 未配置 AI 模型同样是「没跑」，不是「跑失败」。
+		// 事件确实被感知到了，主机也确实被看过了，只是没有人分析它。标成 failed
+		// 会让刚装完面板、还没填模型的用户以为系统坏了——那台机器上任何一次
+		// 日志增长都会冒出一条红色失败。
+		if res.NoModel {
+			verifyState = "no-model"
+			status = model.IncidentOpen
+			res.Summary = "已感知到该异常，但 AI 模型尚未配置，本次未做分析与处置。\n\n" +
+				"配置入口：设置 → AI 接入，填入服务商地址与密钥后，后续事件会自动分析。"
+			if ru, ok := upd["error"]; ok && ru != nil {
+				delete(upd, "error")
 			}
 		}
 

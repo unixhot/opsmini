@@ -2,6 +2,7 @@ package trigger
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -312,5 +313,44 @@ func TestRunIncludesChangeDiffInPrompt(t *testing.T) {
 		if !strings.Contains(p, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, p)
 		}
+	}
+}
+
+// 没配 AI 模型时，事件要停在「待处置」，不能记成失败。
+//
+// 刚装好的面板还没填模型，主机上任何一次日志增长都会命中策略；如果这时的
+// 结果被当成 failed，用户第一眼看到的就是一片红色失败，以为系统坏了——
+// 实际上它连模型都还没配，什么都没跑。
+func TestRunWithoutModelStaysOpen(t *testing.T) {
+	db := newTriggerDB(t)
+	inc := newTestIncident(db, "inc-nomodel", "log_growth|flood")
+
+	// 模拟 incidentRunner 在 r.agent == nil 时的返回。
+	runner := &fakeRunner{
+		result: RunResult{NoModel: true},
+		err:    errors.New("AI 模型未配置，事件只记录不分析"),
+	}
+	e := NewEngine(db, safety.New(db, func() string { return t.TempDir() }, 8888))
+	e.Runner = runner
+
+	p := model.TriggerPolicy{
+		Name: "nomodel", Enabled: true, Family: "log_growth", MinSeverity: "high",
+		Mode: model.ModeShadow, MaxSteps: 6, MaxSeconds: 30, Prompt: "排查 {title}",
+	}
+	e.run(inc, p)
+
+	var got model.Incident
+	db.First(&got, "id = ?", inc.ID)
+	if got.Status != model.IncidentOpen {
+		t.Fatalf("未配模型时应保持待处置，得到 %s", got.Status)
+	}
+	if got.VerifyState != "no-model" {
+		t.Fatalf("verify_state 应为 no-model，得到 %q", got.VerifyState)
+	}
+	if !strings.Contains(got.Summary, "AI 模型尚未配置") {
+		t.Fatalf("结论应说明原因，得到 %q", got.Summary)
+	}
+	if got.ClosedAt != nil {
+		t.Fatal("待处置的事件不该有结束时间")
 	}
 }

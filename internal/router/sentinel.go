@@ -326,6 +326,9 @@ type incidentRunner struct {
 func (r *incidentRunner) RunIncident(ctx context.Context, req trigger.RunRequest) (trigger.RunResult, error) {
 	out := trigger.RunResult{}
 	if r.agent == nil {
+		// 告诉引擎这是「没跑」，而不是「跑失败」：状态要停在待处置，
+		// 不该因为用户还没配模型就把感知到的事件记成失败。
+		out.NoModel = true
 		return out, fmt.Errorf("AI 模型未配置，事件只记录不分析")
 	}
 	// 每日额度用尽时连启动都不做：让模型跑起来再掐掉，等于先花钱再告诉用户不能花。
