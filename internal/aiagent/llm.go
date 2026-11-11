@@ -35,8 +35,11 @@ type LLMConfig struct {
 }
 
 // Ready reports whether the configuration is usable.
+//
+// 走 llm.Config.Check()，和真正发请求前的校验是同一份逻辑。只判地址和模型会
+// 漏掉「密钥没填」——那种配置下 Ready() 为真，请求发出去才失败。
 func (c LLMConfig) Ready() bool {
-	return c.BaseURL != "" && c.Model != ""
+	return c.toLLM().Check() == nil
 }
 
 // toLLM converts to the transport config.

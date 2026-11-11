@@ -88,17 +88,23 @@ func (c *Client) client() *http.Client {
 // Config returns the current normalized configuration.
 func (c *Client) Config() Config { return c.cfg().Normalized() }
 
-// Validate reports configuration problems before a request is attempted.
-func (c *Client) Validate() error {
-	cfg := c.Config()
-	if err := validateEndpoint(cfg); err != nil {
+// Check reports what is missing before a request can be attempted.
+//
+// 三件事都查：地址、模型、密钥。之前「能不能用」有两套判断——客户端这里查三项，
+// 而 Agent 侧的 Ready() 只查地址和模型，于是「地址和模型都填了、密钥没填」
+// 被判成"就绪"，请求真的发出去才报错，事件就被记成失败而不是"还没配置"。
+func (c Config) Check() error {
+	if err := validateEndpoint(c); err != nil {
 		return err
 	}
-	if cfg.Model == "" {
+	if c.Model == "" {
 		return errors.New("AI 模型未配置")
 	}
 	return nil
 }
+
+// Validate reports configuration problems before a request is attempted.
+func (c *Client) Validate() error { return c.Config().Check() }
 
 // validateEndpoint checks the transport-level settings only. Listing models must
 // use this instead of Validate: the model name is exactly what the user is still
