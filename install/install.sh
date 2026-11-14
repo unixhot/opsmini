@@ -25,9 +25,10 @@ PORT=8888
 HOST="0.0.0.0"
 BINARY=""
 BINARY_URL=""
-VERSION="v1.4.2"                                                    # 默认下载的版本号（发布新版本时更新）
+VERSION="v1.5.0"                                                    # 默认下载的版本号（发布新版本时更新）
 DEFAULT_URL_BASE="https://opsmini.oss-cn-beijing.aliyuncs.com"     # 阿里云 OSS 下载地址
 NO_SYSTEMD=0
+BASE_URL=""        # 安装包所在目录（如 http://opsant/uploads/agent/opsmini），设置后优先于官方 OSS
 UNINSTALL=0        # 1 = 执行卸载
 PURGE=0            # 1 = 卸载时连数据一起删
 SERVER_ADDR=""     # OpsAnt「OpsMini Server」地址（host:port），非空则写入 agent 段实现接入 OpsAnt
@@ -58,6 +59,8 @@ OpsMini 安装脚本
   -n, --no-systemd     不注册 systemd 服务（仅安装 + 写配置，不启动；密码在首次启动后写入 .init_passwd）
   -U, --uninstall      卸载：停止并移除 systemd 服务（默认保留数据目录）
       --purge          配合 --uninstall 使用：连数据目录一并删除（不可恢复）
+      --base-url <url>           从指定目录下载二进制（如 http://<opsant>/uploads/agent/opsmini）
+      --version <vX.Y.Z>         指定版本号（文件名中的版本，如 v1.7.5）
       --server-addr <host:port>  接入 OpsAnt 的 Server 地址（如 47.104.172.52:4507）
       --server-token <token>     接入 OpsAnt 的认证 token（与 OpsAnt 的 OPSMINI_TOKEN 一致）
   -h, --help           显示本帮助
@@ -80,6 +83,8 @@ while [ $# -gt 0 ]; do
     -n|--no-systemd) NO_SYSTEMD=1; shift ;;
     -U|--uninstall)  UNINSTALL=1; shift ;;
     --purge)         PURGE=1; shift ;;
+    --base-url)      BASE_URL="${2%/}"; shift 2 ;;
+    --version)       VERSION="$2"; shift 2 ;;
     --server-addr)   SERVER_ADDR="$2"; shift 2 ;;
     --server-token)  SERVER_TOKEN="$2"; shift 2 ;;
     -h|--help)   usage; exit 0 ;;
@@ -152,8 +157,9 @@ prepare_binary() {
 
   # 确定下载地址：-u 指定 > 默认官方 URL（仅当未指定 -b 本地二进制时）
   local url="$BINARY_URL"
+  local base="${BASE_URL:-$DEFAULT_URL_BASE}"
   if [ -z "$url" ] && [ -z "$BINARY" ]; then
-    url="${DEFAULT_URL_BASE}/opsmini-${VERSION}-linux-${GOARCH}"
+    url="${base}/opsmini-${VERSION}-linux-${GOARCH}"
   fi
 
   if [ -n "$url" ]; then

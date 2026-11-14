@@ -20,9 +20,11 @@ param(
     [string]$DataDir = "C:\ProgramData\OpsMini",
     [int]$Port = 8888,
     [string]$Binary = "",
-    # 二进制下载地址；留空则按版本号拼默认 OSS 路径（与 Linux 安装脚本同一套命名）
+    # 安装包所在目录（如 http://<opsant>/uploads/agent/opsmini）；留空则回退官方 OSS
+    [string]$BaseUrl = "",
+    # 二进制下载地址，优先级最高；一般不用填
     [string]$BinaryUrl = "",
-    [string]$Version = "v1.4.2",
+    [string]$Version = "v1.5.0",
     # 接入 OpsAnt 的 OpsMini Server（host:port）与 token。
     # 给了这两项，服务启动后自己就会注册，不需要装完再进面板手工填一遍。
     [string]$ServerAddr = "",
@@ -70,7 +72,10 @@ if (-not $Binary) {
 
 if (-not $Binary) {
     if (-not $BinaryUrl) {
-        $BinaryUrl = "$DefaultUrlBase/opsmini-$Version-windows-amd64.exe"
+        $base = if ($BaseUrl) { $BaseUrl.TrimEnd('/') } else { $DefaultUrlBase }
+        # 目标机架构：包名里的 amd64 / arm64 必须与之一致
+        $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
+        $BinaryUrl = "$base/opsmini-$Version-windows-$arch.exe"
     }
     $tmpExe = Join-Path $env:TEMP "opsmini-windows-amd64.exe"
     Write-Host "正在下载 $BinaryUrl"
