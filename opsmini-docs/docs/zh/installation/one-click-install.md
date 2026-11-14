@@ -1,12 +1,22 @@
 # 一键脚本安装
 
-官方 `install.sh` 在 Linux 主机上一键完成部署。
+官方脚本一键完成部署：Linux 使用 `install.sh`，Windows 使用 `install.ps1`（管理员 PowerShell）。
 
 ## 快速开始
 
 ```bash
 # 一键安装（推荐，脚本自动按架构从阿里云 OSS 下载二进制）
 curl -fsSL https://opsmini.com/install.sh | sudo bash
+```
+
+Windows（管理员 PowerShell，脚本自动按 amd64 / arm64 取包）：
+
+```powershell
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
+```
+
+```bash
+# 以下为 Linux 的常用参数
 
 # 指定本地二进制安装（默认安装到 /data/opsmini，端口 8888）
 sudo ./install.sh -b ./opsmini

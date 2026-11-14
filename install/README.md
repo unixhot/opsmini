@@ -1,6 +1,6 @@
 # OpsMini 安装脚本
 
-`install.sh` 用于在 Linux 主机上一键安装 OpsMini。
+`install.sh` 用于在 Linux 主机上一键安装 OpsMini；Windows 主机使用同目录下的 `install.ps1`（管理员 PowerShell）。
 
 ## 快速开始
 

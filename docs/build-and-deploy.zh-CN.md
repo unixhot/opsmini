@@ -69,7 +69,7 @@ make build-all
 | `darwin/amd64` | Intel Mac 开发机（开发调试） |
 | `darwin/arm64` | Apple Silicon 开发机（开发调试） |
 
-> OpsMini 是面向 **Linux 主机**的面板，仅发布 Linux 安装包；macOS 目标仅用于本地开发调试，不作为交付产物。
+> OpsMini 同时面向 **Linux 与 Windows 主机**，发布 Linux（amd64/arm64）与 Windows（amd64/arm64）安装包；macOS 目标仅用于本地开发调试，不作为交付产物。
 
 ### 3.3 版本号注入
 

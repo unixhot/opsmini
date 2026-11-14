@@ -12,7 +12,7 @@
 
 ## 繁體中文
 
-OpsMini 是一台 Linux 主機上的常駐 AI 維運 Agent：自己採集指標、自己判斷異常、自己動手處理，遇到高風險動作停下來等你點頭。Web 介面只是它的觀察窗——你可以什麼都不點，它照樣每天把活幹完並留下報告。整個 Agent 是一個數十 MB 的靜態二進位，資料全部留在本機。
+OpsMini 是跑在 **Linux 與 Windows** 主機上的常駐 AI 維運 Agent：自己採集指標、自己判斷異常、自己動手處理，遇到高風險動作停下來等你點頭。Web 介面只是它的觀察窗——你可以什麼都不點，它照樣每天把活幹完並留下報告。整個 Agent 是一個數十 MB 的靜態二進位，資料全部留在本機。
 
 ### 特性
 
@@ -29,9 +29,16 @@ Go · Gin · GORM · SQLite（純 Go）· Vue 3 · ECharts
 
 ### 快速開始
 
+```powershell
+# Windows（管理員 PowerShell）
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
+```
+
 ```bash
 make build          # 編譯目前平台
 make build-all      # 交叉編譯 Linux amd64/arm64
+# Windows（amd64/arm64）同樣可交叉編譯：
+#   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/opsmini.exe ./cmd/agent
 
 ./dist/opsmini -config configs/config.yaml
 # 開啟 http://localhost:8888（預設帳號 opsmini，密碼見首次啟動日誌）

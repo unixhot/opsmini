@@ -12,7 +12,7 @@
 
 ## 日本語
 
-OpsMini は Linux ホストに常駐する AI 運用エージェントです。指標を集め、異常を判断し、自分で対処します。危険な操作の前には必ず止まって確認を求めます。Web UI は観測窓にすぎず、何もクリックしなくても毎日の作業を終えてレポートを残します。数十 MB の静的バイナリ 1 つで、データはすべて端末内に残ります。
+OpsMini は **Linux と Windows** ホストに常駐する AI 運用エージェントです。指標を集め、異常を判断し、自分で対処します。危険な操作の前には必ず止まって確認を求めます。Web UI は観測窓にすぎず、何もクリックしなくても毎日の作業を終えてレポートを残します。数十 MB の静的バイナリ 1 つで、データはすべて端末内に残ります。
 
 ### 機能
 
@@ -29,9 +29,15 @@ Go · Gin · GORM · SQLite（純 Go）· Vue 3 · ECharts
 
 ### クイックスタート
 
+```powershell
+# Windows（管理者 PowerShell）
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
+```
+
 ```bash
 make build          # 現在のプラットフォーム向けにビルド
 make build-all      # Linux amd64/arm64 向けにクロスコンパイル
+# Windows（amd64/arm64）も同じ方法でクロスコンパイルできます
 
 ./dist/opsmini -config configs/config.yaml
 # http://localhost:8888 を開く（デフォルト: opsmini、パスワードは起動ログ）

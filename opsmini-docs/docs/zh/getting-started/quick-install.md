@@ -1,11 +1,11 @@
 # 5 分钟快速安装
 
-使用官方安装脚本 `install.sh`，在 Linux 主机上一键完成部署。
+使用官方安装脚本一键完成部署：Linux 用 `install.sh`，Windows 用 `install.ps1`（管理员 PowerShell）。
 
 ## 前提
 
-- 目标主机：Linux `x86_64` 或 `aarch64`
-- 拥有 `sudo` 权限
+- 目标主机：Linux `x86_64` / `aarch64`，或 Windows `amd64` / `arm64`
+- Linux 需要 `sudo`；Windows 需要以**管理员身份**打开 PowerShell
 - 可访问外网（用于下载二进制）或提前准备二进制文件
 
 ## 一键安装
@@ -13,7 +13,17 @@
 ```bash
 # 一键安装（推荐，脚本自动按架构从阿里云 OSS 下载二进制）
 curl -fsSL https://opsmini.com/install.sh | sudo bash
+```
 
+Windows（管理员 PowerShell）：
+
+```powershell
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
+```
+
+Linux 的其它常用参数：
+
+```bash
 # 指定本地二进制安装（默认安装到 /data/opsmini，端口 8888）
 sudo ./install.sh -b ./opsmini
 

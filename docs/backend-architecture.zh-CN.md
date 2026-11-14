@@ -503,7 +503,7 @@ v1.0 的 OpsMini 是**单机面板**，通过标准 REST API 对外暴露能力�
 | `darwin/arm64` | Apple Silicon 开发机（本机调试） |
 | `darwin/amd64` | Intel Mac（开发调试） |
 
-> OpsMini 面向 **Linux 主机**，仅发布 Linux 安装包；macOS 目标仅用于开发调试，不作为交付产物。
+> OpsMini 同时面向 **Linux 与 Windows 主机**，发布 Linux（amd64/arm64）与 Windows（amd64/arm64）安装包；macOS 目标仅用于开发调试，不作为交付产物。
 
 **关键前提**：数据层采用纯 Go 驱动 `glebarez/sqlite`（底层 `modernc.org/sqlite`），**无 CGO 依赖**。因此 `CGO_ENABLED=0` 即可在任一平台一键交叉编译出**静态链接**的二进制，无需为每个架构准备 C 交叉工具链。
 
