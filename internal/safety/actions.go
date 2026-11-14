@@ -10,10 +10,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/platform/sys"
 )
 
 // Quarantine moves a file into the quarantine area instead of deleting it.
@@ -52,9 +52,7 @@ func (m *Manager) Quarantine(incidentID, path, reason string) (*model.Quarantine
 	_ = os.Chmod(clean, 0o000)
 	owner := ""
 	if fi, err := os.Stat(clean); err == nil {
-		if st, ok := fi.Sys().(*syscall.Stat_t); ok {
-			owner = fmt.Sprintf("%d:%d", st.Uid, st.Gid)
-		}
+		owner = sys.Owner(fi)
 	}
 	if err := os.Remove(clean); err != nil {
 		return nil, fmt.Errorf("移入隔离区失败：%w", err)
@@ -341,9 +339,6 @@ func (m *Manager) checkOne(ctx context.Context, incidentID string, a Assertion) 
 
 // --- helpers -----------------------------------------------------------------
 
-// statfs is a thin wrapper so the rest of the file stays syscall-agnostic.
-func statfs(path string, st *syscall.Statfs_t) error { return syscall.Statfs(path, st) }
-
 func hashFile(path string) (string, int64, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -412,11 +407,9 @@ func portListening(port int) bool {
 
 // diskUsage returns used and total bytes for the filesystem holding path.
 func diskUsage(path string) (uint64, uint64) {
-	var st syscall.Statfs_t
-	if err := statfs(path, &st); err != nil {
+	used, total, ok := sys.DiskUsage(path)
+	if !ok {
 		return 0, 0
 	}
-	total := st.Blocks * uint64(st.Bsize)
-	free := st.Bavail * uint64(st.Bsize)
-	return total - free, total
+	return used, total
 }

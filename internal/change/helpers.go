@@ -6,20 +6,13 @@ import (
 	"encoding/hex"
 	"os"
 	"os/exec"
-	"syscall"
 	"time"
+
+	"github.com/opsmini/opsmini/internal/platform/sys"
 )
 
-// inodeOf returns the inode number, used to detect log rotation.
-func inodeOf(fi os.FileInfo) uint64 {
-	if fi == nil {
-		return 0
-	}
-	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
-		return st.Ino
-	}
-	return 0
-}
+// inodeOf returns a stable file identity, used to detect log rotation.
+func inodeOf(fi os.FileInfo) uint64 { return sys.FileID(fi) }
 
 // shortHash is a stable 16-char digest, enough for change detection.
 func shortHash(s string) string {

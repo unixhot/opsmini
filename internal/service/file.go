@@ -12,16 +12,30 @@ import (
 
 // FileService handles file management; all paths are restricted within root to prevent directory traversal.
 type FileService struct {
+	// root is the traversal boundary. On Windows it is empty, meaning "any
+	// absolute path on any volume" — the panel manages the whole machine there,
+	// the same practical scope a "/" root gives on Unix.
 	root string
+	// def is where browsing starts when a request carries no path.
+	def string
 }
 
 // NewFileService creates a FileService. root is the allowed root directory.
 func NewFileService(root string) *FileService {
-	if root == "" {
-		root = "/"
+	root = normalizeFileRoot(root)
+	if root != "" {
+		root = filepath.Clean(root)
 	}
-	return &FileService{root: filepath.Clean(root)}
+	return &FileService{root: root, def: defaultFileBrowsePath()}
 }
+
+// Roots lists the places the file manager may jump to: drives on Windows, "/"
+// and the service account's home on Unix. The frontend uses the first entry as
+// its starting directory, which is why "/root" no longer has to be hard-coded.
+func (s *FileService) Roots() []string { return fileRoots() }
+
+// DefaultPath is the directory a request with no path resolves to.
+func (s *FileService) DefaultPath() string { return s.def }
 
 // FileEntry is a file/directory entry.
 type FileEntry struct {
@@ -43,18 +57,17 @@ var (
 // resolve normalizes a user-input path and validates that it stays within root.
 func (s *FileService) resolve(p string) (string, error) {
 	if p == "" {
-		p = s.root
+		p = s.def
 	}
 	if !filepath.IsAbs(p) {
-		p = filepath.Join(s.root, p)
+		base := s.root
+		if base == "" {
+			base = s.def
+		}
+		p = filepath.Join(base, p)
 	}
 	p = filepath.Clean(p)
-	root := filepath.Clean(s.root)
-	rel, err := filepath.Rel(root, p)
-	if err != nil {
-		return "", ErrPathEscape
-	}
-	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+	if !withinFileRoot(s.root, p) {
 		return "", ErrPathEscape
 	}
 	return p, nil
@@ -78,7 +91,9 @@ func (s *FileService) List(dir string) ([]FileEntry, error) {
 		}
 		out = append(out, FileEntry{
 			Name:    e.Name(),
-			Path:    filepath.ToSlash(filepath.Join(dir, e.Name())),
+			// Absolute, because a request may arrive with an empty path and the
+			// resolved directory is then the only thing that knows where we are.
+			Path:    filepath.ToSlash(filepath.Join(full, e.Name())),
 			IsDir:   e.IsDir(),
 			Size:    info.Size(),
 			Mode:    info.Mode().String(),

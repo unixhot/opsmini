@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/opsmini/opsmini/internal/aiagent"
+	"github.com/opsmini/opsmini/internal/platform/shell"
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -360,7 +361,7 @@ func execCommandTool(d Deps) aiagent.Tool {
 			cctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 			defer cancel()
 
-			cmd := exec.CommandContext(cctx, "sh", "-c", command)
+			cmd := shell.Command(cctx, command)
 			if wd := str(args, "workdir"); wd != "" && filepath.IsAbs(wd) {
 				cmd.Dir = wd
 			}

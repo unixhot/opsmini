@@ -1,0 +1,849 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Copyright The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build windows
+
+package service
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"maps"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+	"unsafe"
+
+	"github.com/alecthomas/kingpin/v2"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/metriccache"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/mi"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/scrapecache"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/types"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/utils"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/utils/recovery"
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
+	"golang.org/x/sys/windows/svc/mgr"
+)
+
+const Name = "service"
+
+// enumServicesMaxBufferSize is the largest buffer the SCM fills in one
+// EnumServicesStatusEx call ([MS-SCMR] 2.2.9 BOUNDED_DWORD_256K).
+const enumServicesMaxBufferSize = 256 * 1024
+
+type Config struct {
+	ServiceInclude          *regexp.Regexp `yaml:"include"`
+	ServiceExclude          *regexp.Regexp `yaml:"exclude"`
+	ServiceStartModeInclude []string       `yaml:"start-mode-include"`
+}
+
+//nolint:gochecknoglobals
+var ConfigDefaults = Config{
+	ServiceInclude:          types.RegExpAny,
+	ServiceExclude:          types.RegExpEmpty,
+	ServiceStartModeInclude: []string{"auto", "boot", "manual", "disabled", "system"},
+}
+
+// A Collector is a Prometheus Collector for service metrics.
+type Collector struct {
+	config Config
+
+	logger *slog.Logger
+
+	apiStateValues     map[uint32]string
+	apiStartModeValues map[uint32]string
+
+	state     *prometheus.Desc
+	processID *prometheus.Desc
+	info      *prometheus.Desc
+	startMode *prometheus.Desc
+
+	// serviceConfigPoolBytes is a pool of byte slices used to avoid allocations
+	// ref: https://victoriametrics.com/blog/go-sync-pool/
+	serviceConfigPoolBytes sync.Pool
+
+	serviceManagerHandle   *mgr.Mgr
+	queryAllServicesMu     sync.Mutex
+	queryAllServicesBuffer []byte
+	// lastServices is the number of services of the last enumeration, which sizes the next one.
+	lastServices int
+
+	// configCache caches the service configurations between scrapes.
+	configCache serviceConfigCache
+
+	// allStartModesIncluded is true if ServiceStartModeInclude contains every start mode.
+	// Only then services with an unknown start mode are collected.
+	allStartModesIncluded bool
+
+	// metricCache reuses the metrics of services whose values did not change since
+	// the last scrape. Each service publishes up to 14 series, and building them is
+	// most of the allocations of a scrape. The values are still queried on every
+	// scrape, so it saves allocations, not system calls.
+	metricCache metriccache.Cache[string, serviceValues]
+}
+
+// serviceConfig is the configuration of a service that the collector publishes.
+// Of the embedded [mgr.Config], only BinaryPathName, DisplayName, StartType,
+// ServiceStartName and DelayedAutoStart are set. DelayedAutoStart is only
+// queried for auto-start services and false for the others.
+type serviceConfig struct {
+	mgr.Config
+
+	// triggerStart is true if the service has triggers, which start or stop it
+	// on events such as a device arrival or a network change.
+	triggerStart bool
+
+	// extendedAvailable is true if DelayedAutoStart and triggerStart were queried
+	// successfully. Otherwise both are false and their labels stay empty.
+	extendedAvailable bool
+}
+
+// serviceTriggerInfo mirrors SERVICE_TRIGGER_INFO, which QueryServiceConfig2
+// returns for SERVICE_CONFIG_TRIGGER_INFO. golang.org/x/sys/windows doesn't define it.
+// Only cTriggers is read; the pointers point into the same buffer.
+// https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_trigger_info
+type serviceTriggerInfo struct {
+	triggers uint32  // cTriggers
+	trigger  uintptr // pTriggers
+	_        uintptr // pReserved
+}
+
+// serviceValues holds the inputs of the metrics of a service besides its name.
+type serviceValues struct {
+	state       uint32
+	startMode   string
+	displayName string
+	runAs       string
+	pathName    string
+	// delayedStart and triggerStart are the label values "true" or "false".
+	delayedStart string
+	triggerStart string
+	processID    uint32
+	// processStartTime is the creation time of the process in nanoseconds,
+	// or 0 if it is unknown and the process metric is not published.
+	processStartTime uint64
+}
+
+// serviceEntry is a copy of an [windows.ENUM_SERVICE_STATUS_PROCESS], which
+// does not point into the buffer of queryAllServices.
+type serviceEntry struct {
+	name   string
+	status windows.SERVICE_STATUS_PROCESS
+}
+
+func New(config *Config) *Collector {
+	if config == nil {
+		config = &ConfigDefaults
+	}
+
+	if config.ServiceExclude == nil {
+		config.ServiceExclude = ConfigDefaults.ServiceExclude
+	}
+
+	if config.ServiceInclude == nil {
+		config.ServiceInclude = ConfigDefaults.ServiceInclude
+	}
+
+	if config.ServiceStartModeInclude == nil {
+		config.ServiceStartModeInclude = ConfigDefaults.ServiceStartModeInclude
+	}
+
+	c := &Collector{
+		config: *config,
+	}
+
+	return c
+}
+
+func NewWithFlags(app *kingpin.Application) *Collector {
+	c := &Collector{
+		config: ConfigDefaults,
+	}
+	c.config.ServiceStartModeInclude = make([]string, 0)
+
+	var serviceStartModeInclude string
+
+	utils.RegexpFlag(app,
+		"collector.service.exclude",
+		"Regexp of service to exclude. Service name (not the display name!) must both match include and not match exclude to be included.",
+		"", &c.config.ServiceExclude,
+	)
+
+	utils.RegexpFlag(app,
+		"collector.service.include",
+		"Regexp of service to include. Service name (not the display name!) must both match include and not match exclude to be included.",
+		".+", &c.config.ServiceInclude,
+	)
+
+	app.Flag(
+		"collector.service.start-mode-include",
+		"Comma separated list of service start modes to include. Possible values: auto, boot, manual, disabled, system.",
+	).Default(strings.Join(ConfigDefaults.ServiceStartModeInclude, ",")).StringVar(&serviceStartModeInclude)
+
+	app.Action(func(*kingpin.ParseContext) error {
+		c.config.ServiceStartModeInclude = strings.Split(serviceStartModeInclude, ",")
+
+		return nil
+	})
+
+	return c
+}
+
+func (c *Collector) GetName() string {
+	return Name
+}
+
+// ScrapeCaches returns the caches that the collection resets and begins a scrape of around Collect.
+func (c *Collector) ScrapeCaches() []scrapecache.Cache {
+	return []scrapecache.Cache{&c.metricCache}
+}
+
+func (c *Collector) Build(logger *slog.Logger, _ *mi.Session) error {
+	c.logger = logger.With(slog.String("collector", Name))
+
+	c.serviceConfigPoolBytes = sync.Pool{
+		New: func() any {
+			buf := make([]byte, 1024)
+
+			return &buf
+		},
+	}
+
+	c.queryAllServicesBuffer = make([]byte, 1024*200)
+
+	c.info = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "info"),
+		"A metric with a constant '1' value labeled with service information",
+		[]string{"service", "display_name", "run_as", "path_name", "delayed_start", "trigger_start"},
+		nil,
+	)
+	c.state = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "state"),
+		"The state of the service (State)",
+		[]string{"service", "state"},
+		nil,
+	)
+	c.startMode = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "start_mode"),
+		"The start mode of the service (StartMode)",
+		[]string{"service", "start_mode"},
+		nil,
+	)
+	c.processID = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "process"),
+		"Process of started service. The value is the creation time of the process as a unix timestamp.",
+		[]string{"service", "process_id"},
+		nil,
+	)
+
+	c.apiStateValues = map[uint32]string{
+		windows.SERVICE_CONTINUE_PENDING: "continue pending",
+		windows.SERVICE_PAUSE_PENDING:    "pause pending",
+		windows.SERVICE_PAUSED:           "paused",
+		windows.SERVICE_RUNNING:          "running",
+		windows.SERVICE_START_PENDING:    "start pending",
+		windows.SERVICE_STOP_PENDING:     "stop pending",
+		windows.SERVICE_STOPPED:          "stopped",
+	}
+
+	c.apiStartModeValues = map[uint32]string{
+		windows.SERVICE_AUTO_START:   "auto",
+		windows.SERVICE_BOOT_START:   "boot",
+		windows.SERVICE_DEMAND_START: "manual",
+		windows.SERVICE_DISABLED:     "disabled",
+		windows.SERVICE_SYSTEM_START: "system",
+	}
+
+	startModes := slices.Sorted(maps.Values(c.apiStartModeValues))
+
+	for _, startMode := range c.config.ServiceStartModeInclude {
+		if !slices.Contains(startModes, startMode) {
+			return fmt.Errorf("unknown start mode: %s. Possible values: %s", startMode,
+				strings.Join(startModes, ", "),
+			)
+		}
+	}
+
+	c.allStartModesIncluded = true
+
+	for _, startMode := range startModes {
+		if !slices.Contains(c.config.ServiceStartModeInclude, startMode) {
+			c.allStartModesIncluded = false
+		}
+	}
+
+	// EnumServiceStatusEx requires only SC_MANAGER_ENUM_SERVICE.
+	handle, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_ENUMERATE_SERVICE)
+	if err != nil {
+		return fmt.Errorf("failed to open scm: %w", err)
+	}
+
+	c.serviceManagerHandle = &mgr.Mgr{Handle: handle}
+
+	if err := c.configCache.init(registry.LOCAL_MACHINE, servicesKeyPath); err != nil {
+		c.logger.Warn("Failed to watch the service configurations for changes. Service configurations are queried on every scrape",
+			slog.Any("err", err),
+		)
+	}
+
+	return nil
+}
+
+func (c *Collector) Close() error {
+	if err := c.configCache.close(); err != nil {
+		c.logger.Warn("Failed to close the service configuration cache",
+			slog.Any("err", err),
+		)
+	}
+
+	if c.serviceManagerHandle == nil {
+		return nil
+	}
+
+	if err := c.serviceManagerHandle.Disconnect(); err != nil {
+		c.logger.Warn("Failed to disconnect from scm",
+			slog.Any("err", err),
+		)
+	}
+
+	c.serviceManagerHandle = nil
+
+	return nil
+}
+
+// Collect sends the metric values for each metric
+// to the provided prometheus Metric channel.
+func (c *Collector) Collect(ch chan<- prometheus.Metric, _ time.Duration) error {
+	services, err := c.queryAllServices()
+	if err != nil {
+		return fmt.Errorf("failed to query all services: %w", err)
+	}
+
+	switch dropped, expired, err := c.configCache.refresh(); {
+	case err != nil:
+		c.logger.Warn("Failed to watch the service configurations for changes. Service configurations are queried on every scrape",
+			slog.Any("err", err),
+		)
+	case expired:
+		c.logger.Debug("Service configuration cache expired",
+			slog.Int("count", dropped),
+		)
+	case dropped > 0:
+		c.logger.Debug("Dropped changed service configurations from the cache",
+			slog.Int("count", dropped),
+		)
+	}
+
+	scrape := c.metricCache.Scrape()
+
+	servicesCh := make(chan serviceEntry, len(services))
+
+	for _, service := range services {
+		servicesCh <- service
+	}
+
+	close(servicesCh)
+
+	// If a worker panics, the remaining workers collect the remaining services.
+	var g recovery.Group
+
+	for range 4 {
+		g.Go(func() error {
+			for service := range servicesCh {
+				c.collectWorker(ch, scrape, service)
+			}
+
+			return nil
+		})
+	}
+
+	err = g.Wait()
+
+	return err
+}
+
+func (c *Collector) collectWorker(ch chan<- prometheus.Metric, scrape *metriccache.Scrape[string, serviceValues], service serviceEntry) {
+	if c.config.ServiceExclude.MatchString(service.name) || !c.config.ServiceInclude.MatchString(service.name) {
+		return
+	}
+
+	if err := c.collectService(ch, scrape, service); err != nil {
+		if errors.Is(err, errServiceDeleted) {
+			c.logger.Log(context.Background(), slog.LevelDebug, "service deleted during the scrape",
+				slog.String("service", service.name),
+			)
+
+			return
+		}
+
+		c.logger.Log(context.Background(), slog.LevelWarn, "failed collecting service info",
+			slog.Any("err", err),
+			slog.String("service", service.name),
+		)
+	}
+}
+
+func (c *Collector) collectService(ch chan<- prometheus.Metric, scrape *metriccache.Scrape[string, serviceValues], service serviceEntry) error {
+	serviceName := service.name
+
+	serviceConfig, configAvailable, err := c.getCachedServiceConfig(serviceName)
+	if err != nil {
+		return err
+	}
+
+	// serviceStartMode stays empty if the service configuration is not available.
+	// The zero StartType of the empty configuration must not be reported as "boot".
+	var serviceStartMode string
+
+	if configAvailable {
+		var ok bool
+
+		serviceStartMode, ok = c.apiStartModeValues[serviceConfig.StartType]
+		if !ok {
+			c.logger.Log(context.Background(), slog.LevelWarn, "unknown service start mode",
+				slog.String("service", serviceName),
+				slog.Uint64("start_mode", uint64(serviceConfig.StartType)),
+			)
+
+			return nil
+		}
+
+		if !slices.Contains(c.config.ServiceStartModeInclude, serviceStartMode) {
+			c.logger.Log(context.Background(), slog.LevelDebug, "service start mode excluded by config",
+				slog.String("service", serviceName),
+				slog.String("start_mode", serviceStartMode),
+			)
+
+			return nil
+		}
+	} else if !c.allStartModesIncluded {
+		// A service with an unknown start mode can't match a start mode filter.
+		c.logger.Log(context.Background(), slog.LevelDebug, "service with unknown start mode excluded by config",
+			slog.String("service", serviceName),
+		)
+
+		return nil
+	}
+
+	values := serviceValues{
+		state:       service.status.CurrentState,
+		startMode:   serviceStartMode,
+		displayName: serviceConfig.DisplayName,
+		runAs:       serviceConfig.ServiceStartName,
+		pathName:    serviceConfig.BinaryPathName,
+		processID:   service.status.ProcessId,
+	}
+
+	// The labels stay empty if the service configuration or the delayed
+	// auto-start flag and triggers are not available.
+	if configAvailable && serviceConfig.extendedAvailable {
+		values.delayedStart = strconv.FormatBool(serviceConfig.DelayedAutoStart)
+		values.triggerStart = strconv.FormatBool(serviceConfig.triggerStart)
+	}
+
+	if values.processID != 0 {
+		values.processStartTime = c.processStartTime(serviceName, values.processID)
+	}
+
+	metrics := scrape.Get(serviceName, values, func() []prometheus.Metric {
+		return c.serviceMetrics(serviceName, values)
+	})
+
+	for _, metric := range metrics {
+		ch <- metric
+	}
+
+	return nil
+}
+
+// serviceMetrics builds the metrics of a service.
+func (c *Collector) serviceMetrics(serviceName string, values serviceValues) []prometheus.Metric {
+	metrics := make([]prometheus.Metric, 0, 2+len(c.apiStartModeValues)+len(c.apiStateValues))
+
+	metrics = append(metrics, prometheus.MustNewConstMetric(
+		c.info,
+		prometheus.GaugeValue,
+		1.0,
+		serviceName,
+		values.displayName,
+		values.runAs,
+		values.pathName,
+		values.delayedStart,
+		values.triggerStart,
+	))
+
+	var (
+		isCurrentStartMode float64
+		isCurrentState     float64
+	)
+
+	if values.startMode != "" {
+		for _, startMode := range c.apiStartModeValues {
+			isCurrentStartMode = 0.0
+			if startMode == values.startMode {
+				isCurrentStartMode = 1.0
+			}
+
+			metrics = append(metrics, prometheus.MustNewConstMetric(
+				c.startMode,
+				prometheus.GaugeValue,
+				isCurrentStartMode,
+				serviceName,
+				startMode,
+			))
+		}
+	}
+
+	for state, stateValue := range c.apiStateValues {
+		isCurrentState = 0.0
+		if state == values.state {
+			isCurrentState = 1.0
+		}
+
+		metrics = append(metrics, prometheus.MustNewConstMetric(
+			c.state,
+			prometheus.GaugeValue,
+			isCurrentState,
+			serviceName,
+			stateValue,
+		))
+	}
+
+	if values.processStartTime == 0 {
+		return metrics
+	}
+
+	return append(metrics, prometheus.MustNewConstMetric(
+		c.processID,
+		prometheus.GaugeValue,
+		float64(values.processStartTime/1_000_000_000),
+		serviceName,
+		strconv.FormatUint(uint64(values.processID), 10),
+	))
+}
+
+// processStartTime returns the creation time of the process of a service in
+// nanoseconds, or 0 if it can't be determined.
+func (c *Collector) processStartTime(serviceName string, processID uint32) uint64 {
+	processStartTime, err := c.getProcessStartTime(processID)
+	if err == nil {
+		return processStartTime
+	}
+
+	logLevel := slog.LevelWarn
+
+	// ERROR_INVALID_PARAMETER returns when the process is not running. This can be happened
+	// if the service terminated after query the service API.
+	if errors.Is(err, windows.ERROR_ACCESS_DENIED) || errors.Is(err, windows.ERROR_INVALID_PARAMETER) {
+		logLevel = slog.LevelDebug
+	}
+
+	c.logger.Log(context.Background(), logLevel, "failed to get process start time",
+		slog.String("service", serviceName),
+		slog.Any("err", err),
+	)
+
+	return 0
+}
+
+// queryAllServices returns all service states of the current Windows system
+// This is realized by ask Service Manager directly.
+func (c *Collector) queryAllServices() ([]serviceEntry, error) {
+	var (
+		additionalBytesNeeded uint32
+		servicesReturned      uint32
+		err                   error
+	)
+
+	// The buffer is reused across scrapes. Hold the lock until the services are copied
+	// out of the buffer, so that an overlapping Collect can't overwrite it in the meantime.
+	c.queryAllServicesMu.Lock()
+	defer c.queryAllServicesMu.Unlock()
+
+	entries := make([]serviceEntry, 0, c.lastServices)
+
+	// The SCM returns at most enumServicesMaxBufferSize bytes per call ([MS-SCMR]
+	// 2.2.9, 3.1.4.40). With a resume index it returns the services that fit
+	// together with ERROR_MORE_DATA, and the next call continues after them.
+	var resumeIndex uint32
+
+	for {
+		clear(c.queryAllServicesBuffer)
+
+		currentBufferSize := uint32(len(c.queryAllServicesBuffer))
+
+		err = windows.EnumServicesStatusEx(
+			c.serviceManagerHandle.Handle,
+			windows.SC_STATUS_PROCESS_INFO,
+			windows.SERVICE_WIN32,
+			windows.SERVICE_STATE_ALL,
+			&c.queryAllServicesBuffer[0],
+			currentBufferSize,
+			&additionalBytesNeeded,
+			&servicesReturned,
+			&resumeIndex,
+			nil,
+		)
+		if err != nil && !errors.Is(err, windows.ERROR_MORE_DATA) {
+			return nil, err
+		}
+
+		entries = c.appendServiceEntries(entries, servicesReturned)
+
+		if err == nil {
+			break
+		}
+
+		if servicesReturned != 0 {
+			continue
+		}
+
+		// Not even one service fits. bytesNeeded is relative to the buffer size:
+		// https://stackoverflow.com/questions/14756347/when-calling-enumservicesstatusex-twice-i-still-get-eror-more-data-in-c
+		if currentBufferSize >= enumServicesMaxBufferSize {
+			return nil, fmt.Errorf("EnumServicesStatusEx returned no service in a %d byte buffer: %w", currentBufferSize, err)
+		}
+
+		// Grow at least twofold, so a missing size hint cannot repeat the same call.
+		c.queryAllServicesBuffer = make([]byte, min(max(2*uint64(currentBufferSize), uint64(currentBufferSize)+uint64(additionalBytesNeeded)), enumServicesMaxBufferSize))
+	}
+
+	c.lastServices = len(entries)
+
+	return entries, nil
+}
+
+// appendServiceEntries copies servicesReturned services out of the enumeration buffer.
+func (c *Collector) appendServiceEntries(entries []serviceEntry, servicesReturned uint32) []serviceEntry {
+	if servicesReturned == 0 {
+		return entries
+	}
+
+	services := unsafe.Slice((*windows.ENUM_SERVICE_STATUS_PROCESS)(unsafe.Pointer(&c.queryAllServicesBuffer[0])), int(servicesReturned))
+
+	for _, service := range services {
+		if uintptr(unsafe.Pointer(service.ServiceName)) == uintptr(windows.InvalidHandle) {
+			c.logger.Log(context.Background(), slog.LevelWarn, "failed collecting service info",
+				slog.String("err", "ServiceName is 0xffffffffffffffff"),
+				slog.String("service", fmt.Sprintf("%+v", service)),
+			)
+
+			continue
+		}
+
+		entries = append(entries, serviceEntry{
+			name:   windows.UTF16PtrToString(service.ServiceName),
+			status: service.ServiceStatusProcess,
+		})
+	}
+
+	return entries
+}
+
+// errServiceDeleted reports a service that was deleted after the enumeration.
+var errServiceDeleted = errors.New("service deleted")
+
+// queryServiceConfig opens the service and queries its configuration.
+// configAvailable is false if the service has no readable configuration.
+func (c *Collector) queryServiceConfig(serviceName string) (serviceConfig, bool, error) {
+	serviceNamePtr, err := windows.UTF16PtrFromString(serviceName)
+	if err != nil {
+		return serviceConfig{}, false, fmt.Errorf("invalid service name: %w", err)
+	}
+
+	// Open connection for service handler.
+	serviceHandle, err := windows.OpenService(c.serviceManagerHandle.Handle, serviceNamePtr, windows.SERVICE_QUERY_CONFIG)
+	if err != nil {
+		// The DACL of a service can deny SERVICE_QUERY_CONFIG to the exporter's
+		// account ([MS-SCMR] 3.1.4.16). Its state from the enumeration is still
+		// published, without the configuration.
+		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			c.logger.Log(context.Background(), slog.LevelDebug, "access to the service configuration denied",
+				slog.String("service", serviceName),
+			)
+
+			return serviceConfig{}, false, nil
+		}
+
+		// The service was deleted after the enumeration.
+		if errors.Is(err, windows.ERROR_SERVICE_DOES_NOT_EXIST) {
+			return serviceConfig{}, false, errServiceDeleted
+		}
+
+		return serviceConfig{}, false, fmt.Errorf("failed to open service: %w", err)
+	}
+
+	// Create handle for each service.
+	serviceManager := &mgr.Service{Name: serviceName, Handle: serviceHandle}
+	defer func(serviceManager *mgr.Service) {
+		if err := serviceManager.Close(); err != nil {
+			c.logger.Log(context.Background(), slog.LevelWarn, "failed to close service handle",
+				slog.Any("err", err),
+				slog.String("service", serviceName),
+			)
+		}
+	}(serviceManager)
+
+	// Get Service Configuration.
+	config, err := c.getServiceConfig(serviceManager)
+	if err != nil {
+		if !errors.Is(err, windows.ERROR_FILE_NOT_FOUND) && !errors.Is(err, windows.ERROR_MUI_FILE_NOT_FOUND) &&
+			!errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			return serviceConfig{}, false, fmt.Errorf("failed to get service configuration: %w", err)
+		}
+
+		c.logger.Log(context.Background(), slog.LevelDebug, "failed collecting service config",
+			slog.Any("err", err),
+			slog.String("service", serviceName),
+		)
+
+		return serviceConfig{}, false, nil
+	}
+
+	return config, true, nil
+}
+
+func (c *Collector) getProcessStartTime(pid uint32) (uint64, error) {
+	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open process %w", err)
+	}
+
+	var (
+		creation windows.Filetime
+		exit     windows.Filetime
+		krn      windows.Filetime
+		user     windows.Filetime
+	)
+
+	err = windows.GetProcessTimes(handle, &creation, &exit, &krn, &user)
+	if err := windows.CloseHandle(handle); err != nil {
+		c.logger.LogAttrs(context.Background(), slog.LevelWarn, "failed to close process handle",
+			slog.Any("err", err),
+			slog.Uint64("pid", uint64(pid)),
+		)
+	}
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to get process times %w", err)
+	}
+
+	return uint64(creation.Nanoseconds()), nil
+}
+
+// getServiceConfig is an optimized variant of [mgr.Service.Config] that only
+// retrieves the necessary information.
+func (c *Collector) getServiceConfig(service *mgr.Service) (serviceConfig, error) {
+	buf := c.serviceConfigPoolBytes.Get().(*[]byte) //nolint:forcetypeassert // The pool only holds *[]byte.
+	defer c.serviceConfigPoolBytes.Put(buf)
+
+	err := queryServiceConfigBuffer(buf, func(data *byte, size uint32, bytesNeeded *uint32) error {
+		return windows.QueryServiceConfig(service.Handle, (*windows.QUERY_SERVICE_CONFIG)(unsafe.Pointer(data)), size, bytesNeeded)
+	})
+	if err != nil {
+		return serviceConfig{}, err
+	}
+
+	queryServiceConfig := (*windows.QUERY_SERVICE_CONFIG)(unsafe.Pointer(&(*buf)[0]))
+
+	config := serviceConfig{
+		BinaryPathName:   windows.UTF16PtrToString(queryServiceConfig.BinaryPathName),
+		DisplayName:      windows.UTF16PtrToString(queryServiceConfig.DisplayName),
+		StartType:        queryServiceConfig.StartType,
+		ServiceStartName: windows.UTF16PtrToString(queryServiceConfig.ServiceStartName),
+	}
+
+	// A failure only leaves the delayed_start and trigger_start labels empty.
+	// It must not hide the rest of the configuration.
+	if err := queryExtendedServiceConfig(service.Handle, buf, &config); err != nil {
+		c.logger.Log(context.Background(), slog.LevelDebug, "failed to query the delayed auto-start flag and triggers of the service",
+			slog.Any("err", err),
+			slog.String("service", service.Name),
+		)
+
+		config.DelayedAutoStart = false
+		config.triggerStart = false
+
+		return config, nil
+	}
+
+	config.extendedAvailable = true
+
+	return config, nil
+}
+
+// queryExtendedServiceConfig queries the delayed auto-start flag and the
+// triggers of a service with QueryServiceConfig2 into config. buf must not be
+// empty; the configuration strings must already be copied out of it.
+func queryExtendedServiceConfig(handle windows.Handle, buf *[]byte, config *serviceConfig) error {
+	// The service control manager ignores the delayed auto-start flag of services
+	// that don't start automatically, so it is only queried for them.
+	if config.StartType == windows.SERVICE_AUTO_START {
+		var (
+			delayed     windows.SERVICE_DELAYED_AUTO_START_INFO
+			bytesNeeded uint32
+		)
+
+		err := windows.QueryServiceConfig2(handle, windows.SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+			(*byte)(unsafe.Pointer(&delayed)), uint32(unsafe.Sizeof(delayed)), &bytesNeeded)
+		if err != nil {
+			return fmt.Errorf("failed to query the delayed auto-start flag: %w", err)
+		}
+
+		config.DelayedAutoStart = delayed.IsDelayedAutoStartUp != 0
+	}
+
+	err := queryServiceConfigBuffer(buf, func(data *byte, size uint32, bytesNeeded *uint32) error {
+		return windows.QueryServiceConfig2(handle, windows.SERVICE_CONFIG_TRIGGER_INFO, data, size, bytesNeeded)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to query the service triggers: %w", err)
+	}
+
+	config.triggerStart = (*serviceTriggerInfo)(unsafe.Pointer(&(*buf)[0])).triggers > 0
+
+	return nil
+}
+
+// queryServiceConfigBuffer calls query with the buffer and grows the buffer
+// until the result fits. query wraps QueryServiceConfig or QueryServiceConfig2.
+// The buffer must not be empty.
+func queryServiceConfigBuffer(buf *[]byte, query func(data *byte, size uint32, bytesNeeded *uint32) error) error {
+	for {
+		var bytesNeeded uint32
+
+		err := query(&(*buf)[0], uint32(len(*buf)), &bytesNeeded)
+		if err == nil {
+			return nil
+		}
+
+		if !errors.Is(err, windows.ERROR_INSUFFICIENT_BUFFER) && !errors.Is(err, windows.ERROR_MORE_DATA) {
+			return err
+		}
+
+		if bytesNeeded <= uint32(len(*buf)) {
+			return fmt.Errorf("win32 reports the buffer as too small (%d bytes needed, %d available): %w", bytesNeeded, len(*buf), err)
+		}
+
+		*buf = make([]byte, bytesNeeded)
+	}
+}

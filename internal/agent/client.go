@@ -29,6 +29,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/opsmini/opsmini/internal/platform/shell"
+
 	agentpb "github.com/opsmini/opsmini/internal/agent/pb"
 )
 
@@ -71,6 +73,10 @@ type Client struct {
 	// ctrl holds the subsystems that platform tasks act on (plugin manager).
 	// Nil means the feature is not wired.
 	ctrl controls
+	// onState reports link state changes: nil after a successful registration,
+	// the error otherwise. Without it the reconnect loop is entirely silent —
+	// the settings page says "运行中" while the agent retries forever.
+	onState func(error)
 }
 
 // New creates an Agent client. hostname is usually os.Hostname(); version is the build
@@ -85,6 +91,10 @@ func New(cfg Config, hostname, version, instanceID string) *Client {
 	}
 }
 
+// SetStateHandler registers a callback invoked on every link state change
+// (nil = registered, non-nil = failure). Set it before Run.
+func (c *Client) SetStateHandler(fn func(error)) { c.onState = fn }
+
 // Run connects and reconnects until ctx is cancelled. Safe to call once per process.
 func (c *Client) Run(ctx context.Context) {
 	backoff := c.cfg.RetryMin
@@ -97,6 +107,9 @@ func (c *Client) Run(ctx context.Context) {
 			return
 		}
 		log.Printf("agent: disconnected from %s: %v (retry in %s)", c.cfg.ServerAddr, err, backoff)
+		if c.onState != nil {
+			c.onState(err)
+		}
 		select {
 		case <-ctx.Done():
 			return
@@ -158,6 +171,9 @@ func (c *Client) connect(ctx context.Context) error {
 	}
 	c.agentID = ack.AgentId
 	log.Printf("agent: registered with %s as agent_id=%s", c.cfg.ServerAddr, ack.AgentId)
+	if c.onState != nil {
+		c.onState(nil)
+	}
 
 	// Single writer goroutine: all sends (heartbeat / result / file ack) go through sendCh,
 	// so only one goroutine ever calls stream.Send (gRPC streams are not safe for concurrent Send).
@@ -229,18 +245,18 @@ func (c *Client) execute(ctx context.Context, t *agentpb.ExecuteTask) *agentpb.T
 	var cmd *exec.Cmd
 	switch kind := t.Kind.(type) {
 	case *agentpb.ExecuteTask_Command:
-		cmd = exec.CommandContext(ctx, "sh", "-c", kind.Command.Command)
+		cmd = shell.Command(ctx, kind.Command.Command)
 	case *agentpb.ExecuteTask_Script:
 		script := kind.Script.Script
-		language := kind.Script.Language
-		if language == "" {
-			language = "shell"
+		// The language names the intent ("shell"), not the interpreter, so the
+		// same task runs natively on whatever host it lands on.
+		language := shell.NormalizeLanguage(kind.Script.Language)
+		if err := shell.Validate(language); err != nil {
+			result.Status = "failed"
+			result.Stderr = err.Error()
+			return result
 		}
-		ext := ".sh"
-		if language == "python" {
-			ext = ".py"
-		}
-		tmp, err := os.CreateTemp("", "opsmini-agent-*"+ext)
+		tmp, err := os.CreateTemp("", "opsmini-agent-*"+shell.ExtFor(language))
 		if err != nil {
 			result.Status = "failed"
 			result.Stderr = "create temp file: " + err.Error()
@@ -255,11 +271,7 @@ func (c *Client) execute(ctx context.Context, t *agentpb.ExecuteTask) *agentpb.T
 			return result
 		}
 		tmp.Close()
-		if language == "python" {
-			cmd = exec.CommandContext(ctx, "python3", tmpPath)
-		} else {
-			cmd = exec.CommandContext(ctx, "sh", tmpPath)
-		}
+		cmd = shell.Script(ctx, language, tmpPath)
 	default:
 		result.Status = "failed"
 		result.Stderr = "execute task has no command or script"

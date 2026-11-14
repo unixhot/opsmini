@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"path/filepath"
 	"io"
 	"os"
 	"strings"
@@ -22,6 +23,17 @@ func NewFileHandler(svc *service.FileService) *FileHandler {
 }
 
 // List GET /files?path=/
+// Roots lists the places the file manager may browse to. It exists so the
+// frontend does not have to assume a POSIX path: "/root" is meaningless on
+// Windows, where the entry points are drive letters.
+func (h *FileHandler) Roots(c *gin.Context) {
+	response.OK(c, gin.H{
+		"roots":   h.svc.Roots(),
+		"default": h.svc.DefaultPath(),
+		"sep":     string(filepath.Separator),
+	})
+}
+
 func (h *FileHandler) List(c *gin.Context) {
 	dir := c.DefaultQuery("path", "/")
 	list, err := h.svc.List(dir)

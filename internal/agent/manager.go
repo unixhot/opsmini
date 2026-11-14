@@ -17,6 +17,13 @@ type Manager struct {
 	instanceID string
 	cancel     context.CancelFunc
 	running    bool
+	// lastErr is the most recent link failure (nil once registration succeeds).
+	// It is what turns "运行中但什么都不通" into a diagnosable state.
+	lastErr error
+	// connected is true only after the Server acknowledged a registration. The
+	// goroutine being alive (running) says nothing about reachability: gRPC dials
+	// lazily, so an unreachable address looks "running" for a long time.
+	connected bool
 	// ctrl is carried across reconnects so a restart of the link keeps the
 	// subsystems wired to the new client.
 	ctrl controls
@@ -40,6 +47,10 @@ func (m *Manager) Start(cfg Config) {
 		m.cancel = nil
 	}
 	m.running = false
+	// A new address invalidates the previous failure: keeping it would blame the
+	// new endpoint for the old one's error.
+	m.lastErr = nil
+	m.connected = false
 	m.cfg = cfg
 	if cfg.ServerAddr == "" {
 		// Log the transition explicitly: otherwise a manual disconnect looks
@@ -53,6 +64,7 @@ func (m *Manager) Start(cfg Config) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cl := New(cfg, m.hostname, m.version, m.instanceID)
 	cl.SetControls(m.ctrl.plugin)
+	cl.SetStateHandler(m.setState)
 	go cl.Run(ctx)
 	m.cancel = cancel
 	m.running = true
@@ -76,6 +88,28 @@ func (m *Manager) Config() Config {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.cfg
+}
+
+// setState records the link state reported by the client.
+func (m *Manager) setState(err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.lastErr = err
+	m.connected = err == nil
+}
+
+// Connected reports whether a registration has been acknowledged.
+func (m *Manager) Connected() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.connected
+}
+
+// LastError returns the most recent link failure, or nil when the link is up.
+func (m *Manager) LastError() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastErr
 }
 
 // Running reports whether the Agent is currently running.

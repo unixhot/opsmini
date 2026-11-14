@@ -2,10 +2,12 @@ package v1
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/opsmini/opsmini/internal/agent"
 	"github.com/opsmini/opsmini/internal/pkg/response"
 	"github.com/opsmini/opsmini/internal/service"
 )
@@ -23,12 +25,25 @@ func NewAgentConfigHandler(svc *service.AgentConfigService) *AgentConfigHandler 
 
 // Get GET /agent-config - returns the current server_addr / server_token and running state.
 func (h *AgentConfigHandler) Get(c *gin.Context) {
-	addr, token, running := h.svc.Current()
+	addr, token, running, connected, linkErr := h.svc.Current()
 	response.OK(c, gin.H{
 		"server_addr":  addr,
 		"server_token": token,
 		"running":      running,
+		"connected":    connected,
+		// link_error / link_hint expose why a saved config still isn't connected.
+		// The raw gRPC text alone is unreadable; the hint names the fix.
+		"link_error": linkErr,
+		"link_hint":  agentExplain(linkErr),
 	})
+}
+
+// agentExplain maps a raw link error string back to its operator-facing hint.
+func agentExplain(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	return agent.ExplainConnectError(errors.New(raw))
 }
 
 // Update PUT /agent-config - persists the configuration and applies it immediately.

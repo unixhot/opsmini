@@ -19,6 +19,8 @@ import (
 	gnet "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 	"github.com/shirou/gopsutil/v4/sensors"
+
+	psys "github.com/opsmini/opsmini/internal/platform/sys"
 )
 
 // SystemService provides real-time collection of host system information.
@@ -751,11 +753,9 @@ func classifyInterface(name string, flags []string) string {
 
 // KillProcess sends a signal to a process (SIGTERM/SIGKILL, etc.).
 func (s *SystemService) KillProcess(pid int32, sig syscall.Signal) error {
-	p, err := process.NewProcess(pid)
-	if err != nil {
-		return err
-	}
-	return p.SendSignal(sig)
+	// Windows has no POSIX signals; the platform layer degrades to
+	// TerminateProcess, which is what SIGKILL means there.
+	return psys.Kill(int(pid), sig == syscall.SIGKILL)
 }
 
 // UserAccount is a Linux system user.
@@ -783,59 +783,12 @@ type FirewallStatus struct {
 	Message string   `json:"message"`
 }
 
-// Users reads /etc/passwd and returns the system user list (distinguishing loggable/non-loggable).
-func (s *SystemService) Users() []UserAccount {
-	data, err := os.ReadFile("/etc/passwd")
-	if err != nil {
-		return nil
-	}
-	var out []UserAccount
-	for _, line := range strings.Split(string(data), "\n") {
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.Split(line, ":")
-		if len(parts) < 7 {
-			continue
-		}
-		shell := parts[6]
-		out = append(out, UserAccount{
-			Username:  parts[0],
-			UID:       parts[2],
-			GID:       parts[3],
-			Home:      parts[5],
-			Shell:     shell,
-			Loginable: isLoginShell(shell),
-		})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].UID < out[j].UID })
-	return out
-}
+// Users returns the system user list. On Unix it parses /etc/passwd; on Windows
+// it asks the LocalAccounts module. See users_{unix,windows}.go.
+func (s *SystemService) Users() []UserAccount { return listUsers() }
 
-// Groups reads /etc/group and returns the user group list.
-func (s *SystemService) Groups() []GroupAccount {
-	data, err := os.ReadFile("/etc/group")
-	if err != nil {
-		return nil
-	}
-	var out []GroupAccount
-	for _, line := range strings.Split(string(data), "\n") {
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.Split(line, ":")
-		if len(parts) < 4 {
-			continue
-		}
-		var members []string
-		if parts[3] != "" {
-			members = strings.Split(parts[3], ",")
-		}
-		out = append(out, GroupAccount{Groupname: parts[0], GID: parts[2], Members: members})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].GID < out[j].GID })
-	return out
-}
+// Groups returns the system group list, with the same platform split.
+func (s *SystemService) Groups() []GroupAccount { return listGroups() }
 
 // FirewallStatus detects the system firewall (firewalld / ufw / iptables), with a hint when none is enabled.
 func (s *SystemService) FirewallStatus() *FirewallStatus {

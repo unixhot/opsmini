@@ -1,0 +1,201 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Copyright The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build windows
+
+package sysinfoapi
+
+import (
+	"unicode/utf16"
+	"unsafe"
+
+	"github.com/opsmini/opsmini/third_party/windows_exporter/headers/lazyproc"
+	"golang.org/x/sys/windows"
+)
+
+// MemoryStatusEx is a wrapper for MEMORYSTATUSEX
+// https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex
+type memoryStatusEx struct {
+	dwLength                uint32
+	DwMemoryLoad            uint32
+	UllTotalPhys            uint64
+	UllAvailPhys            uint64
+	UllTotalPageFile        uint64
+	UllAvailPageFile        uint64
+	UllTotalVirtual         uint64
+	UllAvailVirtual         uint64
+	UllAvailExtendedVirtual uint64
+}
+
+// MemoryStatus is an idiomatic wrapper for MemoryStatusEx.
+type MemoryStatus struct {
+	MemoryLoad           uint32
+	TotalPhys            uint64
+	AvailPhys            uint64
+	TotalPageFile        uint64
+	AvailPageFile        uint64
+	TotalVirtual         uint64
+	AvailVirtual         uint64
+	AvailExtendedVirtual uint64
+}
+
+// wProcessorArchitecture is a wrapper for the union found in LP_SYSTEM_INFO
+// https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info
+type wProcessorArchitecture struct {
+	WProcessorArchitecture uint16
+	WReserved              uint16
+}
+
+// ProcessorArchitecture is an idiomatic wrapper for wProcessorArchitecture.
+type ProcessorArchitecture uint16
+
+// Idiomatic values for wProcessorArchitecture.
+const (
+	AMD64   ProcessorArchitecture = 9
+	ARM     ProcessorArchitecture = 5
+	ARM64   ProcessorArchitecture = 12
+	IA64    ProcessorArchitecture = 6
+	INTEL   ProcessorArchitecture = 0
+	UNKNOWN ProcessorArchitecture = 0xffff
+)
+
+// LpSystemInfo is a wrapper for LPSYSTEM_INFO
+// https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info
+type lpSystemInfo struct {
+	Arch                        wProcessorArchitecture
+	DwPageSize                  uint32
+	LpMinimumApplicationAddress uintptr
+	LpMaximumApplicationAddress uintptr
+	DwActiveProcessorMask       uint
+	DwNumberOfProcessors        uint32
+	DwProcessorType             uint32
+	DwAllocationGranularity     uint32
+	WProcessorLevel             uint16
+	WProcessorRevision          uint16
+}
+
+// SystemInfo is an idiomatic wrapper for LpSystemInfo.
+type SystemInfo struct {
+	Arch                      ProcessorArchitecture
+	PageSize                  uint32
+	MinimumApplicationAddress uintptr
+	MaximumApplicationAddress uintptr
+	ActiveProcessorMask       uint
+	NumberOfProcessors        uint32
+	ProcessorType             uint32
+	AllocationGranularity     uint32
+	ProcessorLevel            uint16
+	ProcessorRevision         uint16
+}
+
+// WinComputerNameFormat is a wrapper for COMPUTER_NAME_FORMAT.
+type WinComputerNameFormat int
+
+// Definitions for WinComputerNameFormat constants.
+const (
+	ComputerNameNetBIOS WinComputerNameFormat = iota
+	ComputerNameDNSHostname
+	ComputerNameDNSDomain
+	ComputerNameDNSFullyQualified
+	ComputerNamePhysicalNetBIOS
+	ComputerNamePhysicalDNSHostname
+	ComputerNamePhysicalDNSDomain
+	ComputerNamePhysicalDNSFullyQualified
+	ComputerNameMax
+)
+
+//nolint:gochecknoglobals
+var (
+	kernel32                 = windows.NewLazySystemDLL("kernel32.dll")
+	procGetSystemInfo        = kernel32.NewProc("GetSystemInfo")
+	procGlobalMemoryStatusEx = kernel32.NewProc("GlobalMemoryStatusEx")
+	procGetComputerNameExW   = kernel32.NewProc("GetComputerNameExW")
+
+	load = lazyproc.Once(kernel32,
+		procGetSystemInfo,
+		procGlobalMemoryStatusEx,
+		procGetComputerNameExW,
+		procGetSystemFirmwareTable,
+	)
+)
+
+// Load checks that kernel32.dll exports every function of this package. Call
+// it in Build: a missing export panics on the first call otherwise.
+func Load() error { return load() }
+
+// GlobalMemoryStatusEx retrieves information about the system's current usage of both physical and virtual memory.
+// https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex
+func GlobalMemoryStatusEx() (MemoryStatus, error) {
+	var mse memoryStatusEx
+
+	mse.dwLength = uint32(unsafe.Sizeof(mse))
+	r1, _, err := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&mse)))
+
+	if ret := *(*bool)(unsafe.Pointer(&r1)); !ret {
+		return MemoryStatus{}, err
+	}
+
+	return MemoryStatus{
+		MemoryLoad:           mse.DwMemoryLoad,
+		TotalPhys:            mse.UllTotalPhys,
+		AvailPhys:            mse.UllAvailPhys,
+		TotalPageFile:        mse.UllTotalPageFile,
+		AvailPageFile:        mse.UllAvailPageFile,
+		TotalVirtual:         mse.UllTotalVirtual,
+		AvailVirtual:         mse.UllAvailVirtual,
+		AvailExtendedVirtual: mse.UllAvailExtendedVirtual,
+	}, nil
+}
+
+// GetSystemInfo is an idiomatic wrapper for the GetSystemInfo function from sysinfoapi
+// https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsysteminfo
+func GetSystemInfo() SystemInfo {
+	var info lpSystemInfo
+
+	procGetSystemInfo.Call(uintptr(unsafe.Pointer(&info))) //nolint:errcheck
+
+	return SystemInfo{
+		Arch:                      ProcessorArchitecture(info.Arch.WProcessorArchitecture),
+		PageSize:                  info.DwPageSize,
+		MinimumApplicationAddress: info.LpMinimumApplicationAddress,
+		MaximumApplicationAddress: info.LpMinimumApplicationAddress,
+		ActiveProcessorMask:       info.DwActiveProcessorMask,
+		NumberOfProcessors:        info.DwNumberOfProcessors,
+		ProcessorType:             info.DwProcessorType,
+		AllocationGranularity:     info.DwAllocationGranularity,
+		ProcessorLevel:            info.WProcessorLevel,
+		ProcessorRevision:         info.WProcessorRevision,
+	}
+}
+
+// GetComputerName wraps the GetComputerNameW function in a more Go-like way
+// https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getcomputernameexw
+func GetComputerName(f WinComputerNameFormat) (string, error) {
+	// 1kb buffer to accept computer name. This should be more than enough as the maximum size
+	// returned is the max length of a DNS name, which this author believes is 253 characters.
+	size := 1024
+
+	var buffer [1024]uint16
+
+	r1, _, err := procGetComputerNameExW.Call(uintptr(f), uintptr(unsafe.Pointer(&buffer)), uintptr(unsafe.Pointer(&size)))
+	if r1 == 0 {
+		return "", err
+	}
+
+	bytes := buffer[0:size]
+	out := utf16.Decode(bytes)
+
+	return string(out), nil
+}

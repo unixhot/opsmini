@@ -17,12 +17,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/platform/sys"
 )
 
 // Signal wraps the persisted model with a small fluent builder used by the
@@ -317,10 +317,5 @@ func sqrt(f float64) float64 {
 	return x
 }
 
-// inodeOf returns the inode number of a file (used to detect log rotation).
-func inodeOf(fi os.FileInfo) uint64 {
-	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
-		return st.Ino
-	}
-	return 0
-}
+// inodeOf returns a stable file identity (used to detect log rotation).
+func inodeOf(fi os.FileInfo) uint64 { return sys.FileID(fi) }

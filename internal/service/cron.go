@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/opsmini/opsmini/internal/backup"
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/platform/shell"
 	"github.com/opsmini/opsmini/internal/repository"
 )
 
@@ -128,7 +128,7 @@ func (s *CronService) execute(j model.CronJob) {
 	defer cancel()
 
 	start := time.Now()
-	out, err := exec.CommandContext(ctx, "sh", "-c", j.Command).CombinedOutput()
+	out, err := shell.Command(ctx, j.Command).CombinedOutput()
 	_ = out
 	if err != nil {
 		log.Printf("cron %q (id=%d) failed after %s: %v", j.Name, j.ID, time.Since(start), err)

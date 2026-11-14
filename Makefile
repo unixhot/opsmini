@@ -14,8 +14,8 @@ LDFLAGS    := -s -w \
 	-X main.buildTime=$(BUILD_TIME) \
 	-X main.gitCommit=$(GIT_COMMIT)
 
-# 目标平台：os/arch（Linux 服务器 + macOS 开发机，无 Windows）
-TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+# 目标平台：os/arch（Linux 服务器 + macOS 开发机 + Windows 主机）
+TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
 DIST_DIR := dist
 BIN      := opsmini
@@ -35,7 +35,8 @@ $(TARGETS):
 	@mkdir -p $(DIST_DIR)
 	$(eval GOOS := $(word 1,$(subst /, ,$@)))
 	$(eval GOARCH := $(word 2,$(subst /, ,$@)))
-	$(eval OUT := $(DIST_DIR)/$(BIN)-$(VERSION)-$(GOOS)-$(GOARCH))
+	$(eval EXT := $(if $(filter windows,$(GOOS)),.exe,))
+	$(eval OUT := $(DIST_DIR)/$(BIN)-$(VERSION)-$(GOOS)-$(GOARCH)$(EXT))
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -trimpath -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/agent
 	@echo "built: $(OUT)"
 

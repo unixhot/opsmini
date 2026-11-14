@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 
 // Init opens SQLite (pure Go driver), auto-migrates, and writes seed data.
 // logLevel controls the GORM logger verbosity (info/warn/error); logWriter is where logs are written.
-func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
+func Init(path string, logLevel string, logWriter io.Writer, initPasswdDir ...string) (*gorm.DB, error) {
 	gormLogger := logger.New(
 		log.New(logWriter, "", log.LstdFlags),
 		logger.Config{
@@ -37,7 +38,11 @@ func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
 	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}, &model.AISession{}, &model.AIMessage{}, &model.AIPendingApproval{}, &model.Signal{}, &model.Incident{}, &model.TriggerPolicy{}, &model.AgentRun{}, &model.ActionLog{}, &model.QuarantineItem{}, &model.SnapshotRecord{}, &model.Baseline{}, &model.SignalFeedback{}, &model.BlockedIP{}, &model.ChangeEvent{}, &model.ChangeDiff{}, &model.ChangeOffset{}, &model.ChangeIgnore{}, &model.ChangeChainMeta{}, &model.Campaign{}, &model.ActionJournal{}, &model.ShadowReview{}, &model.ChangeReview{}); err != nil {
 		return nil, err
 	}
-	if err := seedAdmin(db); err != nil {
+	passwdDir := ""
+	if len(initPasswdDir) > 0 {
+		passwdDir = initPasswdDir[0]
+	}
+	if err := seedAdmin(db, passwdDir); err != nil {
 		return nil, err
 	}
 	if err := seedRoles(db); err != nil {
@@ -183,7 +188,7 @@ func seedApps(db *gorm.DB) error {
 
 // seedAdmin ensures the default admin opsmini exists. On first install it generates a random strong password,
 // and outputs it via the log (only once); afterwards the password must be changed in the panel.
-func seedAdmin(db *gorm.DB) error {
+func seedAdmin(db *gorm.DB, passwdDir string) error {
 	var count int64
 	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
 		return err
@@ -217,11 +222,22 @@ func seedAdmin(db *gorm.DB) error {
 		return err
 	}
 	if generated {
-		// Write the random password to .init_passwd (0600) to avoid plaintext ending up in stdout/systemd logs.
-		if werr := os.WriteFile(".init_passwd", []byte(pwd+"\n"), 0o600); werr != nil {
-			log.Printf("initial admin account created: username=opsmini，密码写入失败，请用 -reset-pass 重置")
+		// Write the random password to .init_passwd (0600) to avoid plaintext
+		// ending up in stdout/systemd logs.
+		//
+		// The file goes next to the database rather than into the process working
+		// directory: a Windows service starts in C:\Windows\System32, where the
+		// write fails and the operator would never learn the initial password.
+		// The directory is created here because seeding runs before the rest of
+		// the panel has made its data subdirectories.
+		if passwdDir != "" {
+			_ = os.MkdirAll(passwdDir, 0o700)
+		}
+		path := filepath.Join(passwdDir, ".init_passwd")
+		if werr := os.WriteFile(path, []byte(pwd+"\n"), 0o600); werr != nil {
+			log.Printf("initial admin account created: username=opsmini，密码写入 %s 失败（%v），请用 -reset-pass 重置", path, werr)
 		} else {
-			log.Printf("initial admin account created: username=opsmini，初始密码已写入 .init_passwd")
+			log.Printf("initial admin account created: username=opsmini，初始密码已写入 %s", path)
 		}
 	} else {
 		log.Printf("initial admin account created: username=opsmini（密码来自 OPSMINI_INIT_PASSWORD）")

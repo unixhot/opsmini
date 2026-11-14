@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Copyright The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build windows
+
+package mi
+
+import "strconv"
+
+type ResultError uint32
+
+const (
+	MI_RESULT_OK ResultError = iota
+	MI_RESULT_FAILED
+	MI_RESULT_ACCESS_DENIED
+	MI_RESULT_INVALID_NAMESPACE
+	MI_RESULT_INVALID_PARAMETER
+	MI_RESULT_INVALID_CLASS
+	MI_RESULT_NOT_FOUND
+	MI_RESULT_NOT_SUPPORTED
+	MI_RESULT_CLASS_HAS_CHILDREN
+	MI_RESULT_CLASS_HAS_INSTANCES
+	MI_RESULT_INVALID_SUPERCLASS
+	MI_RESULT_ALREADY_EXISTS
+	MI_RESULT_NO_SUCH_PROPERTY
+	MI_RESULT_TYPE_MISMATCH
+	MI_RESULT_QUERY_LANGUAGE_NOT_SUPPORTED
+	MI_RESULT_INVALID_QUERY
+	MI_RESULT_METHOD_NOT_AVAILABLE
+	MI_RESULT_METHOD_NOT_FOUND
+	// MI_Result has no values 18 and 19.
+	//
+	// https://learn.microsoft.com/en-us/windows/win32/api/mi/ne-mi-mi_result
+	_
+	_
+	MI_RESULT_NAMESPACE_NOT_EMPTY
+	MI_RESULT_INVALID_ENUMERATION_CONTEXT
+	MI_RESULT_INVALID_OPERATION_TIMEOUT
+	MI_RESULT_PULL_HAS_BEEN_ABANDONED
+	MI_RESULT_PULL_CANNOT_BE_ABANDONED
+	MI_RESULT_FILTERED_ENUMERATION_NOT_SUPPORTED
+	MI_RESULT_CONTINUATION_ON_ERROR_NOT_SUPPORTED
+	MI_RESULT_SERVER_LIMITS_EXCEEDED
+	MI_RESULT_SERVER_IS_SHUTTING_DOWN
+)
+
+func (r ResultError) Error() string {
+	return r.String()
+}
+
+//nolint:gochecknoglobals
+var resultNames = [...]string{
+	MI_RESULT_OK:                                  "MI_RESULT_OK",
+	MI_RESULT_FAILED:                              "MI_RESULT_FAILED",
+	MI_RESULT_ACCESS_DENIED:                       "MI_RESULT_ACCESS_DENIED",
+	MI_RESULT_INVALID_NAMESPACE:                   "MI_RESULT_INVALID_NAMESPACE",
+	MI_RESULT_INVALID_PARAMETER:                   "MI_RESULT_INVALID_PARAMETER",
+	MI_RESULT_INVALID_CLASS:                       "MI_RESULT_INVALID_CLASS",
+	MI_RESULT_NOT_FOUND:                           "MI_RESULT_NOT_FOUND",
+	MI_RESULT_NOT_SUPPORTED:                       "MI_RESULT_NOT_SUPPORTED",
+	MI_RESULT_CLASS_HAS_CHILDREN:                  "MI_RESULT_CLASS_HAS_CHILDREN",
+	MI_RESULT_CLASS_HAS_INSTANCES:                 "MI_RESULT_CLASS_HAS_INSTANCES",
+	MI_RESULT_INVALID_SUPERCLASS:                  "MI_RESULT_INVALID_SUPERCLASS",
+	MI_RESULT_ALREADY_EXISTS:                      "MI_RESULT_ALREADY_EXISTS",
+	MI_RESULT_NO_SUCH_PROPERTY:                    "MI_RESULT_NO_SUCH_PROPERTY",
+	MI_RESULT_TYPE_MISMATCH:                       "MI_RESULT_TYPE_MISMATCH",
+	MI_RESULT_QUERY_LANGUAGE_NOT_SUPPORTED:        "MI_RESULT_QUERY_LANGUAGE_NOT_SUPPORTED",
+	MI_RESULT_INVALID_QUERY:                       "MI_RESULT_INVALID_QUERY",
+	MI_RESULT_METHOD_NOT_AVAILABLE:                "MI_RESULT_METHOD_NOT_AVAILABLE",
+	MI_RESULT_METHOD_NOT_FOUND:                    "MI_RESULT_METHOD_NOT_FOUND",
+	MI_RESULT_NAMESPACE_NOT_EMPTY:                 "MI_RESULT_NAMESPACE_NOT_EMPTY",
+	MI_RESULT_INVALID_ENUMERATION_CONTEXT:         "MI_RESULT_INVALID_ENUMERATION_CONTEXT",
+	MI_RESULT_INVALID_OPERATION_TIMEOUT:           "MI_RESULT_INVALID_OPERATION_TIMEOUT",
+	MI_RESULT_PULL_HAS_BEEN_ABANDONED:             "MI_RESULT_PULL_HAS_BEEN_ABANDONED",
+	MI_RESULT_PULL_CANNOT_BE_ABANDONED:            "MI_RESULT_PULL_CANNOT_BE_ABANDONED",
+	MI_RESULT_FILTERED_ENUMERATION_NOT_SUPPORTED:  "MI_RESULT_FILTERED_ENUMERATION_NOT_SUPPORTED",
+	MI_RESULT_CONTINUATION_ON_ERROR_NOT_SUPPORTED: "MI_RESULT_CONTINUATION_ON_ERROR_NOT_SUPPORTED",
+	MI_RESULT_SERVER_LIMITS_EXCEEDED:              "MI_RESULT_SERVER_LIMITS_EXCEEDED",
+	MI_RESULT_SERVER_IS_SHUTTING_DOWN:             "MI_RESULT_SERVER_IS_SHUTTING_DOWN",
+}
+
+// String returns the name of the MI_Result. Codes without a known name keep
+// their numeric value, so an unexpected native result stays identifiable.
+func (r ResultError) String() string {
+	if int(r) < len(resultNames) && resultNames[r] != "" {
+		return resultNames[r]
+	}
+
+	return "MI_RESULT_UNKNOWN(" + strconv.FormatUint(uint64(r), 10) + ")"
+}

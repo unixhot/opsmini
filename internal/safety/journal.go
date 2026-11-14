@@ -1,13 +1,14 @@
 package safety
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/platform/sys"
 )
 
 // Run-level rollback: a run is a transaction.
@@ -117,13 +118,19 @@ func (m *Manager) undo(r model.ActionJournal) RollbackStep {
 			step.Detail = "进程号无效：" + r.Target
 			return step
 		}
-		if err := syscall.Kill(pid, syscall.SIGCONT); err != nil {
-			if err == syscall.ESRCH {
-				step.Skipped = true
+		// Rolling back a freeze is best-effort: the process may have exited, and
+		// platforms without SIGCONT simply have nothing to undo.
+		if err := sys.ResumeProcess(pid); err != nil {
+			step.Skipped = true
+			switch {
+			case errors.Is(err, sys.ErrNoSuchProcess):
 				step.Detail = "进程已不存在"
-				return step
+			case errors.Is(err, sys.ErrUnsupported):
+				step.Detail = "当前平台不支持恢复冻结进程"
+			default:
+				step.Skipped = false
+				step.Detail = err.Error()
 			}
-			step.Detail = err.Error()
 			return step
 		}
 		step.OK = true

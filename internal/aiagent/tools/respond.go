@@ -1,14 +1,15 @@
 package tools
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/opsmini/opsmini/internal/aiagent"
+	"github.com/opsmini/opsmini/internal/platform/sys"
 )
 
 // Response tools: the reversible replacements for destructive operations.
@@ -106,7 +107,10 @@ func freezeProcessTool(d Deps) aiagent.Tool {
 			if v, rule, why := d.Safety.CheckArg("freeze_process", args); v != "allow" {
 				return failed("已拒绝（%s）：%s", rule, why), nil
 			}
-			if err := syscall.Kill(pid, syscall.SIGSTOP); err != nil {
+			if err := sys.StopProcess(pid); err != nil {
+				if errors.Is(err, sys.ErrUnsupported) {
+					return failed("当前平台不支持冻结进程（依赖 SIGSTOP），请改用 kill_process"), nil
+				}
 				return failed("冻结失败：%v", err), nil
 			}
 			// Undoable: a failed run should not leave a process frozen forever.
@@ -130,7 +134,10 @@ func resumeProcessTool(d Deps) aiagent.Tool {
 		},
 		Execute: func(ctx aiagent.ExecContext, args map[string]any) (aiagent.Result, error) {
 			pid := intArg(args, "pid", 0)
-			if err := syscall.Kill(pid, syscall.SIGCONT); err != nil {
+			if err := sys.ResumeProcess(pid); err != nil {
+				if errors.Is(err, sys.ErrUnsupported) {
+					return failed("当前平台不支持恢复冻结进程（依赖 SIGCONT）"), nil
+				}
 				return failed("恢复失败：%v", err), nil
 			}
 			return textResult(fmt.Sprintf("已恢复 pid=%d", pid)), nil
