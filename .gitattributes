@@ -1,0 +1,9 @@
+# Shell 脚本统一 LF 换行
+# 背景：Windows 开发机 core.autocrlf=true 会把 .sh checkout 成 CRLF，
+# 拷到 Linux 执行时报 "bad interpreter: /usr/bin/env: bash^M"，
+# 而且这类问题在 Windows 上本机测试是发现不了的。
+*.sh text eol=lf
+
+# PowerShell 脚本固定 CRLF：Windows PowerShell 5.1 对 LF 脚本虽能解析，
+# 但 .ps1 里混行尾时中文注释容易出问题，统一 CRLF 更稳。
+*.ps1 text eol=crlf
