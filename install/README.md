@@ -9,7 +9,9 @@
 
 两者的安装结果一致：注册为系统服务、开机自启、生成配置文件与初始管理员密码。区别只在服务托管方式（systemd / Windows 服务）和目录约定。
 
-> 本目录是脚本的唯一源。OpsAnt 部署时使用的副本来自其自带的 `install/opsmini/` 目录，由运维手工投放，可通过 `--base-url` / `-BaseUrl` 让目标机从 OpsAnt 而不是官网取安装包（见文末「与 OpsAnt 内置副本的关系」）。
+> 这两个脚本只做一件事：**从阿里云 OSS 按版本号下载对应平台的安装包，然后安装**。不涉及 OpsAnt，也不做接入配置。
+>
+> OpsAnt / 管控平台环境里下发的「一键安装」用的是**另一套脚本**（安装包从 OpsAnt 自身下载，并自动写入 OpsAnt 接入信息），与本目录无关。两者不要混用，也不要互相覆盖，详见文末「与 OpsAnt 侧安装脚本的区别」。
 
 ## 快速开始
 
@@ -54,7 +56,7 @@ iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env
 | `-p, --port <port>` | 面板监听端口 | `8888` |
 | `-b, --binary <path>` | opsmini 二进制路径 | 自动查找 |
 | `-u, --url <url>` | 从 URL 下载（`.tar.gz` 或裸二进制） | — |
-| `--base-url <url>` | 从指定目录下载二进制（如 OpsAnt 的 `/uploads/agent/opsmini`），优先于官方 OSS | — |
+| `--base-url <url>` | 内网 / 离线场景：从指定目录取包，优先于官方 OSS | — |
 | `--version <vX.Y.Z>` | 指定版本号（决定下载文件名） | `v1.5.0` |
 | `--server-addr <host:port>` | 接入 OpsAnt 的 OpsMini Server 地址（默认端口 `4507`） | — |
 | `--server-token <token>` | 接入 OpsAnt 的 token，与 OpsAnt 的 `OPSMINI_TOKEN` 一致 | — |
@@ -71,7 +73,7 @@ iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env
 | `-DataDir <path>` | 数据目录（SQLite、初始密码） | `C:\ProgramData\OpsMini` |
 | `-Port <port>` | 面板监听端口 | `8888` |
 | `-Binary <path>` | 本地 `opsmini.exe` 路径 | 脚本同目录的 `opsmini.exe` |
-| `-BaseUrl <url>` | 安装包所在目录（如 OpsAnt 的 `/uploads/agent/opsmini`），优先于官方 OSS | — |
+| `-BaseUrl <url>` | 内网 / 离线场景：安装包所在目录，优先于官方 OSS | — |
 | `-BinaryUrl <url>` | 直接指定下载地址，优先级最高 | — |
 | `-Version <vX.Y.Z>` | 指定版本号（决定下载文件名） | `v1.5.0` |
 | `-ServerAddr <host:port>` | 接入 OpsAnt 的 OpsMini Server 地址 | — |
@@ -142,9 +144,9 @@ dist/opsmini-<ver>-windows-arm64.exe
 
 命名规则固定：`opsmini-<version>-<os>-<arch>`，Windows 带 `.exe` 后缀。脚本按此规则拼下载地址，名字不符会 404。
 
-## 接入 OpsAnt
+## 可选：接入 OpsAnt
 
-两个脚本的接入参数等价，作用是把地址与 token 写进 `config.yaml` 的 `agent` 段。服务启动后自行向 OpsAnt 注册，**不需要装完再进面板手工填**。
+默认安装是**独立单机面板**，不与任何中心通信。如果确实要把它纳管到 OpsAnt，两个脚本都提供了接入参数，作用只是把地址与 token 写进 `config.yaml` 的 `agent` 段——**安装包依然从阿里云 OSS 下载，脚本本身不依赖 OpsAnt**。服务启动后自行注册，不需要再进面板手工填。
 
 ```bash
 # Linux
@@ -158,6 +160,8 @@ curl -fsSL https://opsmini.com/install.sh | sudo bash -s -- \
 ```
 
 注意地址填 OpsAnt 的 **OpsMini Server gRPC 端口（默认 4507）**，不是 Web 端口 8010 —— 填错时面板会在「面板设置 - 接入 OpsAnt」显示「该端口返回的是 HTTP 响应，不是 gRPC」。注册成功后需在 OpsAnt 的「待纳管」里同意，主机才会进入列表。
+
+由 OpsAnt 主动下发的部署（主机管理里的「一键安装」）用的是另一套脚本，见文末。
 
 ## 升级与卸载
 
@@ -242,29 +246,31 @@ Start-Service OpsMini
 
 初始账号是 `opsmini`，首次登录后请在面板中修改。
 
-## 与 OpsAnt 内置副本的关系
+## 与 OpsAnt 侧安装脚本的区别
 
-OpsAnt / OpsAny 部署时会向目标机下发一键安装命令，命令里的脚本来自 OpsAnt 自己的 `uploads/agent/opsmini/` 目录，而不是官网：
+OpsAnt / 管控平台在「主机管理 → 一键安装」里下发的命令，用的是**另一套脚本**：脚本与安装包都由 OpsAnt 自己托管，安装包从 OpsAnt 下载，并自动写入接入信息。它和本目录的官网脚本是两回事：
+
+| | 本目录脚本（官网） | OpsAnt 侧脚本 |
+|---|---|---|
+| 位置 | `opsmini/install/`，发布到 `https://opsmini.com/install.sh`、`/install.ps1` | `opsant/install/opsmini/`，运行时投放到 `uploads/agent/opsmini/` |
+| 安装包来源 | 阿里云 OSS（`opsmini.oss-cn-beijing.aliyuncs.com`） | OpsAnt 自身（`--base-url` / `-BaseUrl` 指向 `/uploads/agent/opsmini`），目标机无需访问外网 |
+| OpsAnt 接入 | 不涉及；接入参数是可选项 | 必填，装完即自动注册 |
+| 典型用途 | 单机自建面板，或从官网直接装 | 由 OpsAnt / 管控平台纳管 |
+
+OpsAnt 下发的两条命令长这样（仅供参考，实际命令由平台生成并带复制按钮）：
 
 ```bash
-# OpsAnt 下发的 Linux 命令（--base-url 指向 OpsAnt，避免目标机访问外网）
+# Linux
 curl -fsSL http://<opsant>/uploads/agent/opsmini/install.sh | sudo bash -s -- \
   --server-addr <opsant>:4507 --server-token <token> \
   --base-url http://<opsant>/uploads/agent/opsmini --version v1.5.0
 ```
 
 ```powershell
-# OpsAnt 下发的 Windows 命令
+# Windows（管理员 PowerShell）
 iwr -useb http://<opsant>/uploads/agent/opsmini/install.ps1 -OutFile $env:TEMP\opsmini-install.ps1
 & $env:TEMP\opsmini-install.ps1 -ServerAddr <opsant>:4507 -ServerToken <token> `
   -BaseUrl http://<opsant>/uploads/agent/opsmini -Version v1.5.0
 ```
 
-也就是说脚本有两份来源、两种默认下载地址：
-
-| 来源 | 脚本位置 | 默认下载地址 |
-|---|---|---|
-| 官网 | `https://opsmini.com/install.sh` / `install.ps1` | 阿里云 OSS |
-| OpsAnt | `<opsant>/uploads/agent/opsmini/` | OpsAnt 本地目录（由 `--base-url` / `-BaseUrl` 指定） |
-
-两处的脚本是同一份内容的拷贝，只是放的位置不同、默认下载源不同。**修改脚本时以本目录为准**，再同步到 OpsAnt 侧——OpsAnt 生成的命令会带 `--base-url` / `-BaseUrl` 与 `--version` / `-Version`，旧版脚本不认识这两个参数会直接失败，所以两份必须保持同版本。
+**不要混用**：不要把本目录的脚本覆盖到 OpsAnt 的投放目录，也不要拿 OpsAnt 的脚本替换官网发布物。两者的默认下载源、参数集合、接入行为都不同，各自独立维护。
