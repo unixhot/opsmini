@@ -38,6 +38,25 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
+	// Modules with no working implementation on this platform answer 501 with a
+	// reason instead of returning empty data or shelling out to missing commands.
+	if blocked := unsupportedPrefixes(); len(blocked) > 0 {
+		r.Use(func(c *gin.Context) {
+			p := c.Request.URL.Path
+			for _, prefix := range blocked {
+				if p == prefix || strings.HasPrefix(p, prefix+"/") {
+					c.JSON(http.StatusNotImplemented, gin.H{
+						"code":    50101,
+						"message": "该功能在当前操作系统上不支持",
+					})
+					c.Abort()
+					return
+				}
+			}
+			c.Next()
+		})
+	}
+
 	// Custom error pages (404 / 500) read the embedded error.html template and replace placeholders.
 	errorHTML, _ := web.FS.ReadFile("error.html")
 	serveErrorPage := func(c *gin.Context, status int, code, title, msg string) {
@@ -98,7 +117,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return err != nil || v == "" || v == "true"
 	}, func() string {
 		// Resolved per request so a token saved in the panel takes effect immediately.
-		_, token, _ := agentConfigSvc.Current()
+		_, token, _, _, _ := agentConfigSvc.Current()
 		return token
 	}, func() []string {
 		return []string{instanceID}
@@ -149,6 +168,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	logSvc := service.NewLogService()
 	logHandler := v1.NewLogHandler(logSvc)
 	terminalHandler := v1.NewTerminalHandler(jwtMgr, roleSvc.HasPerm)
+	graphicHandler := v1.NewGraphicHandler(jwtMgr, roleSvc.HasPerm)
 
 	// Host security module
 	baselineSvc := service.NewBaselineService(repository.NewBaselineResultRepo(db), sysSvc)
@@ -629,10 +649,23 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 		return cfg.Metrics.User, cfg.Metrics.Password
 	}
 	if cfg.Metrics.Enabled {
-		root.GET("/metrics", middleware.MetricsAuth(metricsCreds), func(c *gin.Context) {
-			// 系统指标与插件指标拼在一起，Prometheus 侧只抓一个端点。
-			c.Data(200, "text/plain; version=0.0.4; charset=utf-8",
-				[]byte(sysSvc.PrometheusMetrics()+pluginMgr.MetricsText()))
+		// Deliberately registered on the engine rather than on `root`: a secure
+		// entry prefix must not move /metrics, or a Prometheus scrape config
+		// written for windows_exporter/node_exporter stops working.
+		r.GET("/metrics", middleware.MetricsAuth(metricsCreds), func(c *gin.Context) {
+			// windows_exporter compatibility first (Windows only), then the
+			// panel's own node_exporter-style families and plugin metrics. All
+			// three share the endpoint so a single scrape collects everything.
+			wxBody, ok := windowsMetrics(c.QueryArray("collect[]"))
+			if !ok {
+				c.String(http.StatusBadRequest, "unknown collector in collect[]")
+				return
+			}
+			own := []byte(sysSvc.PrometheusMetrics() + pluginMgr.MetricsText())
+			body := make([]byte, 0, len(wxBody)+len(own))
+			body = append(body, wxBody...)
+			body = append(body, own...)
+			c.Data(200, "text/plain; version=0.0.4; charset=utf-8", body)
 		})
 	}
 
@@ -905,6 +938,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 			// File management
 			authed.GET("/files", fileHandler.List)
+			authed.GET("/files/roots", fileHandler.Roots)
 			authed.GET("/files/download", permMw("file.view"), fileHandler.Download)
 			authed.GET("/files/download-dir", permMw("file.view"), fileHandler.DownloadDir)
 			authed.GET("/files/du", permMw("file.view"), fileHandler.Du)
@@ -948,6 +982,8 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 		// Web terminal (WebSocket, query token authentication, bypassing the HTTP header auth middleware)
 		api.GET("/terminal", terminalHandler.Serve)
+		// 图形终端：JPEG 帧推流，只读预览（首版不接受输入注入）。
+		api.GET("/terminal/graphic", graphicHandler.Serve)
 
 		// Container exec terminal (WebSocket, query token authentication, same protocol as the host terminal)
 		if dockerHandler != nil {
@@ -967,7 +1003,17 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 	} else {
 		fileServer := http.FileServer(http.FS(staticFS))
 		r.GET("/static/*filepath", func(c *gin.Context) {
-			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+			// HTML under /static is an entry point (the panel's own pages), not a
+			// library: a year-long immutable header pins the browser to whichever
+			// version it happened to fetch first, so a rebuilt page looks like it
+			// never changed. Only real assets keep the strong cache.
+			if strings.HasSuffix(strings.ToLower(c.Request.URL.Path), ".html") {
+				c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+				c.Header("Pragma", "no-cache")
+				c.Header("Expires", "0")
+			} else {
+				c.Header("Cache-Control", "public, max-age=31536000, immutable")
+			}
 			http.StripPrefix("/static", fileServer).ServeHTTP(c.Writer, c.Request)
 		})
 	}

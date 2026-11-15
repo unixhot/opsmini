@@ -11,7 +11,7 @@
 ---
 
 
-OpsMini is a resident AI ops agent on your Linux host: it collects metrics, judges what is wrong and acts — pausing for your approval before anything risky. The web UI is just its window: you can click nothing at all and it still gets the work done and leaves a report. The whole agent is one static binary of a few dozen MB, and all data stays on the machine.
+OpsMini is a resident AI ops agent for **Linux and Windows** hosts: it collects metrics, judges what is wrong and acts — pausing for your approval before anything risky. The web UI is just its window: you can click nothing at all and it still gets the work done and leaves a report. The whole agent is one static binary of a few dozen MB, and all data stays on the machine.
 
 ### Features
 
@@ -30,14 +30,20 @@ Go · Gin · GORM · SQLite (pure Go) · Vue 3 · ECharts
 
 ```bash
 
-# For Ops
+# For Ops (Linux)
 
 curl -fsSL https://opsmini.com/install.sh | sudo bash
+
+# For Ops (Windows, elevated PowerShell)
+
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
 
 # For Dev
 
 make build          # build for current platform
 make build-all      # cross-compile for Linux amd64/arm64
+# Windows targets use the same toolchain:
+#   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/opsmini.exe ./cmd/agent
 
 ./dist/opsmini -config configs/config.yaml
 # open http://localhost:8888  (default account: opsmini — initial password is written to .init_passwd)

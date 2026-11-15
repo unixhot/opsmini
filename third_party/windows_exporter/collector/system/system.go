@@ -1,0 +1,225 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Copyright The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build windows
+
+package system
+
+import (
+	"errors"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/alecthomas/kingpin/v2"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/headers/ntdll"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/mi"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/pdh"
+	"github.com/opsmini/opsmini/third_party/windows_exporter/types"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+const Name = "system"
+
+type Config struct{}
+
+//nolint:gochecknoglobals
+var ConfigDefaults = Config{}
+
+// A Collector is a Prometheus Collector for System performance counter metrics.
+type Collector struct {
+	config Config
+
+	perfDataCollector *pdh.Collector[perfDataCounterValues]
+	perfDataObject    []perfDataCounterValues
+
+	contextSwitchesTotal     *prometheus.Desc
+	exceptionDispatchesTotal *prometheus.Desc
+	processorQueueLength     *prometheus.Desc
+	processes                *prometheus.Desc
+	processesLimit           *prometheus.Desc
+	systemCallsTotal         *prometheus.Desc
+	bootTime                 *prometheus.Desc
+	threads                  *prometheus.Desc
+}
+
+func New(config *Config) *Collector {
+	if config == nil {
+		config = &ConfigDefaults
+	}
+
+	c := &Collector{
+		config: *config,
+	}
+
+	return c
+}
+
+func NewWithFlags(_ *kingpin.Application) *Collector {
+	return &Collector{}
+}
+
+func (c *Collector) GetName() string {
+	return Name
+}
+
+func (c *Collector) Close() error {
+	c.perfDataCollector.Close()
+
+	return nil
+}
+
+func (c *Collector) Build(logger *slog.Logger, _ *mi.Session) error {
+	if err := ntdll.Load(); err != nil {
+		return err
+	}
+
+	c.bootTime = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "boot_time_timestamp"),
+		"Unix timestamp of last system boot. Follows clock corrections.",
+		nil,
+		nil,
+	)
+	c.contextSwitchesTotal = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "context_switches_total"),
+		"Total number of context switches",
+		nil,
+		nil,
+	)
+	c.exceptionDispatchesTotal = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "exception_dispatches_total"),
+		"Total number of exceptions dispatched",
+		nil,
+		nil,
+	)
+	c.processes = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "processes"),
+		"Current number of processes",
+		nil,
+		nil,
+	)
+	c.processesLimit = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "processes_limit"),
+		"Maximum number of processes.",
+		nil,
+		nil,
+	)
+
+	c.processorQueueLength = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "processor_queue_length"),
+		"Length of processor queue",
+		nil,
+		nil,
+	)
+	c.systemCallsTotal = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "system_calls_total"),
+		"Total number of system calls",
+		nil,
+		nil,
+	)
+	c.threads = prometheus.NewDesc(
+		prometheus.BuildFQName(types.Namespace, Name, "threads"),
+		"Current number of threads",
+		nil,
+		nil,
+	)
+
+	var err error
+
+	c.perfDataCollector, err = pdh.NewCollector[perfDataCounterValues](logger.With(slog.String("collector", Name)), pdh.CounterTypeRaw, "System", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create System collector: %w", err)
+	}
+
+	return nil
+}
+
+// Collect sends the metric values for each metric
+// to the provided prometheus Metric channel.
+func (c *Collector) Collect(ch chan<- prometheus.Metric, _ time.Duration) error {
+	// The boot time does not depend on the performance counters.
+	bootTimeErr := c.collectBootTime(ch)
+
+	err := c.perfDataCollector.Collect(&c.perfDataObject)
+	if err != nil {
+		return errors.Join(bootTimeErr, fmt.Errorf("failed to collect System metrics: %w", err))
+	} else if len(c.perfDataObject) == 0 {
+		return errors.Join(bootTimeErr, fmt.Errorf("failed to collect System metrics: %w", types.ErrNoDataUnexpected))
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		c.contextSwitchesTotal,
+		prometheus.CounterValue,
+		c.perfDataObject[0].ContextSwitchesPerSec,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.exceptionDispatchesTotal,
+		prometheus.CounterValue,
+		c.perfDataObject[0].ExceptionDispatchesPerSec,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.processorQueueLength,
+		prometheus.GaugeValue,
+		c.perfDataObject[0].ProcessorQueueLength,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.processes,
+		prometheus.GaugeValue,
+		c.perfDataObject[0].Processes,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.systemCallsTotal,
+		prometheus.CounterValue,
+		c.perfDataObject[0].SystemCallsPerSec,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.threads,
+		prometheus.GaugeValue,
+		c.perfDataObject[0].Threads,
+	)
+
+	// Windows has no defined limit, and is based off available resources. This currently isn't calculated by WMI and is set to default value.
+	// https://techcommunity.microsoft.com/t5/windows-blog-archive/pushing-the-limits-of-windows-processes-and-threads/ba-p/723824
+	// https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-operatingsystem
+	ch <- prometheus.MustNewConstMetric(
+		c.processesLimit,
+		prometheus.GaugeValue,
+		float64(4294967295),
+	)
+
+	return bootTimeErr
+}
+
+func (c *Collector) collectBootTime(ch chan<- prometheus.Metric) error {
+	bootTime, err := ntdll.BootTime()
+	if err != nil {
+		return fmt.Errorf("failed to get system boot time: %w", err)
+	}
+
+	// Whole seconds keep the value stable when the kernel moves the boot time
+	// by a sub-second clock correction.
+	ch <- prometheus.MustNewConstMetric(
+		c.bootTime,
+		prometheus.GaugeValue,
+		float64(bootTime.Unix()),
+	)
+
+	return nil
+}

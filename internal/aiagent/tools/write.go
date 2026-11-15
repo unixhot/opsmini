@@ -18,6 +18,7 @@ import (
 
 	"github.com/opsmini/opsmini/internal/aiagent"
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/platform/shell"
 	"github.com/opsmini/opsmini/internal/service"
 )
 
@@ -426,7 +427,7 @@ func execCommandTool(d Deps) aiagent.Tool {
 			cctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 			defer cancel()
 
-			cmd := exec.CommandContext(cctx, "sh", "-c", command)
+			cmd := shell.Command(cctx, command)
 			if wd := str(args, "workdir"); wd != "" && filepath.IsAbs(wd) {
 				cmd.Dir = wd
 			}
@@ -815,7 +816,7 @@ func killProcessTool(d Deps) aiagent.Tool {
 			note := ""
 			if sig == syscallTerm {
 				time.Sleep(500 * time.Millisecond)
-				if err := syscall.Kill(pid, 0); err == nil {
+				if processAlive(pid) {
 					note = "\n进程仍在运行（可能忽略了 SIGTERM），如需强制终止请用 signal=kill。"
 				}
 			}

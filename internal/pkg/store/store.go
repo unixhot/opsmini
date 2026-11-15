@@ -22,7 +22,7 @@ import (
 
 // Init opens SQLite (pure Go driver), auto-migrates, and writes seed data.
 // logLevel controls the GORM logger verbosity (info/warn/error); logWriter is where logs are written.
-func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
+func Init(path string, logLevel string, logWriter io.Writer, initPasswdDir ...string) (*gorm.DB, error) {
 	gormLogger := logger.New(
 		log.New(logWriter, "", log.LstdFlags),
 		logger.Config{
@@ -39,7 +39,14 @@ func Init(path string, logLevel string, logWriter io.Writer) (*gorm.DB, error) {
 	if err := db.AutoMigrate(&model.User{}, &model.Website{}, &model.Database{}, &model.CronJob{}, &model.AuditLog{}, &model.Setting{}, &model.App{}, &model.AlertRule{}, &model.McpServer{}, &model.AlertEvent{}, &model.AccessLog{}, &model.BaselineResult{}, &model.FimBaseline{}, &model.FimChange{}, &model.ThreatFinding{}, &model.Role{}, &model.AppCategory{}, &model.Notification{}, &model.MetricPoint{}, &model.AISession{}, &model.AIMessage{}, &model.AIPendingApproval{}, &model.AgentMemory{}, &model.Signal{}, &model.Incident{}, &model.TriggerPolicy{}, &model.AgentRun{}, &model.ActionLog{}, &model.QuarantineItem{}, &model.SnapshotRecord{}, &model.Baseline{}, &model.SignalFeedback{}, &model.BlockedIP{}, &model.ChangeEvent{}, &model.ChangeDiff{}, &model.ChangeOffset{}, &model.ChangeIgnore{}, &model.ChangeChainMeta{}, &model.Campaign{}, &model.ActionJournal{}, &model.ShadowReview{}, &model.ChangeReview{}, &model.CollectorBaseline{}); err != nil {
 		return nil, err
 	}
-	if err := seedAdmin(db, filepath.Dir(path)); err != nil {
+	// 密码文件默认放在数据库旁边（绝对路径）；调用方可用 initPasswdDir 覆盖。
+	// 两个来源都要留着：默认值解决「手动 cd 到别处启动，密码写进那个目录」，
+	// 显式参数解决「Windows 服务在 C:\Windows\System32 启动」。
+	passwdDir := filepath.Dir(path)
+	if len(initPasswdDir) > 0 && initPasswdDir[0] != "" {
+		passwdDir = initPasswdDir[0]
+	}
+	if err := seedAdmin(db, passwdDir); err != nil {
 		return nil, err
 	}
 	if err := seedRoles(db); err != nil {
@@ -179,7 +186,7 @@ func seedApps(db *gorm.DB) error {
 
 // seedAdmin ensures the default admin opsmini exists. On first install it generates a random strong password,
 // and outputs it via the log (only once); afterwards the password must be changed in the panel.
-func seedAdmin(db *gorm.DB, dir string) error {
+func seedAdmin(db *gorm.DB, passwdDir string) error {
 	var count int64
 	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
 		return err
@@ -212,29 +219,26 @@ func seedAdmin(db *gorm.DB, dir string) error {
 	}).Error; err != nil {
 		return err
 	}
+	// 写密码文件。两个分支都要写：
+	//   - 随机生成的必须让用户看到，否则只能去翻日志；
+	//   - 装机脚本注入的（OPSMINI_INIT_PASSWORD）也只有 systemd unit / 环境里能看到，
+	//     落一份文件比让人去翻 unit 实在。
+	// 目录在这里建：种子跑在面板创建 data 子目录之前，Windows 上目录不存在会直接写失败。
+	writePasswd := func(source string) {
+		if passwdDir != "" {
+			_ = os.MkdirAll(passwdDir, 0o700)
+		}
+		f := filepath.Join(passwdDir, ".init_passwd")
+		if werr := os.WriteFile(f, []byte(pwd+"\n"), 0o600); werr != nil {
+			log.Printf("initial admin account created: username=opsmini%s，密码写入 %s 失败（%v），请用 -reset-pass 重置", source, f, werr)
+			return
+		}
+		log.Printf("initial admin account created: username=opsmini%s，初始密码已写入 %s", source, f)
+	}
 	if generated {
-		// Write the random password next to the database (0600) so it never lands in
-		// stdout/systemd logs.
-		//
-		// 必须是绝对路径。原来写的是相对路径 ".init_passwd"，文件落在进程的工作
-		// 目录——systemd 的 WorkingDirectory 恰好是 /data/opsmini 才碰巧可见；
-		// 换成手动 `cd /tmp && opsmini -config /data/opsmini/config.yaml` 启动，
-		// 密码就写进了 /tmp，用户永远找不到，也就永远登不进去。
-		pwFile := filepath.Join(dir, ".init_passwd")
-		if werr := os.WriteFile(pwFile, []byte(pwd+"\n"), 0o600); werr != nil {
-			log.Printf("initial admin account created: username=opsmini，密码写入 %s 失败（%v），请用 -reset-pass 重置", pwFile, werr)
-		} else {
-			log.Printf("initial admin account created: username=opsmini，初始密码已写入 %s", pwFile)
-		}
+		writePasswd("")
 	} else {
-		// 密码来自环境变量时也要落一份文件：装机脚本注入的密码只有它自己知道，
-		// 用户事后翻 systemd unit 才能看到——写下来更实在。
-		pwFile := filepath.Join(dir, ".init_passwd")
-		if werr := os.WriteFile(pwFile, []byte(pwd+"\n"), 0o600); werr != nil {
-			log.Printf("initial admin account created: username=opsmini（密码来自 OPSMINI_INIT_PASSWORD，写入文件失败: %v）", werr)
-		} else {
-			log.Printf("initial admin account created: username=opsmini（密码来自 OPSMINI_INIT_PASSWORD，已写入 %s）", pwFile)
-		}
+		writePasswd("（密码来自 OPSMINI_INIT_PASSWORD）")
 	}
 	return nil
 }

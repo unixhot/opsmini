@@ -13,6 +13,9 @@
 # Go 构建缓存
 vendor/
 
+# Windows 版本资源（由 make winres 生成，跟着版本号变，不进仓库）
+cmd/agent/resource_windows_*.syso
+
 # macOS 系统文件
 .DS_Store
 

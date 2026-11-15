@@ -57,6 +57,11 @@ func (s *BaselineService) Latest() ([]model.BaselineResult, error) {
 
 // items defines all check items (built into the code).
 func (s *BaselineService) items() []checkItem {
+	// Windows scores against its own item set: every Unix item below inspects
+	// sshd, PAM or /root, none of which exist there.
+	if !baselineUnixOnly {
+		return platformItems()
+	}
 	base := []checkItem{
 		{key: "ssh_root_login", category: "ssh", title: "SSH 禁止 root 密码登录", weight: 3, run: func() (string, string, string) {
 			v := sshdValue("PermitRootLogin")

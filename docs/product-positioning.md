@@ -47,7 +47,7 @@
 - 英：Runs on the box, diagnoses on its own, acts within your limits. One binary, zero data leaves your host.
 
 **一段话（README / meta description）**
-> OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手修复，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，自带 Web 界面和 MCP 接口，数据全部留在本机。
+> OpsMini 是跑在 Linux 与 Windows 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手修复，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，自带 Web 界面和 MCP 接口，数据全部留在本机。
 
 **电梯稿（对外介绍 30 秒版）**
 > 传统监控 Agent 只上报，传统面板只等人点。OpsMini 是第三种：装上去就常驻，用自己的工具集去查、去改、去修，按 L0–L3 四级边界决定"哪些自己干、哪些必须问人"。它不是一个你要登录的网站，而是你机器上多出来的一个运维同事。

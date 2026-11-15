@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/opsmini/opsmini/internal/backup"
 	"github.com/opsmini/opsmini/internal/model"
+	"github.com/opsmini/opsmini/internal/platform/shell"
 	"github.com/opsmini/opsmini/internal/repository"
 )
 
@@ -128,7 +128,9 @@ func (s *CronService) execute(j model.CronJob) {
 	defer cancel()
 
 	start := time.Now()
-	out, err := exec.CommandContext(ctx, "sh", "-c", j.Command).CombinedOutput()
+	// 走 platform/shell：Windows 上没有 sh -c，这里会按平台选解释器。
+	// 输出要留着——失败时写进 LastError，否则人只知道失败了、不知道为什么。
+	out, err := shell.Command(ctx, j.Command).CombinedOutput()
 	if err != nil {
 		log.Printf("cron %q (id=%d) failed after %s: %v", j.Name, j.ID, time.Since(start), err)
 	} else {

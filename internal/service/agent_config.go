@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,10 +51,15 @@ func (s *AgentConfigService) effective() (string, string) {
 	return addr, token
 }
 
-// Current returns the current configuration and running state.
-func (s *AgentConfigService) Current() (addr, token string, running bool) {
+// Current returns the current configuration, running state and the last link
+// error (empty when the link is healthy). The error is what the settings page
+// needs to explain a save that "took" but never actually connected.
+func (s *AgentConfigService) Current() (addr, token string, running, connected bool, linkErr string) {
 	addr, token = s.effective()
-	return addr, token, s.mgr.Running()
+	if err := s.mgr.LastError(); err != nil {
+		linkErr = err.Error()
+	}
+	return addr, token, s.mgr.Running(), s.mgr.Connected(), linkErr
 }
 
 // Init starts the Agent with the effective config (without persisting settings),
@@ -66,6 +72,8 @@ func (s *AgentConfigService) Init() {
 // Save persists the configuration to settings and applies it immediately
 // (reconnecting the Agent). An empty addr disconnects the Agent.
 func (s *AgentConfigService) Save(addr, token string) error {
+	addr = NormalizeAddr(addr)
+	token = strings.TrimSpace(token)
 	if err := s.settings.Set(map[string]string{
 		settingAgentServerAddr:  addr,
 		settingAgentServerToken: token,
@@ -100,6 +108,22 @@ func (s *AgentConfigService) apply(addr, token string) {
 //
 // The live agent is not touched, and the probe entry disappears on its own when
 // the stream closes.
+// NormalizeAddr accepts what an operator actually pastes ("http://host:4507/")
+// and reduces it to the host:port the gRPC dialer needs. Validating the raw
+// input instead made a perfectly good address fail to save with no visible
+// reason beyond a toast.
+func NormalizeAddr(addr string) string {
+	addr = strings.TrimSpace(addr)
+	for _, p := range []string{"http://", "https://", "grpc://"} {
+		if strings.HasPrefix(strings.ToLower(addr), p) {
+			addr = addr[len(p):]
+			break
+		}
+	}
+	addr = strings.TrimRight(addr, "/")
+	return addr
+}
+
 func (s *AgentConfigService) Probe(ctx context.Context, addr, token string) agent.ProbeResult {
 	s.probeMu.Lock()
 	defer s.probeMu.Unlock()

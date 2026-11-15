@@ -1,0 +1,116 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Copyright The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build windows
+
+package mi
+
+import (
+	"time"
+
+	"github.com/opsmini/opsmini/third_party/windows_exporter/utils"
+	"golang.org/x/sys/windows"
+)
+
+type Boolean uint8
+
+const (
+	False Boolean = 0
+	True  Boolean = 1
+)
+
+type QueryDialect *uint16
+
+func NewQueryDialect(queryDialect string) (QueryDialect, error) {
+	return windows.UTF16PtrFromString(queryDialect)
+}
+
+//nolint:gochecknoglobals
+var QueryDialectWQL = utils.Must(NewQueryDialect("WQL"))
+
+type Namespace *uint16
+
+func NewNamespace(namespace string) (Namespace, error) {
+	return windows.UTF16PtrFromString(namespace)
+}
+
+//nolint:gochecknoglobals
+var (
+	NamespaceRootCIMv2             = utils.Must(NewNamespace("root/CIMv2"))
+	NamespaceRootWindowsFSRM       = utils.Must(NewNamespace("root/microsoft/windows/fsrm"))
+	NamespaceRootWebAdministration = utils.Must(NewNamespace("root/WebAdministration"))
+	NamespaceRootMSCluster         = utils.Must(NewNamespace("root/MSCluster"))
+	NamespaceRootMicrosoftDNS      = utils.Must(NewNamespace("root/MicrosoftDNS"))
+	NamespaceRootStorage           = utils.Must(NewNamespace("root/Microsoft/Windows/Storage"))
+	NamespaceRootVirtualizationV2  = utils.Must(NewNamespace("root/virtualization/v2"))
+)
+
+type Query *uint16
+
+func NewQuery(query string) (Query, error) {
+	return windows.UTF16PtrFromString(query)
+}
+
+// UTF16PtrFromString converts a string to a UTF-16 pointer at initialization time.
+//
+//nolint:ireturn
+func UTF16PtrFromString[T *uint16](s string) T {
+	val, err := windows.UTF16PtrFromString(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return val
+}
+
+type Timestamp struct {
+	Year         uint32
+	Month        uint32
+	Day          uint32
+	Hour         uint32
+	Minute       uint32
+	Second       uint32
+	Microseconds uint32
+	UTC          int32
+}
+
+type Interval struct {
+	Days         uint32
+	Hours        uint32
+	Minutes      uint32
+	Seconds      uint32
+	Microseconds uint32
+	Padding1     uint32
+	Padding2     uint32
+	Padding3     uint32
+}
+
+// NewInterval converts a duration into an MI_Interval. MI sums the fields,
+// so each field holds only the remainder after the next larger unit.
+func NewInterval(interval time.Duration) *Interval {
+	return &Interval{
+		Days:         uint32(interval / (24 * time.Hour)),
+		Hours:        uint32(interval / time.Hour % 24),
+		Minutes:      uint32(interval / time.Minute % 60),
+		Seconds:      uint32(interval / time.Second % 60),
+		Microseconds: uint32(interval / time.Microsecond % 1000000),
+	}
+}
+
+type Datetime struct {
+	IsTimestamp bool
+	Timestamp   *Timestamp // Used when IsTimestamp is true
+	Interval    *Interval  // Used when IsTimestamp is false
+}

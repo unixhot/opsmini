@@ -7,21 +7,17 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/opsmini/opsmini/internal/model"
 	"github.com/opsmini/opsmini/internal/repository"
 )
 
-// defaultFimPaths are the key files monitored by default.
-var defaultFimPaths = []string{
-	"/etc/passwd", "/etc/shadow", "/etc/group", "/etc/ssh/sshd_config",
-	"/etc/crontab", "/etc/sudoers", "/etc/hosts", "/etc/resolv.conf",
-}
-
-// defaultCriticalPaths are the files whose changes are classified as critical:
-// the ones that define who can log in and what they may do.
-var defaultCriticalPaths = []string{"/etc/passwd", "/etc/shadow", "/etc/sudoers"}
+// defaultFimPaths / criticalFimPaths 由平台文件提供：
+//   - fim_paths_other.go  → Linux / macOS，/etc 下那几个关键文件
+//   - fim_paths_windows.go → Windows，SAM/SYSTEM 等
+// 放在这里硬编码 /etc 会让 Windows 首启就把一堆不存在的路径加进基线。
 
 // FimService handles file integrity monitoring.
 type FimService struct {
@@ -76,9 +72,20 @@ func (s *FimService) MonitoredPaths() (patterns []string, critical []string) {
 	}
 	critical = splitPatterns(s.fimSetting("fim_critical_paths"))
 	if len(critical) == 0 {
-		critical = append([]string{}, defaultCriticalPaths...)
+		critical = defaultCriticalList()
 	}
 	return patterns, critical
+}
+
+// defaultCriticalList renders the platform's critical-path set as a sorted slice.
+// 设置页要回填成一行文本，map 得先变成有序列表，否则每次刷新顺序都在跳。
+func defaultCriticalList() []string {
+	out := make([]string, 0, len(criticalFimPaths))
+	for p := range criticalFimPaths {
+		out = append(out, p)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // splitPatterns splits a comma separated list, dropping blanks.

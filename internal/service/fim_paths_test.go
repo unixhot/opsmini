@@ -82,8 +82,9 @@ func TestMonitoredPathsDefaults(t *testing.T) {
 	if len(patterns) != len(defaultFimPaths) {
 		t.Fatalf("patterns: got %d want %d", len(patterns), len(defaultFimPaths))
 	}
-	if len(critical) != len(defaultCriticalPaths) {
-		t.Fatalf("critical: got %d want %d", len(critical), len(defaultCriticalPaths))
+	// 关键路径改由平台文件以 map 形式提供，测试也跟着取列表化后的结果。
+	if len(critical) != len(defaultCriticalList()) {
+		t.Fatalf("critical: got %d want %d", len(critical), len(defaultCriticalList()))
 	}
 }
 

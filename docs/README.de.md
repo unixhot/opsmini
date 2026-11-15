@@ -12,7 +12,7 @@
 
 ## Deutsch
 
-OpsMini ist ein dauerhaft laufender KI-Betriebsagent auf Ihrem Linux-Host: Er sammelt Messwerte, erkennt Auffälligkeiten und handelt selbst — vor riskanten Schritten hält er an und fragt Sie. Die Web-Oberfläche ist nur sein Fenster: Sie können gar nichts klicken, und die Arbeit ist trotzdem erledigt und dokumentiert. Der ganze Agent ist eine statische Binary von wenigen Dutzend MB, alle Daten bleiben auf der Maschine.
+OpsMini ist ein dauerhaft laufender KI-Betriebsagent für **Linux- und Windows**-Hosts: Er sammelt Messwerte, erkennt Auffälligkeiten und handelt selbst — vor riskanten Schritten hält er an und fragt Sie. Die Web-Oberfläche ist nur sein Fenster: Sie können gar nichts klicken, und die Arbeit ist trotzdem erledigt und dokumentiert. Der ganze Agent ist eine statische Binary von wenigen Dutzend MB, alle Daten bleiben auf der Maschine.
 
 ### Funktionen
 
@@ -29,9 +29,15 @@ Go · Gin · GORM · SQLite (reines Go) · Vue 3 · ECharts
 
 ### Schnellstart
 
+```powershell
+# Windows (PowerShell als Administrator)
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
+```
+
 ```bash
 make build          # Build für die aktuelle Plattform
 make build-all      # Cross-Compile für Linux amd64/arm64
+# Windows (amd64/arm64) lässt sich genauso cross-kompilieren
 
 ./dist/opsmini -config configs/config.yaml
 # http://localhost:8888 öffnen (Standardkonto: opsmini, Passwort im Startprotokoll)

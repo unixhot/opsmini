@@ -1,4 +1,4 @@
-# OpsMini 多架构发布构建（面向 Linux 主机面板）。
+# OpsMini 多架构发布构建（Linux 服务器 + Windows 主机 + macOS 开发机）。
 # 依赖：Go 1.25+（纯 Go 驱动无 CGO，可直接交叉编译，无需额外工具链）。
 
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -9,18 +9,25 @@ GIT_SHA    := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 # 谁都能一眼看出"这个包不是干净的 tag 构建"。
 GIT_DIRTY  := $(shell git status --porcelain 2>/dev/null | head -n 1)
 GIT_COMMIT := $(GIT_SHA)$(if $(GIT_DIRTY),-dirty,)
+# 版本资源的数值部分（VERSIONINFO 只认 a.b.c.d）。
+# VERSION 可能是 v1.5.0 / v1.5.0-3-gabc123-dirty / dev，这里只取前面的数字段。
+VER_NUM    := $(shell echo '$(VERSION)' | sed -E 's/^v//' | grep -oE '^[0-9]+(\.[0-9]+){0,2}' || echo 0.0.0)
+VER_MAJOR  := $(or $(word 1,$(subst ., ,$(VER_NUM))),0)
+VER_MINOR  := $(or $(word 2,$(subst ., ,$(VER_NUM))),0)
+VER_PATCH  := $(or $(word 3,$(subst ., ,$(VER_NUM))),0)
+
 LDFLAGS    := -s -w \
 	-X main.version=$(VERSION) \
 	-X main.buildTime=$(BUILD_TIME) \
 	-X main.gitCommit=$(GIT_COMMIT)
 
-# 目标平台：os/arch（Linux 服务器 + macOS 开发机，无 Windows）
-TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+# 目标平台：os/arch（Linux 服务器 + macOS 开发机 + Windows 主机）
+TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64
 
 DIST_DIR := dist
 BIN      := opsmini
 
-.PHONY: all build build-all clean version push push-github release-check release
+.PHONY: all build build-all winres clean version push push-github release-check release
 
 ## build: 编译当前平台的二进制到 dist/
 build:
@@ -34,10 +41,26 @@ build-all: $(TARGETS)
 $(TARGETS):
 	@mkdir -p $(DIST_DIR)
 	$(eval GOOS := $(word 1,$(subst /, ,$@)))
+	@if [ "$(GOOS)" = windows ]; then $(MAKE) --no-print-directory winres; fi
 	$(eval GOARCH := $(word 2,$(subst /, ,$@)))
-	$(eval OUT := $(DIST_DIR)/$(BIN)-$(VERSION)-$(GOOS)-$(GOARCH))
+	$(eval EXT := $(if $(filter windows,$(GOOS)),.exe,))
+	$(eval OUT := $(DIST_DIR)/$(BIN)-$(VERSION)-$(GOOS)-$(GOARCH)$(EXT))
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -trimpath -ldflags "$(LDFLAGS)" -o $(OUT) ./cmd/agent
 	@echo "built: $(OUT)"
+
+## winres: 生成 Windows 版本资源（右键属性里能看到版本/公司/说明）
+## 产物 cmd/agent/resource_windows_{386,amd64,arm,arm64}.syso 由构建过程生成，不进仓库。
+## 版本号取自 VERSION，跟 -ldflags 注入的保持一致；注释里带 commit，便于对包。
+winres:
+	@cd cmd/agent && \
+	  go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.7.0 \
+	    -platform-specific -64 \
+	    -ver-major $(VER_MAJOR) -ver-minor $(VER_MINOR) -ver-patch $(VER_PATCH) -ver-build 0 \
+	    -product-ver-major $(VER_MAJOR) -product-ver-minor $(VER_MINOR) -product-ver-patch $(VER_PATCH) -product-ver-build 0 \
+	    -file-version "$(VER_NUM).0" -product-version "$(VER_NUM).0" \
+	    -comment "$(VERSION) $(GIT_COMMIT)" \
+	    versioninfo.json >/dev/null
+	@echo "winres: cmd/agent/resource_windows_*.syso ($(VER_NUM).0)"
 
 ## clean: 清理构建产物
 clean:

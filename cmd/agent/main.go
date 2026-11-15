@@ -2,16 +2,22 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/opsmini/opsmini/internal/agent"
 	"github.com/opsmini/opsmini/internal/config"
 	"github.com/opsmini/opsmini/internal/pkg/store"
+	"github.com/opsmini/opsmini/internal/platform/daemon"
 	"github.com/opsmini/opsmini/internal/repository"
 	"github.com/opsmini/opsmini/internal/router"
 	"github.com/opsmini/opsmini/internal/service"
@@ -60,7 +66,7 @@ func main() {
 		return
 	}
 
-	db, err := store.Init(cfg.Database.Path, cfg.Log.Level, logWriter)
+	db, err := store.Init(cfg.Database.Path, cfg.Log.Level, logWriter, cfg.DataDir())
 	if err != nil {
 		log.Fatalf("init store: %v", err)
 	}
@@ -69,11 +75,6 @@ func main() {
 	if err := store.PurgeRemovedLogPipe(db, cfg.DataDir()); err != nil {
 		log.Printf("purge removed logpipe data: %v", err)
 	}
-
-	// Metrics collection: samples every 10s, keeps 24 hours in memory (8640 points), and persists to SQLite (retained for 30 days).
-	metrics := service.NewMetricCollector(10*time.Second, 8640, db)
-	metrics.Start()
-	defer metrics.Stop()
 
 	// gRPC Agent lifecycle: managed by the router so the panel can reconnect it at
 	// runtime (empty server_addr means disconnected; config.yaml is the fallback).
@@ -91,10 +92,45 @@ func main() {
 
 	agentMgr := agent.NewManager(hostname, version, instanceID)
 
-	r := router.New(cfg, db, metrics, version, agentMgr)
-	log.Printf("OpsMini agent listening on %s", cfg.Server.Addr())
-	if err := r.Run(cfg.Server.Addr()); err != nil {
+	// 服务托管：systemd 下等价于监听 SIGTERM，Windows 下由 SCM 控制停启。
+	if err := daemon.Run(serviceName, func(ctx context.Context) error {
+		return serve(ctx, cfg, db, settingSvc, agentMgr)
+	}); err != nil {
 		log.Fatalf("server: %v", err)
+	}
+}
+
+// serviceName is the SCM name of the installed service; it must match install.ps1.
+const serviceName = "OpsMini"
+
+// serve runs the HTTP panel until ctx is cancelled, then drains in-flight requests.
+func serve(ctx context.Context, cfg *config.Config, db *gorm.DB, settingSvc *service.SettingService, agentMgr *agent.Manager) error {
+	// Metrics collection: samples every 10s, keeps 24 hours in memory (8640 points), and persists to SQLite (retained for 30 days).
+	metrics := service.NewMetricCollector(10*time.Second, 8640, db)
+	metrics.Start()
+	defer metrics.Stop()
+
+	r := router.New(cfg, db, metrics, version, agentMgr)
+
+	srv := &http.Server{Addr: cfg.Server.Addr(), Handler: r}
+	// A failed bind must surface immediately instead of hanging until a signal.
+	errc := make(chan error, 1)
+	go func() {
+		log.Printf("OpsMini agent listening on %s", cfg.Server.Addr())
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errc <- err
+		}
+	}()
+
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		log.Printf("shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		_ = settingSvc // keeps the wiring signature honest for callers that pass it
+		return srv.Shutdown(shutdownCtx)
 	}
 }
 
@@ -116,7 +152,7 @@ func initLogging(cfg *config.Config) (io.Writer, error) {
 
 // recoverAccount performs account recovery: resets MFA or password.
 func recoverAccount(cfg *config.Config, username string, resetPassword bool) {
-	db, err := store.Init(cfg.Database.Path, cfg.Log.Level, os.Stdout)
+	db, err := store.Init(cfg.Database.Path, cfg.Log.Level, os.Stdout, cfg.DataDir())
 	if err != nil {
 		log.Fatalf("init store: %v", err)
 	}

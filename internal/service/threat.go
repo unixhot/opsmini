@@ -33,8 +33,7 @@ var minerKeywords = []string{
 
 // Scan runs a round of threat scanning and deduplicates findings into the database.
 func (s *ThreatService) Scan() ([]model.ThreatFinding, error) {
-	findings := append(s.scanProcesses(), s.scanCron()...)
-	findings = append(findings, s.scanStartup()...)
+	findings := s.scanAll()
 
 	now := time.Now()
 	saved := make([]model.ThreatFinding, 0, len(findings))

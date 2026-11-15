@@ -2,7 +2,7 @@
 # 7 语言：zh（默认）/ zh-TW / en / ja / ko / th / de
 
 site_name: OpsMini — 主机上的 AI 运维 Agent
-site_description: 常驻 Linux 主机的 AI 运维 Agent — 自主诊断与执行、L0–L3 分级放权、单二进制交付、数据不出本机
+site_description: 常驻 Linux / Windows 主机的 AI 运维 Agent — 自主诊断与执行、L0–L3 分级放权、单二进制交付、数据不出本机
 site_url: https://opsmini.com/docs/
 repo_url: https://github.com/unixhot/opsmini
 repo_name: unixhot/opsmini

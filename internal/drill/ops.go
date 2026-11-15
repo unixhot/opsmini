@@ -10,8 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
+
+	"github.com/opsmini/opsmini/internal/platform/sys"
 )
 
 // Deps are the panel capabilities a drill needs. Anything nil makes the
@@ -93,29 +94,16 @@ func (o *cpuHogOp) Restore(ctx context.Context, r *Run) error {
 		if pid <= 0 {
 			continue
 		}
-		// Kill the group first: "sh -c while" spawns nothing, but a future change
-		// might, and a leftover spinner is exactly the sort of thing nobody
-		// notices until the CPU graph looks wrong for a week.
-		_ = syscall.Kill(-pid, syscall.SIGKILL)
-		_ = syscall.Kill(pid, syscall.SIGKILL)
+		// 整个进程组一起收：`sh -c while` 目前不派生子进程，但以后会，
+		// 而留下一个空转进程没人会发现，直到 CPU 曲线连续一周不对劲。
+		killProcGroup(pid)
 	}
 	return nil
-}
-
-func spawnBusyLoop() (int, error) {
-	cmd := exec.Command("/bin/sh", "-c", "while :; do :; done")
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	if err := cmd.Start(); err != nil {
-		return 0, err
-	}
-	go func() { _ = cmd.Wait() }()
-	return cmd.Process.Pid, nil
 }
 
 // ---------------------------------------------------------------- log flood
 
 const (
-	floodPath  = "/var/log/opsmini-drill-flood.log"
 	floodRate  = 40 * time.Millisecond
 	floodChunk = 64 << 10 // 64 KiB per write ≈ 1.6 MB/s
 	floodCap   = 300 << 20
@@ -132,11 +120,11 @@ func (o *logFloodOp) Inject(ctx context.Context, r *Run) error {
 	if _, err := os.Stat("/var/log"); err != nil {
 		return fmt.Errorf("/var/log 不可用: %w", err)
 	}
-	f, err := os.OpenFile(floodPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	f, err := os.OpenFile(drillLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return fmt.Errorf("创建日志文件失败: %w", err)
 	}
-	r.Files = append(r.Files, floodPath)
+	r.Files = append(r.Files, drillLogPath())
 
 	stop := make(chan struct{})
 	key := string(r.Kind)
@@ -179,7 +167,7 @@ func (o *logFloodOp) Inject(ctx context.Context, r *Run) error {
 			}
 		}
 	}()
-	r.Note = "约 1.6 MB/s 持续写入 " + floodPath + "，超过日志暴涨阈值后应出现事件"
+	r.Note = "约 1.6 MB/s 持续写入 " + drillLogPath() + "，超过日志暴涨阈值后应出现事件"
 	return nil
 }
 
@@ -206,14 +194,14 @@ type webshellOp struct {
 
 func (o *webshellOp) Kind() Kind { return KindWebshell }
 
-const webshellDir = "/tmp/opsmini-drill-shell"
+// 样本目录由平台文件提供（Windows 上没有 /tmp）。
 
 func (o *webshellOp) Inject(ctx context.Context, r *Run) error {
-	if err := os.MkdirAll(webshellDir, 0o755); err != nil {
+	if err := os.MkdirAll(drillShellDir(), 0o755); err != nil {
 		return err
 	}
-	p := filepath.Join(webshellDir, "upload.php")
-	r.Files = append(r.Files, webshellDir)
+	p := filepath.Join(drillShellDir(), "upload.php")
+	r.Files = append(r.Files, drillShellDir())
 
 	// 顺序很关键：先把目录建好、把路径加进监控并重建基线（此时文件还不存在），
 	// 再把样本写下去。反过来做的话，生成的基线里就包含了这个样本，Check 永远
@@ -248,10 +236,10 @@ func (o *webshellOp) Inject(ctx context.Context, r *Run) error {
 
 func (o *webshellOp) Restore(ctx context.Context, r *Run) error {
 	removeFiles(r.Files)
-	removeFiles([]string{webshellDir})
+	removeFiles([]string{drillShellDir()})
 	// 演练加进去的监控项要撤掉，否则「临时」变成了永久，监控名单会被一次次演练污染。
 	if r.Meta != nil && r.Meta["fim_added"] == "1" && o.unwatch != nil {
-		if err := o.unwatch(webshellDir + "/upload.php"); err != nil {
+		if err := o.unwatch(drillShellDir() + "/upload.php"); err != nil {
 			return fmt.Errorf("移除临时监控路径失败: %w", err)
 		}
 	}
@@ -308,7 +296,6 @@ func (o *cronFailOp) Restore(ctx context.Context, r *Run) error {
 // ---------------------------------------------------------------- disk fill
 
 const (
-	diskDrillPath = "/var/tmp/opsmini-drill-fill.bin"
 	// 92 而不是 88：内置规则是「> 90% 持续 1 分钟」，推到 88% 根本跨不过门槛，
 	// 演练会得出「磁盘告警不好用」的错误结论。
 	diskTargetPct   = 92
@@ -320,13 +307,14 @@ type diskFillOp struct{}
 func (o *diskFillOp) Kind() Kind { return KindDiskFill }
 
 func (o *diskFillOp) Inject(ctx context.Context, r *Run) error {
-	var st syscall.Statfs_t
-	if err := syscall.Statfs("/", &st); err != nil {
-		return fmt.Errorf("读取磁盘使用率失败: %w", err)
+	// 走 platform/sys：Windows 上 Statfs 不存在，那边用 GetDiskFreeSpaceEx。
+	used64, total64, ok := sys.DiskUsage("/")
+	if !ok {
+		return fmt.Errorf("读取磁盘使用率失败：当前平台不支持")
 	}
-	total := float64(st.Blocks) * float64(st.Bsize)
-	free := float64(st.Bavail) * float64(st.Bsize)
-	used := total - free
+	used := float64(used64)
+	total := float64(total64)
+	free := total - used
 	pct := used / total * 100
 	if pct >= float64(diskTargetPct) {
 		return fmt.Errorf("当前已使用 %.0f%%，已达到演练目标（%d%%），未做改动", pct, diskTargetPct)
@@ -344,20 +332,20 @@ func (o *diskFillOp) Inject(ctx context.Context, r *Run) error {
 		return fmt.Errorf("剩余空间不足，无法安全演练")
 	}
 	size := int64(need)
-	if _, err := os.Stat(filepath.Dir(diskDrillPath)); err != nil {
+	if _, err := os.Stat(filepath.Dir(drillDiskPath())); err != nil {
 		return err
 	}
-	if out, err := exec.CommandContext(ctx, "fallocate", "-l", strconv.FormatInt(size, 10), diskDrillPath).CombinedOutput(); err != nil {
-		return fmt.Errorf("分配空间失败: %v (%s)", err, strings.TrimSpace(string(out)))
+	if err := allocSpace(ctx, drillDiskPath(), size); err != nil {
+		return fmt.Errorf("分配空间失败: %v", err)
 	}
-	r.Files = append(r.Files, diskDrillPath)
+	r.Files = append(r.Files, drillDiskPath())
 	r.Note = fmt.Sprintf("已占用 %.1f GB，磁盘使用率推高到约 %d%%", float64(size)/(1<<30), diskTargetPct)
 	return nil
 }
 
 func (o *diskFillOp) Restore(ctx context.Context, r *Run) error {
 	removeFiles(r.Files)
-	removeFiles([]string{diskDrillPath})
+	removeFiles([]string{drillDiskPath()})
 	return nil
 }
 

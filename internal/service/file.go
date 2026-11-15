@@ -13,6 +13,9 @@ import (
 
 // FileService handles file management; all paths are restricted within root to prevent directory traversal.
 type FileService struct {
+	// root is the traversal boundary. On Windows it is empty, meaning "any
+	// absolute path on any volume" — the panel manages the whole machine there,
+	// the same practical scope a "/" root gives on Unix.
 	root string
 	// tmpDir is where directory archives are built. It must be able to live
 	// outside the tree being packed — see CompressDir.
@@ -21,6 +24,8 @@ type FileService struct {
 	// download of a directory that keeps growing fills the disk before anyone
 	// notices.
 	maxCompress int64
+	// def is where browsing starts when a request carries no path.
+	def string
 }
 
 // DefaultMaxCompress is the per-archive size ceiling (2 GiB).
@@ -28,10 +33,18 @@ const DefaultMaxCompress int64 = 2 << 30
 
 // NewFileService creates a FileService. root is the allowed root directory.
 func NewFileService(root string) *FileService {
-	if root == "" {
-		root = "/"
+	root = normalizeFileRoot(root)
+	if root != "" {
+		root = filepath.Clean(root)
 	}
-	return &FileService{root: filepath.Clean(root), tmpDir: os.TempDir(), maxCompress: DefaultMaxCompress}
+	// def 决定不带 path 时从哪开始浏览：Windows 是盘符列表的第一个，
+	// Unix 是 "/"。root 上面已经 Clean 过，这里不再重复。
+	return &FileService{
+		root:        root,
+		tmpDir:      os.TempDir(),
+		maxCompress: DefaultMaxCompress,
+		def:         defaultFileBrowsePath(),
+	}
 }
 
 // SetTmpDir moves archive scratch files to dir (typically <data>/tmp). The
@@ -46,6 +59,14 @@ func (s *FileService) SetTmpDir(dir string) {
 	}
 	s.tmpDir = dir
 }
+
+// Roots lists the places the file manager may jump to: drives on Windows, "/"
+// and the service account's home on Unix. The frontend uses the first entry as
+// its starting directory, which is why "/root" no longer has to be hard-coded.
+func (s *FileService) Roots() []string { return fileRoots() }
+
+// DefaultPath is the directory a request with no path resolves to.
+func (s *FileService) DefaultPath() string { return s.def }
 
 // FileEntry is a file/directory entry.
 type FileEntry struct {
@@ -67,18 +88,23 @@ var (
 // resolve normalizes a user-input path and validates that it stays within root.
 func (s *FileService) resolve(p string) (string, error) {
 	if p == "" {
-		p = s.root
+		p = s.def
+		// def 不一定落在边界内：服务被限制在某棵子树时（测试里的临时目录、
+		// 或将来按用户限权），家目录就在界外，直接用它会被判成路径越界，
+		// 于是"打开文件管理"第一步就报错。落在界外就退回 root。
+		if s.root != "" && !withinFileRoot(s.root, p) {
+			p = s.root
+		}
 	}
 	if !filepath.IsAbs(p) {
-		p = filepath.Join(s.root, p)
+		base := s.root
+		if base == "" {
+			base = s.def
+		}
+		p = filepath.Join(base, p)
 	}
 	p = filepath.Clean(p)
-	root := filepath.Clean(s.root)
-	rel, err := filepath.Rel(root, p)
-	if err != nil {
-		return "", ErrPathEscape
-	}
-	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+	if !withinFileRoot(s.root, p) {
 		return "", ErrPathEscape
 	}
 	return p, nil
@@ -101,8 +127,10 @@ func (s *FileService) List(dir string) ([]FileEntry, error) {
 			continue
 		}
 		out = append(out, FileEntry{
-			Name:    e.Name(),
-			Path:    filepath.ToSlash(filepath.Join(dir, e.Name())),
+			Name: e.Name(),
+			// Absolute, because a request may arrive with an empty path and the
+			// resolved directory is then the only thing that knows where we are.
+			Path:    filepath.ToSlash(filepath.Join(full, e.Name())),
 			IsDir:   e.IsDir(),
 			Size:    info.Size(),
 			Mode:    info.Mode().String(),

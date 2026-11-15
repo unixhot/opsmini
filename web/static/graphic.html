@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsMini · 图形终端</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  /* 撑满视口：画面区吃掉剩下的高度，避免下方留白 */
+  html, body { height: 100%; }
+  body { margin: 0; display: flex; flex-direction: column;
+         font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         background: #f5f6f8; color: #1f2328; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+           background: #fff; border-bottom: 1px solid #e3e6ea; flex: none; }
+  h1 { margin: 0; font-size: 15px; font-weight: 500; }
+  .spacer { flex: 1; }
+  select { height: 30px; padding: 0 8px; border: 1px solid #d5d9df; border-radius: 8px;
+           background: #fff; font: inherit; color: inherit; }
+  button { height: 30px; padding: 0 14px; border: 1px solid #d5d9df; border-radius: 8px;
+           background: #fff; color: #1f2328; font: inherit; cursor: pointer; }
+  button:hover { background: #f3f4f6; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column;
+         gap: 10px; padding: 16px 20px 12px; }
+  .stage { flex: 1; min-height: 0; background: #fff; border: 1px solid #e3e6ea;
+           border-radius: 12px; padding: 10px;
+           display: flex; align-items: center; justify-content: center; }
+  /* max-width / max-height 同时约束，画面永远完整可见且不留大片空白 */
+  canvas { width: 100%; height: 100%;
+           object-fit: contain; border-radius: 8px; display: block;
+           background: #0b0d10; }
+  canvas:focus { outline: 2px solid #1f6feb; outline-offset: 2px; }
+  .hint { color: #656d76; font-size: 13px; }
+  .meta { display: flex; gap: 18px; color: #656d76; font-size: 13px; flex: none; }
+  .err { color: #b42318; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>图形终端</h1>
+  <span class="hint">Windows 控制台会话实时画面</span>
+  <span class="spacer"></span>
+  <select id="res" title="分辨率">
+    <option value="auto" selected>自适应</option>
+    <option value="0">原生</option>
+    <option value="2560">2560 宽</option>
+    <option value="1920">1920 宽</option>
+    <option value="1600">1600 宽</option>
+    <option value="1280">1280 宽</option>
+    <option value="1024">1024 宽</option>
+  </select>
+  <select id="fps" title="刷新率">
+    <option value="1">1 fps</option>
+    <option value="2" selected>2 fps</option>
+    <option value="5">5 fps</option>
+  </select>
+  <label class="hint"><input id="control" type="checkbox"> 允许控制</label>
+  <button id="reconnect" class="hidden">重新连接</button>
+  <button id="fullscreen">最大化</button>
+  <button id="stop" disabled>断开</button>
+</header>
+
+<main>
+  <div class="stage"><canvas id="screen" width="960" height="540" tabindex="0"></canvas></div>
+  <div class="meta">
+    <span id="status">未连接</span>
+    <span id="size"></span>
+    <span id="rate"></span>
+  </div>
+</main>
+
+<script>
+(function () {
+  const canvas = document.getElementById('screen');
+  const ctx = canvas.getContext('2d');
+  const elStatus = document.getElementById('status');
+  const elSize = document.getElementById('size');
+  const elRate = document.getElementById('rate');
+  const btnStop = document.getElementById('stop');
+  const btnReconnect = document.getElementById('reconnect');
+  let ws = null, frames = 0, last = Date.now(), timer = null;
+
+  // 令牌来自面板本身：图形终端页与面板同源，localStorage 是共享的，
+  // 所以不需要输入框——那是最早手输令牌版本留下的。
+  function readStoredToken() {
+    for (const k of ['opsmini-token', 'token', 'access_token']) {
+      const v = localStorage.getItem(k);
+      if (v) return v;
+    }
+    const m = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function setStatus(text, isErr) {
+    elStatus.textContent = text;
+    elStatus.className = isErr ? 'err' : '';
+  }
+
+  function connect() {
+    const token = readStoredToken();
+    if (!token) {
+      setStatus('未登录：请从面板左侧菜单进入本页', true);
+      btnReconnect.classList.remove('hidden');
+      return;
+    }
+    stop();
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const fps = document.getElementById('fps').value;
+    const ctl = document.getElementById('control').checked ? '&control=1' : '';
+    // 自适应：按视口 × DPR 请求，服务端再裁到屏幕原生宽度上限；缩放永远不放大。
+    // 原生：传一个超过任何屏幕的宽度，服务端原样返回 100% 分辨率。
+    const resSel = document.getElementById('res').value;
+    // 自适应按 .stage 的实际显示宽度算，而不是窗口宽度：采集尺寸与显示尺寸一致时
+    // 浏览器不做二次缩放，文字才是 1:1 渲染的。窗口宽度包含侧栏/边距，会偏大。
+    const stageW = Math.max(320, document.querySelector('.stage').clientWidth - 20);
+    const wantW = resSel === '0'
+      ? 3840
+      : resSel === 'auto'
+        ? Math.min(3840, Math.ceil(stageW * (window.devicePixelRatio || 1)))
+        : Number(resSel);
+    const url = `${proto}://${location.host}/api/v1/terminal/graphic?token=${encodeURIComponent(token)}&fps=${fps}&quality=90&width=${wantW}${ctl}`;
+
+    ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    setStatus('连接中…');
+    btnStop.disabled = false;
+    btnReconnect.classList.add('hidden');
+
+    ws.onopen = () => { setStatus('已连接'); startRate(); };
+    ws.onclose = () => {
+      setStatus('已断开', true);
+      btnStop.disabled = true;
+      btnReconnect.classList.remove('hidden');
+      stopRate();
+    };
+    ws.onerror = () => setStatus('连接失败：令牌可能已过期，请回面板刷新后重试', true);
+
+    ws.onmessage = async (ev) => {
+      if (typeof ev.data === 'string') {
+        try {
+          const m = JSON.parse(ev.data);
+          if (m.error) { setStatus('采集失败：' + m.error, true); return; }
+          if (m.width) {
+            // 赋 width/height 会清空画布，即使值没变；只在真正变化时才写，
+            // 否则每帧都会闪一下。
+            if (canvas.width !== m.width || canvas.height !== m.height) {
+              canvas.width = m.width;
+              canvas.height = m.height;
+            }
+            elSize.textContent = `${m.width}×${m.height} · ${(m.bytes / 1024).toFixed(0)} KB`;
+          }
+        } catch (e) {}
+        return;
+      }
+      const blob = new Blob([ev.data], { type: 'image/jpeg' });
+      const bmp = await createImageBitmap(blob);
+      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      bmp.close();
+      frames++;
+    };
+  }
+
+  function startRate() {
+    frames = 0; last = Date.now();
+    timer = setInterval(() => {
+      const now = Date.now();
+      elRate.textContent = `${(frames * 1000 / (now - last)).toFixed(1)} fps`;
+      frames = 0; last = now;
+    }, 1000);
+  }
+  function stopRate() { if (timer) clearInterval(timer); timer = null; elRate.textContent = ''; }
+
+  function stop() {
+    if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+    btnStop.disabled = true;
+    stopRate();
+  }
+
+  // ---- 输入注入（仅当"允许控制"勾选时发送）----
+  function ctlOn() { return !!ws && document.getElementById('control').checked; }
+  function sendEv(obj) { if (ctlOn()) { try { ws.send(JSON.stringify(obj)); } catch (e) {} } }
+  function norm(ev) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)),
+      y: Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height)),
+    };
+  }
+  canvas.addEventListener('mousemove', (ev) => { if (ctlOn()) sendEv(Object.assign({ type: 'move' }, norm(ev))); });
+  canvas.addEventListener('mousedown', (ev) => { canvas.focus(); sendEv({ type: 'button', button: ev.button + 1, down: true }); });
+  window.addEventListener('mouseup', (ev) => sendEv({ type: 'button', button: ev.button + 1, down: false }));
+  canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  canvas.addEventListener('wheel', (ev) => { ev.preventDefault(); sendEv({ type: 'wheel', delta: ev.deltaY > 0 ? -1 : 1 }); }, { passive: false });
+  canvas.addEventListener('keydown', (ev) => { if (!ctlOn()) return; ev.preventDefault(); sendEv({ type: 'key', vk: ev.keyCode, down: true }); });
+  canvas.addEventListener('keyup', (ev) => { if (!ctlOn()) return; ev.preventDefault(); sendEv({ type: 'key', vk: ev.keyCode, down: false }); });
+
+  // 改刷新率或控制模式后重连，让服务端按新参数推流
+  document.getElementById('res').addEventListener('change', () => { if (ws) connect(); });
+  document.getElementById('fps').addEventListener('change', () => { if (ws) connect(); });
+  document.getElementById('control').addEventListener('change', () => { if (ws) connect(); });
+
+  const btnFull = document.getElementById('fullscreen');
+  btnFull.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      (document.documentElement.requestFullscreen || function(){}).call(document.documentElement);
+    } else {
+      document.exitFullscreen();
+    }
+  });
+  // 全屏或窗口尺寸变化后重新协商分辨率，否则画面会被拉伸/留白
+  let relayoutTimer = null;
+  function relayout() {
+    clearTimeout(relayoutTimer);
+    relayoutTimer = setTimeout(() => { if (ws) connect(); }, 400);
+  }
+  document.addEventListener('fullscreenchange', () => {
+    btnFull.textContent = document.fullscreenElement ? '还原' : '最大化';
+    relayout();
+  });
+  window.addEventListener('resize', relayout);
+
+  btnStop.addEventListener('click', () => { stop(); setStatus('已断开'); btnReconnect.classList.remove('hidden'); });
+  btnReconnect.addEventListener('click', connect);
+
+  connect();
+})();
+</script>
+</body>
+</html>

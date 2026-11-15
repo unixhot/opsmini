@@ -1,6 +1,6 @@
 # 产品介绍
 
-OpsMini 是一款轻量级 Linux 主机运维面板（对标宝塔 / 1Panel），以内置 AI 大模型运维与对外标准 REST API 为核心差异化。
+OpsMini 是一款轻量级主机运维面板（对标宝塔 / 1Panel），**同时支持 Linux 与 Windows**，以内置 AI 大模型运维与对外标准 REST API 为核心差异化。
 
 ## 定位
 

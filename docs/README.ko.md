@@ -12,7 +12,7 @@
 
 ## 한국어
 
-OpsMini 는 Linux 호스트에 상주하는 AI 운영 에이전트입니다. 지표를 모으고 이상을 판단하며 직접 처리하고, 위험한 작업 앞에서는 승인을 요청합니다. 웹 UI 는 관측 창일 뿐이며, 아무것도 클릭하지 않아도 매일 작업을 끝내고 보고서를 남깁니다. 수십 MB 단일 정적 바이너리로 동작하며 데이터는 모두 로컬에 남습니다.
+OpsMini 는 **Linux 와 Windows** 호스트에 상주하는 AI 운영 에이전트입니다. 지표를 모으고 이상을 판단하며 직접 처리하고, 위험한 작업 앞에서는 승인을 요청합니다. 웹 UI 는 관측 창일 뿐이며, 아무것도 클릭하지 않아도 매일 작업을 끝내고 보고서를 남깁니다. 수십 MB 단일 정적 바이너리로 동작하며 데이터는 모두 로컬에 남습니다.
 
 ### 기능
 
@@ -29,9 +29,15 @@ Go · Gin · GORM · SQLite(순수 Go) · Vue 3 · ECharts
 
 ### 빠른 시작
 
+```powershell
+# Windows(관리자 PowerShell)
+iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
+```
+
 ```bash
 make build          # 현재 플랫폼용 빌드
 make build-all      # Linux amd64/arm64 크로스 컴파일
+# Windows(amd64/arm64)도 같은 방식으로 크로스 컴파일합니다
 
 ./dist/opsmini -config configs/config.yaml
 # http://localhost:8888 열기 (기본 계정: opsmini, 비밀번호는 시작 로그에서 확인)
