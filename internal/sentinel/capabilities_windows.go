@@ -19,7 +19,11 @@ func Capabilities() []Capability {
 		{Key: "log", Enabled: false,
 			Reason: "Windows 的日志在事件日志（.evtx）里，需要 EvtQuery 读取；当前版本仍按文本 tail 实现，因此不会产生日志信号"},
 		{Key: "auth", Enabled: false,
-			Reason: "失败登录记录在安全事件日志（Event ID 4625），同样依赖事件日志 API；当前版本不采集，不会产生登录异常事件"},
+			// 这里的 auth 指「事件中心是否采集登录异常并产出事件」，与
+			// 「安全 → 登录安全」页不是一回事：那个页面会用 Get-WinEvent 现读
+			// 4624/4625 给出报表，但不落成事件。不写清楚的话，用户在登录安全页
+			// 看到失败记录，转头被告知「登录审计不可用」，只会以为面板自相矛盾。
+			Reason: "事件中心不采集登录异常；「安全 → 登录安全」页仍可从安全事件日志读取 4624/4625 记录"},
 		{Key: "fim", Enabled: true},
 	}
 }

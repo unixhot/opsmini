@@ -176,7 +176,6 @@ func seedAlertRules(db *gorm.DB) error {
 	return nil
 }
 
-
 // pruneUnsupportedAlertRules disables rules whose metric this platform cannot
 // collect, and resolves the events they left behind.
 //

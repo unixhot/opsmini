@@ -2,6 +2,7 @@ package change
 
 import (
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -24,7 +25,13 @@ func matchGlob(pattern, path string) bool {
 	// 不能用 filepath.Match：Windows 上分隔符是 "\\"，"/" 只是一个普通字符，
 	// 于是 "*" 会跨目录匹配，"/var/log/*.log" 会命中 "/var/log/nginx/error.log"。
 	// 面板里的规则和路径都是 POSIX 风格，用 path.Match 语义才一致。
-	return matchSegments(splitPath(pattern), splitPath(path))
+	//
+	// 两边都先归一化成 "/" 再分段。调用方传进来的路径是 filepath.Clean 的结果，
+	// Windows 上是 "C:\a\b"；不归一化的话整串会被当成一个 segment，于是：
+	//   - "C:/proj/**" 永不命中（段数对不上）；
+	//   - "**/*.tmp" 反而"碰巧"命中，因为 "*" 能吞掉含反斜杠的整串。
+	// 前者让用户的忽略规则完全失效，后者让规则的语义变成另一个东西。
+	return matchSegments(splitPath(filepath.ToSlash(pattern)), splitPath(filepath.ToSlash(path)))
 }
 
 func splitPath(p string) []string {

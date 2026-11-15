@@ -3,9 +3,6 @@
 package service
 
 import (
-	"bytes"
-	"encoding/json"
-	"os/exec"
 	"sort"
 	"strings"
 )
@@ -67,26 +64,4 @@ func listGroups() []GroupAccount {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Groupname < out[j].Groupname })
 	return out
-}
-
-// psJSON runs a PowerShell expression and unmarshals its ConvertTo-Json output
-// into dst. A single result comes back as an object rather than an array, so the
-// payload is normalised to an array before decoding.
-func psJSON(expr string, dst any) error {
-	script := "@(" + expr + ") | ConvertTo-Json -Depth 4 -Compress"
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	body := bytes.TrimSpace(stdout.Bytes())
-	if len(body) == 0 {
-		return nil
-	}
-	if body[0] != '[' {
-		body = append(append([]byte("["), body...), ']')
-	}
-	return json.Unmarshal(body, dst)
 }

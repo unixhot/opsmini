@@ -3371,8 +3371,8 @@
             <div class="card-head"><div class="card-title">{{ t('sec.fwBackend') }}: {{ secFirewall.backend || 'none' }}</div>
               <div class="row" style="gap:8px">
                 <span class="tag" :class="secFirewall.enabled?'ok':'err'"><span class="tdot"></span>{{ secFirewall.enabled ? t('common.enabled') : t('common.disabled') }}</span>
-                <button v-if="!secFirewall.enabled && (secFirewall.backend==='ufw' || secFirewall.backend==='firewalld') && hasPerm('security.firewall')" class="btn sm primary" @click="fwEnable">{{ t('sec.fwEnable') }}</button>
-                <button v-if="secFirewall.enabled && (secFirewall.backend==='ufw' || secFirewall.backend==='firewalld') && hasPerm('security.firewall')" class="btn sm danger" @click="fwDisable">{{ t('sec.fwDisable') }}</button>
+                <button v-if="!secFirewall.enabled && ['ufw','firewalld','windows'].includes(secFirewall.backend) && hasPerm('security.firewall')" class="btn sm primary" @click="fwEnable">{{ t('sec.fwEnable') }}</button>
+                <button v-if="secFirewall.enabled && ['ufw','firewalld','windows'].includes(secFirewall.backend) && hasPerm('security.firewall')" class="btn sm danger" @click="fwDisable">{{ t('sec.fwDisable') }}</button>
               </div>
             </div>
             <div class="card-body">
@@ -3388,7 +3388,11 @@
                     <tr v-for="(r,i) in (secFirewall.rules||[])" :key="i">
                       <td class="mono">{{ r.port || '-' }}</td><td class="mono">{{ r.proto || '-' }}</td>
                       <td><span class="tag" :class="r.action==='allow'?'ok':'err'">{{ r.action }}</span></td>
-                      <td><button class="btn sm danger" @click="fwDenyPort(parseInt(r.port,10), r.proto)">{{ t('common.delete') }}</button></td>
+                      <td>
+                        <button v-if="r.managed" class="btn sm danger" @click="fwDeleteRule(r.ref)">{{ t('common.delete') }}</button>
+                        <button v-else-if="secFirewall.backend!=='windows'" class="btn sm danger" @click="fwDenyPort(parseInt(r.port,10), r.proto)">{{ t('common.delete') }}</button>
+                        <span v-else style="color:var(--t3)">—</span>
+                      </td>
                     </tr>
                     <tr v-if="(secFirewall.rules||[]).length===0"><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">{{ t('sec.fimEmpty') }}</td></tr>
                   </tbody>
@@ -8510,6 +8514,14 @@ const app = createApp({
     fwDenyPort(port, proto){
       this.confirmDialog(this.t('container.delConfirm') + ' ' + port + '/' + (proto||'tcp') + '？', async () => {
         try{ await this.api('/security/firewall/port', { method:'DELETE', body: JSON.stringify({ port, proto: proto||'tcp' }) }); await this.loadSecurityData(); this.toast('OK'); }
+        catch(e){ this.toast(e.message); }
+      });
+    },
+    // Windows 上删的是「这一条规则」，不是「这个端口」：规则名（ref）才是主键，
+    // 端口可能是 Any 或一组端口，按端口去删会另外造出一条阻止规则。
+    fwDeleteRule(ref){
+      this.confirmDialog(this.t('container.delConfirm') + ' ' + ref + '？', async () => {
+        try{ await this.api('/security/firewall/rule/' + encodeURIComponent(ref), { method:'DELETE' }); await this.loadSecurityData(); this.toast('OK'); }
         catch(e){ this.toast(e.message); }
       });
     },

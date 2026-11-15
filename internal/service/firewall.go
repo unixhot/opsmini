@@ -20,6 +20,10 @@ type FirewallRule struct {
 	Port   string `json:"port"`
 	Action string `json:"action"` // allow/deny
 	Raw    string `json:"raw"`
+	// Managed marks a rule the panel itself created, and therefore the only kind
+	// it may delete. Windows ships hundreds of built-in rules; deleting one of
+	// them by name is both easy to trigger and hard to undo.
+	Managed bool `json:"managed"`
 }
 
 // FirewallRules holds the firewall status and rule list.
@@ -103,7 +107,13 @@ func (s *FirewallService) DenyPort(port int, proto string) error {
 		_, err := runFirewallCmd("firewall-cmd", "--reload")
 		return err
 	case "iptables":
-		_, err := runFirewallCmd("iptables", "-D", "INPUT", "-p", proto, "--dport", strconv.Itoa(port), "-j", "ACCEPT")
+		// 真的插入 DROP，而不是删掉之前那条 ACCEPT。
+		//
+		// 删 ACCEPT 只是撤销「曾经放行」，链尾策略仍是 ACCEPT 时端口照样通，
+		// 而 UI 上写的是「阻止」。先删后插保证重复点击不会堆叠多条 DROP；
+		// 插到链首则保证它排在既有 ACCEPT 之前生效。
+		_, _ = runFirewallCmd("iptables", "-D", "INPUT", "-p", proto, "--dport", strconv.Itoa(port), "-j", "DROP")
+		_, err := runFirewallCmd("iptables", "-I", "INPUT", "1", "-p", proto, "--dport", strconv.Itoa(port), "-j", "DROP")
 		return err
 	case "windows":
 		return windowsDenyPort(port, proto)

@@ -37,14 +37,23 @@ func remoteAdminPort() int { return 3389 }
 // windowsFirewallRules lists inbound rules, panel-created ones first.
 func windowsFirewallRules() []FirewallRule {
 	type row struct {
-		Name  string `json:"Name"`
-		Proto string `json:"Proto"`
-		Port  string `json:"Port"`
+		Name   string `json:"Name"`
+		Proto  string `json:"Proto"`
+		Port   string `json:"Port"`
+		Action string `json:"Action"`
 	}
 
-	// 只取面板创建的规则 + 前 60 条已启用入站规则：一台桌面机上入站规则有几百条，
-	// 全量返回既慢又没人看得过来。
-	const q = `Get-NetFirewallRule -Direction Inbound -Enabled True | Select-Object -First 60 | ForEach-Object { $p = $_ | Get-NetFirewallPortFilter; [pscustomobject]@{ Name=$_.DisplayName; Proto=[string]$p.Protocol; Port=[string]($p.LocalPort -join ',') } }`
+	// 一台桌面机上入站规则有几百条，全量返回既慢又没人看得过来，所以截到 60 条。
+	// 截断必须按「面板规则优先」来排：OpsMini- 开头的规则多半不在默认顺序的前 60
+	// 条里，用户刚加的规则看不到，会以为没生效。
+	//
+	// Action 读规则对象自己的属性，不从规则名里猜：名字带 "block" 的放行规则、名字
+	// 不带 block 的阻止规则都真实存在，靠名字猜出来的「允许/阻止」是错的。
+	const q = `Get-NetFirewallRule -Direction Inbound -Enabled True` +
+		` | Sort-Object @{ Expression = { if ($_.DisplayName -like 'OpsMini-*') { 0 } else { 1 } } }, DisplayName` +
+		` | Select-Object -First 60` +
+		` | ForEach-Object { $p = $_ | Get-NetFirewallPortFilter;` +
+		` [pscustomobject]@{ Name=$_.DisplayName; Proto=[string]$p.Protocol; Port=[string]($p.LocalPort -join ','); Action=[string]$_.Action } }`
 	var rows []row
 	if err := psJSON(q, &rows); err != nil {
 		return nil
@@ -57,15 +66,16 @@ func windowsFirewallRules() []FirewallRule {
 			continue
 		}
 		action := "allow"
-		if strings.Contains(strings.ToLower(name), "block") || strings.Contains(name, "deny") {
+		if strings.EqualFold(strings.TrimSpace(r.Action), "block") {
 			action = "deny"
 		}
 		out = append(out, FirewallRule{
-			Ref:    name,
-			Proto:  strings.ToLower(r.Proto),
-			Port:   r.Port,
-			Action: action,
-			Raw:    fmt.Sprintf("%s %s/%s", name, strings.ToLower(r.Proto), r.Port),
+			Ref:     name,
+			Proto:   strings.ToLower(r.Proto),
+			Port:    r.Port,
+			Action:  action,
+			Raw:     fmt.Sprintf("%s %s/%s", name, strings.ToLower(r.Proto), r.Port),
+			Managed: strings.HasPrefix(name, windowsRulePrefix),
 		})
 	}
 	return out
@@ -93,11 +103,17 @@ func windowsWriteRule(action string, port int, proto string) error {
 	return err
 }
 
-// windowsDeleteRule removes a rule by its display name (Ref from the list).
+// windowsDeleteRule removes a panel-created rule by its display name (Ref from the list).
+//
+// 只允许删 OpsMini- 前缀的规则。按名字删除内置规则既容易误触又难以复原，
+// 而面板能管理的本来就只是自己建的那几条；其余请到系统防火墙里改。
 func windowsDeleteRule(ref string) error {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {
 		return errors.New("规则名不能为空")
+	}
+	if !strings.HasPrefix(strings.ToLower(ref), strings.ToLower(windowsRulePrefix)) {
+		return fmt.Errorf("只能删除面板创建的规则（%s 开头）；内置规则请到 Windows 防火墙中管理", windowsRulePrefix)
 	}
 	_, err := runFirewallCmd("netsh", "advfirewall", "firewall", "delete", "rule", "name="+ref)
 	return err

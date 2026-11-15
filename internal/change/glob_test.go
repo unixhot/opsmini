@@ -54,3 +54,29 @@ func TestMatchGlobMalformedIsFalse(t *testing.T) {
 		}
 	}
 }
+
+// Windows paths arrive as filepath.Clean output ("C:\a\b"). Both sides are
+// normalised to "/" so that a rule written with directories works there too;
+// before that fix every such rule matched nothing.
+func TestMatchGlobWindowsBackslashPaths(t *testing.T) {
+	cases := []struct {
+		pattern, path string
+		want          bool
+	}{
+		{`C:/proj/**`, `C:\proj\a.log`, true},
+		{`C:/proj/**`, `C:\proj\sub\a.log`, true},
+		{`C:/proj/**`, `C:\proj2\a.log`, false},
+		{`*/cache/*`, `C:\Users\me\cache\a.tmp`, false}, // 三段模式，五段路径，本来就该不匹配
+		{`**/cache/*`, `C:\Users\me\cache\a.tmp`, true},
+		{`**/cache/*`, `C:\Users\me\cache\sub\a.tmp`, false},
+		{`**/*.tmp`, `C:\Users\me\proj\a.tmp`, true},
+		{`**/*.tmp`, `C:\Users\me\proj\a.log`, false},
+		{`C:\proj\**`, `C:\proj\sub\a.log`, true},
+		{`/var/log/**`, `C:\var\log\a.log`, false},
+	}
+	for _, c := range cases {
+		if got := matchGlob(c.pattern, c.path); got != c.want {
+			t.Errorf("matchGlob(%q, %q) = %v, want %v", c.pattern, c.path, got, c.want)
+		}
+	}
+}

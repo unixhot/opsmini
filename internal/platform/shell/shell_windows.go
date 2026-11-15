@@ -6,7 +6,17 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 )
+
+// psUTF8 switches PowerShell's output stream from the console OEM code page
+// (CP936 on a Chinese Windows) to UTF-8.
+//
+// The panel decodes captured output as UTF-8. Without this prefix every 中文 line
+// a command prints arrives as legacy bytes and turns into replacement
+// characters, which reads as "the terminal is broken" rather than "the encoding
+// was not negotiated".
+const psUTF8 = `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;`
 
 // command runs line through PowerShell.
 //
@@ -18,7 +28,8 @@ import (
 // -NonInteractive prevents a prompt from hanging the Agent loop until timeout.
 func command(ctx context.Context, line string) *exec.Cmd {
 	return exec.CommandContext(ctx, "powershell",
-		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", line)
+		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+		"-Command", psUTF8+line)
 }
 
 // script runs a script file with the interpreter that matches its language.
@@ -31,8 +42,12 @@ func script(ctx context.Context, language, path string) *exec.Cmd {
 	case "cmd":
 		return exec.CommandContext(ctx, "cmd", "/c", path)
 	default:
+		// 用 -Command "& '<file>'" 而不是 -File，只因前者能在执行脚本前先设好
+		// 输出编码（-File 没有空间放前缀）。脚本自己的 exit N 仍然是进程退出码。
+		quoted := "'" + strings.ReplaceAll(path, "'", "''") + "'"
 		return exec.CommandContext(ctx, "powershell",
-			"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path)
+			"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+			"-Command", psUTF8+"& "+quoted)
 	}
 }
 

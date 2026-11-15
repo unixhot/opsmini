@@ -18,9 +18,16 @@ func listRoutes() ([]RouteEntry, error) {
 		NextHop           string `json:"NextHop"`
 		InterfaceAlias    string `json:"InterfaceAlias"`
 		RouteMetric       int    `json:"RouteMetric"`
+		State             string `json:"State"`
 	}
+	// 接口状态单独取一次再按索引查表：Get-NetRoute 不带连接状态，而路由表里
+	// 保留着已断开接口的路由，flags 恒为 UP 就是把断网说成通网。
+	// 一次取全表，避免每条路由再往返一次 CIM 调用。
+	const q = `$st = @{};` +
+		` Get-NetIPInterface -AddressFamily IPv4 -ErrorAction SilentlyContinue | ForEach-Object { $st[[int]$_.InterfaceIndex] = [string]$_.ConnectionState };` +
+		` Get-NetRoute -AddressFamily IPv4 | ForEach-Object {` +
+		` [pscustomobject]@{ DestinationPrefix=$_.DestinationPrefix; NextHop=$_.NextHop; InterfaceAlias=$_.InterfaceAlias; RouteMetric=$_.RouteMetric; State=$st[[int]$_.InterfaceIndex] } }`
 	var rows []row
-	const q = `Get-NetRoute -AddressFamily IPv4 | Select-Object DestinationPrefix,NextHop,InterfaceAlias,RouteMetric`
 	if err := psJSON(q, &rows); err != nil {
 		return nil, err
 	}
@@ -29,6 +36,11 @@ func listRoutes() ([]RouteEntry, error) {
 	for _, r := range rows {
 		dest, mask := splitPrefix(r.DestinationPrefix)
 		flags := 1 // up
+		// 状态拿不到（空串）时保持乐观：宁可多显示一条可用路由，也不要因为
+		// 查询失败把整张表说成 down。
+		if r.State != "" && !strings.EqualFold(r.State, "Connected") {
+			flags = 0
+		}
 		if r.NextHop != "" && r.NextHop != "0.0.0.0" {
 			flags |= 2 // gateway
 		}
