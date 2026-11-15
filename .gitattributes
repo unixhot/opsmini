@@ -7,3 +7,11 @@
 # PowerShell 脚本固定 CRLF：Windows PowerShell 5.1 对 LF 脚本虽能解析，
 # 但 .ps1 里混行尾时中文注释容易出问题，统一 CRLF 更稳。
 *.ps1 text eol=crlf
+
+# Makefile 统一 LF：CRLF 会让 Linux 上的 make 解析出 "missing separator"
+Makefile text eol=lf
+
+# JSON / YAML 等配置统一 LF，避免不同平台 diff 噪音
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
