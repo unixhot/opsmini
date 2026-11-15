@@ -36,15 +36,34 @@ $ErrorActionPreference = "Stop"
 $ServiceName = "OpsMini"
 $DefaultUrlBase = "https://opsmini.oss-cn-beijing.aliyuncs.com"
 
-function Assert-Admin {
+function Test-Admin {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($id)
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "请以管理员身份运行 PowerShell 后再执行本脚本。"
-    }
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-Assert-Admin
+# 没有管理员权限就自己拉一个提权实例跑完，而不是甩一句"请以管理员身份运行"。
+# 「应用和功能」里的卸载入口按 UninstallString 启动，默认不带提权；只报错的话
+# 用户点完卸载看起来毫无反应，是这类脚本最常见的坑。
+if (-not (Test-Admin)) {
+    $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ('"' + $PSCommandPath + '"'))
+    foreach ($name in $PSBoundParameters.Keys) {
+        $value = $PSBoundParameters[$name]
+        if ($value -is [System.Management.Automation.SwitchParameter]) {
+            if ($value.IsPresent) { $argList += "-$name" }
+        } else {
+            $argList += "-$name"
+            $argList += ('"' + $value + '"')
+        }
+    }
+    Write-Host "需要管理员权限，正在请求提权..."
+    try {
+        Start-Process -FilePath "powershell.exe" -ArgumentList $argList -Verb RunAs | Out-Null
+    } catch {
+        throw "提权被拒绝或失败：$($_.Exception.Message)"
+    }
+    return
+}
 
 # ---------- 卸载 ----------
 if ($Uninstall) {
@@ -58,6 +77,12 @@ if ($Uninstall) {
         Write-Host "已移除服务 $ServiceName（数据目录 $DataDir 保留）"
     } else {
         Write-Host "服务 $ServiceName 不存在"
+    }
+    # 不清掉这一项，卸载完「应用和功能」里还挂着一条点不动的残留。
+    $arpKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OpsMini"
+    if (Test-Path $arpKey) {
+        Remove-Item -Path $arpKey -Recurse -Force
+        Write-Host "已从「应用和功能」移除 OpsMini"
     }
     return
 }
@@ -77,7 +102,7 @@ if (-not $Binary) {
         $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
         $BinaryUrl = "$base/opsmini-$Version-windows-$arch.exe"
     }
-    $tmpExe = Join-Path $env:TEMP "opsmini-windows-amd64.exe"
+    $tmpExe = Join-Path $env:TEMP ("opsmini-" + $Version + "-windows-" + $arch + ".exe")
     Write-Host "正在下载 $BinaryUrl"
     try {
         # 进度条会让 iwr 在小文件上慢一个数量级，这里关掉
@@ -110,6 +135,15 @@ if ($svc) {
 
 Copy-Item -Path $Binary -Destination (Join-Path $InstallDir "opsmini.exe") -Force
 Write-Host "已复制二进制到 $InstallDir\opsmini.exe"
+
+# 脚本自身也落地一份：卸载入口（UninstallString）必须指向稳定路径，
+# 不能指向 %TEMP% 里那份随时会被清掉的下载。
+$scriptCopy = Join-Path $InstallDir "install.ps1"
+if ($PSCommandPath -and (Test-Path $PSCommandPath)) {
+    if ((Resolve-Path $PSCommandPath).Path -ne $scriptCopy) {
+        Copy-Item -Path $PSCommandPath -Destination $scriptCopy -Force
+    }
+}
 
 # ---------- 配置文件 ----------
 $configPath = Join-Path $InstallDir "config.yaml"
@@ -203,9 +237,37 @@ if (-not $rule) {
 Start-Service -Name $ServiceName
 (Get-Service $ServiceName).WaitForStatus("Running", "00:00:30")
 
+# ---------- 注册表：让「应用和功能」能看到并卸载 ----------
+# 没有这一项，用户只能翻文档找 -Uninstall；资产清点工具（Intune/SCCM）也看不到这个软件。
+$exePath = Join-Path $InstallDir "opsmini.exe"
+$installedVersion = $Version
+try {
+    $vi = (Get-Item $exePath).VersionInfo
+    if ($vi.FileVersion) { $installedVersion = ($vi.FileVersion -replace '\s', '') }
+} catch { }
+$sizeKB = 0
+try { $sizeKB = [int]((Get-Item $exePath).Length / 1KB) } catch { }
+
+$arpKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\OpsMini"
+New-Item -Path $arpKey -Force | Out-Null
+$uninstallCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $InstallDir "install.ps1") + '" -Uninstall'
+Set-ItemProperty -Path $arpKey -Name DisplayName         -Value "OpsMini 运维面板"
+Set-ItemProperty -Path $arpKey -Name DisplayVersion      -Value $installedVersion
+Set-ItemProperty -Path $arpKey -Name Publisher           -Value "OpsMini"
+Set-ItemProperty -Path $arpKey -Name DisplayIcon         -Value $exePath
+Set-ItemProperty -Path $arpKey -Name InstallLocation     -Value $InstallDir
+Set-ItemProperty -Path $arpKey -Name UninstallString     -Value $uninstallCmd
+Set-ItemProperty -Path $arpKey -Name QuietUninstallString -Value $uninstallCmd
+Set-ItemProperty -Path $arpKey -Name URLInfoAbout        -Value "https://opsmini.com"
+Set-ItemProperty -Path $arpKey -Name InstallDate         -Value (Get-Date -Format "yyyyMMdd")
+Set-ItemProperty -Path $arpKey -Name EstimatedSize       -Value $sizeKB -Type DWord
+Set-ItemProperty -Path $arpKey -Name NoModify            -Value 1 -Type DWord
+Set-ItemProperty -Path $arpKey -Name NoRepair            -Value 1 -Type DWord
+Write-Host "已注册「应用和功能」条目（版本 $installedVersion，卸载入口 $scriptCopy）"
+
 # ---------- 结果 ----------
 Write-Host ""
-Write-Host "OpsMini 已启动：http://<本机IP>:$Port"
+Write-Host "OpsMini 已启动：http://<本机IP>:$Port（版本 $installedVersion）"
 if ($ServerAddr) {
     Write-Host "已配置接入 OpsAnt：$ServerAddr（服务启动后自动注册，稍后到 OpsAnt 的「待纳管」确认即可）"
 }

@@ -144,6 +144,8 @@ dist/opsmini-<ver>-windows-arm64.exe
 
 命名规则固定：`opsmini-<version>-<os>-<arch>`，Windows 带 `.exe` 后缀。脚本按此规则拼下载地址，名字不符会 404。
 
+Windows 目标在编译前会自动跑 `make winres`，用 `goversioninfo` 生成版本资源（`cmd/agent/resource_windows_*.syso`，不进仓库）。所以打出来的 exe 右键「属性 → 详细信息」能看到版本、公司、文件说明，和命令行 `-version` 输出一致。
+
 ## 可选：接入 OpsAnt
 
 默认安装是**独立单机面板**，不与任何中心通信。如果确实要把它纳管到 OpsAnt，两个脚本都提供了接入参数，作用只是把地址与 token 写进 `config.yaml` 的 `agent` 段——**安装包依然从阿里云 OSS 下载，脚本本身不依赖 OpsAnt**。服务启动后自行注册，不需要再进面板手工填。
@@ -189,6 +191,8 @@ sudo ./install.sh --uninstall --purge
 # Windows：停止并删除服务，数据目录 C:\ProgramData\OpsMini 保留
 .\install.ps1 -Uninstall
 ```
+
+Windows 也可以从「设置 → 应用 → 已安装的应用」里卸载，条目名 **OpsMini 运维面板**。它调用的是安装时落到安装目录的 `install.ps1 -Uninstall`，行为与上面完全一致；缺少管理员权限时会自动请求提权。
 
 ## 兼容性
 
