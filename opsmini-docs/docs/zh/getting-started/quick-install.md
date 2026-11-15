@@ -21,6 +21,8 @@ Windows（管理员 PowerShell）：
 iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env:TEMP\opsmini.ps1
 ```
 
+> Windows 上程序装在 `C:\Program Files\OpsMini`，数据（数据库、配置、日志、初始密码 `.init_passwd`）在 `C:\ProgramData\OpsMini`，注册的服务名为 `OpsMini`（SCM），同样开机自启。完整参数见[一键脚本安装](../installation/one-click-install.md)。
+
 Linux 的其它常用参数：
 
 ```bash
@@ -50,10 +52,12 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 2. 下载 / 复制二进制到 `<目录>/opsmini`（默认按架构从阿里云 OSS 下载）
 3. 生成 `<目录>/config.yaml`（端口、SQLite 路径、JWT 有效期、日志级别与日志文件；JWT 密钥与 Agent Token 首次启动自动生成存库）
 4. 生成 16 位随机管理员密码，写入 `<目录>/.init_passwd`（权限 600）
-5. 注册并启动 systemd 服务 `opsmini.service`
+5. 注册并启动系统服务：Linux 为 `opsmini.service`（systemd），Windows 为 `OpsMini`（SCM）
 6. 探测服务响应，打印访问地址 / 用户名 / 密码 / 日志文件路径
 
 ## 产物结构
+
+Linux（`/data/opsmini`）：
 
 ```
 /data/opsmini/
@@ -64,11 +68,13 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 └── .init_passwd         # 初始密码（600）
 ```
 
+Windows：程序在 `C:\Program Files\OpsMini\opsmini.exe`，数据目录 `C:\ProgramData\OpsMini\` 下是同样的 `config.yaml` / `opsmini.db` / `opsmini.log` / `.init_passwd`。
+
 ## 首次登录
 
 - 访问 `http://<host>:8888`
 - 用户名：`opsmini`
-- 密码：安装脚本打印的密码，或查看 `/data/opsmini/.init_passwd`
+- 密码：安装脚本打印的密码，或查看 `.init_passwd`（Linux `/data/opsmini/`，Windows `C:\ProgramData\OpsMini\`）
 
 > ⚠️ 请立即记录密码并登录后修改。重装时密码会自动重置并重新打印。
 

@@ -24,6 +24,14 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+
+```powershell
+# Windows (PowerShell als Administrator)
+irm https://opsmini.com/install.ps1 | iex
+```
+
+> Unter Windows liegt das Programm in `C:\Program Files\OpsMini`, die Daten (Datenbank, Konfiguration, Logs, initiales Passwort `.init_passwd`) in `C:\ProgramData\OpsMini`, und der registrierte Dienst heißt `OpsMini` (SCM), ebenfalls mit Autostart.
+
 ## Installationsparameter
 
 | Parameter | Beschreibung | Standardwert |

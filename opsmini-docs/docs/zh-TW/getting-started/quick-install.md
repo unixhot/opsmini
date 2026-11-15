@@ -24,6 +24,14 @@ sudo ./install.sh -b ./opsmini
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+
+```powershell
+# Windows（系統管理員 PowerShell）
+irm https://opsmini.com/install.ps1 | iex
+```
+
+> Windows 上程式裝在 `C:\Program Files\OpsMini`，資料（資料庫、設定、日誌、初始密碼 `.init_passwd`）在 `C:\ProgramData\OpsMini`，註冊的服務名為 `OpsMini`（SCM），同樣開機自啟。
+
 ## 安裝引數
 
 | 引數 | 說明 | 預設值 |

@@ -1,6 +1,6 @@
 # ワンクリックスクリプトインストール
 
-公式 `install.sh` を使用して Linux ホストにワンクリックでデプロイします。
+公式スクリプトで一発導入できます。Linux は `install.sh`、Windows は `install.ps1`（管理者 PowerShell）を使います。
 
 ## クイックスタート
 
@@ -18,6 +18,11 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
 ## パラメータ
 
 | パラメータ | 説明 | デフォルト値 |
@@ -28,6 +33,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-u, --url <url>` | URL からダウンロード（生のバイナリまたは `.tar.gz`） | OSS 公式アドレス |
 | `-n, --no-systemd` | systemd サービスを登録しない | — |
 | `-h, --help` | ヘルプ | — |
+
+
+### Windows のオプション（install.ps1）
+
+| オプション | 説明 | 既定値 |
+|-----------|------|--------|
+| `-InstallDir <path>` | プログラムディレクトリ | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | データディレクトリ（バイナリ・設定・DB・ログ） | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | パネルの待受ポート | `8888` |
+| `-Binary <path>` | ローカルのバイナリ（オフライン導入） | OSS から取得 |
+| `-Version <ver>` | バージョンを指定 | 現在のリリース |
+| `-ServerAddr` / `-ServerToken` | OpsAnt へ登録 | — |
+| `-Uninstall` | サービスを停止・削除（データは保持） | — |
+
+```powershell
+# ポートとデータディレクトリを指定
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# オフライン導入
+.\install.ps1 -Binary .\opsmini.exe
+
+# 導入後すぐ OpsAnt に登録
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> Windows では systemd ではなく `OpsMini` という名前の Windows サービス（SCM）として登録され、起動時に自動で立ち上がります。管理者以外で実行した場合は自動で昇格します。
+
 
 ## インストール時の動作
 

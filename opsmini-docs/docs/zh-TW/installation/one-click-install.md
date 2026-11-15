@@ -1,6 +1,6 @@
 # 一鍵指令碼安裝
 
-官方 `install.sh` 在 Linux 主機上一鍵完成部署。
+官方腳本一鍵完成部署：Linux 使用 `install.sh`，Windows 使用 `install.ps1`（系統管理員 PowerShell）。
 
 ## 快速開始
 
@@ -18,6 +18,11 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
 ## 引數
 
 | 引數 | 說明 | 預設值 |
@@ -28,6 +33,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-u, --url <url>` | 從 URL 下載（裸二進位制或 `.tar.gz`） | OSS 官方地址 |
 | `-n, --no-systemd` | 不註冊 systemd 服務 | — |
 | `-h, --help` | 幫助 | — |
+
+
+### Windows 參數（install.ps1）
+
+| 參數 | 說明 | 預設值 |
+|------|------|--------|
+| `-InstallDir <path>` | 程式目錄 | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | 資料目錄（二進位檔、設定、資料庫、日誌） | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | 面板監聽埠 | `8888` |
+| `-Binary <path>` | 本機二進位檔（離線安裝） | 從 OSS 下載 |
+| `-Version <ver>` | 指定版本 | 目前發行版 |
+| `-ServerAddr` / `-ServerToken` | 接入 OpsAnt | — |
+| `-Uninstall` | 停止並移除服務（保留資料） | — |
+
+```powershell
+# 自訂埠與資料目錄
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# 離線安裝
+.\install.ps1 -Binary .\opsmini.exe
+
+# 裝完即接入 OpsAnt
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> Windows 上不註冊 systemd，而是註冊名為 `OpsMini` 的 Windows 服務（SCM），同樣開機自啟。腳本偵測到非系統管理員執行時會自行提權。
+
 
 ## 安裝行為
 

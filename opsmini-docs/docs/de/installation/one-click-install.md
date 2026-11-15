@@ -1,6 +1,6 @@
 # Ein-Klick-Skript-Installation
 
-Das offizielle `install.sh` schließt das Deployment auf einem Linux-Host mit einem Klick ab.
+Das offizielle Skript installiert in einem Schritt: `install.sh` unter Linux, `install.ps1` unter Windows (PowerShell als Administrator).
 
 ## Schnellstart
 
@@ -18,6 +18,11 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
 ## Parameter
 
 | Parameter | Beschreibung | Standardwert |
@@ -28,6 +33,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-u, --url <url>` | Download von URL (nacktes Binary oder `.tar.gz`) | Offizielle OSS-Adresse |
 | `-n, --no-systemd` | Keinen systemd-Dienst registrieren | — |
 | `-h, --help` | Hilfe | — |
+
+
+### Windows-Optionen (install.ps1)
+
+| Option | Beschreibung | Standard |
+|--------|--------------|----------|
+| `-InstallDir <path>` | Programmverzeichnis | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | Datenverzeichnis (Binary, Konfiguration, DB, Logs) | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | Port des Panels | `8888` |
+| `-Binary <path>` | Lokale Binary (Offline-Installation) | Download von OSS |
+| `-Version <ver>` | Bestimmte Version | aktuelle Release |
+| `-ServerAddr` / `-ServerToken` | Registrierung in OpsAnt | — |
+| `-Uninstall` | Dienst stoppen und entfernen (Daten bleiben) | — |
+
+```powershell
+# Eigener Port und Datenverzeichnis
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# Offline-Installation
+.\install.ps1 -Binary .\opsmini.exe
+
+# Direkt nach der Installation in OpsAnt registrieren
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> Unter Windows wird statt systemd ein Windows-Dienst namens `OpsMini` (SCM) registriert, ebenfalls mit Autostart. Ohne Administratorrechte fordert das Skript selbst eine Erhöhung an.
+
 
 ## Installationsverhalten
 

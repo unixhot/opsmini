@@ -39,6 +39,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-n, --no-systemd` | 不注册 systemd 服务 | — |
 | `-h, --help` | 帮助 | — |
 
+### Windows 参数（install.ps1）
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `-InstallDir <path>` | 程序目录 | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | 数据目录（二进制、配置、数据库、日志都在这里） | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | 面板监听端口 | `8888` |
+| `-Binary <path>` | 本地二进制（离线安装用） | 未指定时从 OSS 下载 |
+| `-BaseUrl <url>` | 安装包目录 | 官方 OSS |
+| `-Version <ver>` | 指定版本 | 当前发布版 |
+| `-ServerAddr <host:port>` | 接入 OpsAnt 的 Server 地址 | — |
+| `-ServerToken <token>` | 接入 OpsAnt 的 token | — |
+| `-Uninstall` | 停止并移除服务（保留数据目录） | — |
+
+```powershell
+# 自定义端口与数据目录
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# 离线安装
+.\install.ps1 -Binary .\opsmini.exe
+
+# 装完即接入 OpsAnt
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> Windows 上不注册 systemd，而是注册名为 `OpsMini` 的 Windows 服务（SCM），同样开机自启。脚本检测到非管理员运行时会自己提权——「应用和功能」里的卸载入口默认不带提权，只报错的话用户点完卸载看起来毫无反应。
+
 ## 安装行为
 
 1. 创建安装目录（默认 `/data/opsmini`）
@@ -68,7 +95,7 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 
 ## 兼容性
 
-- 仅支持 `x86_64` / `aarch64`
+- Linux 支持 `x86_64` / `aarch64`，Windows 支持 `amd64` / `arm64`
 - 无 systemd 的环境用 `-n` 跳过服务注册，改用手动启动
 
 ## 账号恢复 {: #account-recovery }

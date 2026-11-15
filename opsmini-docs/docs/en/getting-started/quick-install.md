@@ -24,6 +24,14 @@ sudo ./install.sh -b ./opsmini
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
+> On Windows the program lives in `C:\Program Files\OpsMini`, data (database, config, logs, initial password `.init_passwd`) sits in `C:\ProgramData\OpsMini`, and the registered service is `OpsMini` (SCM), also starting on boot.
+
 ## Options
 
 | Option | Description | Default |

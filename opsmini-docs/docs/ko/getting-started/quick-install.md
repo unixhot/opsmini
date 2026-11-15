@@ -24,6 +24,14 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+
+```powershell
+# Windows (관리자 PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
+> Windows 에서 프로그램은 `C:\Program Files\OpsMini`, 데이터(DB, 설정, 로그, 초기 비밀번호 `.init_passwd`)는 `C:\ProgramData\OpsMini` 에 있으며 `OpsMini` 라는 Windows 서비스(SCM)로 등록되어 부팅 시 자동 시작됩니다.
+
 ## 설치 파라미터
 
 | 파라미터 | 설명 | 기본값 |

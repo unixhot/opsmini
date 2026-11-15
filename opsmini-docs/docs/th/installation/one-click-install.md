@@ -1,6 +1,6 @@
 # ติดตั้งด้วยสคริปต์คลิกเดียว
 
-`install.sh` ทางการ deploy บนโฮสต์ Linux ได้ในคลิกเดียว
+ติดตั้งด้วยสคริปต์ทางการในครั้งเดียว: Linux ใช้ `install.sh` ส่วน Windows ใช้ `install.ps1` (PowerShell ผู้ดูแลระบบ)
 
 ## เริ่มต้นอย่างรวดเร็ว
 
@@ -18,6 +18,11 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
 ## พารามิเตอร์
 
 | พารามิเตอร์ | คำอธิบาย | ค่าเริ่มต้น |
@@ -28,6 +33,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-u, --url <url>` | ดาวน์โหลดจาก URL (ไบนารีเปล่าหรือ `.tar.gz`) | ที่อยู่ทางการ OSS |
 | `-n, --no-systemd` | ไม่ลงทะเบียนบริการ systemd | — |
 | `-h, --help` | ความช่วยเหลือ | — |
+
+
+### ตัวเลือกบน Windows (install.ps1)
+
+| ตัวเลือก | คำอธิบาย | ค่าเริ่มต้น |
+|----------|----------|-------------|
+| `-InstallDir <path>` | โฟลเดอร์โปรแกรม | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | โฟลเดอร์ข้อมูล (ไบนารี คอนฟิก ฐานข้อมูล ล็อก) | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | พอร์ตของแผงควบคุม | `8888` |
+| `-Binary <path>` | ไบนารีในเครื่อง (ติดตั้งแบบออฟไลน์) | ดาวน์โหลดจาก OSS |
+| `-Version <ver>` | ระบุเวอร์ชัน | รีลีสปัจจุบัน |
+| `-ServerAddr` / `-ServerToken` | ลงทะเบียนเข้า OpsAnt | — |
+| `-Uninstall` | หยุดและลบบริการ (เก็บข้อมูลไว้) | — |
+
+```powershell
+# กำหนดพอร์ตและโฟลเดอร์ข้อมูล
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# ติดตั้งแบบออฟไลน์
+.\install.ps1 -Binary .\opsmini.exe
+
+# ลงทะเบียนเข้า OpsAnt ทันทีหลังติดตั้ง
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> บน Windows จะลงทะเบียนเป็นบริการ Windows ชื่อ `OpsMini` (SCM) แทน systemd และเริ่มอัตโนมัติเมื่อบูต หากไม่ได้รันด้วยสิทธิ์ผู้ดูแลระบบ สคริปต์จะขอสิทธิ์ให้เอง
+
 
 ## พฤติกรรมการติดตั้ง
 

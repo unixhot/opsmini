@@ -1,6 +1,6 @@
 # One-Click Install
 
-Use the official `install.sh` to deploy OpsMini on Linux in one shot.
+Use the official installer: `install.sh` on Linux, `install.ps1` on Windows (admin PowerShell).
 
 ## Quick Start
 
@@ -18,6 +18,11 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
 ## Options
 
 | Option | Description | Default |
@@ -28,6 +33,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-u, --url <url>` | Download from URL (raw binary or `.tar.gz`) | official OSS URL |
 | `-n, --no-systemd` | Skip systemd registration | — |
 | `-h, --help` | Show help | — |
+
+
+### Windows Options (install.ps1)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-InstallDir <path>` | Program directory | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | Data directory (binary, config, database, logs) | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | Panel port | `8888` |
+| `-Binary <path>` | Local binary (offline install) | downloaded from OSS |
+| `-Version <ver>` | Pin a specific release | current release |
+| `-ServerAddr` / `-ServerToken` | Register into OpsAnt | — |
+| `-Uninstall` | Stop and remove the service (keeps data) | — |
+
+```powershell
+# Custom port and data directory
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# Offline install
+.\install.ps1 -Binary .\opsmini.exe
+
+# Register into OpsAnt right after install
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> On Windows the script registers a Windows service named `OpsMini` (SCM) instead of systemd, also starting on boot. It self-elevates when not run as Administrator.
+
 
 ## What It Does
 

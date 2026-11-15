@@ -1,6 +1,6 @@
 # 원클릭 스크립트 설치
 
-공식 `install.sh`로 Linux 호스트에서 원클릭 배포를 완료합니다.
+공식 스크립트로 한 번에 설치합니다. Linux 는 `install.sh`, Windows 는 `install.ps1`(관리자 PowerShell)을 사용합니다.
 
 ## 빠른 시작
 
@@ -18,6 +18,11 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+```powershell
+# Windows (admin PowerShell)
+irm https://opsmini.com/install.ps1 | iex
+```
+
 ## 파라미터
 
 | 파라미터 | 설명 | 기본값 |
@@ -28,6 +33,33 @@ sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 | `-u, --url <url>` | URL에서 다운로드（순수 바이너리 또는 `.tar.gz`） | OSS 공식 주소 |
 | `-n, --no-systemd` | systemd 서비스 미등록 | — |
 | `-h, --help` | 도움말 | — |
+
+
+### Windows 옵션 (install.ps1)
+
+| 옵션 | 설명 | 기본값 |
+|------|------|--------|
+| `-InstallDir <path>` | 프로그램 디렉터리 | `C:\Program Files\OpsMini` |
+| `-DataDir <path>` | 데이터 디렉터리 (바이너리, 설정, DB, 로그) | `C:\ProgramData\OpsMini` |
+| `-Port <port>` | 패널 포트 | `8888` |
+| `-Binary <path>` | 로컬 바이너리 (오프라인 설치) | OSS 에서 다운로드 |
+| `-Version <ver>` | 버전 지정 | 현재 릴리스 |
+| `-ServerAddr` / `-ServerToken` | OpsAnt 에 등록 | — |
+| `-Uninstall` | 서비스 중지 및 제거 (데이터 유지) | — |
+
+```powershell
+# 포트와 데이터 디렉터리 지정
+.\install.ps1 -Port 9999 -DataDir D:\opsmini-data
+
+# 오프라인 설치
+.\install.ps1 -Binary .\opsmini.exe
+
+# 설치 직후 OpsAnt 에 등록
+.\install.ps1 -ServerAddr 47.104.172.52:4507 -ServerToken <token>
+```
+
+> Windows 에서는 systemd 대신 `OpsMini` 라는 Windows 서비스(SCM)로 등록되며 부팅 시 자동 시작됩니다. 관리자 권한이 없으면 스크립트가 스스로 권한을 요청합니다.
+
 
 ## 설치 동작
 

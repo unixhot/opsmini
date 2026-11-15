@@ -24,6 +24,14 @@ sudo ./install.sh -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.0.0-
 sudo ./install.sh -b ./opsmini -d /data/opsmini -p 9999
 ```
 
+
+```powershell
+# Windows (PowerShell ผู้ดูแลระบบ)
+irm https://opsmini.com/install.ps1 | iex
+```
+
+> บน Windows โปรแกรมอยู่ที่ `C:\Program Files\OpsMini` ข้อมูล (ฐานข้อมูล คอนฟิก ล็อก รหัสผ่านเริ่มต้น `.init_passwd`) อยู่ที่ `C:\ProgramData\OpsMini` และลงทะเบียนเป็นบริการ `OpsMini` (SCM) เริ่มอัตโนมัติเมื่อบูต
+
 ## พารามิเตอร์ติดตั้ง
 
 | พารามิเตอร์ | คำอธิบาย | ค่าเริ่มต้น |
