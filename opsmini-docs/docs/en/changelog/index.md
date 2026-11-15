@@ -2,6 +2,91 @@
 
 Change records for each version.
 
+## v1.5.0 (2026-11-15)
+
+Two big things in this release: **Windows support**, and the AI agent moving from "it can see problems" to "it can fix them safely". Also new: **disaster drills** — inject real faults to prove that detection and response actually work.
+
+### Windows support (new)
+
+One binary, two platforms.
+
+- Single exe, registered as a Windows service (SCM), starts on boot; program in `C:\Program Files\OpsMini`, data in `C:\ProgramData\OpsMini`
+- One-line install: run `irm https://opsmini.com/install.ps1 | iex` in an administrator PowerShell
+- ConPTY command-line terminal plus a graphical terminal: live screen, take over mouse and keyboard
+- Metric names compatible with windows_exporter 0.32.1, so existing Grafana dashboards work as-is
+- Windows-specific baseline checks: UAC, firewall, RDP, SMBv1, Defender, shared folders
+- Platform layer: shell, disk, process, path, firewall and service management each have an implementation per platform
+
+A few differences worth knowing before you install:
+
+- **Logs and login events are not collected yet.** Those collectors read text logs; on Windows the same data lives in the event log (.evtx) and needs the EvtQuery API, which this version does not implement. So log-growth, SSH brute-force and login-anomaly detections will not fire on Windows, and their options are not shown in the UI — if it is visible, it works. We do not display modules that would always read zero.
+- **Websites, databases and one-click deploy are Linux-only**; those APIs return 501 on Windows.
+- **The CPU saturation drill is unavailable on Windows**: the load processes cannot be reliably reclaimed, and leaving a spinner behind is worse than not drilling at all.
+
+### Trust and a closed response loop
+
+The point of this release is not "smarter" but "more trustworthy" — every conclusion has to trace back to evidence, and every action has to be reversible.
+
+- **Incidents pause for approval**: in assist mode, risky actions no longer run directly; they wait for you to approve or reject in the panel. The mode previously existed as a switch with nothing behind it.
+- **Four-part report**: facts / inference / actions / outcome are written separately, so you can tell at a glance what was observed and what was guessed.
+- **Independent verification after acting**: the tool's own "done" is no longer taken as the result; the real state is re-checked a moment later.
+- **Rollback for response tools**: every write is journaled, reversible actions are actually reverted, and irreversible ones are listed explicitly instead of pretending to be undoable.
+- **Blast-radius pre-check**: before running, the agent works out who the action would affect and stops if it is too wide.
+- **Token budgets actually apply**: the setting existed but did nothing. Now limited per incident and per day; exceeding it reports "budget exhausted" rather than "run failed".
+- **Noise control**: maintenance windows, a daily notification cap, and a breaker on repeated failures.
+- **Cross-session memory**: the agent remembers earlier judgements and your preferences instead of asking again each time.
+- **Tool calls written as text are not treated as conclusions**: a parse failure triggers a retry instead of handing you a block of JSON as a report.
+
+### Change analysis
+
+- **Before/after metric comparison**: did the change make things worse? Answered with two time windows either side of the change.
+- **Change timeline**: aggregated by hour, with the suspicious share highlighted.
+- **Change collection settings**: source switches, watched directories and exclusions are editable in the panel.
+- **Collector baselines persisted**: a restart no longer re-learns from zero, and the current state of the system is no longer reported as a "change".
+
+### Disaster drills (new)
+
+"Before you switch a policy to auto, make the fault actually happen once."
+
+Six injectable, self-recovering faults: CPU saturation, log flood, webshell sample dropped, failing cron job, disk filling up, Docker down. Each has a TTL and restores itself; a restart cleans up anything left over — leftovers are real faults.
+
+Each card answers "did the system notice?" directly, listing both **alerts** and **incidents** raised since the drill started. Metric faults produce alerts but not incidents, so showing only incidents would make people conclude "nothing was detected".
+
+Measured on a 2-core cloud host: log flood detected in 12 s; webshell sample in 18–56 s; disk pushed to 92% triggered a critical alert in 90 s; CPU saturation fired on schedule at 5 minutes; a failing job fired after 5 minutes. Everything was clean after restore.
+
+### Security
+
+- **Compliance report export**: a single HTML file with score, baseline details, findings and remediation advice, ready to hand over.
+- **Security findings feed the event bus**: under auto, the only action permitted is quarantining a file; everything else still needs a human.
+- **File-integrity paths are configurable**: wildcards and arbitrary directory depth supported.
+- **Alert suppression**: the same rule notifies at most once per 30 minutes.
+
+### Fixes
+
+Almost every fix here only showed up when installing from scratch on a clean machine:
+
+- **New files were never detected**: file integrity compared against existing baselines only, so a freshly uploaded webshell was invisible — exactly what it exists to catch
+- **Panel cron failures wrote no status**: the list always showed an empty status and the "failed jobs" alert always computed 0
+- **Incidents were marked failed with no AI model configured**: right after install, any anomaly turned into a red failed
+- **"No model" tripped the policy breaker**: two runs on a fresh install disabled the policy, which then never fired again once a model was configured
+- **A fresh database reported 65 "changes" on first start**: the package collector replayed install history as if it had just happened
+- **The initial password file landed somewhere unpredictable**: a relative path resolved against the process working directory, so starting manually lost the password
+- **A typo in a role name still created the user**: producing a zero-permission account with no warning
+- **Read-only users could not open the incident center, while anyone who could also approve actions**: viewing and acting are now separate permissions
+- **Downloading the root directory returned 500**: files under /proc and mount points open fine and fail on the first read
+- **"Not found" and "bad parameter" both returned 500**: downloading a directory, a deleted container and a missing app now return 400 / 404
+- **"Sustained for N minutes" never applied**: a single sample over the line raised the alert
+- **The Docker drill would not stay down**: docker.socket was active and the panel's own container polling brought it back
+- **The startup role seed was a second implementation**: permission backfill never applied on upgrade
+
+### Upgrading
+
+- Linux: `curl -fsSL https://opsmini.com/install.sh | sudo bash` — overwrites the running version, migrates the database, keeps password and config
+- Windows: run `irm https://opsmini.com/install.ps1 | iex` in an administrator PowerShell
+- The schema upgrades itself via `AutoMigrate`; no manual step needed
+- Built-in roles are backfilled **additively**: new permissions are added, and grants you adjusted by hand are left alone
+- 265 unit tests in total, all passing
+
 ## v1.4.2 (2026-11-09)
 
 Fixes single sign-on from OpsAnt, and trims the installer.

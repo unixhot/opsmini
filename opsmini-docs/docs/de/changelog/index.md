@@ -2,6 +2,91 @@
 
 Änderungsaufzeichnungen der einzelnen Versionen.
 
+## v1.5.0 (2026-11-15)
+
+Zwei große Themen in dieser Version: **Unterstützung für Windows-Hosts** und der **KI-Agent, der von „Anomalien sehen“ zu „sicher handeln“ übergeht**. Neu sind außerdem **Notfall-Übungen** — echte Fehler auslösen, um zu belegen, dass Erkennung und Reaktion tatsächlich funktionieren.
+
+### Windows-Unterstützung (neu)
+
+Eine Binary, zwei Plattformen.
+
+- Eine einzelne exe, als Windows-Dienst (SCM) registriert, startet beim Booten; Programm unter `C:\Program Files\OpsMini`, Daten unter `C:\ProgramData\OpsMini`
+- Ein-Zeilen-Installation: in einer PowerShell als Administrator `irm https://opsmini.com/install.ps1 | iex`
+- ConPTY-Kommandozeilenterminal plus Grafikterminal: Live-Bild, Maus und Tastatur lassen sich direkt übernehmen
+- Metriknamen kompatibel zu windows_exporter 0.32.1, vorhandene Grafana-Dashboards funktionieren unverändert
+- Windows-spezifische Baseline-Prüfungen: UAC, Firewall, RDP, SMBv1, Defender, Freigaben
+- Plattformschicht: Shell, Datenträger, Prozess, Pfad, Firewall und Dienstverwaltung jeweils pro Plattform implementiert
+
+Einige Unterschiede, die man vor der Installation kennen sollte:
+
+- **Logs und Anmeldeereignisse werden noch nicht erfasst.** Diese Sammler lesen Textlogs; unter Windows liegen dieselben Daten im Ereignisprotokoll (.evtx) und erfordern die EvtQuery-API, die diese Version nicht implementiert. Log-Wachstum, SSH-Brute-Force und Anmeldeanomalien lösen unter Windows daher nicht aus und erscheinen auch nicht in der Oberfläche — was sichtbar ist, funktioniert. Wir zeigen keine Module, die immer null wären.
+- **Websites, Datenbanken und Ein-Klick-Deploy gibt es nur unter Linux**; diese APIs antworten unter Windows mit 501.
+- **Die CPU-Sättigungsübung ist unter Windows nicht verfügbar**: Die Lastprozesse lassen sich nicht zuverlässig zurückholen, und eine zurückbleibende Schleife ist schlimmer als keine Übung.
+
+### Vertrauen und geschlossener Reaktionskreislauf
+
+Der Schwerpunkt dieser Version ist nicht „klüger“, sondern „vertrauenswürdiger“ — jede Schlussfolgerung muss auf Belege zurückführbar sein, jede Aktion umkehrbar.
+
+- **Vorfälle warten auf Freigabe**: Im assist-Modus laufen riskante Aktionen nicht direkt, sondern warten auf Ihre Freigabe oder Ablehnung im Panel. Bisher gab es diesen Modus nur als Schalter ohne Funktion.
+- **Vierteiliger Bericht**: Fakten / Schlussfolgerung / Aktionen / Ergebnis getrennt geschrieben. Man erkennt sofort, was beobachtet und was vermutet wurde.
+- **Unabhängige Prüfung nach der Aktion**: Das „erledigt“ des Werkzeugs gilt nicht mehr als Ergebnis; der reale Zustand wird kurz danach erneut geprüft.
+- **Rollback für Reaktionswerkzeuge**: Jeder Schreibvorgang wird protokolliert, umkehrbare Aktionen werden wirklich zurückgenommen, nicht umkehrbare ausdrücklich benannt statt als rückgängig ausgegeben.
+- **Vorabprüfung des Wirkungsradius**: Vor der Ausführung wird berechnet, wen die Aktion trifft; ist der Radius zu groß, wird gestoppt.
+- **Token-Budgets greifen wirklich**: Die Einstellung existierte, tat aber nichts. Jetzt begrenzt pro Vorfall und pro Tag; bei Überschreitung heißt es „Budget erschöpft“ statt „Lauf fehlgeschlagen“.
+- **Rauschunterdrückung**: Wartungsfenster, Tageslimit für Benachrichtigungen, Unterbrecher bei wiederholten Fehlschlägen.
+- **Sitzungsübergreifendes Gedächtnis**: Der Agent merkt sich frühere Bewertungen und Ihre Vorlieben, statt jedes Mal neu zu fragen.
+- **Als Text geschriebene Werkzeugaufrufe gelten nicht als Ergebnis**: Bei Parse-Fehlern wird erneut versucht, statt Ihnen einen JSON-Block als Bericht zu übergeben.
+
+### Änderungsanalyse
+
+- **Metrikvergleich vor/nach der Änderung**: Wurde es schlechter? Beantwortet mit zwei Zeitfenstern beiderseits der Änderung.
+- **Änderungs-Zeitachse**: Stündlich aggregiert, mit Anteil verdächtiger Einträge.
+- **Einstellungen zur Änderungserfassung**: Quellen, überwachte Verzeichnisse und Ausschlüsse sind im Panel einstellbar.
+- **Sammler-Baselines persistiert**: Ein Neustart lernt nicht mehr bei null, und der Ist-Zustand des Systems wird nicht als „Änderung“ gemeldet.
+
+### Notfall-Übungen (neu)
+
+„Bevor eine Richtlinie auf auto gestellt wird, den Fehler einmal wirklich auslösen.“
+
+Sechs injizierbare, selbstheilende Fehler: CPU-Sättigung, Log-Flut, abgelegte Webshell-Probe, fehlschlagender Cronjob, volllaufende Festplatte, Docker aus. Jeder hat eine TTL und stellt sich selbst wieder her; ein Neustart räumt Reste auf — Reste sind echte Fehler.
+
+Jede Karte beantwortet direkt „hat das System es bemerkt?“ und listet sowohl **Alarme** als auch **Vorfälle** seit Übungsbeginn. Metrikfehler erzeugen Alarme, aber keine Vorfälle; nur Vorfälle zu zeigen, ließe „nichts erkannt“ vermuten.
+
+Gemessen auf einem 2-Kern-Cloudhost: Log-Flut in 12 s erkannt; Webshell-Probe in 18–56 s; Festplatte auf 92 % löste nach 90 s einen kritischen Alarm aus; CPU-Sättigung feuerte pünktlich nach 5 Minuten; ein fehlschlagender Job nach 5 Minuten. Nach der Wiederherstellung war alles sauber.
+
+### Sicherheit
+
+- **Compliance-Bericht exportieren**: Eine einzelne HTML-Datei mit Bewertung, Baseline-Details, Risiken und Empfehlungen, direkt weitergabefähig.
+- **Sicherheitsbefunde am Event-Bus**: Unter auto ist als einzige Aktion das Quarantänisieren einer Datei erlaubt, alles andere braucht einen Menschen.
+- **Pfade der Dateiintegrität konfigurierbar**: Wildcards und beliebige Verzeichnistiefe.
+- **Alarmunterdrückung**: Dieselbe Regel benachrichtigt höchstens einmal pro 30 Minuten.
+
+### Fehlerbehebungen
+
+Fast alle Korrekturen zeigten sich erst bei einer Neuinstallation auf einer sauberen Maschine:
+
+- **Neue Dateien wurden nie erkannt**: Die Dateiintegrität verglich nur bestehende Baselines, eine frisch hochgeladene Webshell war unsichtbar — genau das, wofür die Funktion da ist
+- **Fehlgeschlagene Panel-Cronjobs schrieben keinen Status**: Die Liste zeigte immer einen leeren Status, und der Alarm „fehlgeschlagene Jobs“ ergab immer 0
+- **Ohne konfiguriertes KI-Modell wurden Vorfälle als fehlgeschlagen markiert**: Direkt nach der Installation wurde jede Anomalie zu einem roten failed
+- **„Kein Modell“ löste den Richtlinien-Unterbrecher aus**: Zwei Läufe nach der Installation deaktivierten die Richtlinie, die danach nie wieder feuerte
+- **Leere Datenbank meldete beim ersten Start 65 „Änderungen“**: Der Paket-Sammler spielte die Installationshistorie als gerade geschehen ab
+- **Datei mit initialem Passwort lag an unbestimmter Stelle**: Ein relativer Pfad landete im Arbeitsverzeichnis des Prozesses, bei manuellem Start war das Passwort nicht auffindbar
+- **Ein Tippfehler im Rollennamen legte trotzdem einen Benutzer an**: Ergebnis war ein Konto ohne Rechte, ohne jeden Hinweis
+- **Nur-Lese-Benutzer konnten das Vorfallzentrum nicht öffnen, wer es konnte, durfte auch freigeben**: Ansehen und Handeln sind jetzt getrennte Rechte
+- **Download des Wurzelverzeichnisses lieferte 500**: Dateien unter /proc und an Mountpunkten lassen sich öffnen und scheitern beim ersten Lesen
+- **„Nicht vorhanden“ und „falscher Parameter“ lieferten beide 500**: Verzeichnis-Download, gelöschter Container und fehlende App geben jetzt 400 / 404
+- **„Seit N Minuten anhaltend“ griff nie**: Ein einzelner Messwert über der Schwelle löste den Alarm aus
+- **Die Docker-Übung blieb nicht unten**: docker.socket war aktiv, und das Container-Polling des Panels startete Docker wieder
+- **Das Rollen-Seeding beim Start war eine zweite Implementierung**: Die Rechte-Ergänzung griff beim Upgrade überhaupt nicht
+
+### Upgrade
+
+- Linux: `curl -fsSL https://opsmini.com/install.sh | sudo bash` — überschreibt die laufende Version, migriert die Datenbank, behält Passwort und Konfiguration
+- Windows: in einer PowerShell als Administrator `irm https://opsmini.com/install.ps1 | iex`
+- Das Schema aktualisiert sich über `AutoMigrate`, kein manueller Schritt nötig
+- Eingebaute Rollen werden **nur ergänzend** befüllt: neue Rechte kommen hinzu, manuell angepasste Vergaben bleiben erhalten
+- Insgesamt 265 Unit-Tests, alle grün
+
 ## v1.4.2 (2026-11-09)
 
 Behebt die Single-Sign-on-Anmeldung aus OpsAnt und verschlankt das Installationspaket.

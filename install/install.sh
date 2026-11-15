@@ -69,7 +69,7 @@ OpsMini 安装脚本
   curl -fsSL https://opsmini.com/install.sh | sudo bash
   curl -fsSL https://opsmini.com/install.sh | sudo bash -s -- --server-addr 47.104.172.52:4507 --server-token mytoken
   $0 -b ./dist/opsmini-dev-linux-amd64
-  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.4.2-linux-amd64
+  $0 -u https://opsmini.oss-cn-beijing.aliyuncs.com/opsmini-v1.5.0-linux-amd64
 EOF
 }
 
