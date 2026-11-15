@@ -32,6 +32,8 @@ irm https://opsmini.com/install.ps1 | iex
 
 > On Windows the program lives in `C:\Program Files\OpsMini`, data (database, config, logs, initial password `.init_passwd`) sits in `C:\ProgramData\OpsMini`, and the registered service is `OpsMini` (SCM), also starting on boot.
 
+> **Windows does not collect log or login events yet.** That data lives in the event log (.evtx) and needs the EvtQuery API; the current implementation is still text tail. So the log-growth, SSH brute-force and login-anomaly detections will not fire, and their options are not shown in the UI. Process, network, metrics and file integrity monitoring work normally.
+
 ## Options
 
 | Option | Description | Default |

@@ -23,6 +23,8 @@ iwr -useb https://opsmini.com/install.ps1 -OutFile $env:TEMP\opsmini.ps1; & $env
 
 > Windows 上程序装在 `C:\Program Files\OpsMini`，数据（数据库、配置、日志、初始密码 `.init_passwd`）在 `C:\ProgramData\OpsMini`，注册的服务名为 `OpsMini`（SCM），同样开机自启。完整参数见[一键脚本安装](../installation/one-click-install.md)。
 
+> **Windows 上暂不采集日志与登录事件**：这两类数据在事件日志（.evtx）里，需要 EvtQuery API，当前版本仍按文本 tail 实现。因此「日志暴涨」「SSH 爆破」「登录异常」三类检测不会触发，界面上也不会出现对应选项；进程、网络、指标、文件完整性照常工作。
+
 Linux 的其它常用参数：
 
 ```bash

@@ -2292,7 +2292,7 @@
           <div class="row" style="gap:8px;padding:0 16px 12px;flex-wrap:wrap">
             <select class="input" style="width:auto;min-width:150px" v-model="incFilter.family" @change="loadIncidents(1)">
               <option value="">{{ t('sentinel.filter.allFamily') }}</option>
-              <option v-for="f in sentinelFacets.families" :key="f.key" :value="f.key">{{ famName(f.key) }} ({{ f.total }})</option>
+              <option v-for="f in visibleFamilies" :key="f.key" :value="f.key">{{ famName(f.key) }} ({{ f.total }})</option>
             </select>
             <select class="input" style="width:auto;min-width:130px" v-model="incFilter.severity" @change="loadIncidents(1)">
               <option value="">{{ t('sentinel.filter.allSeverity') }}</option>
@@ -2516,7 +2516,7 @@
                   <th>{{ t('common.actions') }}</th>
                 </tr></thead>
                 <tbody>
-                  <tr v-for="p in sentinelPolicies" :key="p.id">
+                  <tr v-for="p in visiblePolicies" :key="p.id">
                     <td class="mono">{{ p.name }}</td>
                     <td>{{ p.description || '-' }}</td>
                     <td><span class="tag mute">{{ p.family }}</span></td>
@@ -2922,7 +2922,7 @@
               <div class="st-field">
                 <label>{{ t('sentinel.policy.f.family') }}</label>
                 <select class="input" v-model="policyForm.family">
-                  <option v-for="f in sentinelFacets.known_families" :key="f" :value="f">{{ famName(f) }} ({{ f }})</option>
+                  <option v-for="f in visibleKnownFamilies" :key="f" :value="f">{{ famName(f) }} ({{ f }})</option>
                 </select>
                 <span class="st-help">{{ t('sentinel.policy.help.family') }}</span>
               </div>
@@ -6941,7 +6941,7 @@ const app = createApp({
         { id:'firewall', label:'chg.kind.firewall' },
         { id:'cron', label:'chg.kind.cron' },
       ],
-      drillDrills: [], drillBusy: '', drillConfirm: {}, chgStats: {}, chgDetail: null, chgWindow: null, chgWindowLoading: false, chgRestoreArmed: false, chgTimeline: null, chgTimelineHours: 24,
+      drillDrills: [], drillBusy: '', drillConfirm: {}, caps: [], capOpen: false, chgStats: {}, chgDetail: null, chgWindow: null, chgWindowLoading: false, chgRestoreArmed: false, chgTimeline: null, chgTimelineHours: 24,
       termTabs: [],          // 终端多会话 [{id,title,kind,containerId,containerName,connected,connecting}]
       activeTermId: null,    // 当前激活的终端会话 id
       termSeq: 0,            // 终端会话自增 id
@@ -7279,6 +7279,24 @@ const app = createApp({
       return { os, platform, version };
     },
     isWindows(){ const o = this.osInfo; return /windows/i.test(o.os + ' ' + o.platform); },
+    // 当前平台不可用的感知能力。后端说了算：判断依据是采集器的实现方式。
+    capDisabled(){ return (this.caps || []).filter(c => !c.enabled); },
+    // 不可用能力对应的事件家族。Windows 上日志与登录两路采不到，对应场景
+    // 永远不会有数据——与其在筛选里摆一排恒为 0 的选项、在策略里留一条永远
+    // 不触发的规则，不如直接不展示：看得见就代表能用。
+    capBlockedFamilies(){
+      const map = { log: 'log_growth', auth: 'auth.anomaly' };
+      return this.capDisabled.map(c => map[c.key]).filter(Boolean);
+    },
+    visibleFamilies(){
+      return (this.sentinelFacets.families || []).filter(f => !this.capBlockedFamilies.includes(f.key));
+    },
+    visibleKnownFamilies(){
+      return (this.sentinelFacets.known_families || []).filter(f => !this.capBlockedFamilies.includes(f));
+    },
+    visiblePolicies(){
+      return (this.sentinelPolicies || []).filter(p => !this.capBlockedFamilies.includes(p.family));
+    },
     osBadgeFull(){ const o = this.osInfo; return o.os || [o.platform, o.version].filter(Boolean).join(' ') || '-'; },
     osBadge(){
       const o = this.osInfo;
@@ -7419,11 +7437,19 @@ const app = createApp({
       try{
         const st = await this.api('/sentinel/stats');
         this.sentinelStats = st || {};
+        // 能力清单单独拉、失败不打断主流程：它只影响提示条，不该让整页加载失败。
+        this.loadCaps();
         const fac = await this.api('/sentinel/facets');
         const fd = fac || {};
         this.sentinelFacets = { families: fd.families||[], severities: fd.severities||[], known_families: fd.known_families||[], response_tools: fd.response_tools||[] };
         this.gototab(this.sentinelTab||'incidents');
       }catch(e){}
+    },
+    async loadCaps(){
+      try{
+        const r = await this.api('/sentinel/capabilities');
+        this.caps = (r && r.capabilities) || [];
+      }catch(e){ this.caps = []; }
     },
     async loadIncidents(page){
       const p = Math.max(1, page||1);

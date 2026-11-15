@@ -32,6 +32,8 @@ irm https://opsmini.com/install.ps1 | iex
 
 > Windows ではプログラムは `C:\Program Files\OpsMini`、データ（DB・設定・ログ・初期パスワード `.init_passwd`）は `C:\ProgramData\OpsMini` に置かれ、`OpsMini` という Windows サービス（SCM）として登録され、起動時に自動で立ち上がります。
 
+> **Windows ではログとログインイベントをまだ収集していません。** これらはイベントログ（.evtx）にあり EvtQuery API が必要ですが、現行実装はテキスト tail のままです。そのためログ急増・SSH ブルートフォース・ログイン異常の検知は動作せず、UI にも該当項目は表示されません。プロセス・ネットワーク・メトリクス・ファイル完全性は通常どおり動作します。
+
 ## インストールパラメータ
 
 | パラメータ | 説明 | デフォルト値 |

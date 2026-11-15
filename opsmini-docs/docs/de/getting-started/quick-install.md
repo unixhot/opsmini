@@ -32,6 +32,8 @@ irm https://opsmini.com/install.ps1 | iex
 
 > Unter Windows liegt das Programm in `C:\Program Files\OpsMini`, die Daten (Datenbank, Konfiguration, Logs, initiales Passwort `.init_passwd`) in `C:\ProgramData\OpsMini`, und der registrierte Dienst heißt `OpsMini` (SCM), ebenfalls mit Autostart.
 
+> **Unter Windows werden Logs und Anmeldeereignisse noch nicht erfasst.** Diese Daten liegen im Ereignisprotokoll (.evtx) und erfordern die EvtQuery-API; die aktuelle Implementierung liest noch per Text-Tail. Daher lösen Log-Wachstum, SSH-Brute-Force und Anmeldeanomalien nicht aus, und die Optionen erscheinen nicht in der Oberfläche. Prozess, Netzwerk, Metriken und Dateiintegrität funktionieren normal.
+
 ## Installationsparameter
 
 | Parameter | Beschreibung | Standardwert |

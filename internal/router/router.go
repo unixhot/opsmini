@@ -791,6 +791,7 @@ func New(cfg *config.Config, db *gorm.DB, metrics *service.MetricCollector, vers
 
 			// Autonomous agent (v1.3.0): perception, incidents, policies, safety.
 			authed.GET("/sentinel/stats", permMw("sentinel.view"), sentinelHandler.Stats)
+			authed.GET("/sentinel/capabilities", permMw("sentinel.view"), sentinelHandler.Capabilities)
 			authed.GET("/sentinel/signals", permMw("sentinel.view"), sentinelHandler.Signals)
 			authed.GET("/sentinel/incidents", permMw("sentinel.view"), sentinelHandler.Incidents)
 			authed.GET("/sentinel/incidents/:id", permMw("sentinel.view"), sentinelHandler.Incident)

@@ -32,6 +32,8 @@ irm https://opsmini.com/install.ps1 | iex
 
 > Windows 上程式裝在 `C:\Program Files\OpsMini`，資料（資料庫、設定、日誌、初始密碼 `.init_passwd`）在 `C:\ProgramData\OpsMini`，註冊的服務名為 `OpsMini`（SCM），同樣開機自啟。
 
+> **Windows 上暫不採集日誌與登入事件**：這兩類資料在事件日誌（.evtx）裡，需要 EvtQuery API，目前版本仍以文字 tail 實作。因此「日誌暴增」「SSH 暴力破解」「登入異常」三類偵測不會觸發，介面上也不會出現對應選項；程序、網路、指標、檔案完整性照常運作。
+
 ## 安裝引數
 
 | 引數 | 說明 | 預設值 |

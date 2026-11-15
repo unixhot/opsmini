@@ -67,6 +67,14 @@ func pageParams(c *gin.Context) (page, size, offset int) {
 }
 
 // Stats GET /sentinel/stats
+// Capabilities reports which perception sources work on this platform.
+//
+// 前端用它决定要不要提示「本平台缺哪些感知能力」。放在接口而不是前端硬编码，
+// 是因为判断依据是采集器的实现（读 /var/log、读事件日志），只有后端知道。
+func (h *SentinelHandler) Capabilities(c *gin.Context) {
+	response.OK(c, gin.H{"capabilities": sentinel.Capabilities()})
+}
+
 func (h *SentinelHandler) Stats(c *gin.Context) {
 	out := gin.H{"perception": h.Manager.Stats()}
 	var sig24, incToday, actions int64
