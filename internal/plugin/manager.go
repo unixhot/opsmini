@@ -186,8 +186,8 @@ func (m *Manager) Install(pkgPath, wantSHA, sig string) (*Manifest, error) {
 	// Flip the current symlink only after the new release is in place: an
 	// upgrade that fails to unpack leaves the old version running.
 	cur := filepath.Join(dir, "current")
-	_ = os.Remove(cur)
-	if err := os.Symlink(rel, cur); err != nil {
+	_ = os.RemoveAll(cur)
+	if err := linkCurrentDir(rel, cur); err != nil {
 		return nil, err
 	}
 

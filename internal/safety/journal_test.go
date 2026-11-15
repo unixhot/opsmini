@@ -1,3 +1,7 @@
+//go:build !windows
+
+// journal 的回滚测试要发 SIGSTOP/SIGCONT，Windows 上没有这两个信号，整个文件只在 Unix 上编译。
+
 package safety
 
 import (

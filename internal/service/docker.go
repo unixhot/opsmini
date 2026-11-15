@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/netip"
@@ -19,6 +20,44 @@ import (
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
 )
+
+
+// ErrDockerUnavailable 表示本机没有可用的 Docker 守护进程。
+//
+// 这与"守护进程在跑但出错"不同：未安装 Docker 的机器上，客户端连端点都连不上，
+// 那不该表现为 500（程序错误），而应是一个可读的 503。Windows 上装了 Docker
+// Desktop 但没启动是最常见的形态。
+var ErrDockerUnavailable = errors.New("本机没有可用的 Docker 守护进程（未安装或未启动 Docker）")
+
+// dockerEndpointMissing 判断错误是否来自"端点根本不存在"。
+// 各平台的原文不一样：Linux 是 "no such file or directory"（socket 不存在），
+// Windows 是 "The system cannot find the file specified"（命名管道不存在）。
+func dockerEndpointMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	for _, m := range []string{
+		"no such file or directory",
+		"cannot find the file",
+		"is the docker daemon running",
+		"connection refused",
+		"cannot connect to the docker daemon",
+	} {
+		if strings.Contains(msg, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsDockerUnavailable reports whether err means "this host has no usable Docker".
+func IsDockerUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, ErrDockerUnavailable) || dockerEndpointMissing(err)
+}
 
 // DockerService handles Docker container/image/volume/network management.
 type DockerService struct {
@@ -600,6 +639,12 @@ func (s *DockerService) Healthy() (bool, string, bool) {
 	ctx, cancel := s.ctx()
 	defer cancel()
 	if _, err := s.cli.Ping(ctx, client.PingOptions{}); err != nil {
+		// 端点都不存在 => 这台机器没有可用的 Docker，规则应判为"无法评估"而不是
+		// "服务不可用"。Windows 上装了 Docker Desktop 但没启动正是这种形态，
+		// 之前会在每台这样的机器上留下一条永远 active 的告警。
+		if dockerEndpointMissing(err) {
+			return false, "", false
+		}
 		return false, err.Error(), true
 	}
 	return true, "", true

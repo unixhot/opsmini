@@ -14,3 +14,15 @@ type Capability struct {
 	// Reason 只在不可用时给出，说明为什么、以及能不能补救。
 	Reason string `json:"reason,omitempty"`
 }
+
+// capabilityEnabled reports whether a perception source can actually work here.
+// Collectors use it before starting: a collector that can only ever produce zero
+// signals still costs CPU and, worse, makes an empty page look like "all clear".
+func capabilityEnabled(key string) bool {
+	for _, c := range Capabilities() {
+		if c.Key == key {
+			return c.Enabled
+		}
+	}
+	return false
+}

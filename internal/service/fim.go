@@ -220,11 +220,14 @@ func expandFimPattern(pattern string) []string {
 // expandDoubleStar handles the "root/**/suffix" form by walking root and
 // matching the suffix against each candidate.
 func expandDoubleStar(pattern string, idx int) []string {
-	root := strings.TrimSuffix(pattern[:idx], "/")
+	// 分隔符两个平台都要剥：Windows 的路径是反斜杠，只 TrimSuffix("/") 会留下
+	// 一个 "\\"，于是 suffix 变成 "\\*.conf" —— filepath.Match 把反斜杠
+	// 当转义符，匹配结果永远是 0 个文件。
+	root := strings.TrimRight(pattern[:idx], `\/`)
 	if root == "" {
-		root = "/"
+		root = string(filepath.Separator)
 	}
-	suffix := strings.TrimPrefix(pattern[idx+2:], "/")
+	suffix := strings.TrimLeft(pattern[idx+2:], `\/`)
 	out := []string{}
 	_ = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

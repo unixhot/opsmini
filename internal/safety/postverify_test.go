@@ -1,6 +1,7 @@
 package safety
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +25,7 @@ func TestVerifyQuarantineStillPresent(t *testing.T) {
 	}
 	m.DB.Create(&model.ActionLog{
 		IncidentID: "inc1", Tool: "quarantine_file", Risk: "low_write", Verdict: "allow",
-		Args: `{"path":"` + victim + `"}`, CreatedAt: time.Now(),
+		Args: mustJSONArgs(t, map[string]any{"path": victim}), CreatedAt: time.Now(),
 	})
 	ok, checks := m.VerifyActions(t.Context(), "inc1")
 	if ok {
@@ -102,4 +103,16 @@ func TestVerifyUnknownIsSkipNotFail(t *testing.T) {
 	if !ok || len(checks) != 1 || !checks[0].Skipped {
 		t.Fatalf("unsupported tool should skip, not fail: ok=%v %+v", ok, checks)
 	}
+}
+
+// mustJSONArgs 用 encoding/json 生成参数串：手工拼字符串在 Windows 上会因为
+// 路径里的反斜杠没转义而产出非法 JSON，被测代码拿不到 path，测试就会以
+// "参数里没有路径" 的错因失败。
+func mustJSONArgs(t *testing.T, args map[string]any) string {
+	t.Helper()
+	b, err := json.Marshal(args)
+	if err != nil {
+		t.Fatalf("marshal args: %v", err)
+	}
+	return string(b)
 }

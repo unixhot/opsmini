@@ -31,4 +31,6 @@ const (
 	CodeForbidden    = 40301
 	CodeNotFound     = 40401
 	CodeInternal     = 50001
+	// CodeUnavailable：依赖的服务不可用（如本机没有 Docker），不是程序错误。
+	CodeUnavailable = 50301
 )

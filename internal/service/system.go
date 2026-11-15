@@ -1,11 +1,8 @@
 package service
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -219,21 +216,9 @@ func (s *SystemService) ipAddresses() []string {
 	return ips
 }
 
-// dnsServers reads DNS servers from /etc/resolv.conf.
-func (s *SystemService) dnsServers() []string {
-	data, err := os.ReadFile("/etc/resolv.conf")
-	if err != nil {
-		return nil
-	}
-	var dns []string
-	for _, line := range strings.Split(string(data), "\n") {
-		f := strings.Fields(line)
-		if len(f) >= 2 && f[0] == "nameserver" {
-			dns = append(dns, f[1])
-		}
-	}
-	return dns
-}
+// dnsServers returns configured DNS servers. Unix reads /etc/resolv.conf,
+// Windows asks Get-DnsClientServerAddress (see dns_*.go).
+func (s *SystemService) dnsServers() []string { return listDNSServers() }
 
 // MonitorSummary returns the aggregated monitor page overview (basic data + performance + statistic counts).
 func (s *SystemService) MonitorSummary() (*MonitorSummary, error) {
@@ -651,44 +636,10 @@ func (s *SystemService) Networks() ([]NetInterface, error) {
 	return out, nil
 }
 
-// Routes returns the kernel IP routing table (Linux reads /proc/net/route).
-func (s *SystemService) Routes() ([]RouteEntry, error) {
-	data, err := os.ReadFile("/proc/net/route")
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(data), "\n")
-	var out []RouteEntry
-	for i, line := range lines {
-		if i == 0 || strings.TrimSpace(line) == "" {
-			continue // skip header and blank lines
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 8 {
-			continue
-		}
-		flags, _ := strconv.ParseInt(fields[3], 16, 64)
-		metric, _ := strconv.Atoi(fields[6])
-		out = append(out, RouteEntry{
-			Destination: hexToIPv4(fields[1]),
-			Gateway:     hexToIPv4(fields[2]),
-			Genmask:     hexToIPv4(fields[7]),
-			Flags:       int(flags),
-			Iface:       fields[0],
-			Metric:      metric,
-		})
-	}
-	return out, nil
-}
-
-// hexToIPv4 converts a little-endian 32-bit hex string from /proc/net/route to dotted-quad IP.
-func hexToIPv4(hexStr string) string {
-	v, err := strconv.ParseUint(hexStr, 16, 32)
-	if err != nil {
-		return hexStr
-	}
-	return fmt.Sprintf("%d.%d.%d.%d", byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
-}
+// Routes returns the routing table. The source is platform specific: Linux parses
+// /proc/net/route, Windows asks the IP Helper API (see routes_*.go). Reading
+// /proc directly here made the endpoint return 500 on Windows.
+func (s *SystemService) Routes() ([]RouteEntry, error) { return listRoutes() }
 
 // NetRate returns the current aggregate network receive/send rate in bytes per second
 // using a short observation window (used by alert rules for "network bandwidth in/out").
@@ -791,33 +742,10 @@ func (s *SystemService) Users() []UserAccount { return listUsers() }
 func (s *SystemService) Groups() []GroupAccount { return listGroups() }
 
 // FirewallStatus detects the system firewall (firewalld / ufw / iptables), with a hint when none is enabled.
-func (s *SystemService) FirewallStatus() *FirewallStatus {
-	// firewalld (RHEL/CentOS/Alibaba Linux, etc.)
-	if out, err := exec.Command("firewall-cmd", "--state").Output(); err == nil {
-		if strings.TrimSpace(string(out)) == "running" {
-			return &FirewallStatus{Enabled: true, Backend: "firewalld", Message: "firewalld 正在运行"}
-		}
-	}
-	// ufw (Ubuntu/Debian)
-	if out, err := exec.Command("ufw", "status").Output(); err == nil {
-		s := string(out)
-		if strings.Contains(s, "Status: active") {
-			return &FirewallStatus{Enabled: true, Backend: "ufw", Message: "ufw 正在运行"}
-		}
-		// ufw 已安装但未启用（Status: inactive），仍识别为 ufw 后端，允许面板内启用
-		if strings.Contains(s, "Status: inactive") {
-			return &FirewallStatus{Enabled: false, Backend: "ufw", Message: "ufw 已安装但未启用"}
-		}
-	}
-	// iptables: any rules mean enabled
-	if out, err := exec.Command("iptables", "-S").Output(); err == nil {
-		rules := strings.Split(strings.TrimSpace(string(out)), "\n")
-		if len(rules) > 0 && strings.TrimSpace(rules[0]) != "" && rules[0] != "-P INPUT ACCEPT" {
-			if len(rules) > 20 {
-				rules = rules[:20]
-			}
-			return &FirewallStatus{Enabled: true, Backend: "iptables", Rules: rules, Message: "iptables 规则已配置"}
-		}
-	}
-	return &FirewallStatus{Enabled: false, Backend: "none", Message: "未检测到系统防火墙（firewalld/ufw/iptables 均未启用）"}
-}
+// FirewallStatus reports the host firewall state. The detection itself is
+// platform specific: Linux asks firewalld/ufw/iptables, Windows asks
+// Get-NetFirewallProfile (see firewall_status_*.go). The previous implementation
+// only knew the Linux backends, so every Windows host reported "未检测到系统防火墙"
+// even with the firewall running.
+func (s *SystemService) FirewallStatus() *FirewallStatus { return detectFirewall() }
+

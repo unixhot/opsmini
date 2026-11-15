@@ -1,3 +1,7 @@
+//go:build !windows
+
+// 特殊文件测试依赖 mkfifo，Windows 没有 FIFO，整个文件只在 Unix 上编译。
+
 package service
 
 import (

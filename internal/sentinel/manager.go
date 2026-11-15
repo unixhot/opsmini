@@ -41,8 +41,8 @@ func DefaultConfig() Config {
 		Enabled:              true,
 		Learning:             false,
 		DataDir:              "data",
-		LogPaths:             []string{"/var/log"},
-		WebRoots:             []string{"/var/www", "/var/www/html", "/www/wwwroot", "/data/www"},
+		LogPaths:             defaultLogPaths(),
+		WebRoots:             defaultWebRoots(),
 		OffHoursStart:        0,
 		OffHoursEnd:          6,
 		LogGrowthBytesPerMin: 20 << 20,
@@ -91,12 +91,23 @@ func New(cfg Config, db *gorm.DB) *Manager {
 	logw := newLogWatcher(cfg)
 	logw.setStore(db)
 
-	m.collectors = []collector{
-		logw,
-		newAuthWatcher(cfg, db),
-		newFileWatcher(cfg),
-		newProcWatcher(cfg),
-		newNetWatcher(cfg),
+	// 按平台能力装配：拿不到数据的采集器不启动。否则它们在 Windows 上会一直
+	// 空转（/var/log 不存在、auth.log 不存在），既费 CPU 又让"0 事件"看起来像
+	// "一切正常"。
+	if capabilityEnabled("log") {
+		m.collectors = append(m.collectors, logw)
+	}
+	if capabilityEnabled("auth") {
+		m.collectors = append(m.collectors, newAuthWatcher(cfg, db))
+	}
+	if capabilityEnabled("fim") {
+		m.collectors = append(m.collectors, newFileWatcher(cfg))
+	}
+	if capabilityEnabled("process") {
+		m.collectors = append(m.collectors, newProcWatcher(cfg))
+	}
+	if capabilityEnabled("network") {
+		m.collectors = append(m.collectors, newNetWatcher(cfg))
 	}
 	return m
 }

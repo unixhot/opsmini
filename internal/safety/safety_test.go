@@ -3,6 +3,7 @@ package safety
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -26,6 +27,9 @@ func newTestManager(t *testing.T) (*Manager, func()) {
 }
 
 func TestCheckArgProtectsCriticalPaths(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("关键路径清单是 Unix 语义（/etc、/var、systemd unit）；Windows 侧由安全基线与 FIM 覆盖")
+	}
 	m, done := newTestManager(t)
 	defer done()
 

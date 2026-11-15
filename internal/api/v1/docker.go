@@ -49,7 +49,7 @@ func NewDockerHandler(svc *service.DockerService, jwtMgr *jwt.Manager, hasPerm f
 func (h *DockerHandler) Containers(c *gin.Context) {
 	list, err := h.svc.Containers()
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, list)
@@ -58,7 +58,7 @@ func (h *DockerHandler) Containers(c *gin.Context) {
 // StartContainer POST /containers/:id/start
 func (h *DockerHandler) StartContainer(c *gin.Context) {
 	if err := h.svc.StartContainer(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -67,7 +67,7 @@ func (h *DockerHandler) StartContainer(c *gin.Context) {
 // StopContainer POST /containers/:id/stop
 func (h *DockerHandler) StopContainer(c *gin.Context) {
 	if err := h.svc.StopContainer(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -76,7 +76,7 @@ func (h *DockerHandler) StopContainer(c *gin.Context) {
 // RestartContainer POST /containers/:id/restart
 func (h *DockerHandler) RestartContainer(c *gin.Context) {
 	if err := h.svc.RestartContainer(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -85,7 +85,7 @@ func (h *DockerHandler) RestartContainer(c *gin.Context) {
 // RemoveContainer DELETE /containers/:id
 func (h *DockerHandler) RemoveContainer(c *gin.Context) {
 	if err := h.svc.RemoveContainer(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -119,7 +119,7 @@ func (h *DockerHandler) Inspect(c *gin.Context) {
 func (h *DockerHandler) Images(c *gin.Context) {
 	list, err := h.svc.Images()
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, list)
@@ -128,7 +128,7 @@ func (h *DockerHandler) Images(c *gin.Context) {
 // RemoveImage DELETE /images/:id
 func (h *DockerHandler) RemoveImage(c *gin.Context) {
 	if err := h.svc.RemoveImage(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -138,7 +138,7 @@ func (h *DockerHandler) RemoveImage(c *gin.Context) {
 func (h *DockerHandler) Volumes(c *gin.Context) {
 	list, err := h.svc.Volumes()
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, list)
@@ -147,7 +147,7 @@ func (h *DockerHandler) Volumes(c *gin.Context) {
 // RemoveVolume DELETE /volumes/:id
 func (h *DockerHandler) RemoveVolume(c *gin.Context) {
 	if err := h.svc.RemoveVolume(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -157,7 +157,7 @@ func (h *DockerHandler) RemoveVolume(c *gin.Context) {
 func (h *DockerHandler) Networks(c *gin.Context) {
 	list, err := h.svc.Networks()
 	if err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, list)
@@ -166,7 +166,7 @@ func (h *DockerHandler) Networks(c *gin.Context) {
 // RemoveNetwork DELETE /networks/:id
 func (h *DockerHandler) RemoveNetwork(c *gin.Context) {
 	if err := h.svc.RemoveNetwork(c.Param("id")); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -182,7 +182,7 @@ func (h *DockerHandler) PullImage(c *gin.Context) {
 		return
 	}
 	if err := h.svc.PullImage(req.Ref); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -199,7 +199,7 @@ func (h *DockerHandler) CreateVolume(c *gin.Context) {
 		return
 	}
 	if err := h.svc.CreateVolume(req.Name, req.Driver); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -218,7 +218,7 @@ func (h *DockerHandler) CreateNetwork(c *gin.Context) {
 		return
 	}
 	if err := h.svc.CreateNetwork(req.Name, req.Driver, req.Subnet, req.Gateway); err != nil {
-		response.Error(c, 500, response.CodeInternal, err.Error())
+		failDocker(c, err)
 		return
 	}
 	response.OK(c, nil)
@@ -232,6 +232,18 @@ func dockerErr(c *gin.Context, err error) {
 	if strings.Contains(msg, "no such container") || strings.Contains(msg, "no such image") ||
 		strings.Contains(msg, "no such object") {
 		response.Error(c, 404, response.CodeNotFound, err.Error())
+		return
+	}
+	failDocker(c, err)
+}
+
+// failDocker maps a Docker error to the right status.
+//
+// 未安装 / 未启动 Docker 是"依赖不可用"，不是程序错误：返回 503 让前端能显示
+// 「本机未检测到 Docker」，而不是把 npipe/socket 的原文抛给用户。
+func failDocker(c *gin.Context, err error) {
+	if service.IsDockerUnavailable(err) {
+		response.Error(c, 503, response.CodeUnavailable, service.ErrDockerUnavailable.Error())
 		return
 	}
 	response.Error(c, 500, response.CodeInternal, err.Error())

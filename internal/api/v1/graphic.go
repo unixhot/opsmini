@@ -79,6 +79,13 @@ func (h *GraphicHandler) Serve(c *gin.Context) {
 	}
 	defer conn.Close()
 
+	// Session 0（服务身份）里 GDI 采到的是黑屏。与其让用户对着黑框排查，
+	// 不如直接把原因和出路说出来。
+	if limited, why := screen.SessionLimited(); limited {
+		_ = conn.WriteJSON(gin.H{"error": why})
+		return
+	}
+
 	// A read loop is required even in read-only mode: without it the control
 	// frames (close, ping) are never processed and a closed tab leaves the
 	// capture loop running until a write fails.

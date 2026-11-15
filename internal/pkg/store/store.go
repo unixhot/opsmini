@@ -147,7 +147,14 @@ func seedAlertRules(db *gorm.DB) error {
 		Updates(map[string]any{"status": "resolved", "resolved_at": time.Now()})
 
 	inserted := 0
+	// 本平台采集不到的指标不要落库，也不要让已存在的那条继续告警。
+	// 例如 Windows 上没有 /proc/mounts、没有 dmesg、没有 inode 概念，
+	// 这些规则要么永远 "未知"，要么在指标恒为 0 时给出误导性结论。
+	unsupported := unsupportedAlertMetrics()
 	for _, r := range rules {
+		if unsupported[r.Metric] {
+			continue
+		}
 		var count int64
 		if err := db.Model(&model.AlertRule{}).Where("name = ?", r.Name).Count(&count).Error; err != nil {
 			return err
@@ -159,8 +166,43 @@ func seedAlertRules(db *gorm.DB) error {
 			inserted++
 		}
 	}
+	// 老库里已经存在的规则：停用并关掉挂着的 active 事件，避免升级后继续误报。
+	if err := pruneUnsupportedAlertRules(db, unsupported); err != nil {
+		return err
+	}
 	if inserted > 0 {
 		log.Printf("seeded %d alert rules", inserted)
+	}
+	return nil
+}
+
+
+// pruneUnsupportedAlertRules disables rules whose metric this platform cannot
+// collect, and resolves the events they left behind.
+//
+// 只停用不删除：规则本身还是可见的，用户能看出"这条在 Windows 上不适用"，
+// 而不是发现列表里少了几条却不知道少了什么。
+func pruneUnsupportedAlertRules(db *gorm.DB, unsupported map[string]bool) error {
+	if len(unsupported) == 0 {
+		return nil
+	}
+	for metric := range unsupported {
+		var ids []uint
+		if err := db.Model(&model.AlertRule{}).Where("metric = ?", metric).Pluck("id", &ids).Error; err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			continue
+		}
+		if err := db.Model(&model.AlertRule{}).Where("id IN ?", ids).
+			Update("enabled", false).Error; err != nil {
+			return err
+		}
+		if err := db.Model(&model.AlertEvent{}).
+			Where("rule_id IN ? AND status = ?", ids, model.AlertStatusActive).
+			Updates(map[string]any{"status": model.AlertStatusResolved, "resolved_at": time.Now()}).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }

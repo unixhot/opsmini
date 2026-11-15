@@ -1,7 +1,7 @@
 package change
 
 import (
-	"path/filepath"
+	"path"
 	"strings"
 )
 
@@ -19,11 +19,11 @@ func matchGlob(pattern, path string) bool {
 	if pattern == "" {
 		return false
 	}
-	// Fast path: no "**" means the standard semantics apply unchanged.
-	if !strings.Contains(pattern, "**") {
-		ok, _ := filepath.Match(pattern, path)
-		return ok
-	}
+	// 两个平台都按 "/" 分段匹配。
+	//
+	// 不能用 filepath.Match：Windows 上分隔符是 "\\"，"/" 只是一个普通字符，
+	// 于是 "*" 会跨目录匹配，"/var/log/*.log" 会命中 "/var/log/nginx/error.log"。
+	// 面板里的规则和路径都是 POSIX 风格，用 path.Match 语义才一致。
 	return matchSegments(splitPath(pattern), splitPath(path))
 }
 
@@ -51,7 +51,7 @@ func matchSegments(pat, seg []string) bool {
 		if len(seg) == 0 {
 			return false
 		}
-		ok, err := filepath.Match(pat[0], seg[0])
+		ok, err := path.Match(pat[0], seg[0])
 		if err != nil || !ok {
 			return false
 		}

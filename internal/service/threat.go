@@ -58,7 +58,34 @@ func (s *ThreatService) Scan() ([]model.ThreatFinding, error) {
 			s.onFinding(f)
 		}
 	}
+	// 本轮没再命中的旧记录要关掉。
+	//
+	// 判定规则收紧（或修掉一个误报）之后，老记录会一直挂在列表里：扫描返回空，
+	// 页面却还显示两条 critical。用户只能逐条点「已处置」，很容易以为规则没生效。
+	s.expireStale(findings, now)
 	return saved, nil
+}
+
+// expireStale resolves active findings that the current scan no longer detects.
+func (s *ThreatService) expireStale(current []model.ThreatFinding, now time.Time) {
+	seen := make(map[string]bool, len(current))
+	for _, f := range current {
+		seen[f.Kind+"\x00"+f.Name] = true
+	}
+	list, err := s.repo.List(1000)
+	if err != nil {
+		return
+	}
+	for i := range list {
+		old := &list[i]
+		if old.Status != "active" || seen[old.Kind+"\x00"+old.Name] {
+			continue
+		}
+		old.Status = "resolved"
+		old.ResolvedAt = &now
+		old.Detail = strings.TrimSpace(old.Detail + "（重新扫描未再命中，自动关闭）")
+		_ = s.repo.Update(old)
+	}
 }
 
 // SetOnFinding wires the callback for newly discovered threats.

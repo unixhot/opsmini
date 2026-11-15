@@ -140,6 +140,12 @@ func (m *AlertMonitor) evaluate() {
 			val, matched = metricValue(rule.Metric, sum, m.sys)
 		}
 		if !matched {
+			// 指标在本平台无法评估（Windows 没有 /proc/mounts、没装 Docker 等）。
+			// 之前这里直接 continue，已经 active 的事件就永远停在"告警中"——
+			// 一台没装 Docker 的 Windows 机器会挂着「Docker 服务不可用」直到天荒地老。
+			// 现在按"指标不可用"消解一次，并在历史里写明原因。
+			m.clearPending(rule.ID)
+			m.resolveUnavailable(rule)
 			continue
 		}
 		if compareValue(val, op, threshold) {
@@ -359,6 +365,38 @@ func (m *AlertMonitor) resolve(rule model.AlertRule, val, threshold float64) {
 		log.Printf("recovery event create: %v", err)
 	}
 	log.Printf("ALERT resolved: rule=%s event=%d", rule.Name, ev.ID)
+}
+
+// resolveUnavailable closes an active event whose metric cannot be evaluated on
+// this platform. It is deliberately distinguishable from a real recovery in the
+// history: the operator sees "指标不可用" rather than a value that never existed.
+func (m *AlertMonitor) resolveUnavailable(rule model.AlertRule) {
+	ev, err := m.eventRepo.FindActiveByRule(rule.ID)
+	if err != nil {
+		return
+	}
+	now := time.Now()
+	ev.Status = model.AlertStatusResolved
+	ev.ResolvedAt = &now
+	if err := m.eventRepo.Update(ev); err != nil {
+		log.Printf("alert event resolve (unavailable): %v", err)
+		return
+	}
+	rec := &model.AlertEvent{
+		RuleID:     rule.ID,
+		RuleName:   rule.Name,
+		Metric:     rule.Metric,
+		Level:      ev.Level,
+		Message:    "已关闭：本平台无法采集「" + rule.Metric + "」，该规则不再参与判定",
+		Kind:       model.AlertKindRecovery,
+		RelatedID:  ev.ID,
+		Status:     model.AlertStatusResolved,
+		ResolvedAt: &now,
+	}
+	if err := m.eventRepo.Create(rec); err != nil {
+		log.Printf("recovery event create (unavailable): %v", err)
+	}
+	log.Printf("ALERT resolved (metric unavailable): rule=%s event=%d", rule.Name, ev.ID)
 }
 
 // cleanup removes alert events older than the retention period.

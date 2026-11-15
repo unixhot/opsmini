@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -53,6 +52,8 @@ func (s *FirewallService) Status() *FirewallRules {
 		out.Rules = s.firewalldRules()
 	case "iptables":
 		out.Rules = s.iptablesRules()
+	case "windows":
+		out.Rules = windowsFirewallRules()
 	}
 	return out
 }
@@ -75,8 +76,10 @@ func (s *FirewallService) AllowPort(port int, proto string) error {
 	case "iptables":
 		_, err := runFirewallCmd("iptables", "-I", "INPUT", "1", "-p", proto, "--dport", strconv.Itoa(port), "-j", "ACCEPT")
 		return err
+	case "windows":
+		return windowsAllowPort(port, proto)
 	default:
-		return errors.New("未检测到防火墙后端（ufw/firewalld/iptables）")
+		return errors.New("未检测到防火墙后端（ufw/firewalld/iptables/Windows 防火墙）")
 	}
 }
 
@@ -102,8 +105,10 @@ func (s *FirewallService) DenyPort(port int, proto string) error {
 	case "iptables":
 		_, err := runFirewallCmd("iptables", "-D", "INPUT", "-p", proto, "--dport", strconv.Itoa(port), "-j", "ACCEPT")
 		return err
+	case "windows":
+		return windowsDenyPort(port, proto)
 	default:
-		return errors.New("未检测到防火墙后端（ufw/firewalld/iptables）")
+		return errors.New("未检测到防火墙后端（ufw/firewalld/iptables/Windows 防火墙）")
 	}
 }
 
@@ -114,16 +119,17 @@ func (s *FirewallService) Enable() error {
 		return err
 	}
 	backend := s.sys.FirewallStatus().Backend
-	if backend != "ufw" && backend != "firewalld" {
+	if backend != "ufw" && backend != "firewalld" && backend != "windows" {
 		return errors.New("当前后端不支持面板内启用，请手动配置防火墙")
 	}
-	// 启用前先放行面板端口 + SSH 22，避免启用后无法访问面板/SSH
+	// 启用前先放行面板端口 + 远程管理端口，避免启用后无法访问面板。
+	// Linux 是 SSH 22，Windows 是 RDP 3389。
 	if s.panelPort > 0 {
 		if err := s.AllowPort(s.panelPort, "tcp"); err != nil {
 			return err
 		}
 	}
-	if err := s.AllowPort(22, "tcp"); err != nil {
+	if err := s.AllowPort(remoteAdminPort(), "tcp"); err != nil {
 		return err
 	}
 	switch backend {
@@ -133,6 +139,8 @@ func (s *FirewallService) Enable() error {
 	case "firewalld":
 		_, err := runFirewallCmd("systemctl", "enable", "--now", "firewalld")
 		return err
+	case "windows":
+		return windowsEnableFirewall()
 	}
 	return nil
 }
@@ -149,6 +157,8 @@ func (s *FirewallService) Disable() error {
 	case "firewalld":
 		_, err := runFirewallCmd("systemctl", "stop", "firewalld")
 		return err
+	case "windows":
+		return windowsDisableFirewall()
 	default:
 		return errors.New("当前后端不支持面板内停用（iptables 停用破坏性过高）")
 	}
@@ -166,6 +176,8 @@ func (s *FirewallService) DeleteRule(ref string) error {
 	case "iptables":
 		_, err := runFirewallCmd("iptables", "-D", "INPUT", ref)
 		return err
+	case "windows":
+		return windowsDeleteRule(ref)
 	default:
 		return errors.New("当前后端暂不支持按编号删除规则")
 	}
@@ -185,9 +197,11 @@ func (s *FirewallService) guard(port int, proto string) error {
 	return nil
 }
 
-// requireRoot returns an error unless the process runs as root (required to manage firewalls).
+// requireRoot returns an error unless the process has the privileges firewall
+// management needs: uid 0 on Unix, an elevated token on Windows. `os.Geteuid()`
+// returns -1 on Windows, so the old check rejected every write there.
 func requireRoot() error {
-	if os.Geteuid() != 0 {
+	if !isPrivileged() {
 		return ErrNeedRoot
 	}
 	return nil

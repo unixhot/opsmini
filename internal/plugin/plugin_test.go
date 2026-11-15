@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -24,7 +25,7 @@ version: 1.0.0
 vendor: 速云科技
 kind: collector
 entry: bin/plugin
-platform: [linux/amd64, darwin/arm64]
+platform: [linux/amd64, darwin/arm64, windows/amd64]
 capabilities: [metrics]
 runtime:
   restartPolicy: on-failure
@@ -135,9 +136,13 @@ func TestInstallWritesStateAndCurrent(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(m.root, "state.json")); err != nil {
 		t.Fatalf("state.json missing: %v", err)
 	}
-	cur, err := os.Readlink(filepath.Join(m.root, "demo-collector", "current"))
-	if err != nil || !strings.HasSuffix(cur, "1.0.0") {
-		t.Fatalf("current symlink = %q (%v)", cur, err)
+	// Unix 上 current 是符号链接；Windows 上普通用户没有建符号链接的特权，
+	// 会退化成目录联接或复制，所以只要求它指向可用的 1.0.0 内容。
+	if runtime.GOOS != "windows" {
+		cur, err := os.Readlink(filepath.Join(m.root, "demo-collector", "current"))
+		if err != nil || !strings.HasSuffix(cur, "1.0.0") {
+			t.Fatalf("current symlink = %q (%v)", cur, err)
+		}
 	}
 	if _, err := os.Stat(filepath.Join(m.root, "demo-collector", "current", "bin", "plugin")); err != nil {
 		t.Fatalf("entry not installed: %v", err)

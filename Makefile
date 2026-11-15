@@ -53,14 +53,17 @@ $(TARGETS):
 ## 版本号取自 VERSION，跟 -ldflags 注入的保持一致；注释里带 commit，便于对包。
 winres:
 	@cd cmd/agent && \
-	  go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.7.0 \
+	  if ! go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.7.0 \
 	    -platform-specific -64 \
 	    -ver-major $(VER_MAJOR) -ver-minor $(VER_MINOR) -ver-patch $(VER_PATCH) -ver-build 0 \
 	    -product-ver-major $(VER_MAJOR) -product-ver-minor $(VER_MINOR) -product-ver-patch $(VER_PATCH) -product-ver-build 0 \
 	    -file-version "$(VER_NUM).0" -product-version "$(VER_NUM).0" \
 	    -comment "$(VERSION) $(GIT_COMMIT)" \
-	    versioninfo.json >/dev/null
-	@echo "winres: cmd/agent/resource_windows_*.syso ($(VER_NUM).0)"
+	    versioninfo.json >/dev/null; then \
+	      echo "WARN: winres 跳过（goversioninfo 不可用，多为离线环境）；本次 exe 不带版本资源"; \
+	  else \
+	      echo "winres: cmd/agent/resource_windows_*.syso ($(VER_NUM).0)"; \
+	  fi
 
 ## clean: 清理构建产物
 clean:

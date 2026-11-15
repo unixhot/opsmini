@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -11,9 +12,14 @@ func TestFileServiceResolveEscape(t *testing.T) {
 	root := t.TempDir()
 	svc := NewFileService(root)
 
-	// accessing an absolute path outside root should be rejected
-	if _, err := svc.List("/etc"); err != ErrPathEscape {
-		t.Fatalf("List(/etc): expected ErrPathEscape, got %v", err)
+	// accessing an absolute path outside root should be rejected.
+	// Windows 上 "/etc" 不带卷标，filepath.IsAbs 判为 false，会被当成 root 下的
+	// 相对名解析（面板在 Windows 上本来就不设边界），所以这一条只对 Unix 成立；
+	// 下面的相对路径穿越才是两端都必须拦住的。
+	if runtime.GOOS != "windows" {
+		if _, err := svc.List("/etc"); err != ErrPathEscape {
+			t.Fatalf("List(/etc): expected ErrPathEscape, got %v", err)
+		}
 	}
 	// relative path traversal should be rejected
 	if _, err := svc.List("../../etc"); err != ErrPathEscape {

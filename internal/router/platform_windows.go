@@ -15,6 +15,9 @@ func unsupportedPrefixes() []string {
 		"/api/v1/databases",         // mysqld instance management
 		"/api/v1/apps",              // one-click deploy runs bash install scripts
 		"/api/v1/crontab",           // system crontab parsing
+		// /var/log 的文本日志查看；Windows 的日志在事件日志（.evtx）里，需要
+		// EvtQuery 读取，当前没有对应实现，给空列表会让人以为「本机没有日志」。
+		"/api/v1/logs",
 	}
 }
 

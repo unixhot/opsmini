@@ -8,6 +8,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,8 +35,9 @@ func TestExecuteCommand(t *testing.T) {
 	if res.Status != "success" {
 		t.Fatalf("expected success, got %s (stderr=%s)", res.Status, res.Stderr)
 	}
-	if res.Stdout != "hello\n" {
-		t.Fatalf("expected stdout 'hello\\n', got %q", res.Stdout)
+	// Windows 的 echo 输出 CRLF；只比内容，不纠结尾换行。
+	if strings.TrimRight(res.Stdout, "\r\n") != "hello" {
+		t.Fatalf("expected stdout 'hello', got %q", res.Stdout)
 	}
 }
 
@@ -52,8 +55,8 @@ func TestExecuteScript(t *testing.T) {
 	if res.Status != "success" {
 		t.Fatalf("expected success, got %s (stderr=%s)", res.Status, res.Stderr)
 	}
-	if res.Stdout != "from-script\n" {
-		t.Fatalf("expected 'from-script\\n', got %q", res.Stdout)
+	if strings.TrimRight(res.Stdout, "\r\n") != "from-script" {
+		t.Fatalf("expected 'from-script', got %q", res.Stdout)
 	}
 }
 
@@ -98,8 +101,11 @@ func TestReceiveFile(t *testing.T) {
 	if string(data) != string(content) {
 		t.Fatalf("file content %q, want %q", data, content)
 	}
-	if st, _ := os.Stat(path); st.Mode().Perm() != 0o755 {
-		t.Fatalf("mode=%o, want 755", st.Mode().Perm())
+	// Windows 没有 Unix 权限位，os.Chmod 只切换只读属性，这条断言只在 Unix 成立。
+	if runtime.GOOS != "windows" {
+		if st, _ := os.Stat(path); st.Mode().Perm() != 0o755 {
+			t.Fatalf("mode=%o, want 755", st.Mode().Perm())
+		}
 	}
 }
 
