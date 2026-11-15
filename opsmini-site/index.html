@@ -4,7 +4,7 @@
 <meta charset="UTF-8" data-page-node-id="rEJRkBqvEf88yhepX2nbkP">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="YXOz3jsjjgG4mhrWGSHaRR">
 <title>OpsMini — 主机上的 AI 运维 Agent</title>
-<meta name="description" content="OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent：自己采集指标、自己判断异常、自己动手处理，高危动作停下来等你点头。几十 MB 单二进制，数据不出本机。" data-page-node-id="iztsJJeRYNY4mymSkwiDZa">
+<meta name="description" content="OpsMini 是跑在 Linux 与 Windows 主机上的常驻 AI 运维 Agent：自己采集指标、自己判断异常、自己动手处理，高危动作停下来等你点头。几十 MB 单二进制，数据不出本机。" data-page-node-id="iztsJJeRYNY4mymSkwiDZa">
 <meta name="keywords" content="AI Agent,主机运维,运维 Agent,自动化运维,Linux,服务器管理,开源,单二进制">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OpsMini">
@@ -304,8 +304,13 @@ section{padding:64px 0}
 .hl b{display:block;font-size:15.5px;color:var(--text);margin-bottom:2px}
 .hl span{font-size:13.5px;color:var(--text-dim)}
 .install-strip{display:flex;align-items:center;gap:14px;margin-top:22px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px 18px;box-shadow:0 4px 18px rgba(37,99,235,.05)}
+.os-switch{display:inline-flex;gap:2px;padding:3px;border-radius:9px;background:var(--bg);border:1px solid var(--border);flex-shrink:0}
+.os-tab{border:0;background:transparent;color:var(--text-2);font:inherit;font-size:13px;font-weight:600;padding:5px 12px;border-radius:7px;cursor:pointer;transition:.15s}
+.os-tab:hover{color:var(--text)}
+.os-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.install-note{margin-top:10px;font-size:12.5px;color:var(--text-2);line-height:1.6}
 .install-label{font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;flex-shrink:0}
-.install-cmd{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;color:#e2e8f0;background:#0b1220;border:1px solid #1e293b;padding:10px 14px;border-radius:8px;overflow-x:auto;white-space:nowrap}
+.install-cmd{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;color:#e2e8f0;background:#0b1220;border:1px solid #1e293b;padding:10px 14px;border-radius:8px;overflow-x:hidden;white-space:pre-wrap;word-break:break-all}
 .install-cmd .d{color:#38bdf8;margin-right:6px}
 .copy-btn{flex-shrink:0;font-size:13.5px;font-weight:600;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:9px 18px;cursor:pointer;transition:opacity .2s}
 .copy-btn:hover{opacity:.9}
@@ -586,14 +591,14 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
     <div data-page-node-id="PZjmMln0xN21bI3lF8TF07">
       <div class="hero-badge" data-page-node-id="1EvgubBdyE6ITH2OqMs9Iu"><span class="dot" data-page-node-id="BvOKczBoQDgHuyxeNl6ay2"></span><span data-i18n="hero.badge" data-page-node-id="gexgJXwMxSQj7Ckd6QCDGX">常驻主机 · 自主执行 · 数据不出本机</span></div>
       <h1 data-i18n-html="hero.title" data-page-node-id="rASJGQCLm57NmSfaNmnLIz">把 AI 装进服务器，<br data-page-node-id="BwVlMzhgFeFxuWj0T8FEqR">让它<span class="grad" data-page-node-id="bRBdqn4FWCm23vZoDDocHl">自己运维自己</span></h1>
-      <p class="lead" data-i18n="hero.lead" data-page-node-id="XE7D4tEcFpAWSDPeXi7y9j">OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。</p>
+      <p class="lead" data-i18n="hero.lead" data-page-node-id="XE7D4tEcFpAWSDPeXi7y9j">OpsMini 是跑在 Linux 与 Windows 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。</p>
       <div class="hero-cta" data-page-node-id="T8UDPa9MdwFlliwzChdk2j">
         <a class="btn btn-primary" href="#quickstart" data-i18n="hero.ctaPrimary" data-page-node-id="HWadfqjarUOTc3WbLyhzNi">快速开始 →</a>
         <a class="btn btn-ghost" href="#agent" data-i18n="hero.ctaGhost" data-page-node-id="NdL87NCxFW09CCuN14sngh">看它怎么干活</a>
       </div>
       <div class="hero-meta" data-page-node-id="BPSsaxDem9bPRDVYisN8yE">
         <span data-i18n-html="hero.meta1" data-page-node-id="5NTTZFgyn0mj2gXStC2jNp"><b data-page-node-id="iR8qgy3DkqmnDcsdnVsQTh">Go</b> 静态单文件</span>
-        <span data-i18n-html="hero.meta2" data-page-node-id="L0fyplOaDQ7kweyaafQUuk"><b data-page-node-id="DgQpDe7agxzNkhZASTeimD">systemd</b> 常驻托管</span>
+        <span data-i18n-html="hero.meta2" data-page-node-id="L0fyplOaDQ7kweyaafQUuk"><b data-page-node-id="DgQpDe7agxzNkhZASTeimD">systemd / SCM</b> 常驻托管</span>
         <span data-i18n-html="hero.meta3" data-page-node-id="STApmPGkbnqtDztph8TAgf"><b data-page-node-id="fxhLykwcWyuLeuBCwWqw8j">29</b> 个运维工具</span>
         <span data-i18n-html="hero.meta4" data-page-node-id="0NEdhwrDRO4gZO70QFwEqf"><b data-page-node-id="XMYCXRL1Ed2X4wYbJk1JJR">L0–L3</b> 分级放权</span>
       </div>
@@ -634,10 +639,14 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
       </div>
     </div>
     <div class="install-strip" data-page-node-id="newInstallStrip0001">
-      <span class="install-label" data-i18n="install.label" data-page-node-id="newInstallLabel0001">一键安装</span>
-      <code class="install-cmd" data-page-node-id="newInstallCmd0001"><span class="d">$</span> curl -fsSL https://opsmini.com/install.sh | sudo bash</code>
+      <div class="os-switch" data-page-node-id="newInstallOs0001" role="tablist">
+        <button type="button" class="os-tab active" data-os="linux" data-page-node-id="newInstallOsLinux" onclick="switchInstallOS(this)">Linux</button>
+        <button type="button" class="os-tab" data-os="windows" data-page-node-id="newInstallOsWin" onclick="switchInstallOS(this)">Windows</button>
+      </div>
+      <code class="install-cmd" id="installCmd" data-page-node-id="newInstallCmd0001" data-cmd-linux="curl -fsSL https://opsmini.com/install.sh | sudo bash" data-cmd-windows="irm https://opsmini.com/install.ps1 | iex"><span class="d" id="installPrompt">$</span> <span id="installCmdText">curl -fsSL https://opsmini.com/install.sh | sudo bash</span></code>
       <button type="button" class="copy-btn" data-page-node-id="newInstallCopy0001" onclick="copyInstallCmd(this)"><span data-i18n="install.copy">复制</span></button>
     </div>
+    <div class="install-note" data-page-node-id="newInstallNote0001" data-i18n="install.note">Linux 用 sudo 执行，Windows 需以管理员身份打开 PowerShell；都会自动注册系统服务并设置开机自启。</div>
   </div>
 </section>
 
@@ -822,10 +831,13 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
     <div class="qs-grid" data-page-node-id="9oQc4o6prcZnzstTVQQPF7">
       <div class="terminal-box" data-page-node-id="FWjFZTZuoEAGPZRzp4jHR8">
         <div class="bar" data-page-node-id="0nAld6WIWKwOxievGiH5sv"><i data-page-node-id="vMNlxMNbDROscl1sBHIExJ"></i><i data-page-node-id="ZpATOvBlFZciMuBQBr67LD"></i><i data-page-node-id="SskEvbt8y909iH0z936ArB"></i></div>
-        <pre data-page-node-id="8YIy4ITpfaEyt6pVIQCocK"><span class="c" data-page-node-id="EgoLanfoUiWDB1u8Rh39G4"># one-line install</span>
+        <pre data-page-node-id="8YIy4ITpfaEyt6pVIQCocK"><span class="c" data-page-node-id="EgoLanfoUiWDB1u8Rh39G4"># Linux</span>
 <span class="d" data-page-node-id="PS3MMr3RQdh2qA6Dvf9gdJ">$</span> curl -fsSL https://opsmini.com/install.sh | sudo bash
 
-<span class="g" data-page-node-id="A5cORquhIKBVt5xYAC4mUh">✓</span> OpsMini <span class="y" data-page-node-id="pGQZ4MbiPlpktB53zQNOkQ">v1.4.2</span> installed
+<span class="c" data-page-node-id="newQsWinHint0001"># Windows (admin PowerShell)</span>
+<span class="d" data-page-node-id="newQsWinPs0001">PS&gt;</span> irm https://opsmini.com/install.ps1 | iex
+
+<span class="g" data-page-node-id="A5cORquhIKBVt5xYAC4mUh">✓</span> OpsMini <span class="y" data-page-node-id="pGQZ4MqbiPlpktB53zQNOkQ">v1.5.0</span> installed
 <span class="g" data-page-node-id="VQcCBrMwptSsVuTbACQrKN">✓</span> listening on :8888
 <span class="y" data-page-node-id="236JuzbBAU2kuLIxmN4MLM">➜</span> initial password is written to .init_passwd
 
@@ -838,6 +850,28 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
         <div class="qs-step" data-page-node-id="eNJHcWKcj6qe2puAxglpH1"><div class="num" data-page-node-id="ZH27s49EhEkjC8fKkJFAKz">3</div><div data-page-node-id="8ZLFRzbdHw1LxS0fPCCO33"><b data-i18n="qs.s3t" data-page-node-id="xZqosQZncW9ecOgMeOGIqv">加固与接入</b><span data-i18n="qs.s3d" data-page-node-id="jDcsuqSq832sOhwySfrJZ4">开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server。</span></div></div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ================= PLATFORMS ================= -->
+<section id="platforms" data-page-node-id="newPlatformsSec01">
+  <div class="container" data-page-node-id="newPlatformsWrap01">
+    <div class="sec-head" data-page-node-id="newPlatformsHead01">
+      <div class="sec-tag" data-i18n="plat.tag" data-page-node-id="newPlatformsTag01">Platforms</div>
+      <h2 data-i18n="plat.h2" data-page-node-id="newPlatformsH201">一个二进制，两个平台</h2>
+      <p data-i18n="plat.p" data-page-node-id="newPlatformsP001">Linux 与 Windows 功能对齐：指标采集、AI 智能体、定时任务、多机纳管、REST API、Docker 管理。差异只在系统接口层。</p>
+    </div>
+    <div class="vs-grid" data-page-node-id="newPlatformsGrid01">
+      <div class="vs-col" data-page-node-id="newPlatformsLx001">
+        <h4 data-page-node-id="newPlatformsLx002">Linux</h4>
+        <ul data-i18n-html="plat.linux" data-page-node-id="newPlatformsLx003"><li>systemd 托管，开机自启</li><li>pty 命令行终端</li><li>node_exporter 风格指标</li><li>网站 / 数据库一键部署</li><li>SSH 加固与文件完整性监控</li></ul>
+      </div>
+      <div class="vs-col new" data-page-node-id="newPlatformsWin01">
+        <h4 data-page-node-id="newPlatformsWin02">Windows</h4>
+        <ul data-i18n-html="plat.win" data-page-node-id="newPlatformsWin03"><li>Windows 服务（SCM）托管</li><li>ConPTY 终端 + 图形终端（实时画面，可接管鼠标键盘）</li><li>windows_exporter 0.32.1 兼容指标，Grafana 面板直接复用</li><li>UAC / 防火墙 / RDP / SMBv1 / Defender 基线检查</li><li>单 exe 交付，无需运行库</li></ul>
+      </div>
+    </div>
+    <div class="install-note" style="text-align:center;max-width:760px;margin:16px auto 0" data-i18n="plat.note" data-page-node-id="newPlatformsNote01">网站、数据库与一键部署为 Linux 专属能力，Windows 上对应接口返回 501，其余功能在两个平台一致。</div>
   </div>
 </section>
 
@@ -947,13 +981,13 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
 const I18N = {
 'zh-CN': {
   'title':'OpsMini — 主机上的 AI 运维 Agent','foot.faq':'常见问题',
-  'hl1.t':'会自己动手的 AI','hl1.d':'不只诊断，还能执行——按危险程度分级放权','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力','install.label':'一键安装','install.copy':'复制','install.copied':'已复制',
+  'hl1.t':'会自己动手的 AI','hl1.d':'不只诊断，还能执行——按危险程度分级放权','hl2.t':'永久开源 · 无商业版','hl2.d':'完全开源，无功能阉割、无付费墙、无商业版计划','hl3.t':'支持 MCP 与 Skill','hl3.d':'对接 MCP 协议与自定义 Skill，自由扩展 AI 能力','install.label':'一键安装','install.copy':'复制','install.copied':'已复制','install.note':'Linux 用 sudo 执行，Windows 需以管理员身份打开 PowerShell；两者都会自动注册系统服务并设置开机自启。',
   'nav.features':'工具','nav.ai':'Agent','nav.arch':'架构','nav.quickstart':'快速开始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即体验','nav.tagline':'主机上的 AI 运维 Agent','nav.docs':'文档',
   'hero.badge':'常驻主机 · 自主执行 · 数据不出本机',
   'hero.title':'把 AI 装进服务器，<br>让它<span class="grad">自己运维自己</span>',
-  'hero.lead':'OpsMini 是一台 Linux 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。',
+  'hero.lead':'OpsMini 是跑在 Linux 与 Windows 主机上的常驻 AI 运维 Agent。它自己采集指标、自己判断异常、自己动手处理，遇到高危动作会停下来等你点头。整个 Agent 是一个几十 MB 的静态二进制，数据全部留在本机。',
   'hero.ctaPrimary':'快速开始 →','hero.ctaGhost':'看它怎么干活',
-  'hero.meta1':'<b>Go</b> 静态单文件','hero.meta2':'<b>systemd</b> 常驻托管','hero.meta3':'<b>29</b> 个运维工具','hero.meta4':'<b>L0–L3</b> 分级放权',
+  'hero.meta1':'<b>Go</b> 静态单文件','hero.meta2':'<b>systemd / SCM</b> 常驻托管','hero.meta3':'<b>29</b> 个运维工具','hero.meta4':'<b>L0–L3</b> 分级放权',
   'hero.side.dash':'📊 仪表盘','hero.side.ai':'🤖 AI 助手','hero.side.sec':'🛡️ 安全中心','hero.side.docker':'🐳 容器','hero.side.term':'⌨️ 终端','hero.side.file':'📁 文件',
   'hero.stat.mem':'内存','hero.stat.disk':'磁盘',
   'hero.aiq':'🤖 用户：磁盘占用突然涨了，帮我看看',
@@ -978,15 +1012,15 @@ const I18N = {
   'arch.c1':'浏览器','arch.c2':'OpsMini 服务','arch.c3':'宿主机',
   'arch.b1t':'Vue 3 单页应用','arch.b1s':'go:embed 嵌入二进制，7 语言 i18n','arch.b2t':'ECharts 可视化','arch.b2s':'仪表盘 / 趋势图 / 告警面板','arch.b3t':'xterm.js 终端','arch.b3s':'WebSocket 全双工交互',
   'arch.b4t':'Go · Gin 路由层','arch.b4s':'/api/v1 界面接口 · /mcp 工具接口 · gRPC 纳管','arch.b5t':'Service 层','arch.b5s':'AI / 安全 / Docker / 监控 / 文件 / 计划任务…','arch.b6t':'JWT 鉴权 + RBAC + MFA','arch.b6s':'中间件链式校验',
-  'arch.b7t':'SQLite（纯 Go 驱动）','arch.b7s':'单文件存储，免安装数据库','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系统与容器直接对接','arch.b9t':'pty / crontab / 防火墙','arch.b9s':'原生系统能力封装',
-  'arch.note':'交叉编译支持 Linux amd64 / arm64 —— 树莓派、国产化服务器同样能跑',
+  'arch.b7t':'SQLite（纯 Go 驱动）','arch.b7s':'单文件存储，免安装数据库','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'系统与容器直接对接','arch.b9t':'pty / crontab / 防火墙','arch.b9s':'原生系统能力封装',
+  'arch.note':'交叉编译支持 Linux 与 Windows 的 amd64 / arm64 —— 树莓派、ARM 服务器同样能跑',
   'qs.tag':'Quick Start','qs.h2':'三分钟跑起来','qs.p':'下载、执行、打开浏览器——没有安装向导，没有依赖地狱。',
-  'qs.s1t':'一键安装','qs.s1d':'一条命令自动下载二进制、生成配置并注册 systemd 服务','qs.s2t':'打开登录','qs.s2d':'访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server',
+  'qs.s1t':'一键安装','qs.s1d':'一条命令自动下载二进制、生成配置并注册系统服务（Linux 用 systemd，Windows 用 SCM）。','qs.s2t':'打开登录','qs.s2d':'访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server',
   'api.tag':'Developer API','api.h2':'为自动化而生','api.p':'面板能做的事，API 都能做。人用浏览器，程序用接口。','api.h3':'界面接口 + 工具接口',
   'api.p2':'面向界面的 <b>/api/v1</b> 与面向 AI 的 <b>/mcp</b> 相互独立：令牌隔离、权限隔离。Claude、Cursor 等可以直接调用面板能力。',
   'api.l1':'JWT 鉴权 + 刷新令牌，MCP 用独立的长期 Token','api.l2':'覆盖容器、文件、监控、告警、安全、计划任务全模块','api.l3':'原生 MCP 接入，让外部 AI 助手直接操作你的服务器','api.l4':'OpenAPI 风格路由，curl 即可完成全部自动化',
   'api.code.title':'curl 示例',
-  'st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'组对外接口',
+  'plat.tag':'Platforms','plat.h2':'一个二进制，两个平台','plat.p':'Linux 与 Windows 功能对齐：指标采集、AI 智能体、定时任务、多机纳管、REST API、Docker 管理。差异只在系统接口层。','plat.linux':'<li>systemd 托管，开机自启</li><li>pty 命令行终端</li><li>node_exporter 风格指标</li><li>网站 / 数据库一键部署</li><li>SSH 加固与文件完整性监控</li>','plat.win':'<li>Windows 服务（SCM）托管</li><li>ConPTY 终端 + 图形终端（实时画面，可接管鼠标键盘）</li><li>windows_exporter 0.32.1 兼容指标，Grafana 面板直接复用</li><li>UAC / 防火墙 / RDP / SMBv1 / Defender 基线检查</li><li>单 exe 交付，无需运行库</li>','plat.note':'网站、数据库与一键部署为 Linux 专属能力，Windows 上对应接口返回 501，其余功能在两个平台一致。','st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'组对外接口',
   'faq.tag':'FAQ','faq.h2':'常见问题',
   'faq.q1':'OpsMini 和宝塔、1Panel 有什么区别？','faq.a1':'OpsMini 是常驻主机的 AI 运维 Agent，不是传统面板。页面只是它的观察窗：它能自主诊断并执行，提供 MCP 与机器对机器接口，纯 Go + SQLite 单文件交付。',
   'faq.q2':'支持哪些系统 / 架构？','faq.a2':'Linux amd64 与 arm64（含树莓派、国产化服务器）。面板本身是静态编译的 Go 二进制，只要内核版本不是特别古老即可运行。',
@@ -1055,13 +1089,13 @@ const I18N = {
 },
 'en': {
   'title':'OpsMini — The AI Ops Agent That Lives on Your Server','foot.faq':'FAQ',
-  'hl1.t':'An AI that actually acts','hl1.d':'Not just diagnosis — execution with risk-graded approval','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities','install.label':'One-click install','install.copy':'Copy','install.copied':'Copied',
+  'hl1.t':'An AI that actually acts','hl1.d':'Not just diagnosis — execution with risk-graded approval','hl2.t':'Open source forever','hl2.d':'Fully open source — no paid tiers, no feature paywalls, no commercial edition','hl3.t':'MCP & Skill ready','hl3.d':'Integrate the MCP protocol and custom Skills to extend AI capabilities','install.label':'One-click install','install.copy':'Copy','install.copied':'Copied','install.note':'Run with sudo on Linux; on Windows open PowerShell as Administrator. Both register a system service and enable start on boot.',
   'nav.features':'Tools','nav.ai':'Agent','nav.arch':'Architecture','nav.quickstart':'Quick Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Get Started','nav.tagline':'AI ops agent on your host','nav.docs':'Docs',
   'hero.badge':'Always on · Acts on its own · Data stays local',
   'hero.title':'The AI agent that<br><span class="grad">runs your server</span>',
-  'hero.lead':'OpsMini is a resident AI ops agent on your Linux host. It collects metrics, judges what is wrong and acts — pausing for your approval before anything risky. The whole agent is a single static binary of a few dozen MB, and all data stays on the machine.',
+  'hero.lead':'OpsMini is a resident AI ops agent for Linux and Windows hosts. It collects metrics, judges anomalies and acts on its own, stopping for your approval only when the action is risky. The whole agent is a few dozen MB static binary, and all data stays on the machine.',
   'hero.ctaPrimary':'Quick Start →','hero.ctaGhost':'See how it works',
-  'hero.meta1':'<b>Go</b> single static binary','hero.meta2':'<b>systemd</b> managed','hero.meta3':'<b>29</b> ops tools','hero.meta4':'<b>L0–L3</b> graded autonomy',
+  'hero.meta1':'<b>Go</b> single static binary','hero.meta2':'<b>systemd / SCM</b> managed','hero.meta3':'<b>29</b> ops tools','hero.meta4':'<b>L0–L3</b> graded autonomy',
   'hero.side.dash':'📊 Dashboard','hero.side.ai':'🤖 AI Assistant','hero.side.sec':'🛡️ Security','hero.side.docker':'🐳 Containers','hero.side.term':'⌨️ Terminal','hero.side.file':'📁 Files',
   'hero.stat.mem':'Memory','hero.stat.disk':'Disk',
   'hero.aiq':'🤖 User: disk usage suddenly spiked, can you check?',
@@ -1086,15 +1120,15 @@ const I18N = {
   'arch.c1':'Browser','arch.c2':'OpsMini Service','arch.c3':'Host',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'embedded via go:embed, 7-language i18n','arch.b2t':'ECharts viz','arch.b2s':'dashboard / trends / alerts','arch.b3t':'xterm.js terminal','arch.b3s':'full-duplex WebSocket',
   'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) · /mcp (tools) · gRPC (fleet)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'chained middleware',
-  'arch.b7t':'SQLite (pure-Go)','arch.b7s':'single-file storage, no DB install','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direct system & container access','arch.b9t':'pty / crontab / firewall','arch.b9s':'native system wrappers',
-  'arch.note':'Cross-compiles to Linux amd64 / arm64 — runs on Raspberry Pi and domestic servers alike',
+  'arch.b7t':'SQLite (pure-Go)','arch.b7s':'single-file storage, no DB install','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'direct system & container access','arch.b9t':'pty / crontab / firewall','arch.b9s':'native system wrappers',
+  'arch.note':'Cross-compiled for Linux and Windows on amd64 / arm64 — Raspberry Pi and ARM servers run it too',
   'qs.tag':'Quick Start','qs.h2':'Up and running in minutes','qs.p':'Download, execute, open the browser — no install wizard, no dependency hell.',
-  'qs.s1t':'One-click install','qs.s1d':'One command downloads the binary, generates config, and registers a systemd service','qs.s2t':'Open & log in','qs.s2d':'Visit http://<IP>:8888, user opsmini, password from the script output or .init_passwd','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA and the firewall; hook external AI tools up over /mcp, enrol hosts into OpsMini Server over gRPC',
+  'qs.s1t':'One-click install','qs.s1d':'One command downloads the binary, writes the config and registers a system service (systemd on Linux, SCM on Windows).','qs.s2t':'Open & log in','qs.s2d':'Visit http://<IP>:8888, user opsmini, password from the script output or .init_passwd','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA and the firewall; hook external AI tools up over /mcp, enrol hosts into OpsMini Server over gRPC',
   'api.tag':'Developer API','api.h2':'Made for automation','api.p':'Whatever the panel can do, the API can do. Humans use the browser, programs use the API.','api.h3':'UI API + tool API',
   'api.p2':'The UI-facing <b>/api/v1</b> and the AI-facing <b>/mcp</b> are independent — separate tokens, separate permissions. Claude, Cursor and others drive the panel directly.',
   'api.l1':'JWT auth + refresh tokens; MCP uses its own long-lived token','api.l2':'Covers containers, files, monitoring, alerts, security and cron','api.l3':'Native MCP so external AI assistants can operate your server','api.l4':'OpenAPI-style routes — full automation with plain curl',
   'api.code.title':'curl example',
-  'st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'external interfaces',
+  'plat.tag':'Platforms','plat.h2':'One binary, two platforms','plat.p':'Feature parity across Linux and Windows: metrics, AI agent, scheduled tasks, multi-host management, REST API and Docker. Only the system interface layer differs.','plat.linux':'<li>systemd-managed, starts on boot</li><li>pty command-line terminal</li><li>node_exporter-style metrics</li><li>One-click website / database deploy</li><li>SSH hardening and file integrity monitoring</li>','plat.win':'<li>Windows service (SCM)</li><li>ConPTY terminal plus graphical terminal (live screen, take over mouse and keyboard)</li><li>windows_exporter 0.32.1 compatible metrics, existing Grafana dashboards work as-is</li><li>UAC / firewall / RDP / SMBv1 / Defender baseline checks</li><li>Single exe, no runtime required</li>','plat.note':'Websites, databases and one-click deploy are Linux-only; those APIs return 501 on Windows. Everything else behaves the same on both platforms.','st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'external interfaces',
   'faq.tag':'FAQ','faq.h2':'Frequently Asked Questions',
   'faq.q1':'How is OpsMini different from BaoTa or 1Panel?','faq.a1':'OpsMini is a resident AI ops agent, not a classic panel. The web UI is its window: the agent diagnoses and executes on its own, speaks MCP and a machine-to-machine API, and ships as one Go + SQLite binary.',
   'faq.q2':'Which systems / architectures are supported?','faq.a2':'Linux amd64 and arm64 (including Raspberry Pi and domestic servers). The panel is a statically compiled Go binary, so it runs as long as the kernel is not too old.',
@@ -1163,13 +1197,13 @@ const I18N = {
 },
 'zh-TW': {
   'title':'OpsMini — 主機上的 AI 維運 Agent','foot.faq':'常見問題',
-  'hl1.t':'會自己動手的 AI','hl1.d':'不只診斷，還能執行——依危險程度分級放權','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力','install.label':'一鍵安裝','install.copy':'複製','install.copied':'已複製',
+  'hl1.t':'會自己動手的 AI','hl1.d':'不只診斷，還能執行——依危險程度分級放權','hl2.t':'永久開源 · 無商業版','hl2.d':'完全開源，無功能閹割、無付費牆、無商業版計畫','hl3.t':'支援 MCP 與 Skill','hl3.d':'對接 MCP 協定與自訂 Skill，自由擴展 AI 能力','install.label':'一鍵安裝','install.copy':'複製','install.copied':'已複製','install.note':'Linux 以 sudo 執行，Windows 需以系統管理員身分開啟 PowerShell；兩者都會自動註冊系統服務並設定開機自啟。',
   'nav.features':'工具','nav.ai':'Agent','nav.arch':'架構','nav.quickstart':'快速開始','nav.api':'API','nav.faq':'FAQ','nav.cta':'立即體驗','nav.tagline':'主機上的 AI 維運 Agent','nav.docs':'文件',
   'hero.badge':'常駐主機 · 自主執行 · 資料不出本機',
   'hero.title':'把 AI 裝進伺服器，<br>讓它<span class="grad">自己維運自己</span>',
-  'hero.lead':'OpsMini 是一台 Linux 主機上的常駐 AI 維運 Agent。它自己採集指標、自己判斷異常、自己動手處理，遇到高風險動作會停下來等你點頭。整個 Agent 是一個數十 MB 的靜態二進位，資料全部留在本機。',
+  'hero.lead':'OpsMini 是跑在 Linux 與 Windows 主機上的常駐 AI 維運 Agent。它自己採集指標、自己判斷異常、自己動手處理，遇到高風險動作會停下來等你點頭。整個 Agent 是幾十 MB 的靜態二進位檔，資料全部留在本機。',
   'hero.ctaPrimary':'快速開始 →','hero.ctaGhost':'看它怎麼幹活',
-  'hero.meta1':'<b>Go</b> 靜態單檔','hero.meta2':'<b>systemd</b> 常駐託管','hero.meta3':'<b>29</b> 個維運工具','hero.meta4':'<b>L0–L3</b> 分級放權',
+  'hero.meta1':'<b>Go</b> 靜態單檔','hero.meta2':'<b>systemd / SCM</b> 常駐託管','hero.meta3':'<b>29</b> 個維運工具','hero.meta4':'<b>L0–L3</b> 分級放權',
   'hero.side.dash':'📊 儀表板','hero.side.ai':'🤖 AI 助手','hero.side.sec':'🛡️ 安全中心','hero.side.docker':'🐳 容器','hero.side.term':'⌨️ 終端','hero.side.file':'📁 檔案',
   'hero.stat.mem':'記憶體','hero.stat.disk':'磁碟',
   'hero.aiq':'🤖 使用者：磁碟占用突然變高，幫我看看',
@@ -1194,15 +1228,15 @@ const I18N = {
   'arch.c1':'瀏覽器','arch.c2':'OpsMini 服務','arch.c3':'主機',
   'arch.b1t':'Vue 3 單頁應用','arch.b1s':'go:embed 嵌入二進位，7 語言 i18n','arch.b2t':'ECharts 視覺化','arch.b2s':'儀表板 / 趨勢圖 / 告警面板','arch.b3t':'xterm.js 終端','arch.b3s':'WebSocket 全雙工互動',
   'arch.b4t':'Go · Gin 路由層','arch.b4s':'/api/v1 介面 · /mcp 工具 · gRPC 納管','arch.b5t':'Service 層','arch.b5s':'AI / 安全 / Docker / 監控 / 檔案 / 排程任務…','arch.b6t':'JWT 鑑權 + RBAC + MFA','arch.b6s':'中介層鏈式校驗',
-  'arch.b7t':'SQLite（純 Go 驅動）','arch.b7s':'單檔案儲存，免安裝資料庫','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'系統與容器直接對接','arch.b9t':'pty / crontab / 防火牆','arch.b9s':'原生系統能力封裝',
-  'arch.note':'交叉編譯支援 Linux amd64 / arm64 —— 樹莓派、國產化伺服器同樣能跑',
+  'arch.b7t':'SQLite（純 Go 驅動）','arch.b7s':'單檔案儲存，免安裝資料庫','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'系統與容器直接對接','arch.b9t':'pty / crontab / 防火牆','arch.b9s':'原生系統能力封裝',
+  'arch.note':'交叉編譯支援 Linux 與 Windows 的 amd64 / arm64 —— 樹莓派、ARM 伺服器同樣能跑',
   'qs.tag':'Quick Start','qs.h2':'三分鐘跑起來','qs.p':'下載、執行、開啟瀏覽器——沒有安裝精靈，沒有依賴地獄。',
-  'qs.s1t':'一鍵安裝','qs.s1d':'一條命令自動下載二進位制、產生設定並註冊 systemd 服務','qs.s2t':'開啟登入','qs.s2d':'訪問 http://<IP>:8888，帳號 opsmini，密碼見指令碼輸出或 .init_passwd 檔案','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、設定防火牆；外部 AI 工具透過 /mcp 接入，多台主機用 gRPC 納管到 OpsMini Server',
+  'qs.s1t':'一鍵安裝','qs.s1d':'一條命令自動下載二進位檔、產生設定並註冊系統服務（Linux 用 systemd，Windows 用 SCM）。','qs.s2t':'開啟登入','qs.s2d':'訪問 http://<IP>:8888，帳號 opsmini，密碼見指令碼輸出或 .init_passwd 檔案','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、設定防火牆；外部 AI 工具透過 /mcp 接入，多台主機用 gRPC 納管到 OpsMini Server',
   'api.tag':'Developer API','api.h2':'為自動化而生','api.p':'面板能做的事，API 都能做。人用瀏覽器，程式用介面。','api.h3':'介面 + 工具雙接口',
   'api.p2':'面向介面的 <b>/api/v1</b> 與面向 AI 的 <b>/mcp</b> 相互獨立：令牌隔離、權限隔離。Claude、Cursor 等可直接呼叫面板能力。',
   'api.l1':'JWT 鑑權 + 刷新令牌，MCP 使用獨立的長期 Token','api.l2':'涵蓋容器、檔案、監控、告警、安全、排程任務全模組','api.l3':'原生 MCP 接入，讓外部 AI 助手直接操作你的伺服器','api.l4':'OpenAPI 風格路由，curl 即可完成全部自動化',
   'api.code.title':'curl 範例',
-  'st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'組對外介面',
+  'plat.tag':'Platforms','plat.h2':'一個二進位檔，兩個平台','plat.p':'Linux 與 Windows 功能對齊：指標採集、AI 智慧體、排程任務、多機納管、REST API、Docker 管理。差異只在系統介面層。','plat.linux':'<li>systemd 託管，開機自啟</li><li>pty 命令列終端</li><li>node_exporter 風格指標</li><li>網站 / 資料庫一鍵部署</li><li>SSH 加固與檔案完整性監控</li>','plat.win':'<li>Windows 服務（SCM）託管</li><li>ConPTY 終端 + 圖形終端（即時畫面，可接管滑鼠鍵盤）</li><li>windows_exporter 0.32.1 相容指標，Grafana 面板直接沿用</li><li>UAC / 防火牆 / RDP / SMBv1 / Defender 基線檢查</li><li>單一 exe 交付，無需執行階段</li>','plat.note':'網站、資料庫與一鍵部署為 Linux 專屬能力，Windows 上對應介面回傳 501，其餘功能在兩個平台一致。','st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'組對外介面',
   'faq.tag':'FAQ','faq.h2':'常見問題',
   'faq.q1':'OpsMini 和寶塔、1Panel 有什麼區別？','faq.a1':'OpsMini 是常駐主機的 AI 維運 Agent，不是傳統面板。頁面只是它的觀察窗：它能自主診斷並執行，提供 MCP 與機器對機器介面，純 Go + SQLite 單檔交付。',
   'faq.q2':'支援哪些系統 / 架構？','faq.a2':'Linux amd64 與 arm64（含樹莓派、國產化伺服器）。面板本身是靜態編譯的 Go 二進位，只要核心版本不是特別古老即可執行。',
@@ -1271,13 +1305,13 @@ const I18N = {
 },
 'ja': {
   'title':'OpsMini — サーバー上で動く AI 運用エージェント','foot.faq':'よくある質問',
-  'hl1.t':'自分で動く AI','hl1.d':'診断だけでなく実行まで——危険度に応じて権限を段階化','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張','install.label':'ワンクリックインストール','install.copy':'コピー','install.copied':'コピーしました',
+  'hl1.t':'自分で動く AI','hl1.d':'診断だけでなく実行まで——危険度に応じて権限を段階化','hl2.t':'永久オープンソース','hl2.d':'完全オープンソース——有料版なし、機能制限なし、商用版の計画なし','hl3.t':'MCP と Skill に対応','hl3.d':'MCP プロトコルとカスタム Skill で AI 能力を自由に拡張','install.label':'ワンクリックインストール','install.copy':'コピー','install.copied':'コピーしました','install.note':'Linux では sudo で実行し、Windows では管理者として PowerShell を開きます。どちらもシステムサービスとして登録され、起動時に自動で立ち上がります。',
   'nav.features':'ツール','nav.ai':'Agent','nav.arch':'アーキテクチャ','nav.quickstart':'導入','nav.api':'API','nav.faq':'FAQ','nav.cta':'はじめる','nav.tagline':'ホスト上の AI 運用エージェント','nav.docs':'ドキュメント',
   'hero.badge':'常駐 · 自律実行 · データは端末内',
   'hero.title':'AI が自分で<br><span class="grad">サーバーを運用する</span>',
-  'hero.lead':'OpsMini は Linux ホストに常駐する AI 運用エージェントです。指標を集め、異常を判断し、自分で対処します。危険な操作の前には必ず止まって確認を求めます。数十 MB の静的バイナリ 1 つで、データはすべて端末内に残ります。',
+  'hero.lead':'OpsMini は Linux と Windows ホストに常駐する AI 運用エージェントです。自らメトリクスを収集し、異常を判断し、自ら対処します。リスクの高い操作のときだけ停止して承認を待ちます。エージェント本体は数十 MB の静的バイナリで、データはすべてローカルに残ります。',
   'hero.ctaPrimary':'クイックスタート →','hero.ctaGhost':'動きを見る',
-  'hero.meta1':'<b>Go</b> 静的単一バイナリ','hero.meta2':'<b>systemd</b> 常駐管理','hero.meta3':'<b>29</b> 個の運用ツール','hero.meta4':'<b>L0–L3</b> 段階的な権限',
+  'hero.meta1':'<b>Go</b> 静的単一バイナリ','hero.meta2':'<b>systemd / SCM</b> 常駐管理','hero.meta3':'<b>29</b> 個の運用ツール','hero.meta4':'<b>L0–L3</b> 段階的な権限',
   'hero.side.dash':'📊 ダッシュボード','hero.side.ai':'🤖 AI アシスタント','hero.side.sec':'🛡️ セキュリティ','hero.side.docker':'🐳 コンテナ','hero.side.term':'⌨️ ターミナル','hero.side.file':'📁 ファイル',
   'hero.stat.mem':'メモリ','hero.stat.disk':'ディスク',
   'hero.aiq':'🤖 ユーザー：ディスク使用量が急に増えました。調べてください',
@@ -1302,15 +1336,15 @@ const I18N = {
   'arch.c1':'ブラウザ','arch.c2':'OpsMini サービス','arch.c3':'ホスト',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed でバイナリに埋め込み、7 言語 i18n','arch.b2t':'ECharts 可視化','arch.b2s':'ダッシュボード / トレンド / アラート','arch.b3t':'xterm.js ターミナル','arch.b3s':'全二重 WebSocket',
   'arch.b4t':'Go · Gin ルーター','arch.b4s':'/api/v1（UI）· /mcp（ツール）· gRPC（統合管理）','arch.b5t':'Service 層','arch.b5s':'AI / セキュリティ / Docker / 監視 / ファイル / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'ミドルウェアチェーン検証',
-  'arch.b7t':'SQLite（純 Go）','arch.b7s':'単一ファイル保存、DB 不要','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'システム・コンテナへ直接アクセス','arch.b9t':'pty / crontab / ファイアウォール','arch.b9s':'ネイティブ機能のラッパー',
-  'arch.note':'Linux amd64 / arm64 にクロスコンパイル——Raspberry Pi や国産サーバーでも動作',
+  'arch.b7t':'SQLite（純 Go）','arch.b7s':'単一ファイル保存、DB 不要','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'システム・コンテナへ直接アクセス','arch.b9t':'pty / crontab / ファイアウォール','arch.b9s':'ネイティブ機能のラッパー',
+  'arch.note':'Linux と Windows の amd64 / arm64 にクロスコンパイル対応 —— Raspberry Pi や ARM サーバーでも動作します',
   'qs.tag':'Quick Start','qs.h2':'数分で起動','qs.p':'ダウンロード、実行、ブラウザを開くだけ——インストールウィザードも依存地獄もありません。',
-  'qs.s1t':'ワンクリックインストール','qs.s1d':'1 コマンドでバイナリのダウンロード・設定生成・systemd 登録まで完了','qs.s2t':'開いてログイン','qs.s2d':'http://<IP>:8888 にアクセス、ユーザー opsmini、パスワードはスクリプト出力または .init_passwd','qs.s3t':'強化と連携','qs.s3d':'MFA とファイアウォールを有効化。外部 AI ツールは /mcp で接続し、複数ホストは gRPC で OpsMini Server に統合',
+  'qs.s1t':'ワンクリックインストール','qs.s1d':'1 コマンドでバイナリを取得し、設定を生成してシステムサービスに登録します（Linux は systemd、Windows は SCM）。','qs.s2t':'開いてログイン','qs.s2d':'http://<IP>:8888 にアクセス、ユーザー opsmini、パスワードはスクリプト出力または .init_passwd','qs.s3t':'強化と連携','qs.s3d':'MFA とファイアウォールを有効化。外部 AI ツールは /mcp で接続し、複数ホストは gRPC で OpsMini Server に統合',
   'api.tag':'Developer API','api.h2':'自動化のために','api.p':'パネルでできることは API でもできる。人はブラウザ、プログラムは API。','api.h3':'UI API + ツール API',
   'api.p2':'UI 向け <b>/api/v1</b> と AI 向け <b>/mcp</b> は独立しており、トークンと権限が分離されています。Claude や Cursor から直接呼び出せます。',
   'api.l1':'JWT 認証 + リフレッシュトークン、MCP は専用の長期トークン','api.l2':'コンテナ・ファイル・監視・アラート・セキュリティ・cron をすべてカバー','api.l3':'ネイティブ MCP で外部 AI アシスタントからサーバーを操作','api.l4':'OpenAPI スタイルのルートで、curl だけで完全自動化',
   'api.code.title':'curl の例',
-  'st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'外部インターフェース',
+  'plat.tag':'Platforms','plat.h2':'1 つのバイナリで 2 つのプラットフォーム','plat.p':'Linux と Windows で機能は同等です。メトリクス収集、AI エージェント、定期タスク、複数ホスト管理、REST API、Docker 管理。違いはシステムインターフェース層だけです。','plat.linux':'<li>systemd 管理・起動時自動開始</li><li>pty コマンドライン端末</li><li>node_exporter 形式のメトリクス</li><li>Web サイト / データベースのワンクリック展開</li><li>SSH 強化とファイル完全性監視</li>','plat.win':'<li>Windows サービス（SCM）管理</li><li>ConPTY 端末 + グラフィカル端末（リアルタイム画面、マウスとキーボードを操作可能）</li><li>windows_exporter 0.32.1 互換メトリクスで既存の Grafana ダッシュボードをそのまま利用可能</li><li>UAC / ファイアウォール / RDP / SMBv1 / Defender のベースライン検査</li><li>単一 exe、ランタイム不要</li>','plat.note':'Web サイト・データベース・ワンクリック展開は Linux 専用です。Windows では該当 API が 501 を返し、その他の機能は両プラットフォームで同じです。','st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'外部インターフェース',
   'faq.tag':'FAQ','faq.h2':'よくある質問',
   'faq.q1':'OpsMini と宝塔・1Panel の違いは？','faq.a1':'OpsMini は常駐型の AI 運用エージェントであり、従来のパネルではありません。画面は観測窓です。自律的に診断・実行し、MCP とマシン間 API を備え、Go + SQLite の単一バイナリで動作します。',
   'faq.q2':'対応システム / アーキテクチャは？','faq.a2':'Linux amd64 と arm64（Raspberry Pi や国産サーバーを含む）。静的コンパイルされた Go バイナリなので、カーネルが古すぎなければ動作します。',
@@ -1379,13 +1413,13 @@ const I18N = {
 },
 'ko': {
   'title':'OpsMini — 서버 위에서 사는 AI 운영 에이전트','foot.faq':'FAQ',
-  'hl1.t':'직접 움직이는 AI','hl1.d':'진단을 넘어 실행까지 — 위험도에 따른 단계적 권한','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장','install.label':'원클릭 설치','install.copy':'복사','install.copied':'복사됨',
+  'hl1.t':'직접 움직이는 AI','hl1.d':'진단을 넘어 실행까지 — 위험도에 따른 단계적 권한','hl2.t':'영구 오픈소스 · 상용판 없음','hl2.d':'완전 오픈소스 — 유료 티어 없음, 기능 제한 없음, 상용판 계획 없음','hl3.t':'MCP & Skill 지원','hl3.d':'MCP 프로토콜과 커스텀 Skill로 AI 기능을 자유롭게 확장','install.label':'원클릭 설치','install.copy':'복사','install.copied':'복사됨','install.note':'Linux 에서는 sudo 로 실행하고, Windows 에서는 관리자 권한으로 PowerShell 을 엽니다. 둘 다 시스템 서비스로 등록되어 부팅 시 자동 시작됩니다.',
   'nav.features':'도구','nav.ai':'Agent','nav.arch':'아키텍처','nav.quickstart':'빠른 시작','nav.api':'API','nav.faq':'FAQ','nav.cta':'시작하기','nav.tagline':'호스트의 AI 운영 에이전트','nav.docs':'문서',
   'hero.badge':'상주 실행 · 자율 판단 · 데이터는 로컬',
   'hero.title':'서버에 AI를 심고<br><span class="grad">스스로 운영하게</span>',
-  'hero.lead':'OpsMini 는 Linux 호스트에 상주하는 AI 운영 에이전트입니다. 지표를 모으고, 이상을 판단하고, 직접 처리합니다. 위험한 작업 앞에서는 반드시 멈춰 승인을 요청합니다. 수십 MB 단일 정적 바이너리 하나로 동작하며 데이터는 모두 로컬에 남습니다.',
+  'hero.lead':'OpsMini 는 Linux 와 Windows 호스트에 상주하는 AI 운영 에이전트입니다. 스스로 지표를 수집하고 이상을 판단하며 직접 처리합니다. 위험한 작업일 때만 멈춰서 승인을 기다립니다. 에이전트는 수십 MB 의 정적 바이너리이며 모든 데이터는 로컬에 남습니다.',
   'hero.ctaPrimary':'빠른 시작 →','hero.ctaGhost':'동작 방식 보기',
-  'hero.meta1':'<b>Go</b> 단일 정적 바이너리','hero.meta2':'<b>systemd</b> 상주 관리','hero.meta3':'<b>29</b>개 운영 도구','hero.meta4':'<b>L0–L3</b> 단계적 권한',
+  'hero.meta1':'<b>Go</b> 단일 정적 바이너리','hero.meta2':'<b>systemd / SCM</b> 상주 관리','hero.meta3':'<b>29</b>개 운영 도구','hero.meta4':'<b>L0–L3</b> 단계적 권한',
   'hero.side.dash':'📊 대시보드','hero.side.ai':'🤖 AI 어시스턴트','hero.side.sec':'🛡️ 보안 센터','hero.side.docker':'🐳 컨테이너','hero.side.term':'⌨️ 터미널','hero.side.file':'📁 파일',
   'hero.stat.mem':'메모리','hero.stat.disk':'디스크',
   'hero.aiq':'🤖 사용자: 디스크 사용량이 갑자기 늘었어요. 확인해 주세요',
@@ -1410,15 +1444,15 @@ const I18N = {
   'arch.c1':'브라우저','arch.c2':'OpsMini 서비스','arch.c3':'호스트',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed 로 바이너리에 내장, 7개 언어 i18n','arch.b2t':'ECharts 시각화','arch.b2s':'대시보드 / 추이 / 알림','arch.b3t':'xterm.js 터미널','arch.b3s':'전이중 WebSocket',
   'arch.b4t':'Go · Gin 라우터','arch.b4s':'/api/v1(UI) · /mcp(도구) · gRPC(통합 관리)','arch.b5t':'Service 계층','arch.b5s':'AI / 보안 / Docker / 모니터링 / 파일 / 크론…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'미들웨어 체인 검증',
-  'arch.b7t':'SQLite(순수 Go)','arch.b7s':'단일 파일 저장, DB 설치 불필요','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'시스템·컨테이너 직접 연동','arch.b9t':'pty / crontab / 방화벽','arch.b9s':'네이티브 시스템 래퍼',
-  'arch.note':'Linux amd64 / arm64 크로스 컴파일——라즈베리파이와 국산 서버에서도 동작',
+  'arch.b7t':'SQLite(순수 Go)','arch.b7s':'단일 파일 저장, DB 설치 불필요','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'시스템·컨테이너 직접 연동','arch.b9t':'pty / crontab / 방화벽','arch.b9s':'네이티브 시스템 래퍼',
+  'arch.note':'Linux 와 Windows 의 amd64 / arm64 로 크로스 컴파일 지원 —— 라즈베리파이와 ARM 서버에서도 동작합니다',
   'qs.tag':'Quick Start','qs.h2':'몇 분이면 실행','qs.p':'다운로드, 실행, 브라우저 열기——설치 마법사도 의존성 지옥도 없습니다.',
-  'qs.s1t':'원클릭 설치','qs.s1d':'한 줄 명령으로 바이너리 다운로드·설정 생성·systemd 등록까지 완료','qs.s2t':'열고 로그인','qs.s2d':'http://<IP>:8888 접속, 계정 opsmini, 비밀번호는 스크립트 출력 또는 .init_passwd','qs.s3t':'강화 및 연동','qs.s3d':'MFA 와 방화벽을 켜고, 외부 AI 도구는 /mcp 로 연결하며 여러 호스트는 gRPC 로 OpsMini Server 에 통합',
+  'qs.s1t':'원클릭 설치','qs.s1d':'명령 하나로 바이너리 다운로드, 설정 생성, 시스템 서비스 등록까지 처리합니다 (Linux 는 systemd, Windows 는 SCM).','qs.s2t':'열고 로그인','qs.s2d':'http://<IP>:8888 접속, 계정 opsmini, 비밀번호는 스크립트 출력 또는 .init_passwd','qs.s3t':'강화 및 연동','qs.s3d':'MFA 와 방화벽을 켜고, 외부 AI 도구는 /mcp 로 연결하며 여러 호스트는 gRPC 로 OpsMini Server 에 통합',
   'api.tag':'Developer API','api.h2':'자동화를 위해','api.p':'패널이 할 수 있는 일은 API 도 할 수 있습니다. 사람은 브라우저, 프로그램은 API 를 사용합니다.','api.h3':'UI API + 도구 API',
   'api.p2':'UI 용 <b>/api/v1</b> 과 AI 용 <b>/mcp</b> 는 독립적이며 토큰과 권한이 분리됩니다. Claude, Cursor 등에서 패널 기능을 직접 호출할 수 있습니다.',
   'api.l1':'JWT 인증 + 리프레시 토큰, MCP 는 별도 장기 토큰 사용','api.l2':'컨테이너·파일·모니터링·알림·보안·크론 전 모듈 커버','api.l3':'네이티브 MCP 로 외부 AI 어시스턴트가 서버를 직접 조작','api.l4':'OpenAPI 스타일 라우트, curl 만으로 완전 자동화',
   'api.code.title':'curl 예시',
-  'st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'외부 인터페이스',
+  'plat.tag':'Platforms','plat.h2':'하나의 바이너리, 두 개의 플랫폼','plat.p':'Linux 와 Windows 기능이 동일합니다. 지표 수집, AI 에이전트, 예약 작업, 다중 호스트 관리, REST API, Docker 관리. 차이는 시스템 인터페이스 계층뿐입니다.','plat.linux':'<li>systemd 관리, 부팅 시 자동 시작</li><li>pty 명령줄 터미널</li><li>node_exporter 스타일 지표</li><li>웹사이트 / 데이터베이스 원클릭 배포</li><li>SSH 강화 및 파일 무결성 모니터링</li>','plat.win':'<li>Windows 서비스(SCM) 관리</li><li>ConPTY 터미널 + 그래픽 터미널 (실시간 화면, 마우스와 키보드 제어)</li><li>windows_exporter 0.32.1 호환 지표, 기존 Grafana 대시보드 그대로 사용</li><li>UAC / 방화벽 / RDP / SMBv1 / Defender 기준 검사</li><li>단일 exe, 런타임 불필요</li>','plat.note':'웹사이트, 데이터베이스, 원클릭 배포는 Linux 전용입니다. Windows 에서 해당 API 는 501 을 반환하며 나머지 기능은 두 플랫폼에서 동일합니다.','st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'외부 인터페이스',
   'faq.tag':'FAQ','faq.h2':'자주 묻는 질문',
   'faq.q1':'OpsMini 와 바오타·1Panel 의 차이는?','faq.a1':'OpsMini 는 상주형 AI 운영 에이전트이며 전통적인 패널이 아닙니다. 화면은 관측 창일 뿐이며, 스스로 진단하고 실행하고 MCP 와 머신 간 API 를 제공합니다. Go + SQLite 단일 바이너리로 배포됩니다.',
   'faq.q2':'어떤 시스템 / 아키텍처를 지원하나요?','faq.a2':'Linux amd64 와 arm64(라즈베리파이, 국산 서버 포함). 패널은 정적 컴파일된 Go 바이너리라 커널이 너무 오래되지 않았다면 실행됩니다.',
@@ -1487,13 +1521,13 @@ const I18N = {
 },
 'th': {
   'title':'OpsMini — AI Ops Agent ที่อยู่บนเซิร์ฟเวอร์ของคุณ','foot.faq':'คำถามที่พบบ่อย',
-  'hl1.t':'AI ที่ลงมือทำเอง','hl1.d':'ไม่ใช่แค่วินิจฉัย แต่ลงมือทำได้ ตามระดับความเสี่ยง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI','install.label':'ติดตั้งคลิกเดียว','install.copy':'คัดลอก','install.copied':'คัดลอกแล้ว',
+  'hl1.t':'AI ที่ลงมือทำเอง','hl1.d':'ไม่ใช่แค่วินิจฉัย แต่ลงมือทำได้ ตามระดับความเสี่ยง','hl2.t':'โอเพนซอร์สถาวร · ไม่มีเวอร์ชันเชิงพาณิชย์','hl2.d':'โอเพนซอร์สเต็มรูปแบบ ไม่มีเพย์วอลล์ ไม่มีฟีเจอร์จำกัด ไม่มีแผนเวอร์ชันเชิงพาณิชย์','hl3.t':'รองรับ MCP และ Skill','hl3.d':'เชื่อมต่อโปรโตคอล MCP และ Skill กำหนดเอง เพื่อขยายความสามารถ AI','install.label':'ติดตั้งคลิกเดียว','install.copy':'คัดลอก','install.copied':'คัดลอกแล้ว','install.note':'บน Linux รันด้วย sudo ส่วน Windows ให้เปิด PowerShell ในโหมดผู้ดูแลระบบ ทั้งสองวิธีลงทะเบียนเป็นบริการระบบและตั้งให้เริ่มอัตโนมัติเมื่อบูต',
   'nav.features':'เครื่องมือ','nav.ai':'Agent','nav.arch':'สถาปัตยกรรม','nav.quickstart':'เริ่มต้นใช้งาน','nav.api':'API','nav.faq':'FAQ','nav.cta':'เริ่มใช้งาน','nav.tagline':'AI Ops Agent บนโฮสต์','nav.docs':'เอกสาร',
   'hero.badge':'ทำงานตลอดเวลา · ลงมือเอง · ข้อมูลอยู่ในเครื่อง',
   'hero.title':'ใส่ AI ลงในเซิร์ฟเวอร์<br>แล้วให้มัน<span class="grad">ดูแลตัวเอง</span>',
-  'hero.lead':'OpsMini คือ AI ops agent ที่ประจำอยู่บนโฮสต์ Linux ของคุณ มันเก็บค่าตัวชี้วัด ตัดสินว่าอะไรผิดปกติ และลงมือแก้ให้เอง โดยจะหยุดขออนุมัติก่อนทำสิ่งที่มีความเสี่ยง ทั้งหมดเป็นไบนารีเดียวขนาดไม่กี่สิบ MB และข้อมูลอยู่บนเครื่องทั้งหมด',
+  'hero.lead':'OpsMini คือ AI ops agent ที่ทำงานประจำบนโฮสต์ Linux และ Windows เก็บเมตริก ตัดสินความผิดปกติ และลงมือจัดการเอง หยุดรอการอนุมัติเฉพาะเมื่อเป็นการกระทำที่มีความเสี่ยง ทั้งตัว agent เป็นไบนารีสแตติกขนาดหลายสิบ MB และข้อมูลทั้งหมดอยู่บนเครื่อง',
   'hero.ctaPrimary':'เริ่มต้นใช้งาน →','hero.ctaGhost':'ดูว่ามันทำงานอย่างไร',
-  'hero.meta1':'<b>Go</b> ไบนารีเดียว','hero.meta2':'<b>systemd</b> จัดการเป็นบริการ','hero.meta3':'<b>29</b> เครื่องมือปฏิบัติการ','hero.meta4':'<b>L0–L3</b> แบ่งระดับสิทธิ์',
+  'hero.meta1':'<b>Go</b> ไบนารีเดียว','hero.meta2':'<b>systemd / SCM</b> จัดการเป็นบริการ','hero.meta3':'<b>29</b> เครื่องมือปฏิบัติการ','hero.meta4':'<b>L0–L3</b> แบ่งระดับสิทธิ์',
   'hero.side.dash':'📊 แดชบอร์ด','hero.side.ai':'🤖 ผู้ช่วย AI','hero.side.sec':'🛡️ ความปลอดภัย','hero.side.docker':'🐳 คอนเทนเนอร์','hero.side.term':'⌨️ เทอร์มินัล','hero.side.file':'📁 ไฟล์',
   'hero.stat.mem':'หน่วยความจำ','hero.stat.disk':'ดิสก์',
   'hero.aiq':'🤖 ผู้ใช้: ดิสก์ใช้พื้นที่เพิ่มขึ้นกะทันหัน ช่วยดูหน่อย',
@@ -1518,15 +1552,15 @@ const I18N = {
   'arch.c1':'เบราว์เซอร์','arch.c2':'บริการ OpsMini','arch.c3':'โฮสต์',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'ฝังในไบนารีด้วย go:embed รองรับ 7 ภาษา','arch.b2t':'ECharts','arch.b2s':'แดชบอร์ด / แนวโน้ม / การแจ้งเตือน','arch.b3t':'เทอร์มินัล xterm.js','arch.b3s':'WebSocket แบบ full-duplex',
   'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) · /mcp (เครื่องมือ) · gRPC (จัดการหมู่)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'middleware แบบ chain',
-  'arch.b7t':'SQLite (pure-Go)','arch.b7s':'เก็บไฟล์เดียว ไม่ต้องติดตั้ง DB','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'เข้าถึงระบบและคอนเทนเนอร์โดยตรง','arch.b9t':'pty / crontab / ไฟร์วอลล์','arch.b9s':'wrapper ความสามารถระบบดั้งเดิม',
-  'arch.note':'คอมไพล์ข้ามแพลตฟอร์ม Linux amd64 / arm64 —— ใช้ได้กับ Raspberry Pi และเซิร์ฟเวอร์ในประเทศ',
+  'arch.b7t':'SQLite (pure-Go)','arch.b7s':'เก็บไฟล์เดียว ไม่ต้องติดตั้ง DB','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'เข้าถึงระบบและคอนเทนเนอร์โดยตรง','arch.b9t':'pty / crontab / ไฟร์วอลล์','arch.b9s':'wrapper ความสามารถระบบดั้งเดิม',
+  'arch.note':'คอมไพล์ข้ามแพลตฟอร์มสำหรับ Linux และ Windows บน amd64 / arm64 —— รันบน Raspberry Pi และเซิร์ฟเวอร์ ARM ได้เช่นกัน',
   'qs.tag':'Quick Start','qs.h2':'ใช้งานได้ในไม่กี่นาที','qs.p':'ดาวน์โหลด รัน เปิดเบราว์เซอร์——ไม่มี wizard ติดตั้ง ไม่มี dependency ที่วุ่นวาย',
-  'qs.s1t':'ติดตั้งคลิกเดียว','qs.s1d':'หนึ่งคำสั่งดาวน์โหลดไบนารี สร้างคอนฟิก และลงทะเบียน systemd ให้อัตโนมัติ','qs.s2t':'เปิดและเข้าสู่ระบบ','qs.s2d':'เข้า http://<IP>:8888 ผู้ใช้ opsmini รหัสผ่านจากเอาต์พุตสคริปต์หรือ .init_passwd','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิด MFA และไฟร์วอลล์ เชื่อมเครื่องมือ AI ภายนอกผ่าน /mcp และรวมหลายโฮสต์เข้า OpsMini Server ด้วย gRPC',
+  'qs.s1t':'ติดตั้งคลิกเดียว','qs.s1d':'คำสั่งเดียวจะดาวน์โหลดไบนารี สร้างคอนฟิก และลงทะเบียนเป็นบริการระบบ (Linux ใช้ systemd, Windows ใช้ SCM)','qs.s2t':'เปิดและเข้าสู่ระบบ','qs.s2d':'เข้า http://<IP>:8888 ผู้ใช้ opsmini รหัสผ่านจากเอาต์พุตสคริปต์หรือ .init_passwd','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิด MFA และไฟร์วอลล์ เชื่อมเครื่องมือ AI ภายนอกผ่าน /mcp และรวมหลายโฮสต์เข้า OpsMini Server ด้วย gRPC',
   'api.tag':'Developer API','api.h2':'สร้างมาเพื่อ automation','api.p':'สิ่งที่แผงทำได้ API ก็ทำได้ คนใช้เบราว์เซอร์ โปรแกรมใช้ API','api.h3':'API สำหรับ UI + เครื่องมือ',
   'api.p2':'<b>/api/v1</b> สำหรับ UI และ <b>/mcp</b> สำหรับ AI แยกจากกันโดยสิ้นเชิง ทั้ง token และสิทธิ์ Claude หรือ Cursor เรียกใช้ความสามารถของแผงได้โดยตรง',
   'api.l1':'JWT + refresh token ส่วน MCP ใช้ token อายุยาวแยกต่างหาก','api.l2':'ครอบคลุมคอนเทนเนอร์ ไฟล์ มอนิเตอร์ แจ้งเตือน ความปลอดภัย และ cron','api.l3':'MCP ดั้งเดิม ให้ผู้ช่วย AI ภายนอกสั่งการเซิร์ฟเวอร์ได้','api.l4':'เส้นทางแบบ OpenAPI ใช้ curl ก็ทำ automation ได้ครบ',
   'api.code.title':'ตัวอย่าง curl',
-  'st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'อินเทอร์เฟซภายนอก',
+  'plat.tag':'Platforms','plat.h2':'ไบนารีเดียว สองแพลตฟอร์ม','plat.p':'ฟีเจอร์เท่ากันทั้ง Linux และ Windows: เก็บเมตริก, AI agent, งานตามกำหนดเวลา, จัดการหลายโฮสต์, REST API, จัดการ Docker ต่างกันแค่ชั้นอินเทอร์เฟซระบบ','plat.linux':'<li>จัดการด้วย systemd เริ่มอัตโนมัติเมื่อบูต</li><li>เทอร์มินัลบรรทัดคำสั่ง pty</li><li>เมตริกสไตล์ node_exporter</li><li>ติดตั้งเว็บไซต์ / ฐานข้อมูลคลิกเดียว</li><li>เสริมความปลอดภัย SSH และตรวจสอบความสมบูรณ์ไฟล์</li>','plat.win':'<li>จัดการเป็นบริการ Windows (SCM)</li><li>เทอร์มินัล ConPTY + เทอร์มินัลกราฟิก (ภาพหน้าจอเรียลไทม์ ควบคุมเมาส์และคีย์บอร์ดได้)</li><li>เมตริกเข้ากันได้กับ windows_exporter 0.32.1 ใช้แดชบอร์ด Grafana เดิมได้ทันที</li><li>ตรวจพื้นฐาน UAC / ไฟร์วอลล์ / RDP / SMBv1 / Defender</li><li>ไฟล์ exe เดียว ไม่ต้องติดตั้งรันไทม์</li>','plat.note':'เว็บไซต์ ฐานข้อมูล และการติดตั้งคลิกเดียวเป็นความสามารถเฉพาะ Linux บน Windows API เหล่านั้นจะคืนค่า 501 ส่วนฟีเจอร์อื่นทำงานเหมือนกันทั้งสองแพลตฟอร์ม','st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'อินเทอร์เฟซภายนอก',
   'faq.tag':'FAQ','faq.h2':'คำถามที่พบบ่อย',
   'faq.q1':'OpsMini ต่างจาก BaoTa หรือ 1Panel อย่างไร?','faq.a1':'OpsMini เป็น AI ops agent ที่ประจำบนโฮสต์ ไม่ใช่แผงควบคุมแบบเดิม หน้าเว็บเป็นเพียงหน้าต่างสำหรับมองดู มันวินิจฉัยและลงมือเอง รองรับ MCP และ API ระหว่างเครื่อง และแพ็กเป็นไบนารี Go + SQLite ตัวเดียว',
   'faq.q2':'รองรับระบบ / สถาปัตยกรรมใดบ้าง?','faq.a2':'Linux amd64 และ arm64 (รวม Raspberry Pi และเซิร์ฟเวอร์ในประเทศ) แผงเป็น Go binary แบบ static compile จึงรันได้ตราบใดที่ kernel ไม่เก่าเกินไป',
@@ -1595,13 +1629,13 @@ const I18N = {
 },
 'de': {
   'title':'OpsMini — Der KI-Betriebsagent auf Ihrem Server','foot.faq':'FAQ',
-  'hl1.t':'Eine KI, die wirklich handelt','hl1.d':'Nicht nur Diagnose, sondern Ausführung — abgestuft nach Risiko','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern','install.label':'Ein-Klick-Installation','install.copy':'Kopieren','install.copied':'Kopiert',
+  'hl1.t':'Eine KI, die wirklich handelt','hl1.d':'Nicht nur Diagnose, sondern Ausführung — abgestuft nach Risiko','hl2.t':'Dauerhaft Open Source','hl2.d':'Vollständig Open Source — keine Bezahlstufen, keine Feature-Paywalls, keine kommerzielle Edition','hl3.t':'MCP & Skill bereit','hl3.d':'MCP-Protokoll und eigene Skills integrieren, um KI-Fähigkeiten zu erweitern','install.label':'Ein-Klick-Installation','install.copy':'Kopieren','install.copied':'Kopiert','install.note':'Unter Linux mit sudo ausführen, unter Windows PowerShell als Administrator öffnen. Beide registrieren einen Systemdienst und starten beim Booten automatisch.',
   'nav.features':'Tools','nav.ai':'Agent','nav.arch':'Architektur','nav.quickstart':'Start','nav.api':'API','nav.faq':'FAQ','nav.cta':'Loslegen','nav.tagline':'KI-Betriebsagent auf dem Host','nav.docs':'Docs',
   'hero.badge':'Dauerhaft aktiv · Handelt selbst · Daten bleiben lokal',
   'hero.title':'Ein KI-Agent im Server,<br>der ihn <span class="grad">selbst betreibt</span>',
-  'hero.lead':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent auf Ihrem Linux-Host. Er sammelt Messwerte, erkennt Auffälligkeiten und handelt selbst — vor riskanten Schritten hält er an und fragt Sie. Der ganze Agent ist eine statische Binary von wenigen Dutzend MB, alle Daten bleiben auf der Maschine.',
+  'hero.lead':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent für Linux- und Windows-Hosts. Er sammelt Metriken, beurteilt Anomalien und handelt selbstständig und hält nur bei riskanten Aktionen an, um auf Ihre Freigabe zu warten. Der Agent ist eine statische Binary von wenigen Dutzend MB, alle Daten bleiben auf dem Gerät.',
   'hero.ctaPrimary':'Schnellstart →','hero.ctaGhost':'So arbeitet er',
-  'hero.meta1':'<b>Go</b> statische Binary','hero.meta2':'<b>systemd</b> verwaltet','hero.meta3':'<b>29</b> Betriebswerkzeuge','hero.meta4':'<b>L0–L3</b> abgestufte Rechte',
+  'hero.meta1':'<b>Go</b> statische Binary','hero.meta2':'<b>systemd / SCM</b> verwaltet','hero.meta3':'<b>29</b> Betriebswerkzeuge','hero.meta4':'<b>L0–L3</b> abgestufte Rechte',
   'hero.side.dash':'📊 Dashboard','hero.side.ai':'🤖 KI-Assistent','hero.side.sec':'🛡️ Sicherheit','hero.side.docker':'🐳 Container','hero.side.term':'⌨️ Terminal','hero.side.file':'📁 Dateien',
   'hero.stat.mem':'Arbeitsspeicher','hero.stat.disk':'Festplatte',
   'hero.aiq':'🤖 Benutzer: Die Festplattennutzung ist plötzlich gestiegen, schau bitte nach',
@@ -1626,15 +1660,15 @@ const I18N = {
   'arch.c1':'Browser','arch.c2':'OpsMini-Dienst','arch.c3':'Host',
   'arch.b1t':'Vue-3-SPA','arch.b1s':'per go:embed eingebettet, 7 Sprachen i18n','arch.b2t':'ECharts-Visualisierung','arch.b2s':'Dashboard / Trends / Alarme','arch.b3t':'xterm.js-Terminal','arch.b3s':'Vollduplex-WebSocket',
   'arch.b4t':'Go · Gin-Router','arch.b4s':'/api/v1 (UI) · /mcp (Werkzeuge) · gRPC (Flotte)','arch.b5t':'Service-Schicht','arch.b5s':'KI / Sicherheit / Docker / Monitoring / Dateien / Cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'verkettete Middleware',
-  'arch.b7t':'SQLite (pure Go)','arch.b7s':'Einzeldatei-Speicher, keine DB-Installation','arch.b8t':'Docker Engine / systemd / procfs','arch.b8s':'direkter System- & Container-Zugriff','arch.b9t':'pty / crontab / Firewall','arch.b9s':'native System-Wrapper',
-  'arch.note':'Cross-Compile für Linux amd64 / arm64 — läuft auf Raspberry Pi ebenso wie auf heimischen Servern',
+  'arch.b7t':'SQLite (pure Go)','arch.b7s':'Einzeldatei-Speicher, keine DB-Installation','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'direkter System- & Container-Zugriff','arch.b9t':'pty / crontab / Firewall','arch.b9s':'native System-Wrapper',
+  'arch.note':'Für Linux und Windows auf amd64 / arm64 kompiliert — läuft auch auf Raspberry Pi und ARM-Servern',
   'qs.tag':'Quick Start','qs.h2':'In Minuten einsatzbereit','qs.p':'Herunterladen, ausführen, Browser öffnen — kein Installationsassistent, kein Abhängigkeits-Albtraum.',
-  'qs.s1t':'Ein-Klick-Installation','qs.s1d':'Ein Befehl lädt die Binärdatei, erzeugt die Konfiguration und registriert den systemd-Dienst','qs.s2t':'Öffnen & anmelden','qs.s2d':'http://<IP>:8888 aufrufen, Benutzer opsmini, Passwort aus der Skriptausgabe oder .init_passwd','qs.s3t':'Absichern & integrieren','qs.s3d':'MFA und Firewall aktivieren; externe KI-Werkzeuge über /mcp anbinden, Hosts per gRPC in den OpsMini Server aufnehmen',
+  'qs.s1t':'Ein-Klick-Installation','qs.s1d':'Ein Befehl lädt die Binary, erzeugt die Konfiguration und registriert einen Systemdienst (systemd unter Linux, SCM unter Windows).','qs.s2t':'Öffnen & anmelden','qs.s2d':'http://<IP>:8888 aufrufen, Benutzer opsmini, Passwort aus der Skriptausgabe oder .init_passwd','qs.s3t':'Absichern & integrieren','qs.s3d':'MFA und Firewall aktivieren; externe KI-Werkzeuge über /mcp anbinden, Hosts per gRPC in den OpsMini Server aufnehmen',
   'api.tag':'Developer API','api.h2':'Gebaut für Automatisierung','api.p':'Was das Panel kann, kann auch die API. Menschen nutzen den Browser, Programme die API.','api.h3':'UI-API + Werkzeug-API',
   'api.p2':'Die UI-API <b>/api/v1</b> und die KI-API <b>/mcp</b> sind getrennt — eigene Tokens, eigene Rechte. Claude, Cursor und andere steuern das Panel direkt.',
   'api.l1':'JWT-Auth + Refresh-Tokens; MCP nutzt ein eigenes langlebiges Token','api.l2':'Deckt Container, Dateien, Monitoring, Alarme, Sicherheit und Cron ab','api.l3':'Natives MCP, damit externe KI-Assistenten deinen Server bedienen können','api.l4':'OpenAPI-artige Routen — vollständige Automatisierung mit reinem curl',
   'api.code.title':'curl-Beispiel',
-  'st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'Schnittstellen',
+  'plat.tag':'Platforms','plat.h2':'Eine Binary, zwei Plattformen','plat.p':'Funktionsgleich unter Linux und Windows: Metriken, KI-Agent, geplante Aufgaben, Mehrhost-Verwaltung, REST-API und Docker. Nur die Systemschnittstelle unterscheidet sich.','plat.linux':'<li>systemd-verwaltet, Start beim Booten</li><li>pty-Kommandozeilenterminal</li><li>Metriken im node_exporter-Stil</li><li>Website / Datenbank mit einem Klick</li><li>SSH-Härtung und Dateiintegrität</li>','plat.win':'<li>Windows-Dienst (SCM)</li><li>ConPTY-Terminal plus Grafikterminal (Live-Bild, Maus und Tastatur übernehmbar)</li><li>windows_exporter-0.32.1-kompatible Metriken, vorhandene Grafana-Dashboards laufen unverändert</li><li>Baseline-Prüfungen: UAC / Firewall / RDP / SMBv1 / Defender</li><li>Eine exe, keine Runtime nötig</li>','plat.note':'Websites, Datenbanken und Ein-Klick-Deploy gibt es nur unter Linux; diese APIs antworten unter Windows mit 501. Alles andere verhält sich auf beiden Plattformen gleich.','st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'Schnittstellen',
   'faq.tag':'FAQ','faq.h2':'Häufig gestellte Fragen',
   'faq.q1':'Wie unterscheidet sich OpsMini von BaoTa oder 1Panel?','faq.a1':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent, kein klassisches Panel. Die Oberfläche ist sein Fenster: Er diagnostiziert und handelt selbst, spricht MCP und eine Maschine-zu-Maschine-API und kommt als eine Go-und-SQLite-Binary.',
   'faq.q2':'Welche Systeme / Architekturen werden unterstützt?','faq.a2':'Linux amd64 und arm64 (inkl. Raspberry Pi und heimischer Server). Das Panel ist eine statisch kompilierte Go-Binary und läuft, solange der Kernel nicht zu alt ist.',
@@ -1799,8 +1833,28 @@ if (!saved) {
 applyLang(saved);
 
 // copy one-click install command
+// 复制当前选中的那条命令：两个平台的命令都在页面上，复制错等于给用户一个跑不通的命令。
+function currentInstallCmd(){
+  const tab = document.querySelector('.os-tab.active');
+  const os = (tab && tab.getAttribute('data-os')) || 'linux';
+  const code = document.getElementById('installCmd');
+  return (code && code.getAttribute('data-cmd-' + os)) || 'curl -fsSL https://opsmini.com/install.sh | sudo bash';
+}
+
+// 切换平台：只换文案和提示符，不重新渲染整块，避免布局跳动
+function switchInstallOS(btn){
+  const os = btn.getAttribute('data-os');
+  document.querySelectorAll('.os-tab').forEach(function(b){ b.classList.toggle('active', b === btn); });
+  const code = document.getElementById('installCmd');
+  const txt = code && code.getAttribute('data-cmd-' + os);
+  const target = document.getElementById('installCmdText');
+  const prompt = document.getElementById('installPrompt');
+  if (txt && target) target.textContent = txt;
+  if (prompt) prompt.textContent = os === 'windows' ? 'PS>' : '$';
+}
+
 function copyInstallCmd(btn){
-  const cmd = 'curl -fsSL https://opsmini.com/install.sh | sudo bash';
+  const cmd = currentInstallCmd();
   const dict = I18N[document.documentElement.lang] || I18N['zh-CN'];
   const ok = () => {
     const span = btn && btn.querySelector('span');
