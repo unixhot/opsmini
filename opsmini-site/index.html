@@ -381,7 +381,9 @@ footer{border-top:1px solid var(--border);padding:44px 0 36px;color:var(--text-f
 .vs-col{border:1px solid var(--border);border-radius:18px;padding:26px 26px 22px;background:#fff}
 .vs-col.old{background:#f8fafc;border-color:#e2e8f0}
 .vs-col.new{background:linear-gradient(180deg,#f4f9ff,#fff);border-color:rgba(37,99,235,.3);box-shadow:0 12px 40px rgba(37,99,235,.08)}
-.vs-col h4{font-size:15px;font-weight:800;margin-bottom:16px}
+.vs-col h4{font-size:15px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* 架构标签：两个平台都是同样的构建矩阵，写法统一才不会让人以为某一侧少一种 */
+.arch-tag{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--accent);background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:2px 8px;white-space:nowrap}
 .vs-col.old h4{color:var(--text-faint)}
 .vs-col.new h4{color:var(--accent)}
 .vs-col ul{list-style:none;display:grid;gap:11px}
@@ -747,7 +749,7 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
       <div class="feat" data-page-node-id="DCskXHG5GPnyQrvuVd6dtQ"><div class="icon" data-page-node-id="d10mCLec32WWTE40KKkFmP">⌨️</div><h4 data-i18n="f5.t" data-page-node-id="ckDPPPbFBsqIzkeIcSD6Lq">Web 终端</h4><p data-i18n="f5.d" data-page-node-id="9i00TTgsLrdJI7tqAlGzOY">WebSocket + pty 的浏览器 SSH 级交互终端，vim、htop 等全屏程序完整兼容，随时随地登录服务器。</p><div class="tags" data-i18n-html="f5.tags" data-page-node-id="55cqMkqi1FbWdah21zeWk2"><span data-page-node-id="fh6OtnwDViaiakA1TfPtBU">xterm</span><span data-page-node-id="Mq4jj6yKFd1IGKYRGF8OBg">pty</span><span data-page-node-id="kq7Be7ezGid2eZG0RZe5AQ">WebSocket</span></div></div>
       <div class="feat" data-page-node-id="S0XAgZgVKYjFNiETQVX8yV"><div class="icon" data-page-node-id="CKWf8BLZTWZ3kZP8LY6H1X">📁</div><h4 data-i18n="f6.t" data-page-node-id="oyZc2sWG9pelGZDKyqviG3">文件管理器</h4><p data-i18n="f6.d" data-page-node-id="rvZMWo0lIW7eD6QHBkTiQ2">在线浏览、上传、下载、重命名、新建目录、批量删除，大文件断点无忧。</p><div class="tags" data-i18n-html="f6.tags" data-page-node-id="AztcIBeeIMVuYrlEpkJrZc"><span data-page-node-id="GAncpOnDKGLhGhsNUXnex9">上传下载</span><span data-page-node-id="qHeI8B2DX2dQxpEZV5mF4B">在线管理</span></div></div>
       <div class="feat" data-page-node-id="zWDvcHoqwhZIuuBr1aX2gr"><div class="icon" data-page-node-id="YKorO83sAYbKKU0g76ym9E">⏰</div><h4 data-i18n="f7.t" data-page-node-id="cQh4AyzpOELNhUGnmgdElR">计划任务</h4><p data-i18n="f7.d" data-page-node-id="5e4n5TO3vIkeysqiGhinkE">系统级与用户级 crontab 可视化管理，脚本在线运行，执行记录可追溯。</p><div class="tags" data-i18n-html="f7.tags" data-page-node-id="ODckByzPo6BHH89Lo5ZbKf"><span data-page-node-id="4L0F3iCCtPjiWEDYjWz67t">cron</span><span data-page-node-id="JLUnJ1CnjMwaKTVXhHLbc7">脚本执行</span></div></div>
-      <div class="feat" data-page-node-id="OLtXrg9YnwWlZNzLoZXKkG"><div class="icon" data-page-node-id="GHww30LxW8NIUI9SGtphjH">📦</div><h4 data-i18n="f8.t" data-page-node-id="u3OPkpYlQBKrSniHQ1ajd6">应用商店</h4><p data-i18n="f8.d" data-page-node-id="GBuMPaCJAqTCdCB9as8V8L">常用应用一键部署，支持官方仓库同步与本地导入，网站与数据库管理配套齐全。</p><div class="tags" data-i18n-html="f8.tags" data-page-node-id="ukk0iGaMY5q4GmtlNXRZTT"><span data-page-node-id="PIwLdz7xPAJM0x75KRcCji">一键部署</span><span data-page-node-id="maj88Vkg8HkMbe5r9K3E8v">网站</span><span data-page-node-id="HfRXK31lqTPTmxXdcAT7Ir">数据库</span></div></div>
+      <div class="feat" data-page-node-id="OLtXrg9YnwWlZNzLoZXKkG"><div class="icon" data-page-node-id="GHww30LxW8NIUI9SGtphjH">🧪</div><h4 data-i18n="f8.t" data-page-node-id="u3OPkpYlQBKrSniHQ1ajd6">容灾演练</h4><p data-i18n="f8.d" data-page-node-id="GBuMPaCJAqTCdCB9as8V8L">六类真实故障一键注入——CPU 打满、日志暴涨、木马落地、磁盘将满等，每类到点自动恢复，用来验证检测与处置是不是真的有效。</p><div class="tags" data-i18n-html="f8.tags" data-page-node-id="ukk0iGaMY5q4GmtlNXRZTT"><span data-page-node-id="PIwLdz7xPAJM0x75KRcCji">故障注入</span><span data-page-node-id="maj88Vkg8HkMbe5r9K3E8v">自动恢复</span><span data-page-node-id="HfRXK31lqTPTmxXdcAT7Ir">效果验证</span></div></div>
       <div class="feat" data-page-node-id="kpm7gdUSuaIsGAjTSXYlVc"><div class="icon" data-page-node-id="t3cAjyUwNTjXUjpfsyLvTh">🔐</div><h4 data-i18n="f9.t" data-page-node-id="6sBpFc1sIZ0phlCWv3l8sd">权限与审计</h4><p data-i18n="f9.d" data-page-node-id="2NyQhZatdz7zLXzrGgd1fb">用户 / 角色 / 权限组 RBAC 体系，TOTP 两步验证（MFA），全操作审计日志，团队协作安全合规。</p><div class="tags" data-i18n-html="f9.tags" data-page-node-id="je74aT5ZKQKDPfMjcFvHpE"><span data-page-node-id="27bDGlRyP81U90mrfpmn7n">RBAC</span><span data-page-node-id="sbX8Rk12meMw4doji2pBSJ">MFA</span><span data-page-node-id="zTEZUFhbXTxl1YDyD4qLoI">审计日志</span></div></div>
     </div>
   </div>
@@ -863,15 +865,14 @@ a:focus-visible,summary:focus-visible,details summary:focus-visible{
     </div>
     <div class="vs-grid" data-page-node-id="newPlatformsGrid01">
       <div class="vs-col" data-page-node-id="newPlatformsLx001">
-        <h4 data-page-node-id="newPlatformsLx002">Linux</h4>
-        <ul data-i18n-html="plat.linux" data-page-node-id="newPlatformsLx003"><li>systemd 托管，开机自启</li><li>pty 命令行终端</li><li>node_exporter 风格指标</li><li>网站 / 数据库一键部署</li><li>SSH 加固与文件完整性监控</li></ul>
+        <h4 data-page-node-id="newPlatformsLx002">Linux <span class="arch-tag" data-page-node-id="newPlatformsLxArch">AMD64 · ARM64</span></h4>
+        <ul data-i18n-html="plat.linux" data-page-node-id="newPlatformsLx003"><li>systemd 托管，开机自启</li><li>pty 命令行终端</li><li>node_exporter 风格指标</li><li>SSH 加固与文件完整性监控</li><li>静态单二进制，无外部依赖</li></ul>
       </div>
-      <div class="vs-col new" data-page-node-id="newPlatformsWin01">
-        <h4 data-page-node-id="newPlatformsWin02">Windows</h4>
-        <ul data-i18n-html="plat.win" data-page-node-id="newPlatformsWin03"><li>Windows 服务（SCM）托管</li><li>ConPTY 终端 + 图形终端（实时画面，可接管鼠标键盘）</li><li>windows_exporter 0.32.1 兼容指标，Grafana 面板直接复用</li><li>UAC / 防火墙 / RDP / SMBv1 / Defender 基线检查</li><li>单 exe 交付，无需运行库</li></ul>
+      <div class="vs-col" data-page-node-id="newPlatformsWin01">
+        <h4 data-page-node-id="newPlatformsWin02">Windows <span class="arch-tag" data-page-node-id="newPlatformsWinArch">AMD64 · ARM64</span></h4>
+        <ul data-i18n-html="plat.win" data-page-node-id="newPlatformsWin03"><li>Windows 服务（SCM）托管，开机自启</li><li>ConPTY 终端 + 图形终端（实时画面，可接管鼠标键盘）</li><li>windows_exporter 0.32.1 兼容指标，Grafana 面板直接复用</li><li>UAC / 防火墙 / RDP / SMBv1 / Defender 基线检查</li><li>单 exe 交付，无需运行库</li></ul>
       </div>
     </div>
-    <div class="install-note" style="text-align:center;max-width:760px;margin:16px auto 0" data-i18n="plat.note" data-page-node-id="newPlatformsNote01">网站、数据库与一键部署为 Linux 专属能力，Windows 上对应接口返回 501，其余功能在两个平台一致。</div>
   </div>
 </section>
 
@@ -1006,21 +1007,21 @@ const I18N = {
   'f5.t':'Web 终端','f5.d':'WebSocket + pty 的浏览器 SSH 级交互终端，vim、htop 等全屏程序完整兼容，随时随地登录服务器。','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'文件管理器','f6.d':'在线浏览、上传、下载、重命名、新建目录、批量删除，大文件断点无忧。','f6.tags':'<span>上传下载</span><span>在线管理</span>',
   'f7.t':'计划任务','f7.d':'系统级与用户级 crontab 可视化管理，脚本在线运行，执行记录可追溯。','f7.tags':'<span>cron</span><span>脚本执行</span>',
-  'f8.t':'应用商店','f8.d':'常用应用一键部署，支持官方仓库同步与本地导入，网站与数据库管理配套齐全。','f8.tags':'<span>一键部署</span><span>网站</span><span>数据库</span>',
+  'f8.t':'容灾演练','f8.d':'六类真实故障一键注入——CPU 打满、日志暴涨、木马落地、磁盘将满等，每类到点自动恢复，用来验证检测与处置是不是真的有效。','f8.tags':'<span>故障注入</span><span>自动恢复</span><span>效果验证</span>',
   'f9.t':'权限与审计','f9.d':'用户 / 角色 / 权限组 RBAC 体系，TOTP 两步验证（MFA），全操作审计日志，团队协作安全合规。','f9.tags':'<span>RBAC</span><span>MFA</span><span>审计日志</span>',
   'arch.tag':'Architecture','arch.h2':'为“单机交付”而生的架构','arch.p':'没有外部数据库、没有消息队列、没有运行时依赖。拷贝一个文件，chmod +x，直接运行。',
   'arch.c1':'浏览器','arch.c2':'OpsMini 服务','arch.c3':'宿主机',
   'arch.b1t':'Vue 3 单页应用','arch.b1s':'go:embed 嵌入二进制，7 语言 i18n','arch.b2t':'ECharts 可视化','arch.b2s':'仪表盘 / 趋势图 / 告警面板','arch.b3t':'xterm.js 终端','arch.b3s':'WebSocket 全双工交互',
   'arch.b4t':'Go · Gin 路由层','arch.b4s':'/api/v1 界面接口 · /mcp 工具接口 · gRPC 纳管','arch.b5t':'Service 层','arch.b5s':'AI / 安全 / Docker / 监控 / 文件 / 计划任务…','arch.b6t':'JWT 鉴权 + RBAC + MFA','arch.b6s':'中间件链式校验',
   'arch.b7t':'SQLite（纯 Go 驱动）','arch.b7s':'单文件存储，免安装数据库','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'系统与容器直接对接','arch.b9t':'pty / crontab / 防火墙','arch.b9s':'原生系统能力封装',
-  'arch.note':'交叉编译支持 Linux 与 Windows 的 amd64 / arm64 —— 树莓派、ARM 服务器同样能跑',
+  'arch.note':'交叉编译支持 Linux 与 Windows 的 AMD64 / ARM64 —— 树莓派、ARM 服务器同样能跑',
   'qs.tag':'Quick Start','qs.h2':'三分钟跑起来','qs.p':'下载、执行、打开浏览器——没有安装向导，没有依赖地狱。',
   'qs.s1t':'一键安装','qs.s1d':'一条命令自动下载二进制、生成配置并注册系统服务（Linux 用 systemd，Windows 用 SCM）。','qs.s2t':'打开登录','qs.s2d':'访问 http://<IP>:8888，账号 opsmini，密码见脚本输出或 .init_passwd 文件','qs.s3t':'加固与接入','qs.s3d':'开启 MFA 两步验证、配置防火墙；外部 AI 工具通过 /mcp 接入，多台主机用 gRPC 纳管到 OpsMini Server',
   'api.tag':'Developer API','api.h2':'为自动化而生','api.p':'面板能做的事，API 都能做。人用浏览器，程序用接口。','api.h3':'界面接口 + 工具接口',
   'api.p2':'面向界面的 <b>/api/v1</b> 与面向 AI 的 <b>/mcp</b> 相互独立：令牌隔离、权限隔离。Claude、Cursor 等可以直接调用面板能力。',
   'api.l1':'JWT 鉴权 + 刷新令牌，MCP 用独立的长期 Token','api.l2':'覆盖容器、文件、监控、告警、安全、计划任务全模块','api.l3':'原生 MCP 接入，让外部 AI 助手直接操作你的服务器','api.l4':'OpenAPI 风格路由，curl 即可完成全部自动化',
   'api.code.title':'curl 示例',
-  'plat.tag':'Platforms','plat.h2':'一个二进制，两个平台','plat.p':'Linux 与 Windows 功能对齐：指标采集、AI 智能体、定时任务、多机纳管、REST API、Docker 管理。差异只在系统接口层。','plat.linux':'<li>systemd 托管，开机自启</li><li>pty 命令行终端</li><li>node_exporter 风格指标</li><li>网站 / 数据库一键部署</li><li>SSH 加固与文件完整性监控</li>','plat.win':'<li>Windows 服务（SCM）托管</li><li>ConPTY 终端 + 图形终端（实时画面，可接管鼠标键盘）</li><li>windows_exporter 0.32.1 兼容指标，Grafana 面板直接复用</li><li>UAC / 防火墙 / RDP / SMBv1 / Defender 基线检查</li><li>单 exe 交付，无需运行库</li>','plat.note':'网站、数据库与一键部署为 Linux 专属能力，Windows 上对应接口返回 501，其余功能在两个平台一致。','st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'组对外接口',
+  'plat.tag':'Platforms','plat.h2':'一个二进制，两个平台','plat.p':'Linux 与 Windows 同一套能力：指标采集、AI 智能体、定时任务、多机纳管、REST API、Docker 管理，功能与操作方式一致。','plat.linux':'<li>systemd 托管，开机自启</li><li>pty 命令行终端</li><li>node_exporter 风格指标</li><li>SSH 加固与文件完整性监控</li><li>静态单二进制，无外部依赖</li>','plat.win':'<li>Windows 服务（SCM）托管，开机自启</li><li>ConPTY 终端 + 图形终端（实时画面，可接管鼠标键盘）</li><li>windows_exporter 0.32.1 兼容指标，Grafana 面板直接复用</li><li>UAC / 防火墙 / RDP / SMBv1 / Defender 基线检查</li><li>单 exe 交付，无需运行库</li>','st.k1':'个二进制文件','st.k2':'运行时依赖','st.k3':'种界面语言','st.k4':'组对外接口',
   'faq.tag':'FAQ','faq.h2':'常见问题',
   'faq.q1':'OpsMini 和宝塔、1Panel 有什么区别？','faq.a1':'OpsMini 是常驻主机的 AI 运维 Agent，不是传统面板。页面只是它的观察窗：它能自主诊断并执行，提供 MCP 与机器对机器接口，纯 Go + SQLite 单文件交付。',
   'faq.q2':'支持哪些系统 / 架构？','faq.a2':'Linux amd64 与 arm64（含树莓派、国产化服务器）。面板本身是静态编译的 Go 二进制，只要内核版本不是特别古老即可运行。',
@@ -1114,21 +1115,21 @@ const I18N = {
   'f5.t':'Web Terminal','f5.d':'An SSH-grade browser terminal over WebSocket + pty, fully compatible with full-screen apps like vim and htop — log in from anywhere.','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'File Manager','f6.d':'Browse, upload, download, rename, create directories and batch-delete online, with large files handled gracefully.','f6.tags':'<span>Upload/download</span><span>Online</span>',
   'f7.t':'Cron Jobs','f7.d':'Visual management of system and user crontabs, run scripts online, with traceable execution history.','f7.tags':'<span>cron</span><span>Scripts</span>',
-  'f8.t':'App Store','f8.d':'One-click deployment of common apps, official repo sync, local import, plus website and database management.','f8.tags':'<span>One-click</span><span>Websites</span><span>Databases</span>',
+  'f8.t':'Disaster Drills','f8.d':'Inject six real faults with one click — CPU saturation, log flood, a dropped webshell, a filling disk and more. Each restores itself on a timer, proving detection and response actually work.','f8.tags':'<span>Fault injection</span><span>Auto restore</span><span>Verified</span>',
   'f9.t':'Access & Audit','f9.d':'RBAC with users / roles / permission groups, TOTP two-factor (MFA), and full audit logs for secure team collaboration.','f9.tags':'<span>RBAC</span><span>MFA</span><span>Audit log</span>',
   'arch.tag':'Architecture','arch.h2':'Built for single-binary delivery','arch.p':'No external database, no message queue, no runtime dependencies. Copy one file, chmod +x, and run.',
   'arch.c1':'Browser','arch.c2':'OpsMini Service','arch.c3':'Host',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'embedded via go:embed, 7-language i18n','arch.b2t':'ECharts viz','arch.b2s':'dashboard / trends / alerts','arch.b3t':'xterm.js terminal','arch.b3s':'full-duplex WebSocket',
   'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) · /mcp (tools) · gRPC (fleet)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'chained middleware',
   'arch.b7t':'SQLite (pure-Go)','arch.b7s':'single-file storage, no DB install','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'direct system & container access','arch.b9t':'pty / crontab / firewall','arch.b9s':'native system wrappers',
-  'arch.note':'Cross-compiled for Linux and Windows on amd64 / arm64 — Raspberry Pi and ARM servers run it too',
+  'arch.note':'Cross-compiled for Linux and Windows on AMD64 / ARM64 — Raspberry Pi and ARM servers run it too',
   'qs.tag':'Quick Start','qs.h2':'Up and running in minutes','qs.p':'Download, execute, open the browser — no install wizard, no dependency hell.',
   'qs.s1t':'One-click install','qs.s1d':'One command downloads the binary, writes the config and registers a system service (systemd on Linux, SCM on Windows).','qs.s2t':'Open & log in','qs.s2d':'Visit http://<IP>:8888, user opsmini, password from the script output or .init_passwd','qs.s3t':'Harden & integrate','qs.s3d':'Enable MFA and the firewall; hook external AI tools up over /mcp, enrol hosts into OpsMini Server over gRPC',
   'api.tag':'Developer API','api.h2':'Made for automation','api.p':'Whatever the panel can do, the API can do. Humans use the browser, programs use the API.','api.h3':'UI API + tool API',
   'api.p2':'The UI-facing <b>/api/v1</b> and the AI-facing <b>/mcp</b> are independent — separate tokens, separate permissions. Claude, Cursor and others drive the panel directly.',
   'api.l1':'JWT auth + refresh tokens; MCP uses its own long-lived token','api.l2':'Covers containers, files, monitoring, alerts, security and cron','api.l3':'Native MCP so external AI assistants can operate your server','api.l4':'OpenAPI-style routes — full automation with plain curl',
   'api.code.title':'curl example',
-  'plat.tag':'Platforms','plat.h2':'One binary, two platforms','plat.p':'Feature parity across Linux and Windows: metrics, AI agent, scheduled tasks, multi-host management, REST API and Docker. Only the system interface layer differs.','plat.linux':'<li>systemd-managed, starts on boot</li><li>pty command-line terminal</li><li>node_exporter-style metrics</li><li>One-click website / database deploy</li><li>SSH hardening and file integrity monitoring</li>','plat.win':'<li>Windows service (SCM)</li><li>ConPTY terminal plus graphical terminal (live screen, take over mouse and keyboard)</li><li>windows_exporter 0.32.1 compatible metrics, existing Grafana dashboards work as-is</li><li>UAC / firewall / RDP / SMBv1 / Defender baseline checks</li><li>Single exe, no runtime required</li>','plat.note':'Websites, databases and one-click deploy are Linux-only; those APIs return 501 on Windows. Everything else behaves the same on both platforms.','st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'external interfaces',
+  'plat.tag':'Platforms','plat.h2':'One binary, two platforms','plat.p':'The same capabilities on Linux and Windows: metrics, AI agent, scheduled tasks, multi-host management, REST API and Docker — with identical behaviour and workflow.','plat.linux':'<li>systemd-managed, starts on boot</li><li>pty command-line terminal</li><li>node_exporter-style metrics</li><li>SSH hardening and file integrity monitoring</li><li>Static single binary, no external dependencies</li>','plat.win':'<li>Windows service (SCM), starts on boot</li><li>ConPTY terminal plus graphical terminal (live screen, take over mouse and keyboard)</li><li>windows_exporter 0.32.1 compatible metrics, existing Grafana dashboards work as-is</li><li>UAC / firewall / RDP / SMBv1 / Defender baseline checks</li><li>Single exe, no runtime required</li>','st.k1':'single binary','st.k2':'runtime deps','st.k3':'UI languages','st.k4':'external interfaces',
   'faq.tag':'FAQ','faq.h2':'Frequently Asked Questions',
   'faq.q1':'How is OpsMini different from BaoTa or 1Panel?','faq.a1':'OpsMini is a resident AI ops agent, not a classic panel. The web UI is its window: the agent diagnoses and executes on its own, speaks MCP and a machine-to-machine API, and ships as one Go + SQLite binary.',
   'faq.q2':'Which systems / architectures are supported?','faq.a2':'Linux amd64 and arm64 (including Raspberry Pi and domestic servers). The panel is a statically compiled Go binary, so it runs as long as the kernel is not too old.',
@@ -1222,21 +1223,21 @@ const I18N = {
   'f5.t':'Web 終端','f5.d':'WebSocket + pty 的瀏覽器 SSH 級互動終端，vim、htop 等全螢幕程式完整相容，隨時隨地登入伺服器。','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'檔案管理器','f6.d':'線上瀏覽、上傳、下載、重新命名、新增目錄、批次刪除，大檔案斷點無憂。','f6.tags':'<span>上傳下載</span><span>線上管理</span>',
   'f7.t':'排程任務','f7.d':'系統級與使用者級 crontab 視覺化管理，腳本線上執行，執行紀錄可追溯。','f7.tags':'<span>cron</span><span>腳本執行</span>',
-  'f8.t':'應用商店','f8.d':'常用應用一鍵部署，支援官方倉庫同步與本地匯入，網站與資料庫管理配套齊全。','f8.tags':'<span>一鍵部署</span><span>網站</span><span>資料庫</span>',
+  'f8.t':'容災演練','f8.d':'六類真實故障一鍵注入——CPU 打滿、日誌暴增、木馬落地、磁碟將滿等，每類到點自動恢復，用來驗證偵測與處置是不是真的有效。','f8.tags':'<span>故障注入</span><span>自動恢復</span><span>效果驗證</span>',
   'f9.t':'權限與稽核','f9.d':'使用者 / 角色 / 權限群組 RBAC 體系，TOTP 兩步驗證（MFA），全操作稽核日誌，團隊協作安全合規。','f9.tags':'<span>RBAC</span><span>MFA</span><span>稽核日誌</span>',
   'arch.tag':'Architecture','arch.h2':'為「單機交付」而生的架構','arch.p':'沒有外部資料庫、沒有訊息佇列、沒有執行時依賴。拷貝一個檔案，chmod +x，直接執行。',
   'arch.c1':'瀏覽器','arch.c2':'OpsMini 服務','arch.c3':'主機',
   'arch.b1t':'Vue 3 單頁應用','arch.b1s':'go:embed 嵌入二進位，7 語言 i18n','arch.b2t':'ECharts 視覺化','arch.b2s':'儀表板 / 趨勢圖 / 告警面板','arch.b3t':'xterm.js 終端','arch.b3s':'WebSocket 全雙工互動',
   'arch.b4t':'Go · Gin 路由層','arch.b4s':'/api/v1 介面 · /mcp 工具 · gRPC 納管','arch.b5t':'Service 層','arch.b5s':'AI / 安全 / Docker / 監控 / 檔案 / 排程任務…','arch.b6t':'JWT 鑑權 + RBAC + MFA','arch.b6s':'中介層鏈式校驗',
   'arch.b7t':'SQLite（純 Go 驅動）','arch.b7s':'單檔案儲存，免安裝資料庫','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'系統與容器直接對接','arch.b9t':'pty / crontab / 防火牆','arch.b9s':'原生系統能力封裝',
-  'arch.note':'交叉編譯支援 Linux 與 Windows 的 amd64 / arm64 —— 樹莓派、ARM 伺服器同樣能跑',
+  'arch.note':'交叉編譯支援 Linux 與 Windows 的 AMD64 / ARM64 —— 樹莓派、ARM 伺服器同樣能跑',
   'qs.tag':'Quick Start','qs.h2':'三分鐘跑起來','qs.p':'下載、執行、開啟瀏覽器——沒有安裝精靈，沒有依賴地獄。',
   'qs.s1t':'一鍵安裝','qs.s1d':'一條命令自動下載二進位檔、產生設定並註冊系統服務（Linux 用 systemd，Windows 用 SCM）。','qs.s2t':'開啟登入','qs.s2d':'訪問 http://<IP>:8888，帳號 opsmini，密碼見指令碼輸出或 .init_passwd 檔案','qs.s3t':'加固與接入','qs.s3d':'開啟 MFA 兩步驗證、設定防火牆；外部 AI 工具透過 /mcp 接入，多台主機用 gRPC 納管到 OpsMini Server',
   'api.tag':'Developer API','api.h2':'為自動化而生','api.p':'面板能做的事，API 都能做。人用瀏覽器，程式用介面。','api.h3':'介面 + 工具雙接口',
   'api.p2':'面向介面的 <b>/api/v1</b> 與面向 AI 的 <b>/mcp</b> 相互獨立：令牌隔離、權限隔離。Claude、Cursor 等可直接呼叫面板能力。',
   'api.l1':'JWT 鑑權 + 刷新令牌，MCP 使用獨立的長期 Token','api.l2':'涵蓋容器、檔案、監控、告警、安全、排程任務全模組','api.l3':'原生 MCP 接入，讓外部 AI 助手直接操作你的伺服器','api.l4':'OpenAPI 風格路由，curl 即可完成全部自動化',
   'api.code.title':'curl 範例',
-  'plat.tag':'Platforms','plat.h2':'一個二進位檔，兩個平台','plat.p':'Linux 與 Windows 功能對齊：指標採集、AI 智慧體、排程任務、多機納管、REST API、Docker 管理。差異只在系統介面層。','plat.linux':'<li>systemd 託管，開機自啟</li><li>pty 命令列終端</li><li>node_exporter 風格指標</li><li>網站 / 資料庫一鍵部署</li><li>SSH 加固與檔案完整性監控</li>','plat.win':'<li>Windows 服務（SCM）託管</li><li>ConPTY 終端 + 圖形終端（即時畫面，可接管滑鼠鍵盤）</li><li>windows_exporter 0.32.1 相容指標，Grafana 面板直接沿用</li><li>UAC / 防火牆 / RDP / SMBv1 / Defender 基線檢查</li><li>單一 exe 交付，無需執行階段</li>','plat.note':'網站、資料庫與一鍵部署為 Linux 專屬能力，Windows 上對應介面回傳 501，其餘功能在兩個平台一致。','st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'組對外介面',
+  'plat.tag':'Platforms','plat.h2':'一個二進位檔，兩個平台','plat.p':'Linux 與 Windows 同一套能力：指標採集、AI 智慧體、排程任務、多機納管、REST API、Docker 管理，功能與操作方式一致。','plat.linux':'<li>systemd 託管，開機自啟</li><li>pty 命令列終端</li><li>node_exporter 風格指標</li><li>SSH 加固與檔案完整性監控</li><li>靜態單一二進位檔，無外部相依</li>','plat.win':'<li>Windows 服務（SCM）託管，開機自啟</li><li>ConPTY 終端 + 圖形終端（即時畫面，可接管滑鼠鍵盤）</li><li>windows_exporter 0.32.1 相容指標，Grafana 面板直接沿用</li><li>UAC / 防火牆 / RDP / SMBv1 / Defender 基線檢查</li><li>單一 exe 交付，無需執行階段</li>','st.k1':'個二進位檔案','st.k2':'執行時依賴','st.k3':'種介面語言','st.k4':'組對外介面',
   'faq.tag':'FAQ','faq.h2':'常見問題',
   'faq.q1':'OpsMini 和寶塔、1Panel 有什麼區別？','faq.a1':'OpsMini 是常駐主機的 AI 維運 Agent，不是傳統面板。頁面只是它的觀察窗：它能自主診斷並執行，提供 MCP 與機器對機器介面，純 Go + SQLite 單檔交付。',
   'faq.q2':'支援哪些系統 / 架構？','faq.a2':'Linux amd64 與 arm64（含樹莓派、國產化伺服器）。面板本身是靜態編譯的 Go 二進位，只要核心版本不是特別古老即可執行。',
@@ -1330,21 +1331,21 @@ const I18N = {
   'f5.t':'Web ターミナル','f5.d':'WebSocket + pty による SSH 級のブラウザターミナル。vim や htop などの全画面アプリにも完全対応し、どこからでもログインできます。','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'ファイルマネージャー','f6.d':'オンラインで閲覧・アップロード・ダウンロード・リネーム・ディレクトリ作成・一括削除。大容量ファイルも安心。','f6.tags':'<span>アップロード/ダウンロード</span><span>オンライン管理</span>',
   'f7.t':'cron ジョブ','f7.d':'システムとユーザーの crontab を視覚的に管理し、スクリプトをオンライン実行。実行履歴も追跡可能。','f7.tags':'<span>cron</span><span>スクリプト</span>',
-  'f8.t':'アプリストア','f8.d':'よく使うアプリをワンクリックでデプロイ。公式リポジトリ同期とローカルインポートに対応し、Web サイトとデータベース管理も完備。','f8.tags':'<span>ワンクリック</span><span>Web サイト</span><span>データベース</span>',
+  'f8.t':'障害演習','f8.d':'6 種類の実際の障害をワンクリックで注入——CPU 飽和、ログ急増、WebShell 設置、ディスク逼迫など。いずれも時間で自動復旧し、検知と対応が本当に機能するかを確かめられます。','f8.tags':'<span>障害注入</span><span>自動復旧</span><span>効果検証</span>',
   'f9.t':'権限と監査','f9.d':'ユーザー / ロール / 権限グループの RBAC、TOTP 二段階認証（MFA）、全操作の監査ログで、安全なチーム運用を実現。','f9.tags':'<span>RBAC</span><span>MFA</span><span>監査ログ</span>',
   'arch.tag':'Architecture','arch.h2':'単一バイナリ配布のための設計','arch.p':'外部データベースなし、メッセージキューなし、ランタイム依存なし。ファイルを1つコピーして chmod +x すれば動きます。',
   'arch.c1':'ブラウザ','arch.c2':'OpsMini サービス','arch.c3':'ホスト',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed でバイナリに埋め込み、7 言語 i18n','arch.b2t':'ECharts 可視化','arch.b2s':'ダッシュボード / トレンド / アラート','arch.b3t':'xterm.js ターミナル','arch.b3s':'全二重 WebSocket',
   'arch.b4t':'Go · Gin ルーター','arch.b4s':'/api/v1（UI）· /mcp（ツール）· gRPC（統合管理）','arch.b5t':'Service 層','arch.b5s':'AI / セキュリティ / Docker / 監視 / ファイル / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'ミドルウェアチェーン検証',
   'arch.b7t':'SQLite（純 Go）','arch.b7s':'単一ファイル保存、DB 不要','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'システム・コンテナへ直接アクセス','arch.b9t':'pty / crontab / ファイアウォール','arch.b9s':'ネイティブ機能のラッパー',
-  'arch.note':'Linux と Windows の amd64 / arm64 にクロスコンパイル対応 —— Raspberry Pi や ARM サーバーでも動作します',
+  'arch.note':'Linux と Windows の AMD64 / ARM64 にクロスコンパイル対応 —— Raspberry Pi や ARM サーバーでも動作します',
   'qs.tag':'Quick Start','qs.h2':'数分で起動','qs.p':'ダウンロード、実行、ブラウザを開くだけ——インストールウィザードも依存地獄もありません。',
   'qs.s1t':'ワンクリックインストール','qs.s1d':'1 コマンドでバイナリを取得し、設定を生成してシステムサービスに登録します（Linux は systemd、Windows は SCM）。','qs.s2t':'開いてログイン','qs.s2d':'http://<IP>:8888 にアクセス、ユーザー opsmini、パスワードはスクリプト出力または .init_passwd','qs.s3t':'強化と連携','qs.s3d':'MFA とファイアウォールを有効化。外部 AI ツールは /mcp で接続し、複数ホストは gRPC で OpsMini Server に統合',
   'api.tag':'Developer API','api.h2':'自動化のために','api.p':'パネルでできることは API でもできる。人はブラウザ、プログラムは API。','api.h3':'UI API + ツール API',
   'api.p2':'UI 向け <b>/api/v1</b> と AI 向け <b>/mcp</b> は独立しており、トークンと権限が分離されています。Claude や Cursor から直接呼び出せます。',
   'api.l1':'JWT 認証 + リフレッシュトークン、MCP は専用の長期トークン','api.l2':'コンテナ・ファイル・監視・アラート・セキュリティ・cron をすべてカバー','api.l3':'ネイティブ MCP で外部 AI アシスタントからサーバーを操作','api.l4':'OpenAPI スタイルのルートで、curl だけで完全自動化',
   'api.code.title':'curl の例',
-  'plat.tag':'Platforms','plat.h2':'1 つのバイナリで 2 つのプラットフォーム','plat.p':'Linux と Windows で機能は同等です。メトリクス収集、AI エージェント、定期タスク、複数ホスト管理、REST API、Docker 管理。違いはシステムインターフェース層だけです。','plat.linux':'<li>systemd 管理・起動時自動開始</li><li>pty コマンドライン端末</li><li>node_exporter 形式のメトリクス</li><li>Web サイト / データベースのワンクリック展開</li><li>SSH 強化とファイル完全性監視</li>','plat.win':'<li>Windows サービス（SCM）管理</li><li>ConPTY 端末 + グラフィカル端末（リアルタイム画面、マウスとキーボードを操作可能）</li><li>windows_exporter 0.32.1 互換メトリクスで既存の Grafana ダッシュボードをそのまま利用可能</li><li>UAC / ファイアウォール / RDP / SMBv1 / Defender のベースライン検査</li><li>単一 exe、ランタイム不要</li>','plat.note':'Web サイト・データベース・ワンクリック展開は Linux 専用です。Windows では該当 API が 501 を返し、その他の機能は両プラットフォームで同じです。','st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'外部インターフェース',
+  'plat.tag':'Platforms','plat.h2':'1 つのバイナリで 2 つのプラットフォーム','plat.p':'Linux と Windows は同じ能力を持ちます。メトリクス収集、AI エージェント、定期タスク、複数ホスト管理、REST API、Docker 管理。機能も操作方法も同じです。','plat.linux':'<li>systemd 管理・起動時自動開始</li><li>pty コマンドライン端末</li><li>node_exporter 形式のメトリクス</li><li>SSH 強化とファイル完全性監視</li><li>静的な単一バイナリ、外部依存なし</li>','plat.win':'<li>Windows サービス（SCM）管理・起動時自動開始</li><li>ConPTY 端末 + グラフィカル端末（リアルタイム画面、マウスとキーボードを操作可能）</li><li>windows_exporter 0.32.1 互換メトリクスで既存の Grafana ダッシュボードをそのまま利用可能</li><li>UAC / ファイアウォール / RDP / SMBv1 / Defender のベースライン検査</li><li>単一 exe、ランタイム不要</li>','st.k1':'単一バイナリ','st.k2':'ランタイム依存ゼロ','st.k3':'対応言語','st.k4':'外部インターフェース',
   'faq.tag':'FAQ','faq.h2':'よくある質問',
   'faq.q1':'OpsMini と宝塔・1Panel の違いは？','faq.a1':'OpsMini は常駐型の AI 運用エージェントであり、従来のパネルではありません。画面は観測窓です。自律的に診断・実行し、MCP とマシン間 API を備え、Go + SQLite の単一バイナリで動作します。',
   'faq.q2':'対応システム / アーキテクチャは？','faq.a2':'Linux amd64 と arm64（Raspberry Pi や国産サーバーを含む）。静的コンパイルされた Go バイナリなので、カーネルが古すぎなければ動作します。',
@@ -1438,21 +1439,21 @@ const I18N = {
   'f5.t':'웹 터미널','f5.d':'WebSocket + pty 기반의 SSH 수준 브라우저 터미널. vim, htop 등 전체화면 프로그램과 완벽히 호환되어 어디서든 로그인할 수 있습니다.','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'파일 관리자','f6.d':'온라인으로 탐색·업로드·다운로드·이름 변경·디렉터리 생성·일괄 삭제까지, 대용량 파일도 안심입니다.','f6.tags':'<span>업로드/다운로드</span><span>온라인 관리</span>',
   'f7.t':'크론 작업','f7.d':'시스템 및 사용자 crontab 을 시각적으로 관리하고 스크립트를 온라인 실행하며 실행 기록도 추적합니다.','f7.tags':'<span>cron</span><span>스크립트</span>',
-  'f8.t':'앱 스토어','f8.d':'자주 쓰는 앱을 원클릭 배포하고 공식 저장소 동기화와 로컬 가져오기를 지원하며 웹사이트·데이터베이스 관리도 갖췄습니다.','f8.tags':'<span>원클릭</span><span>웹사이트</span><span>데이터베이스</span>',
+  'f8.t':'재해 대비 훈련','f8.d':'6가지 실제 장애를 원클릭으로 주입 — CPU 포화, 로그 급증, 웹셸 설치, 디스크 부족 등. 모두 시간이 되면 자동 복구되어 탐지와 대응이 실제로 동작하는지 확인할 수 있습니다.','f8.tags':'<span>장애 주입</span><span>자동 복구</span><span>효과 검증</span>',
   'f9.t':'권한 및 감사','f9.d':'사용자 / 역할 / 권한 그룹 RBAC, TOTP 2단계 인증(MFA), 전체 감사 로그로 안전한 팀 협업을 지원합니다.','f9.tags':'<span>RBAC</span><span>MFA</span><span>감사 로그</span>',
   'arch.tag':'Architecture','arch.h2':'단일 바이너리 배포를 위한 설계','arch.p':'외부 DB 없음, 메시지 큐 없음, 런타임 의존성 없음. 파일 하나 복사하고 chmod +x 하면 바로 실행됩니다.',
   'arch.c1':'브라우저','arch.c2':'OpsMini 서비스','arch.c3':'호스트',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'go:embed 로 바이너리에 내장, 7개 언어 i18n','arch.b2t':'ECharts 시각화','arch.b2s':'대시보드 / 추이 / 알림','arch.b3t':'xterm.js 터미널','arch.b3s':'전이중 WebSocket',
   'arch.b4t':'Go · Gin 라우터','arch.b4s':'/api/v1(UI) · /mcp(도구) · gRPC(통합 관리)','arch.b5t':'Service 계층','arch.b5s':'AI / 보안 / Docker / 모니터링 / 파일 / 크론…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'미들웨어 체인 검증',
   'arch.b7t':'SQLite(순수 Go)','arch.b7s':'단일 파일 저장, DB 설치 불필요','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'시스템·컨테이너 직접 연동','arch.b9t':'pty / crontab / 방화벽','arch.b9s':'네이티브 시스템 래퍼',
-  'arch.note':'Linux 와 Windows 의 amd64 / arm64 로 크로스 컴파일 지원 —— 라즈베리파이와 ARM 서버에서도 동작합니다',
+  'arch.note':'Linux 와 Windows 의 AMD64 / ARM64 로 크로스 컴파일 지원 —— 라즈베리파이와 ARM 서버에서도 동작합니다',
   'qs.tag':'Quick Start','qs.h2':'몇 분이면 실행','qs.p':'다운로드, 실행, 브라우저 열기——설치 마법사도 의존성 지옥도 없습니다.',
   'qs.s1t':'원클릭 설치','qs.s1d':'명령 하나로 바이너리 다운로드, 설정 생성, 시스템 서비스 등록까지 처리합니다 (Linux 는 systemd, Windows 는 SCM).','qs.s2t':'열고 로그인','qs.s2d':'http://<IP>:8888 접속, 계정 opsmini, 비밀번호는 스크립트 출력 또는 .init_passwd','qs.s3t':'강화 및 연동','qs.s3d':'MFA 와 방화벽을 켜고, 외부 AI 도구는 /mcp 로 연결하며 여러 호스트는 gRPC 로 OpsMini Server 에 통합',
   'api.tag':'Developer API','api.h2':'자동화를 위해','api.p':'패널이 할 수 있는 일은 API 도 할 수 있습니다. 사람은 브라우저, 프로그램은 API 를 사용합니다.','api.h3':'UI API + 도구 API',
   'api.p2':'UI 용 <b>/api/v1</b> 과 AI 용 <b>/mcp</b> 는 독립적이며 토큰과 권한이 분리됩니다. Claude, Cursor 등에서 패널 기능을 직접 호출할 수 있습니다.',
   'api.l1':'JWT 인증 + 리프레시 토큰, MCP 는 별도 장기 토큰 사용','api.l2':'컨테이너·파일·모니터링·알림·보안·크론 전 모듈 커버','api.l3':'네이티브 MCP 로 외부 AI 어시스턴트가 서버를 직접 조작','api.l4':'OpenAPI 스타일 라우트, curl 만으로 완전 자동화',
   'api.code.title':'curl 예시',
-  'plat.tag':'Platforms','plat.h2':'하나의 바이너리, 두 개의 플랫폼','plat.p':'Linux 와 Windows 기능이 동일합니다. 지표 수집, AI 에이전트, 예약 작업, 다중 호스트 관리, REST API, Docker 관리. 차이는 시스템 인터페이스 계층뿐입니다.','plat.linux':'<li>systemd 관리, 부팅 시 자동 시작</li><li>pty 명령줄 터미널</li><li>node_exporter 스타일 지표</li><li>웹사이트 / 데이터베이스 원클릭 배포</li><li>SSH 강화 및 파일 무결성 모니터링</li>','plat.win':'<li>Windows 서비스(SCM) 관리</li><li>ConPTY 터미널 + 그래픽 터미널 (실시간 화면, 마우스와 키보드 제어)</li><li>windows_exporter 0.32.1 호환 지표, 기존 Grafana 대시보드 그대로 사용</li><li>UAC / 방화벽 / RDP / SMBv1 / Defender 기준 검사</li><li>단일 exe, 런타임 불필요</li>','plat.note':'웹사이트, 데이터베이스, 원클릭 배포는 Linux 전용입니다. Windows 에서 해당 API 는 501 을 반환하며 나머지 기능은 두 플랫폼에서 동일합니다.','st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'외부 인터페이스',
+  'plat.tag':'Platforms','plat.h2':'하나의 바이너리, 두 개의 플랫폼','plat.p':'Linux 와 Windows 는 같은 기능을 제공합니다. 지표 수집, AI 에이전트, 예약 작업, 다중 호스트 관리, REST API, Docker 관리. 기능과 조작 방식이 동일합니다.','plat.linux':'<li>systemd 관리, 부팅 시 자동 시작</li><li>pty 명령줄 터미널</li><li>node_exporter 스타일 지표</li><li>SSH 강화 및 파일 무결성 모니터링</li><li>정적 단일 바이너리, 외부 의존성 없음</li>','plat.win':'<li>Windows 서비스(SCM) 관리, 부팅 시 자동 시작</li><li>ConPTY 터미널 + 그래픽 터미널 (실시간 화면, 마우스와 키보드 제어)</li><li>windows_exporter 0.32.1 호환 지표, 기존 Grafana 대시보드 그대로 사용</li><li>UAC / 방화벽 / RDP / SMBv1 / Defender 기준 검사</li><li>단일 exe, 런타임 불필요</li>','st.k1':'단일 바이너리','st.k2':'런타임 의존성 0','st.k3':'UI 언어','st.k4':'외부 인터페이스',
   'faq.tag':'FAQ','faq.h2':'자주 묻는 질문',
   'faq.q1':'OpsMini 와 바오타·1Panel 의 차이는?','faq.a1':'OpsMini 는 상주형 AI 운영 에이전트이며 전통적인 패널이 아닙니다. 화면은 관측 창일 뿐이며, 스스로 진단하고 실행하고 MCP 와 머신 간 API 를 제공합니다. Go + SQLite 단일 바이너리로 배포됩니다.',
   'faq.q2':'어떤 시스템 / 아키텍처를 지원하나요?','faq.a2':'Linux amd64 와 arm64(라즈베리파이, 국산 서버 포함). 패널은 정적 컴파일된 Go 바이너리라 커널이 너무 오래되지 않았다면 실행됩니다.',
@@ -1546,21 +1547,21 @@ const I18N = {
   'f5.t':'เว็บเทอร์มินัล','f5.d':'เทอร์มินัลในเบราว์เซอร์ระดับ SSH ผ่าน WebSocket + pty รองรับโปรแกรมเต็มจออย่าง vim, htop ครบถ้วน ล็อกอินได้จากทุกที่','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'ตัวจัดการไฟล์','f6.d':'เรียกดู อัปโหลด ดาวน์โหลด เปลี่ยนชื่อ สร้างโฟลเดอร์ และลบแบบหลายรายการออนไลน์ ไฟล์ใหญ่ก็ไม่มีปัญหา','f6.tags':'<span>อัปโหลด/ดาวน์โหลด</span><span>ออนไลน์</span>',
   'f7.t':'งานตามกำหนด (cron)','f7.d':'จัดการ crontab ระดับระบบและผู้ใช้แบบเห็นภาพ รันสคริปต์ออนไลน์ และติดตามประวัติการทำงาน','f7.tags':'<span>cron</span><span>สคริปต์</span>',
-  'f8.t':'App Store','f8.d':'ติดตั้งแอปที่ใช้บ่อยด้วยคลิกเดียว รองรับการซิงก์ repo ทางการและนำเข้าภายใน พร้อมการจัดการเว็บไซต์และฐานข้อมูล','f8.tags':'<span>คลิกเดียว</span><span>เว็บไซต์</span><span>ฐานข้อมูล</span>',
+  'f8.t':'การซ้อมรับมือภัยพิบัติ','f8.d':'ฉีดความผิดปกติจริงหกแบบในคลิกเดียว — CPU เต็ม, ล็อกเพิ่มผิดปกติ, วางเว็บเชลล์, ดิสก์ใกล้เต็ม และอื่น ๆ แต่ละแบบฟื้นตัวเองตามเวลา ใช้ยืนยันว่าการตรวจจับและการรับมือได้ผลจริง','f8.tags':'<span>ฉีดความผิดปกติ</span><span>ฟื้นอัตโนมัติ</span><span>ยืนยันผล</span>',
   'f9.t':'สิทธิ์และการตรวจสอบ','f9.d':'ระบบ RBAC ผู้ใช้ / บทบาท / กลุ่มสิทธิ์, ยืนยันตัวตนสองขั้น TOTP (MFA) และ audit log ครบถ้วนเพื่อความปลอดภัย','f9.tags':'<span>RBAC</span><span>MFA</span><span>Audit log</span>',
   'arch.tag':'Architecture','arch.h2':'ออกแบบมาเพื่อ "ส่งมอบเป็นไฟล์เดียว"','arch.p':'ไม่มีฐานข้อมูลภายนอก ไม่มี message queue ไม่มี runtime dependency คัดลอกไฟล์เดียว chmod +x แล้วรันได้เลย',
   'arch.c1':'เบราว์เซอร์','arch.c2':'บริการ OpsMini','arch.c3':'โฮสต์',
   'arch.b1t':'Vue 3 SPA','arch.b1s':'ฝังในไบนารีด้วย go:embed รองรับ 7 ภาษา','arch.b2t':'ECharts','arch.b2s':'แดชบอร์ด / แนวโน้ม / การแจ้งเตือน','arch.b3t':'เทอร์มินัล xterm.js','arch.b3s':'WebSocket แบบ full-duplex',
   'arch.b4t':'Go · Gin router','arch.b4s':'/api/v1 (UI) · /mcp (เครื่องมือ) · gRPC (จัดการหมู่)','arch.b5t':'Service layer','arch.b5s':'AI / security / Docker / monitoring / files / cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'middleware แบบ chain',
   'arch.b7t':'SQLite (pure-Go)','arch.b7s':'เก็บไฟล์เดียว ไม่ต้องติดตั้ง DB','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'เข้าถึงระบบและคอนเทนเนอร์โดยตรง','arch.b9t':'pty / crontab / ไฟร์วอลล์','arch.b9s':'wrapper ความสามารถระบบดั้งเดิม',
-  'arch.note':'คอมไพล์ข้ามแพลตฟอร์มสำหรับ Linux และ Windows บน amd64 / arm64 —— รันบน Raspberry Pi และเซิร์ฟเวอร์ ARM ได้เช่นกัน',
+  'arch.note':'คอมไพล์ข้ามแพลตฟอร์มสำหรับ Linux และ Windows บน AMD64 / ARM64 —— รันบน Raspberry Pi และเซิร์ฟเวอร์ ARM ได้เช่นกัน',
   'qs.tag':'Quick Start','qs.h2':'ใช้งานได้ในไม่กี่นาที','qs.p':'ดาวน์โหลด รัน เปิดเบราว์เซอร์——ไม่มี wizard ติดตั้ง ไม่มี dependency ที่วุ่นวาย',
   'qs.s1t':'ติดตั้งคลิกเดียว','qs.s1d':'คำสั่งเดียวจะดาวน์โหลดไบนารี สร้างคอนฟิก และลงทะเบียนเป็นบริการระบบ (Linux ใช้ systemd, Windows ใช้ SCM)','qs.s2t':'เปิดและเข้าสู่ระบบ','qs.s2d':'เข้า http://<IP>:8888 ผู้ใช้ opsmini รหัสผ่านจากเอาต์พุตสคริปต์หรือ .init_passwd','qs.s3t':'เสริมความปลอดภัยและเชื่อมต่อ','qs.s3d':'เปิด MFA และไฟร์วอลล์ เชื่อมเครื่องมือ AI ภายนอกผ่าน /mcp และรวมหลายโฮสต์เข้า OpsMini Server ด้วย gRPC',
   'api.tag':'Developer API','api.h2':'สร้างมาเพื่อ automation','api.p':'สิ่งที่แผงทำได้ API ก็ทำได้ คนใช้เบราว์เซอร์ โปรแกรมใช้ API','api.h3':'API สำหรับ UI + เครื่องมือ',
   'api.p2':'<b>/api/v1</b> สำหรับ UI และ <b>/mcp</b> สำหรับ AI แยกจากกันโดยสิ้นเชิง ทั้ง token และสิทธิ์ Claude หรือ Cursor เรียกใช้ความสามารถของแผงได้โดยตรง',
   'api.l1':'JWT + refresh token ส่วน MCP ใช้ token อายุยาวแยกต่างหาก','api.l2':'ครอบคลุมคอนเทนเนอร์ ไฟล์ มอนิเตอร์ แจ้งเตือน ความปลอดภัย และ cron','api.l3':'MCP ดั้งเดิม ให้ผู้ช่วย AI ภายนอกสั่งการเซิร์ฟเวอร์ได้','api.l4':'เส้นทางแบบ OpenAPI ใช้ curl ก็ทำ automation ได้ครบ',
   'api.code.title':'ตัวอย่าง curl',
-  'plat.tag':'Platforms','plat.h2':'ไบนารีเดียว สองแพลตฟอร์ม','plat.p':'ฟีเจอร์เท่ากันทั้ง Linux และ Windows: เก็บเมตริก, AI agent, งานตามกำหนดเวลา, จัดการหลายโฮสต์, REST API, จัดการ Docker ต่างกันแค่ชั้นอินเทอร์เฟซระบบ','plat.linux':'<li>จัดการด้วย systemd เริ่มอัตโนมัติเมื่อบูต</li><li>เทอร์มินัลบรรทัดคำสั่ง pty</li><li>เมตริกสไตล์ node_exporter</li><li>ติดตั้งเว็บไซต์ / ฐานข้อมูลคลิกเดียว</li><li>เสริมความปลอดภัย SSH และตรวจสอบความสมบูรณ์ไฟล์</li>','plat.win':'<li>จัดการเป็นบริการ Windows (SCM)</li><li>เทอร์มินัล ConPTY + เทอร์มินัลกราฟิก (ภาพหน้าจอเรียลไทม์ ควบคุมเมาส์และคีย์บอร์ดได้)</li><li>เมตริกเข้ากันได้กับ windows_exporter 0.32.1 ใช้แดชบอร์ด Grafana เดิมได้ทันที</li><li>ตรวจพื้นฐาน UAC / ไฟร์วอลล์ / RDP / SMBv1 / Defender</li><li>ไฟล์ exe เดียว ไม่ต้องติดตั้งรันไทม์</li>','plat.note':'เว็บไซต์ ฐานข้อมูล และการติดตั้งคลิกเดียวเป็นความสามารถเฉพาะ Linux บน Windows API เหล่านั้นจะคืนค่า 501 ส่วนฟีเจอร์อื่นทำงานเหมือนกันทั้งสองแพลตฟอร์ม','st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'อินเทอร์เฟซภายนอก',
+  'plat.tag':'Platforms','plat.h2':'ไบนารีเดียว สองแพลตฟอร์ม','plat.p':'ความสามารถชุดเดียวกันทั้ง Linux และ Windows: เก็บเมตริก, AI agent, งานตามกำหนดเวลา, จัดการหลายโฮสต์, REST API, จัดการ Docker ฟีเจอร์และวิธีใช้งานเหมือนกัน','plat.linux':'<li>จัดการด้วย systemd เริ่มอัตโนมัติเมื่อบูต</li><li>เทอร์มินัลบรรทัดคำสั่ง pty</li><li>เมตริกสไตล์ node_exporter</li><li>เสริมความปลอดภัย SSH และตรวจสอบความสมบูรณ์ไฟล์</li><li>ไบนารีเดียวแบบสแตติก ไม่มีดีเพนเดนซีภายนอก</li>','plat.win':'<li>จัดการเป็นบริการ Windows (SCM) เริ่มอัตโนมัติเมื่อบูต</li><li>เทอร์มินัล ConPTY + เทอร์มินัลกราฟิก (ภาพหน้าจอเรียลไทม์ ควบคุมเมาส์และคีย์บอร์ดได้)</li><li>เมตริกเข้ากันได้กับ windows_exporter 0.32.1 ใช้แดชบอร์ด Grafana เดิมได้ทันที</li><li>ตรวจพื้นฐาน UAC / ไฟร์วอลล์ / RDP / SMBv1 / Defender</li><li>ไฟล์ exe เดียว ไม่ต้องติดตั้งรันไทม์</li>','st.k1':'ไบนารีเดียว','st.k2':'ไม่มี runtime dependency','st.k3':'ภาษา UI','st.k4':'อินเทอร์เฟซภายนอก',
   'faq.tag':'FAQ','faq.h2':'คำถามที่พบบ่อย',
   'faq.q1':'OpsMini ต่างจาก BaoTa หรือ 1Panel อย่างไร?','faq.a1':'OpsMini เป็น AI ops agent ที่ประจำบนโฮสต์ ไม่ใช่แผงควบคุมแบบเดิม หน้าเว็บเป็นเพียงหน้าต่างสำหรับมองดู มันวินิจฉัยและลงมือเอง รองรับ MCP และ API ระหว่างเครื่อง และแพ็กเป็นไบนารี Go + SQLite ตัวเดียว',
   'faq.q2':'รองรับระบบ / สถาปัตยกรรมใดบ้าง?','faq.a2':'Linux amd64 และ arm64 (รวม Raspberry Pi และเซิร์ฟเวอร์ในประเทศ) แผงเป็น Go binary แบบ static compile จึงรันได้ตราบใดที่ kernel ไม่เก่าเกินไป',
@@ -1654,21 +1655,21 @@ const I18N = {
   'f5.t':'Web-Terminal','f5.d':'SSH-wertiges Browser-Terminal über WebSocket + pty, voll kompatibel mit Vollbild-Programmen wie vim und htop — von überall anmelden.','f5.tags':'<span>xterm</span><span>pty</span><span>WebSocket</span>',
   'f6.t':'Dateimanager','f6.d':'Online durchsuchen, hochladen, herunterladen, umbenennen, Verzeichnisse anlegen und löschen — auch große Dateien kein Problem.','f6.tags':'<span>Upload/Download</span><span>Online</span>',
   'f7.t':'Cron-Jobs','f7.d':'Visuelle Verwaltung von System- und Benutzer-Crontabs, Skripte online ausführen, mit nachvollziehbarer Historie.','f7.tags':'<span>cron</span><span>Skripte</span>',
-  'f8.t':'App-Store','f8.d':'Ein-Klick-Deployment gängiger Apps, Sync mit offiziellen Repos, lokaler Import sowie Website- und Datenbankverwaltung.','f8.tags':'<span>Ein-Klick</span><span>Websites</span><span>Datenbanken</span>',
+  'f8.t':'Notfall-Übungen','f8.d':'Sechs echte Fehler mit einem Klick injizieren — CPU-Sättigung, Log-Flut, abgelegte Webshell, volllaufende Festplatte und mehr. Jeder stellt sich per Timer selbst wieder her und belegt, dass Erkennung und Reaktion wirklich greifen.','f8.tags':'<span>Fehlerinjektion</span><span>Auto-Wiederherstellung</span><span>Geprüft</span>',
   'f9.t':'Berechtigungen & Audit','f9.d':'RBAC mit Benutzern / Rollen / Berechtigungsgruppen, TOTP-Zwei-Faktor (MFA) und vollständige Audit-Logs für sichere Zusammenarbeit.','f9.tags':'<span>RBAC</span><span>MFA</span><span>Audit-Log</span>',
   'arch.tag':'Architecture','arch.h2':'Gebaut für Single-Binary-Auslieferung','arch.p':'Keine externe Datenbank, keine Message-Queue, keine Laufzeit-Abhängigkeiten. Eine Datei kopieren, chmod +x, fertig.',
   'arch.c1':'Browser','arch.c2':'OpsMini-Dienst','arch.c3':'Host',
   'arch.b1t':'Vue-3-SPA','arch.b1s':'per go:embed eingebettet, 7 Sprachen i18n','arch.b2t':'ECharts-Visualisierung','arch.b2s':'Dashboard / Trends / Alarme','arch.b3t':'xterm.js-Terminal','arch.b3s':'Vollduplex-WebSocket',
   'arch.b4t':'Go · Gin-Router','arch.b4s':'/api/v1 (UI) · /mcp (Werkzeuge) · gRPC (Flotte)','arch.b5t':'Service-Schicht','arch.b5s':'KI / Sicherheit / Docker / Monitoring / Dateien / Cron…','arch.b6t':'JWT + RBAC + MFA','arch.b6s':'verkettete Middleware',
   'arch.b7t':'SQLite (pure Go)','arch.b7s':'Einzeldatei-Speicher, keine DB-Installation','arch.b8t':'Docker / systemd / SCM / procfs','arch.b8s':'direkter System- & Container-Zugriff','arch.b9t':'pty / crontab / Firewall','arch.b9s':'native System-Wrapper',
-  'arch.note':'Für Linux und Windows auf amd64 / arm64 kompiliert — läuft auch auf Raspberry Pi und ARM-Servern',
+  'arch.note':'Für Linux und Windows auf AMD64 / ARM64 kompiliert — läuft auch auf Raspberry Pi und ARM-Servern',
   'qs.tag':'Quick Start','qs.h2':'In Minuten einsatzbereit','qs.p':'Herunterladen, ausführen, Browser öffnen — kein Installationsassistent, kein Abhängigkeits-Albtraum.',
   'qs.s1t':'Ein-Klick-Installation','qs.s1d':'Ein Befehl lädt die Binary, erzeugt die Konfiguration und registriert einen Systemdienst (systemd unter Linux, SCM unter Windows).','qs.s2t':'Öffnen & anmelden','qs.s2d':'http://<IP>:8888 aufrufen, Benutzer opsmini, Passwort aus der Skriptausgabe oder .init_passwd','qs.s3t':'Absichern & integrieren','qs.s3d':'MFA und Firewall aktivieren; externe KI-Werkzeuge über /mcp anbinden, Hosts per gRPC in den OpsMini Server aufnehmen',
   'api.tag':'Developer API','api.h2':'Gebaut für Automatisierung','api.p':'Was das Panel kann, kann auch die API. Menschen nutzen den Browser, Programme die API.','api.h3':'UI-API + Werkzeug-API',
   'api.p2':'Die UI-API <b>/api/v1</b> und die KI-API <b>/mcp</b> sind getrennt — eigene Tokens, eigene Rechte. Claude, Cursor und andere steuern das Panel direkt.',
   'api.l1':'JWT-Auth + Refresh-Tokens; MCP nutzt ein eigenes langlebiges Token','api.l2':'Deckt Container, Dateien, Monitoring, Alarme, Sicherheit und Cron ab','api.l3':'Natives MCP, damit externe KI-Assistenten deinen Server bedienen können','api.l4':'OpenAPI-artige Routen — vollständige Automatisierung mit reinem curl',
   'api.code.title':'curl-Beispiel',
-  'plat.tag':'Platforms','plat.h2':'Eine Binary, zwei Plattformen','plat.p':'Funktionsgleich unter Linux und Windows: Metriken, KI-Agent, geplante Aufgaben, Mehrhost-Verwaltung, REST-API und Docker. Nur die Systemschnittstelle unterscheidet sich.','plat.linux':'<li>systemd-verwaltet, Start beim Booten</li><li>pty-Kommandozeilenterminal</li><li>Metriken im node_exporter-Stil</li><li>Website / Datenbank mit einem Klick</li><li>SSH-Härtung und Dateiintegrität</li>','plat.win':'<li>Windows-Dienst (SCM)</li><li>ConPTY-Terminal plus Grafikterminal (Live-Bild, Maus und Tastatur übernehmbar)</li><li>windows_exporter-0.32.1-kompatible Metriken, vorhandene Grafana-Dashboards laufen unverändert</li><li>Baseline-Prüfungen: UAC / Firewall / RDP / SMBv1 / Defender</li><li>Eine exe, keine Runtime nötig</li>','plat.note':'Websites, Datenbanken und Ein-Klick-Deploy gibt es nur unter Linux; diese APIs antworten unter Windows mit 501. Alles andere verhält sich auf beiden Plattformen gleich.','st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'Schnittstellen',
+  'plat.tag':'Platforms','plat.h2':'Eine Binary, zwei Plattformen','plat.p':'Dieselben Möglichkeiten unter Linux und Windows: Metriken, KI-Agent, geplante Aufgaben, Mehrhost-Verwaltung, REST-API und Docker — mit identischem Verhalten und Ablauf.','plat.linux':'<li>systemd-verwaltet, Start beim Booten</li><li>pty-Kommandozeilenterminal</li><li>Metriken im node_exporter-Stil</li><li>SSH-Härtung und Dateiintegrität</li><li>Statische einzelne Binary, keine externen Abhängigkeiten</li>','plat.win':'<li>Windows-Dienst (SCM), Start beim Booten</li><li>ConPTY-Terminal plus Grafikterminal (Live-Bild, Maus und Tastatur übernehmbar)</li><li>windows_exporter-0.32.1-kompatible Metriken, vorhandene Grafana-Dashboards laufen unverändert</li><li>Baseline-Prüfungen: UAC / Firewall / RDP / SMBv1 / Defender</li><li>Eine exe, keine Runtime nötig</li>','st.k1':'einzelne Binary','st.k2':'Laufzeit-Abhängigkeiten','st.k3':'Sprachen','st.k4':'Schnittstellen',
   'faq.tag':'FAQ','faq.h2':'Häufig gestellte Fragen',
   'faq.q1':'Wie unterscheidet sich OpsMini von BaoTa oder 1Panel?','faq.a1':'OpsMini ist ein dauerhaft laufender KI-Betriebsagent, kein klassisches Panel. Die Oberfläche ist sein Fenster: Er diagnostiziert und handelt selbst, spricht MCP und eine Maschine-zu-Maschine-API und kommt als eine Go-und-SQLite-Binary.',
   'faq.q2':'Welche Systeme / Architekturen werden unterstützt?','faq.a2':'Linux amd64 und arm64 (inkl. Raspberry Pi und heimischer Server). Das Panel ist eine statisch kompilierte Go-Binary und läuft, solange der Kernel nicht zu alt ist.',
