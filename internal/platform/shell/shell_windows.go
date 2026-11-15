@@ -16,7 +16,10 @@ import (
 // a command prints arrives as legacy bytes and turns into replacement
 // characters, which reads as "the terminal is broken" rather than "the encoding
 // was not negotiated".
-const psUTF8 = `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;`
+//
+// try/catch 是必要的：进程没有控制台时（服务被 NSSM / CREATE_NO_WINDOW 拉起）
+// setter 会抛 "The handle is invalid"，不捕获就等于让每条命令都失败。
+const psUTF8 = `try{[Console]::OutputEncoding=[System.Text.Encoding]::UTF8}catch{};`
 
 // command runs line through PowerShell.
 //

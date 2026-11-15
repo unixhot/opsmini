@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/sys/windows"
 )
@@ -23,6 +24,15 @@ import (
 // windowsRulePrefix 标记面板创建的规则，方便列表里优先展示与区分。
 const windowsRulePrefix = "OpsMini-"
 
+// firewallQueryTimeout 给列举规则用 30 秒，而非常规的 10 秒。
+//
+// 实测（172 条入站规则的桌面机）：Get-NetFirewallRule 取 60 条约 2.9 s，再对每条
+// 调一次 Get-NetFirewallPortFilter 约 4.2 s，加上进程启动与 JSON 序列化正好在
+// 10 s 上下 —— 也就是说默认超时会把一个"慢"的查询变成"完全拿不到数据"。
+// 批量取法不可行：非提权进程调用不带管道绑定的 Get-NetFirewallPortFilter 会被
+// 拒绝访问，逐条取是唯一可行路径。
+const firewallQueryTimeout = 30 * time.Second
+
 // isPrivileged reports whether the process runs with an elevated token.
 // `os.Geteuid()` returns -1 on Windows, so the Unix check rejected everything.
 func isPrivileged() bool {
@@ -35,7 +45,7 @@ func isPrivileged() bool {
 func remoteAdminPort() int { return 3389 }
 
 // windowsFirewallRules lists inbound rules, panel-created ones first.
-func windowsFirewallRules() []FirewallRule {
+func windowsFirewallRules() ([]FirewallRule, error) {
 	type row struct {
 		Name   string `json:"Name"`
 		Proto  string `json:"Proto"`
@@ -55,8 +65,8 @@ func windowsFirewallRules() []FirewallRule {
 		` | ForEach-Object { $p = $_ | Get-NetFirewallPortFilter;` +
 		` [pscustomobject]@{ Name=$_.DisplayName; Proto=[string]$p.Protocol; Port=[string]($p.LocalPort -join ','); Action=[string]$_.Action } }`
 	var rows []row
-	if err := psJSON(q, &rows); err != nil {
-		return nil
+	if err := psJSONWithin(q, &rows, firewallQueryTimeout); err != nil {
+		return nil, err
 	}
 
 	out := make([]FirewallRule, 0, len(rows))
@@ -78,7 +88,7 @@ func windowsFirewallRules() []FirewallRule {
 			Managed: strings.HasPrefix(name, windowsRulePrefix),
 		})
 	}
-	return out
+	return out, nil
 }
 
 // windowsAllowPort creates (or refreshes) an inbound allow rule.

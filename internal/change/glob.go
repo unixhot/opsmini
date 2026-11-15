@@ -16,22 +16,35 @@ import (
 //
 // Semantics: "*" matches within one segment, "**" matches zero or more segments.
 func matchGlob(pattern, path string) bool {
+	// 反斜杠只在 Windows 上是分隔符：Unix 上它是合法的文件名字符，也是
+	// path.Match 里的转义符，无条件替换会改变 Unix 的匹配语义。
+	return matchGlobFor(pattern, path, filepath.Separator == '\\')
+}
+
+// matchGlobFor is matchGlob with the separator convention passed in.
+//
+// 分成显式参数是为了让 Windows 分支能在 Linux/macOS 的 CI 上被测到：
+// filepath.ToSlash 在 Separator=='/' 时直接返回原值（见 Go 源码
+// internal/filepathlite/path.go），所以「归一化」这件事本身只在 Windows 编译时
+// 存在，用它写死的测试在别的平台必然失败。
+func matchGlobFor(pattern, path string, windows bool) bool {
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
 		return false
+	}
+	if windows {
+		// "C:\a\b" -> "C:/a/b"。不归一化的话整串会被当成一个 segment，
+		// "C:/proj/**" 永不命中，而 "**/*.tmp" 又会因为 "*" 能吞掉反斜杠
+		// 而"碰巧"命中 —— 两种结果都不对。
+		pattern = strings.ReplaceAll(pattern, `\`, "/")
+		path = strings.ReplaceAll(path, `\`, "/")
 	}
 	// 两个平台都按 "/" 分段匹配。
 	//
 	// 不能用 filepath.Match：Windows 上分隔符是 "\\"，"/" 只是一个普通字符，
 	// 于是 "*" 会跨目录匹配，"/var/log/*.log" 会命中 "/var/log/nginx/error.log"。
 	// 面板里的规则和路径都是 POSIX 风格，用 path.Match 语义才一致。
-	//
-	// 两边都先归一化成 "/" 再分段。调用方传进来的路径是 filepath.Clean 的结果，
-	// Windows 上是 "C:\a\b"；不归一化的话整串会被当成一个 segment，于是：
-	//   - "C:/proj/**" 永不命中（段数对不上）；
-	//   - "**/*.tmp" 反而"碰巧"命中，因为 "*" 能吞掉含反斜杠的整串。
-	// 前者让用户的忽略规则完全失效，后者让规则的语义变成另一个东西。
-	return matchSegments(splitPath(filepath.ToSlash(pattern)), splitPath(filepath.ToSlash(path)))
+	return matchSegments(splitPath(pattern), splitPath(path))
 }
 
 func splitPath(p string) []string {

@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -37,7 +39,22 @@ type FirewallRules struct {
 type FirewallService struct {
 	sys       *SystemService
 	panelPort int
+
+	// 防火墙状态是整个安全模块里最贵的一次读：Windows 上实测约 10 秒
+	// （Get-NetFirewallProfile 2.8 s + 列举 60 条规则并对每条取 PortFilter 约 7 s），
+	// 而前端每次切换安全页签都会重新拉一次。缓存 15 秒，把「来回切页签」的代价
+	// 降到 0，又不会让用户盯着很久以前的结果；任何写操作入口都先失效缓存。
+	//
+	// 读失败不进缓存：否则一次超时会让页面在 15 秒内持续显示「一条规则都没有」，
+	// 把偶发故障变成看起来确定的事实。
+	cacheMu  sync.Mutex
+	cacheAt  time.Time
+	cacheOut *FirewallRules
 }
+
+// firewallCacheTTL 是防火墙状态的缓存时长。选 15 秒的依据：比一次人工查看的
+// 停留时间短，比连续切页签的间隔长。
+const firewallCacheTTL = 15 * time.Second
 
 // NewFirewallService creates a FirewallService. panelPort is the panel's own listening
 // port (protected from being closed).
@@ -45,25 +62,66 @@ func NewFirewallService(sys *SystemService, panelPort int) *FirewallService {
 	return &FirewallService{sys: sys, panelPort: panelPort}
 }
 
-// Status returns the firewall status and rule list.
+// Status returns the firewall status and rule list, reusing a result younger than
+// firewallCacheTTL.
 func (s *FirewallService) Status() *FirewallRules {
-	fw := s.sys.FirewallStatus()
-	out := &FirewallRules{Backend: fw.Backend, Enabled: fw.Enabled, Rules: []FirewallRule{}}
-	switch fw.Backend {
-	case "ufw":
-		out.Rules = s.ufwRules()
-	case "firewalld":
-		out.Rules = s.firewalldRules()
-	case "iptables":
-		out.Rules = s.iptablesRules()
-	case "windows":
-		out.Rules = windowsFirewallRules()
+	s.cacheMu.Lock()
+	if s.cacheOut != nil && time.Since(s.cacheAt) < firewallCacheTTL {
+		cached := *s.cacheOut
+		s.cacheMu.Unlock()
+		return &cached
 	}
+	s.cacheMu.Unlock()
+
+	fw := s.sys.FirewallStatus()
+	rules, err := s.listRules(fw.Backend)
+	if err != nil {
+		// 读失败和「没有规则」在页面上长得一样（都是空列表），日志里至少留下原因。
+		log.Printf("读取防火墙规则失败（backend=%s）：%v", fw.Backend, err)
+		return &FirewallRules{Backend: fw.Backend, Enabled: fw.Enabled, Rules: []FirewallRule{}}
+	}
+
+	out := &FirewallRules{Backend: fw.Backend, Enabled: fw.Enabled, Rules: rules}
+	s.cacheMu.Lock()
+	s.cacheOut, s.cacheAt = out, time.Now()
+	s.cacheMu.Unlock()
 	return out
+}
+
+// listRules dispatches to the backend's rule reader. 只有 Windows 后端可能报错：
+// 它要走一次 PowerShell 往返，而其余后端是用 read 命令的输出尽力解析。
+func (s *FirewallService) listRules(backend string) ([]FirewallRule, error) {
+	var rules []FirewallRule
+	switch backend {
+	case "ufw":
+		rules = s.ufwRules()
+	case "firewalld":
+		rules = s.firewalldRules()
+	case "iptables":
+		rules = s.iptablesRules()
+	case "windows":
+		var err error
+		if rules, err = windowsFirewallRules(); err != nil {
+			return nil, err
+		}
+	}
+	if rules == nil {
+		rules = []FirewallRule{}
+	}
+	return rules, nil
+}
+
+// invalidateStatus drops the cached status and rule list. 写操作入口一律先调用：
+// 多清一次最多多读一次，漏清就会让刚加完规则的用户看不到自己那条。
+func (s *FirewallService) invalidateStatus() {
+	s.cacheMu.Lock()
+	s.cacheOut = nil
+	s.cacheMu.Unlock()
 }
 
 // AllowPort opens a port.
 func (s *FirewallService) AllowPort(port int, proto string) error {
+	s.invalidateStatus()
 	if err := s.guard(port, proto); err != nil {
 		return err
 	}
@@ -89,6 +147,7 @@ func (s *FirewallService) AllowPort(port int, proto string) error {
 
 // DenyPort closes a port.
 func (s *FirewallService) DenyPort(port int, proto string) error {
+	s.invalidateStatus()
 	if err := s.guard(port, proto); err != nil {
 		return err
 	}
@@ -125,6 +184,7 @@ func (s *FirewallService) DenyPort(port int, proto string) error {
 // Enable enables the firewall. Before enabling, it always allows the panel's own
 // port and SSH (22) to avoid locking the user out.
 func (s *FirewallService) Enable() error {
+	s.invalidateStatus()
 	if err := requireRoot(); err != nil {
 		return err
 	}
@@ -157,6 +217,7 @@ func (s *FirewallService) Enable() error {
 
 // Disable disables the firewall (not provided for the iptables backend, too destructive).
 func (s *FirewallService) Disable() error {
+	s.invalidateStatus()
 	if err := requireRoot(); err != nil {
 		return err
 	}
@@ -176,6 +237,7 @@ func (s *FirewallService) Disable() error {
 
 // DeleteRule deletes a rule (ref is the rule number).
 func (s *FirewallService) DeleteRule(ref string) error {
+	s.invalidateStatus()
 	if err := requireRoot(); err != nil {
 		return err
 	}

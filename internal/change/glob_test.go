@@ -55,9 +55,13 @@ func TestMatchGlobMalformedIsFalse(t *testing.T) {
 	}
 }
 
-// Windows paths arrive as filepath.Clean output ("C:\a\b"). Both sides are
-// normalised to "/" so that a rule written with directories works there too;
-// before that fix every such rule matched nothing.
+// Windows paths arrive as filepath.Clean output ("C:\a\b"). With the Windows
+// separator convention both sides are normalised to "/" so that a rule written
+// with directories works there too; before that fix every such rule matched
+// nothing.
+//
+// 用 matchGlobFor(..., true) 而不是 matchGlob：反斜杠在 Unix 上不是分隔符，
+// 只有把约定显式传进来，这条用例才能在 Linux/macOS 的 CI 上跑到 Windows 分支。
 func TestMatchGlobWindowsBackslashPaths(t *testing.T) {
 	cases := []struct {
 		pattern, path string
@@ -75,8 +79,19 @@ func TestMatchGlobWindowsBackslashPaths(t *testing.T) {
 		{`/var/log/**`, `C:\var\log\a.log`, false},
 	}
 	for _, c := range cases {
-		if got := matchGlob(c.pattern, c.path); got != c.want {
-			t.Errorf("matchGlob(%q, %q) = %v, want %v", c.pattern, c.path, got, c.want)
+		if got := matchGlobFor(c.pattern, c.path, true); got != c.want {
+			t.Errorf("matchGlobFor(%q, %q, windows) = %v, want %v", c.pattern, c.path, got, c.want)
 		}
+	}
+}
+
+// Unix 上反斜杠是普通文件名字符（也是 path.Match 的转义符），不能被当成分隔符；
+// 否则一个叫 "a\b.log" 的文件会被误判成两层路径。
+func TestMatchGlobUnixKeepsBackslash(t *testing.T) {
+	if got := matchGlobFor(`*`, `a\b.log`, false); !got {
+		t.Error(`"a\b.log" 应作为单个 segment 被 "*" 命中`)
+	}
+	if got := matchGlobFor(`*/b.log`, `a\b.log`, false); got {
+		t.Error(`Unix 上反斜杠不是分隔符，"*/b.log" 不应命中 "a\b.log"`)
 	}
 }

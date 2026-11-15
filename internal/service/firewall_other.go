@@ -10,7 +10,9 @@ import (
 // Unix 上不存在 Windows 防火墙后端，这里给出明确的错误而不是空实现：
 // 一旦真被调到，日志里能看出是后端判断出了问题，而不是规则"删成功了"。
 
-func windowsFirewallRules() []FirewallRule { return nil }
+func windowsFirewallRules() ([]FirewallRule, error) {
+	return nil, errors.New("当前系统不是 Windows，没有 Windows 防火墙后端")
+}
 
 func windowsAllowPort(int, string) error {
 	return errors.New("当前系统不是 Windows，没有 Windows 防火墙后端")

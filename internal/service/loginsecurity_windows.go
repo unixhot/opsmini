@@ -2,7 +2,14 @@
 
 package service
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
+
+// loginQueryTimeout 比常规的 10 秒宽得多：2000 条安全事件逐条 ToXml() 再解析
+// XML，慢机器上单这一项就要十几秒，用默认超时会把「慢」变成「拿不到数据」。
+const loginQueryTimeout = 60 * time.Second
 
 // Windows 的数据源是安全事件日志：
 //   4624 = 登录成功，4625 = 登录失败。
@@ -29,16 +36,24 @@ type winLogonEvent struct {
 func (s *LoginSecurityService) analyze() (*LoginReport, error) {
 	report := &LoginReport{LogFile: "Security 事件日志（4624 成功 / 4625 失败）"}
 
-	const q = `Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4625; StartTime=(Get-Date).AddHours(-24)} -MaxEvents 2000 -ErrorAction Stop | ForEach-Object { ` +
+	// 「没有匹配的事件」在 Get-WinEvent 里是一个终止错误，且提示文案会随系统语言
+	// 变化（英文 "No events were found…"、中文「找不到任何…」）。按文案匹配只能
+	// 覆盖有限几种语言，所以改成按 FullyQualifiedErrorId 判断 —— 它是 PowerShell
+	// 的稳定标识（NoMatchingEventsFound），不随本地化改变。
+	//
+	// 其它错误照旧抛出，让调用方拿到 stderr（例如真正没有读日志权限时）。
+	const q = `$e = try { Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4625; StartTime=(Get-Date).AddHours(-24)} -MaxEvents 2000 -ErrorAction Stop } ` +
+		`catch { if ($_.FullyQualifiedErrorId -like 'NoMatchingEventsFound*') { @() } else { throw } }; ` +
+		`$e | ForEach-Object { ` +
 		`$x = [xml]$_.ToXml(); $d = @{}; ` +
 		`$x.Event.EventData.Data | ForEach-Object { if ($_.Name) { $d[$_.Name] = $_.'#text' } }; ` +
 		`[pscustomobject]@{ Time = $_.TimeCreated.ToString('yyyy-MM-dd HH:mm:ss'); Id = $_.Id; User = [string]$d['TargetUserName']; Ip = [string]$d['IpAddress']; LogonType = [int]$d['LogonType'] } }`
 
 	var events []winLogonEvent
-	if err := psJSON(q, &events); err != nil {
-		// 24 小时内一条事件都没有时，Get-WinEvent 会抛「No events were found」，
-		// 加上 -ErrorAction Stop 就变成了终止错误。把它当成权限问题的后果是：
-		// 新装的机器上，用户被告知「需要以管理员身份运行」，去查一个不存在的权限问题。
+	// 2000 条事件逐条 ToXml() + XML 解析是这条链上最贵的一步，慢机器上远超 10 秒。
+	if err := psJSONWithin(q, &events, loginQueryTimeout); err != nil {
+		// 正常情况下「没有匹配事件」已经在脚本里被 catch 成空结果，走不到这里。
+		// 再按文案兜一次底，是为了防某些 PowerShell 版本给出不同的错误标识。
 		if isNoEventsError(err) {
 			report.Message = "过去 24 小时没有登录事件记录"
 			return report, nil
@@ -104,13 +119,12 @@ func isHumanLogon(t int) bool {
 	}
 }
 
-// isNoEventsError reports whether PowerShell failed because the security log had
-// nothing in the window, not because it could not be read.
+// isNoEventsError 是「没有匹配事件」的兜底判断。
 //
-// The message is localised — "No events were found that match the specified
-// selection criteria." / 「找不到任何与指定的选择条件匹配的事件。」 — and it
-// arrives as a terminating error because of -ErrorAction Stop. Treating it as a
-// failure tells a freshly installed machine that it lacks permissions.
+// 主路径不靠它：脚本里用 FullyQualifiedErrorId（NoMatchingEventsFound）在
+// PowerShell 内部就把这种情况归成空结果，那个标识不随系统语言变化。这里按文案
+// 匹配只覆盖中英文，其余语言（日/德/韩…）识别不到时会退回「无法读取」的提示 ——
+// 属于已知局限，不是主判定路径。
 func isNoEventsError(err error) bool {
 	msg := strings.ToLower(err.Error())
 	for _, s := range []string{

@@ -7,12 +7,17 @@ import (
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/encoding/korean"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/transform"
 )
+
+// procGetOEMCP 取控制台 OEM 代码页。x/sys/windows 只导出了 GetACP（ANSI），
+// 而控制台程序按 OEM 写输出，两者在非中文系统上并不相同。
+var procGetOEMCP = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetOEMCP")
 
 // decodeCmdOutput converts output from a native Windows tool (netsh and friends)
 // into UTF-8.
@@ -26,7 +31,7 @@ func decodeCmdOutput(b []byte) string {
 	if utf8.Valid(b) {
 		return string(b)
 	}
-	enc := ansiEncoding()
+	enc := oemEncoding()
 	if enc == nil {
 		return string(b)
 	}
@@ -37,13 +42,17 @@ func decodeCmdOutput(b []byte) string {
 	return string(out)
 }
 
-// ansiEncoding maps the system ANSI code page onto a decoder.
+// oemEncoding maps the console OEM code page onto a decoder.
 //
-// Only the code pages this project actually meets are covered. Anything else is
-// returned as nil — passing the bytes through unchanged is honest, whereas
-// guessing a code page would produce confident-looking nonsense.
-func ansiEncoding() encoding.Encoding {
-	switch windows.GetACP() {
+// 用 OEM 而不是 ANSI（GetACP）：netsh 这类控制台程序写的是 OEM 代码页。中文系统
+// 上两者都是 936，看不出差别，但俄语（ANSI 1251 / OEM 866）会解错。
+// x/sys/windows 没有导出 GetOEMCP，直接调 kernel32。
+//
+// 只覆盖本项目会遇到的代码页。其余返回 nil —— 原样透传是诚实的，猜一个代码页
+// 只会产出"看起来很像真的"的乱码。
+func oemEncoding() encoding.Encoding {
+	cp, _, _ := procGetOEMCP.Call()
+	switch uint32(cp) {
 	case 936:
 		return simplifiedchinese.GBK
 	case 950:
@@ -52,6 +61,12 @@ func ansiEncoding() encoding.Encoding {
 		return japanese.ShiftJIS
 	case 949:
 		return korean.EUCKR
+	case 866:
+		return charmap.CodePage866
+	case 850:
+		return charmap.CodePage850
+	case 437:
+		return charmap.CodePage437
 	default:
 		return nil
 	}
