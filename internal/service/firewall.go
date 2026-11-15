@@ -218,19 +218,22 @@ func requireRoot() error {
 }
 
 // runFirewallCmd runs a firewall command with a 10s timeout and returns the output.
+//
+// 输出按平台解码：netsh 这类原生程序在中文 Windows 上写的是 ANSI 代码页字节，
+// 直接当 UTF-8 用会把报错文本变成乱码（见 decodeCmdOutput）。
 func runFirewallCmd(name string, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		msg := strings.TrimSpace(string(out))
+		msg := strings.TrimSpace(decodeCmdOutput(out))
 		if msg == "" {
 			msg = err.Error()
 		}
 		return "", fmt.Errorf("%s %s 失败：%s", name, strings.Join(args, " "), msg)
 	}
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(decodeCmdOutput(out)), nil
 }
 
 // ---- rule parsing (best-effort) ----
